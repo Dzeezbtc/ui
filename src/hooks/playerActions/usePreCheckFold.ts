@@ -2,6 +2,7 @@ import type { NetworkEndpoints } from "../../context/NetworkContext";
 import { checkHand } from "./checkHand";
 import { foldHand } from "./foldHand";
 import { useLatchedDelay } from "./useLatchedDelay";
+import { resolvePreCheckFoldAction } from "../../utils/preCheckFold";
 import type { SubmitActionRequest } from "../../submit/types";
 
 /**
@@ -64,9 +65,10 @@ export function usePreCheckFold(
         // by hand (queue busy), or there is neither a free check nor a bet to fold
         // to (e.g. a blind-posting turn), resolve without acting.
         if (!isBusy) {
-            if (hasCheckAction) {
+            const action = resolvePreCheckFoldAction({ hasCheckAction, hasCallAction, hasFoldAction });
+            if (action === "check") {
                 submit({ actionName: "check", run: () => checkHand(tableId, network), onSuccess: onSubmitted });
-            } else if (hasCallAction && hasFoldAction) {
+            } else if (action === "fold") {
                 submit({ actionName: "fold", run: () => foldHand(tableId, network), onSuccess: onSubmitted });
             }
         }

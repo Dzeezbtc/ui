@@ -1,4 +1,5 @@
 import React from "react";
+import { preCheckFoldLabel } from "../../utils/preCheckFold";
 
 interface PreCheckFoldControlProps {
     /** Whether Check/Fold is currently queued. */
@@ -23,7 +24,7 @@ interface PreCheckFoldControlProps {
  * player's turn arrives.
  */
 export const PreCheckFoldControl: React.FC<PreCheckFoldControlProps> = ({ checked, onChange, facingBet, isMobileLandscape }) => {
-    const label = facingBet ? "Fold" : "Check/Fold";
+    const label = preCheckFoldLabel(!facingBet);
     return (
         <div className="flex justify-center">
             <button

@@ -64,6 +64,7 @@ import { MainActionButtons } from "./MainActionButtons";
 import { RaiseBetControls } from "./RaiseBetControls";
 import { PreCheckFoldControl } from "./PreCheckFoldControl";
 import { isCheckFreeForPlayer } from "../../utils/chipUtils";
+import { shouldShowPreCheckFold, shouldClearPreCheckFold } from "../../utils/preCheckFold";
 
 // Import types
 import type { PokerActionPanelProps } from "./types";
@@ -245,17 +246,17 @@ export const PokerActionPanel: React.FC<PokerActionPanelProps> = ({ tableId, net
         [players, userAddress, gameState?.round, gameState?.previousActions]
     );
 
-    // Offer the control only while the opt-in setting is ON (default OFF, ui#388),
-    // and then only while seated in the hand and not to act. It is first offered
-    // while check-free; once ticked it stays visible after a bet lands (relabelled
-    // "Fold") so the player can see, and untick, what will happen.
-    const showPreCheck = preSelectCheck && !isUsersTurn && playerStatus === PlayerStatus.ACTIVE && (facingNoBet || preCheckQueued);
+    // When the box shows and when a ticked box clears: see utils/preCheckFold.
+    const showPreCheck = shouldShowPreCheckFold({
+        enabled: preSelectCheck,
+        isUsersTurn,
+        playerStatus,
+        facingNoBet,
+        queued: preCheckQueued
+    });
 
-    // Clear the queued intent when the player leaves the hand (fold, bust, sit
-    // out). A bet landing does NOT clear it — that is when Check/Fold folds. When
-    // the turn arrives we leave it set so usePreCheckFold can consume it.
     useEffect(() => {
-        if (preCheckQueued && !isUsersTurn && playerStatus !== PlayerStatus.ACTIVE) {
+        if (shouldClearPreCheckFold({ queued: preCheckQueued, isUsersTurn, playerStatus })) {
             setPreCheckQueued(false);
         }
     }, [preCheckQueued, isUsersTurn, playerStatus]);
