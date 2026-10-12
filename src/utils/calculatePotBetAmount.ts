@@ -51,19 +51,40 @@ export function calculatePotBetAmount(params: CalculatePotBetAmountParams): bigi
     return potBet;
 }
 
+/** A pot fraction as an exact ratio, so pot sizing never goes through a float. */
+export type PotFraction = { numerator: bigint; denominator: bigint };
+
+const NAMED_FRACTIONS: Record<Exclude<PotBetVariation, number>, PotFraction> = {
+    "1/4": { numerator: 1n, denominator: 4n },
+    "1/3": { numerator: 1n, denominator: 3n },
+    "1/2": { numerator: 1n, denominator: 2n },
+    "2/3": { numerator: 2n, denominator: 3n },
+    "3/4": { numerator: 3n, denominator: 4n },
+    "1": { numerator: 1n, denominator: 1n }
+};
+
 /**
- * Converts a pot bet variation string to a decimal multiplier
+ * Converts a pot bet variation to an exact fraction.
+ *
+ * Named presets map to their exact ratio (1/3 stays 1/3). A custom numeric
+ * multiplier is read from its decimal digits (1.5 → 15/10), so no float
+ * multiply or precision constant is involved.
+ *
+ * @throws If a custom multiplier is negative, not finite, or in exponent form.
  */
-function parseVariationToMultiplier(variation: string): number {
-    switch (variation) {
-        case "1/4": return 0.25;
-        case "1/3": return 1 / 3;
-        case "1/2": return 0.5;
-        case "2/3": return 2 / 3;
-        case "3/4": return 0.75;
-        case "1": return 1.0;
-        default: return 1.0;
+export function toPotFraction(variation: PotBetVariation): PotFraction {
+    if (typeof variation !== "number") {
+        return NAMED_FRACTIONS[variation];
     }
+    const digits = String(variation);
+    if (!/^\d+(\.\d+)?$/.test(digits)) {
+        throw new Error(`toPotFraction: unsupported pot multiplier ${digits}`);
+    }
+    const [whole, decimals = ""] = digits.split(".");
+    return {
+        numerator: BigInt(whole + decimals),
+        denominator: 10n ** BigInt(decimals.length)
+    };
 }
 
 /**
@@ -87,24 +108,17 @@ export function calculatePotBetWithVariation(
 ): bigint {
     const { callAmount, pot } = params;
 
-    // Convert variation to multiplier
-    const multiplier = typeof variation === "number"
-        ? variation
-        : parseVariationToMultiplier(variation);
-
-    // Use 10^9 precision to handle fractions like 1/3 and 2/3 accurately
-    const PRECISION = 1_000_000_000n;
-    const multiplierBigInt = BigInt(Math.round(multiplier * Number(PRECISION)));
+    const { numerator, denominator } = toPotFraction(variation);
 
     if (callAmount === 0n) {
         // First to act — a fraction of the pot
-        return (pot * multiplierBigInt) / PRECISION;
+        return (pot * numerator) / denominator;
     }
 
     // Facing a bet: CALL + fraction × (CALL + POT)
     // The "potential pot" is what the pot would be after we call
     const potentialPot = callAmount + pot;
-    const fractionAmount = (potentialPot * multiplierBigInt) / PRECISION;
+    const fractionAmount = (potentialPot * numerator) / denominator;
     return callAmount + fractionAmount;
 }
 

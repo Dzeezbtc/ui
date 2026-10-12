@@ -1,5 +1,5 @@
 import { PlayerActionType, ActionDTO, TexasHoldemRound } from "@block52/poker-vm-sdk";
-import { calculatePotBetAmount, calculatePotBetWithVariation, getPotBetVariations } from "./calculatePotBetAmount";
+import { calculatePotBetAmount, calculatePotBetWithVariation, toPotFraction, getPotBetVariations } from "./calculatePotBetAmount";
 
 describe("calculatePotBetAmount", () => {
     // Cosmos bech32 addresses (b52 prefix for Block52 chain)
@@ -312,9 +312,8 @@ describe("calculatePotBetAmount", () => {
 
         it("should calculate 1/3 pot correctly", () => {
             const result = calculatePotBetWithVariation(baseParams, "1/3");
-            // 50 + (1/3) × 150 = 50 + 50 = 100M
-            // Due to BigInt rounding: 150M × 333333333 / 1000000000 = 49999999 (off by 1)
-            expect(result).toBe(99_999_999n);
+            // 50 + (1/3) × 150 = 50 + 50 = 100M — exact, no float rounding
+            expect(result).toBe(100_000_000n);
         });
 
         it("should calculate 2/3 pot correctly", () => {
@@ -401,9 +400,48 @@ describe("calculatePotBetAmount", () => {
 
             // potentialPot = 1T + 2T = 3T
             // 2/3 pot = 1T + (2/3) × 3T = 1T + 2T = 3T
-            // Due to BigInt rounding with large numbers, slight variance is expected
+            // Exact fractions: no variance even at large amounts
             const result = calculatePotBetWithVariation(largeParams, "2/3");
-            expect(result).toBe(3_000_000_001_000n);
+            expect(result).toBe(3_000_000_000_000n);
+        });
+    });
+
+    describe("toPotFraction (exact ratios, no float or precision constant)", () => {
+        it.each([
+            ["1/4", 1n, 4n],
+            ["1/3", 1n, 3n],
+            ["1/2", 1n, 2n],
+            ["2/3", 2n, 3n],
+            ["3/4", 3n, 4n],
+            ["1", 1n, 1n]
+        ] as const)("maps %s to %s/%s", (variation, numerator, denominator) => {
+            expect(toPotFraction(variation)).toEqual({ numerator, denominator });
+        });
+
+        it.each([
+            [1.5, 15n, 10n],
+            [0.33, 33n, 100n],
+            [0.1, 1n, 10n],
+            [2, 2n, 1n]
+        ])("reads custom multiplier %s from its digits as %s/%s", (variation, numerator, denominator) => {
+            expect(toPotFraction(variation)).toEqual({ numerator, denominator });
+        });
+
+        it.each([-0.5, Number.NaN, Number.POSITIVE_INFINITY, 1e-7])("rejects unsupported multiplier %s", variation => {
+            expect(() => toPotFraction(variation)).toThrow();
+        });
+    });
+
+    describe("facing a bet: CALL + fraction × (CALL + POT)", () => {
+        // $1/$2: opponent bets $5 into $10, so pot $15, call $5.
+        const params = { currentRound: TexasHoldemRound.FLOP, previousActions: [], callAmount: 5_000_000n, pot: 15_000_000n };
+
+        it("pot raise adds call + (pot after call): 5 + 20 = $25 (raise to 3×bet + pot before)", () => {
+            expect(calculatePotBetWithVariation(params, "1")).toBe(25_000_000n);
+        });
+
+        it("half-pot raise adds 5 + 10 = $15", () => {
+            expect(calculatePotBetWithVariation(params, "1/2")).toBe(15_000_000n);
         });
     });
 
@@ -473,7 +511,7 @@ describe("calculatePotBetAmount", () => {
             // 1/2 pot = 30 + 0.5 × 90 = 30 + 45 = 75M
             // 2/3 pot = 30 + (2/3) × 90 = 30 + 60 = 90M
             // Full pot = 30 + 1 × 90 = 120M
-            expect(result[0].amount).toBe(59_999_999n);  // 1/3 pot (BigInt rounding)
+            expect(result[0].amount).toBe(60_000_000n);  // 1/3 pot — exact
             expect(result[1].amount).toBe(75_000_000n);  // 1/2 pot
             expect(result[2].amount).toBe(90_000_000n);  // 2/3 pot
             expect(result[3].amount).toBe(120_000_000n); // Full pot

@@ -1,13 +1,7 @@
 import React from "react";
 import { calculatePotBetWithVariation, PotBetVariation } from "../../utils/calculatePotBetAmount";
-import { microBigIntToUsdc } from "../../constants/currency";
+import { microBigIntToUsdc, roundMicroToCent } from "../../constants/currency";
 import type { PotSizedBetButtonsProps } from "./types";
-
-// One cent in micro-USDC: cash presets are rounded to the nearest cent.
-const CENT_MICRO = 10_000n;
-
-/** Round a micro-USDC amount to the nearest cent, halves up. */
-const roundToCentMicro = (micro: bigint): bigint => ((micro + CENT_MICRO / 2n) / CENT_MICRO) * CENT_MICRO;
 
 export const PotSizedBetButtons: React.FC<PotSizedBetButtonsProps> = ({
     totalPotMicro,
@@ -42,7 +36,7 @@ export const PotSizedBetButtons: React.FC<PotSizedBetButtonsProps> = ({
             variation
         );
         // Tournaments deal in raw whole chips; cash converts micro-USDC (÷10^6) to dollars.
-        return isTournament ? Number(potBetMicro) : microBigIntToUsdc(roundToCentMicro(potBetMicro));
+        return isTournament ? Number(potBetMicro) : microBigIntToUsdc(roundMicroToCent(potBetMicro));
     };
 
     // A short stack that can't afford the legal minimum can only shove, via ALL-IN.

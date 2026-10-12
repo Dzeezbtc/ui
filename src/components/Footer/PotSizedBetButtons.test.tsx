@@ -21,8 +21,9 @@ const baseProps: PotSizedBetButtonsProps = {
 
 const renderButtons = (overrides: Partial<PotSizedBetButtonsProps> = {}) => {
     const onAmountSelect = jest.fn();
-    render(<PotSizedBetButtons {...baseProps} onAmountSelect={onAmountSelect} {...overrides} />);
-    return { onAmountSelect };
+    const onAllIn = jest.fn();
+    render(<PotSizedBetButtons {...baseProps} onAmountSelect={onAmountSelect} onAllIn={onAllIn} {...overrides} />);
+    return { onAmountSelect, onAllIn };
 };
 
 describe("PotSizedBetButtons — presets below the minimum bet are greyed out", () => {
@@ -73,12 +74,15 @@ describe("PotSizedBetButtons — presets below the minimum bet are greyed out", 
 
     it("never selects more than the stack (above the stack the preset shoves the stack)", () => {
         const { onAmountSelect } = renderButtons({ totalPotMicro: 100_000_000n, maxAmount: 15 });
-        fireEvent.click(screen.getByText("1/4 Pot")); // $25, capped at the $15 stack
+        const quarter = screen.getByText("1/4 Pot");
+        expect(quarter).not.toBeDisabled(); // $25 raw is above min, so the preset is live
+        fireEvent.click(quarter); // $25, capped at the $15 stack
         expect(onAmountSelect).toHaveBeenCalledWith(15);
     });
 
     it("disables the presets when the legal minimum exceeds the stack (short stack shoves via ALL-IN)", () => {
         renderButtons({ minAmount: 10, maxAmount: 5 });
+        expect(screen.getByText("1/4 Pot")).toBeDisabled();
         expect(screen.getByText("1/2 Pot")).toBeDisabled();
         expect(screen.getByText("Pot")).toBeDisabled();
         // ALL-IN stays enabled so the short stack can still act.
@@ -95,5 +99,70 @@ describe("PotSizedBetButtons — presets below the minimum bet are greyed out", 
         const { onAmountSelect } = renderButtons({ isTournament: true, totalPotMicro: 900n, minAmount: 100, maxAmount: 5000 });
         fireEvent.click(screen.getByText("1/4 Pot"));
         expect(onAmountSelect).toHaveBeenCalledWith(225);
+    });
+
+    it("disables a tournament preset that comes out below the chip minimum (300 chips → 1/4 = 75 < 100)", () => {
+        const { onAmountSelect } = renderButtons({ isTournament: true, totalPotMicro: 300n, minAmount: 100, maxAmount: 5000 });
+        const quarter = screen.getByText("1/4 Pot");
+        expect(quarter).toBeDisabled();
+        fireEvent.click(quarter);
+        expect(onAmountSelect).not.toHaveBeenCalled();
+    });
+
+    it("shows a tooltip explaining why a preset is greyed out", () => {
+        renderButtons();
+        expect(screen.getByText("1/4 Pot")).toHaveAttribute("title", "Below the minimum bet");
+        expect(screen.getByText("1/2 Pot")).not.toHaveAttribute("title");
+    });
+
+    it("fires onAllIn when ALL-IN is clicked", () => {
+        const { onAllIn, onAmountSelect } = renderButtons();
+        fireEvent.click(screen.getByText("ALL-IN"));
+        expect(onAllIn).toHaveBeenCalledTimes(1);
+        expect(onAmountSelect).not.toHaveBeenCalled();
+    });
+
+    describe("cent rounding at the minimum boundary", () => {
+        it("enables a preset whose fraction rounds UP to exactly the minimum ($7.98 pot → 1/4 = $1.995 → $2.00)", () => {
+            const { onAmountSelect } = renderButtons({ totalPotMicro: 7_980_000n });
+            const quarter = screen.getByText("1/4 Pot");
+            expect(quarter).not.toBeDisabled();
+            fireEvent.click(quarter);
+            expect(onAmountSelect).toHaveBeenCalledWith(2);
+        });
+
+        it("disables a preset whose fraction rounds to just under the minimum ($7.96 pot → 1/4 = $1.99)", () => {
+            renderButtons({ totalPotMicro: 7_960_000n });
+            expect(screen.getByText("1/4 Pot")).toBeDisabled();
+        });
+    });
+
+    it("caps an above-stack preset at the stack when facing a bet (Pot = 2 + 8 = $10 > $5 stack)", () => {
+        const { onAmountSelect } = renderButtons({ callAmountMicro: 2_000_000n, totalPotMicro: 6_000_000n, minAmount: 4, maxAmount: 5 });
+        const pot = screen.getByText("Pot");
+        expect(pot).not.toBeDisabled();
+        fireEvent.click(pot);
+        expect(onAmountSelect).toHaveBeenCalledWith(5);
+    });
+});
+
+// The values from the original #692 tests ($0.01/$0.02 blinds, $0.04 pot) are
+// kept as their own case: previously 1/4 Pot was floored up to the $0.02 BB, now
+// it is greyed out and the next preset up makes the minimum bet.
+describe("PotSizedBetButtons — #692 values ($0.01/$0.02, $0.04 pot)", () => {
+    const micro692 = { totalPotMicro: 40_000n, minAmount: 0.02, maxAmount: 100 };
+
+    it("greys out 1/4 Pot ($0.01) instead of resizing it to the $0.02 big blind", () => {
+        const { onAmountSelect } = renderButtons(micro692);
+        const quarter = screen.getByText("1/4 Pot");
+        expect(quarter).toBeDisabled();
+        fireEvent.click(quarter);
+        expect(onAmountSelect).not.toHaveBeenCalled();
+    });
+
+    it("1/2 Pot makes the minimum $0.02 bet", () => {
+        const { onAmountSelect } = renderButtons(micro692);
+        fireEvent.click(screen.getByText("1/2 Pot"));
+        expect(onAmountSelect).toHaveBeenCalledWith(0.02);
     });
 });
