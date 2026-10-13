@@ -262,6 +262,11 @@ export const PokerActionPanel: React.FC<PokerActionPanelProps> = ({ tableId, net
         }
     }, [preCheckQueued, isUsersTurn, playerStatus]);
 
+    // A queued Check/Fold acts on your turn WITHOUT the betting bar appearing: once it is
+    // your turn and the box is ticked and there is a check or fold to make, usePreCheckFold
+    // submits it, so the action controls are suppressed (no flash of the betting bar).
+    const preCheckFiring = isUsersTurn && preCheckQueued && (hasCheckAction || hasFoldAction);
+
     // A queued Check/Fold is scoped to the current betting round only.
     useEffect(() => {
         setPreCheckQueued(false);
@@ -424,11 +429,11 @@ export const PokerActionPanel: React.FC<PokerActionPanelProps> = ({ tableId, net
 
         return {
             canFoldAnytime: hasFoldAction && !hasFoldedOrMucked(playerStatus) && showButtons,
-            showActionButtons: isUsersTurn && hasElements(legalActions) && showButtons && !controlsPending,
+            showActionButtons: isUsersTurn && hasElements(legalActions) && showButtons && !controlsPending && !preCheckFiring,
             showSmallBlindButton: shouldShowSmallBlindButton && showButtons && !controlsPending,
             showBigBlindButton: shouldShowBigBlindButton && showButtons && !controlsPending
         };
-    }, [hasSmallBlindAction, hasBigBlindAction, isUsersTurn, userPlayer, hasFoldAction, playerStatus, legalActions, controlsPending]);
+    }, [hasSmallBlindAction, hasBigBlindAction, isUsersTurn, userPlayer, hasFoldAction, playerStatus, legalActions, controlsPending, preCheckFiring]);
 
     // Increment/decrement handlers - always step by big blind amount
     const getStep = (): number => {
