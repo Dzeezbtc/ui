@@ -252,7 +252,8 @@ export const PokerActionPanel: React.FC<PokerActionPanelProps> = ({ tableId, net
         isUsersTurn,
         playerStatus,
         facingNoBet,
-        queued: preCheckQueued
+        queued: preCheckQueued,
+        round: gameState?.round
     });
 
     useEffect(() => {

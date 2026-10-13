@@ -1,4 +1,4 @@
-import { PlayerStatus } from "@block52/poker-vm-sdk";
+import { PlayerStatus, TexasHoldemRound } from "@block52/poker-vm-sdk";
 
 /**
  * The rules of the pre-select "Check/Fold" box (ui#388), as pure functions so
@@ -20,18 +20,40 @@ export interface PreCheckFoldState {
     facingNoBet: boolean;
     /** Whether the player has ticked the box. */
     queued: boolean;
+    /** The current betting round; the box only applies to a live betting street. */
+    round: TexasHoldemRound | string | null | undefined;
+}
+
+/** The streets on which the player will still be asked to act, so a pre-select makes sense. */
+const BETTING_ROUNDS: ReadonlySet<string> = new Set([
+    TexasHoldemRound.PREFLOP,
+    TexasHoldemRound.FLOP,
+    TexasHoldemRound.TURN,
+    TexasHoldemRound.RIVER
+]);
+
+/** Whether the hand is on a betting street (not ante, showdown or end — where there is no action to pre-select). */
+export function isBettingRound(round: TexasHoldemRound | string | null | undefined): boolean {
+    return round != null && BETTING_ROUNDS.has(round);
 }
 
 /**
  * Whether to show the box.
  *
- * Shown only while the setting is on, the player is in the hand and it is not
- * their turn. It is first offered while checking is free; once ticked it stays
- * visible after a bet lands (relabelled "Fold") so the player can see, and
- * untick, what will happen.
+ * Shown only while the setting is on, the hand is on a live betting street, the
+ * player is in the hand and it is not their turn. It is first offered while
+ * checking is free; once ticked it stays visible after a bet lands (relabelled
+ * "Fold") so the player can see, and untick, what will happen. It is never shown
+ * at showdown/end (or during the ante), where there is no action to pre-select.
  */
 export function shouldShowPreCheckFold(state: PreCheckFoldState): boolean {
-    return state.enabled && !state.isUsersTurn && state.playerStatus === PlayerStatus.ACTIVE && (state.facingNoBet || state.queued);
+    return (
+        state.enabled &&
+        isBettingRound(state.round) &&
+        !state.isUsersTurn &&
+        state.playerStatus === PlayerStatus.ACTIVE &&
+        (state.facingNoBet || state.queued)
+    );
 }
 
 /**

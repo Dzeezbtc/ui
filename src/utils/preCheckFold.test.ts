@@ -2,16 +2,17 @@
  * Tests for the pre-select Check/Fold rules (ui#388): when the box shows, when a
  * ticked box clears, its label, and what it submits on the player's turn.
  */
-import { PlayerStatus } from "@block52/poker-vm-sdk";
-import { shouldShowPreCheckFold, shouldClearPreCheckFold, preCheckFoldLabel, resolvePreCheckFoldAction, PreCheckFoldState } from "./preCheckFold";
+import { PlayerStatus, TexasHoldemRound } from "@block52/poker-vm-sdk";
+import { shouldShowPreCheckFold, shouldClearPreCheckFold, preCheckFoldLabel, resolvePreCheckFoldAction, isBettingRound, PreCheckFoldState } from "./preCheckFold";
 
-// In the hand, not to act, checking free, setting on, not yet ticked.
+// In the hand, not to act, checking free, setting on, not yet ticked, on a betting street.
 const base: PreCheckFoldState = {
     enabled: true,
     isUsersTurn: false,
     playerStatus: PlayerStatus.ACTIVE,
     facingNoBet: true,
-    queued: false
+    queued: false,
+    round: TexasHoldemRound.FLOP
 };
 
 describe("shouldShowPreCheckFold", () => {
@@ -41,6 +42,35 @@ describe("shouldShowPreCheckFold", () => {
 
     it("stays visible once ticked after a bet lands, so the player sees it will fold", () => {
         expect(shouldShowPreCheckFold({ ...base, facingNoBet: false, queued: true })).toBe(true);
+    });
+
+    it.each([TexasHoldemRound.PREFLOP, TexasHoldemRound.FLOP, TexasHoldemRound.TURN, TexasHoldemRound.RIVER])(
+        "shows on betting street %s",
+        round => {
+            expect(shouldShowPreCheckFold({ ...base, round })).toBe(true);
+        }
+    );
+
+    it.each([TexasHoldemRound.ANTE, TexasHoldemRound.SHOWDOWN, TexasHoldemRound.END, null, undefined])(
+        "hides off a betting street (%s) — nothing to pre-select at showdown/end",
+        round => {
+            // even with the box already ticked, it must not linger past the betting rounds
+            expect(shouldShowPreCheckFold({ ...base, round, queued: true })).toBe(false);
+        }
+    );
+});
+
+describe("isBettingRound", () => {
+    it("is true on preflop/flop/turn/river", () => {
+        for (const r of [TexasHoldemRound.PREFLOP, TexasHoldemRound.FLOP, TexasHoldemRound.TURN, TexasHoldemRound.RIVER]) {
+            expect(isBettingRound(r)).toBe(true);
+        }
+    });
+
+    it("is false for ante, showdown, end and nullish rounds", () => {
+        for (const r of [TexasHoldemRound.ANTE, TexasHoldemRound.SHOWDOWN, TexasHoldemRound.END, null, undefined]) {
+            expect(isBettingRound(r)).toBe(false);
+        }
     });
 });
 
