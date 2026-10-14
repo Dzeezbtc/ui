@@ -64,7 +64,7 @@ import { MainActionButtons } from "./MainActionButtons";
 import { RaiseBetControls } from "./RaiseBetControls";
 import { PreActionControls } from "./PreActionControls";
 import { isCheckFreeForPlayer, hasVoluntarilyCommittedThisRound, amountToCallMicroForPlayer } from "../../utils/chipUtils";
-import { shouldShowPreActions, shouldClearPreAction, resolvePreAction, isPreActionStillValid, PreAction } from "../../utils/preActions";
+import { shouldShowPreActions, shouldClearPreAction, resolvePreAction, preActionButtons, PreAction } from "../../utils/preActions";
 
 // Import types
 import type { PokerActionPanelProps } from "./types";
@@ -257,6 +257,16 @@ export const PokerActionPanel: React.FC<PokerActionPanelProps> = ({ tableId, net
         () => amountToCallMicroForPlayer(players, userAddress, gameState?.round, gameState?.previousActions ?? []),
         [players, userAddress, gameState?.round, gameState?.previousActions]
     );
+    const preActionStackMicro = useMemo(() => parseMicroToBigInt(userPlayer?.stack), [userPlayer?.stack]);
+
+    // Which pre-action buttons to show (empty = hide): can check → Check/Fold·Check·Call Any;
+    // owe a bet you can cover → Fold·Call {amount}·Call Any; calling would jam → Fold·All In;
+    // committed with nothing owed → nothing until a raise lands.
+    const preActionBtns = useMemo(() => {
+        const owesBet = preActionCallMicro > BigInt(0);
+        const callIsAllInPre = owesBet && preActionStackMicro > BigInt(0) && preActionCallMicro >= preActionStackMicro;
+        return preActionButtons(canCheckNext, owesBet, callIsAllInPre);
+    }, [canCheckNext, preActionCallMicro, preActionStackMicro]);
 
     // Auto-show-cards hook - automatically shows cards when the action timer expires
     useAutoShowCards(tableId, network, hasShowAction, isUsersTurn, timeRemaining, submit, isSubmitBusy, onTransactionSubmitted);
@@ -317,14 +327,11 @@ export const PokerActionPanel: React.FC<PokerActionPanelProps> = ({ tableId, net
         [preActionCallMicro]
     );
 
-    // Show the bar while it is not the player's turn, they are in the hand, on a
-    // betting street. See utils/preActions.
-    const showPreActions = shouldShowPreActions({
-        enabled: preSelectCheck,
-        isUsersTurn,
-        playerStatus,
-        round: gameState?.round
-    });
+    // Show the bar while it is not the player's turn, they are in the hand, on a betting
+    // street, AND there is at least one applicable button (hidden when committed with
+    // nothing owed). See utils/preActions.
+    const showPreActions =
+        shouldShowPreActions({ enabled: preSelectCheck, isUsersTurn, playerStatus, round: gameState?.round }) && preActionBtns.length > 0;
 
     // Scope an armed pre-action to the current round.
     useEffect(() => {
@@ -332,17 +339,18 @@ export const PokerActionPanel: React.FC<PokerActionPanelProps> = ({ tableId, net
         setArmedCallMicro(null);
     }, [gameState?.round]);
 
-    // Clear when leaving the hand, or when the armed selection no longer fits the
-    // table (a bet lands under "Check", the size changes under "Call {amount}").
+    // Clear when leaving the hand, or when the armed selection no longer fits the current
+    // button set (the situation changed), or when a "Call {amount}" pick's size changed.
     useEffect(() => {
         if (preAction == null) return;
         const left = shouldClearPreAction({ action: preAction, isUsersTurn, playerStatus });
-        const stale = !isUsersTurn && !isPreActionStillValid(preAction, canCheckNext, preActionCallMicro, armedCallMicro);
+        const amountChanged = preAction === "call-exact" && preActionCallMicro !== armedCallMicro;
+        const stale = !isUsersTurn && (!preActionBtns.includes(preAction) || amountChanged);
         if (left || stale) {
             setPreAction(null);
             setArmedCallMicro(null);
         }
-    }, [preAction, isUsersTurn, playerStatus, canCheckNext, preActionCallMicro, armedCallMicro]);
+    }, [preAction, isUsersTurn, playerStatus, preActionBtns, preActionCallMicro, armedCallMicro]);
 
     // A queued pre-action acts on the player's turn WITHOUT the betting bar appearing:
     // once it is their turn and the armed action resolves to a real move, usePreAction
@@ -532,10 +540,9 @@ export const PokerActionPanel: React.FC<PokerActionPanelProps> = ({ tableId, net
                     with no betting bar. */}
                 {showPreActions && (
                     <PreActionControls
+                        buttons={preActionBtns}
                         armed={preAction}
                         onArm={armPreAction}
-                        canCheck={canCheckNext}
-                        amountToCallMicro={preActionCallMicro}
                         callAmountLabel={preActionCallLabel}
                         isMobileLandscape={isMobileLandscape}
                     />

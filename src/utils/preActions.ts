@@ -7,18 +7,35 @@ import { PlayerStatus, TexasHoldemRound } from "@block52/poker-vm-sdk";
  * be able to CHECK when action returns to them:
  *
  *   - **Can check** (no bet owed and they haven't committed this round):
- *       "Check/Fold"  — check if still free on my turn, else fold
- *       "Check"       — check
- *       "Call Any"    — call whatever the bet is
- *   - **Cannot check** (facing a bet, or they already bet/called and only a raise
- *     brings action back):
- *       "Fold"            — fold
- *       "Call {amount}"   — call that exact size (only when a concrete bet is owed)
- *       "Call Any"        — call whatever the bet is
+ *       Check/Fold · Check · Call Any
+ *   - **Owe a bet you can cover:**  Fold · Call {amount} · Call Any
+ *   - **Owe a bet calling would put you all-in:**  Fold · All In
+ *   - **Committed, nothing owed** (you bet/called, only a raise brings action back):
+ *       nothing — the bar is hidden until a raise actually lands.
  *
  * These are pure functions so they can be unit tested apart from the component.
  */
-export type PreAction = "check-fold" | "check" | "fold" | "call-exact" | "call-any";
+export type PreAction = "check-fold" | "check" | "fold" | "call-exact" | "call-any" | "all-in";
+
+/**
+ * Which buttons the pre-action bar shows, left→right, given whether the player will be
+ * able to check, whether they currently owe a bet, and whether calling that bet would
+ * put them all-in. An empty list hides the bar entirely (committed with nothing owed).
+ */
+export function preActionButtons(canCheck: boolean, owesBet: boolean, callIsAllIn: boolean): PreAction[] {
+    if (canCheck) {
+        return ["check-fold", "check", "call-any"];
+    }
+    if (!owesBet) {
+        // Committed this round, no raise yet — nothing meaningful to pre-select.
+        return [];
+    }
+    if (callIsAllIn) {
+        // Calling commits the whole stack, so the only choices are fold or jam.
+        return ["fold", "all-in"];
+    }
+    return ["fold", "call-exact", "call-any"];
+}
 
 const BETTING_ROUNDS: ReadonlySet<string> = new Set([
     TexasHoldemRound.PREFLOP,
@@ -81,41 +98,11 @@ export function resolvePreAction(action: PreAction, legal: PreActionLegal): Reso
         // Fold to anything.
         return legal.hasFoldAction ? "fold" : null;
     }
-    // "call-exact" and "call-any": call whatever the bet is; if there is no bet, check (never fold).
+    // "call-exact", "call-any" and "all-in": call whatever the bet is (all-in is a
+    // call capped at the stack); if there is no bet, check (never fold).
     if (legal.hasCallAction) return "call";
     if (legal.hasCheckAction) return "check";
     return null;
-}
-
-/**
- * Whether an armed pre-action is still valid for the current table context, so a
- * stale selection never fires the wrong move and never lingers on the wrong button
- * set after the betting picture changes.
- *
- *   - "call-any" is offered in every situation, so it always survives;
- *   - "check-fold" / "check" belong to the can-check button set — they clear the
- *     moment a bet lands (the buttons switch to Fold/Call);
- *   - "fold" belongs to the cannot-check set — it clears if checking becomes free again;
- *   - "call-exact" is tied to a specific owed amount — it clears if checking becomes
- *     free, the bet goes to zero, or the amount changes (e.g. a raise).
- */
-export function isPreActionStillValid(
-    action: PreAction,
-    canCheck: boolean,
-    amountToCallMicro: bigint,
-    armedCallMicro: bigint | null
-): boolean {
-    switch (action) {
-        case "call-any":
-            return true;
-        case "check-fold":
-        case "check":
-            return canCheck;
-        case "fold":
-            return !canCheck;
-        case "call-exact":
-            return !canCheck && amountToCallMicro > BigInt(0) && armedCallMicro != null && amountToCallMicro === armedCallMicro;
-    }
 }
 
 /** An armed pre-action is cleared when the player leaves the hand (fold, bust, sit out). */

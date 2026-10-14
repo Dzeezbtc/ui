@@ -2,65 +2,49 @@ import React from "react";
 import { PreAction } from "../../utils/preActions";
 
 interface PreActionControlsProps {
+    /** The buttons to show, left→right (from preActionButtons). */
+    buttons: PreAction[];
     /** Which pre-action is armed, or null. */
     armed: PreAction | null;
     /** Arm a pre-action, or null to disarm. Arming is mutually exclusive. */
     onArm: (action: PreAction | null) => void;
-    /** Whether the player will be able to check when action returns to them. */
-    canCheck: boolean;
-    /** Chips owed to call right now (0 when even — e.g. the aggressor waiting on a raise). */
-    amountToCallMicro: bigint;
-    /** Formatted owed amount, e.g. "$3" — shown on the middle button when a bet is owed. */
+    /** Formatted owed amount, e.g. "$3" — shown on the "Call {amount}" button. */
     callAmountLabel: string;
     isMobileLandscape?: boolean;
 }
 
-interface Btn {
-    action: PreAction;
-    label: string;
-    title: string;
-}
+const LABELS: Record<PreAction, string> = {
+    "check-fold": "Check/Fold",
+    check: "Check",
+    fold: "Fold",
+    "call-exact": "Call", // suffixed with the amount at render time
+    "call-any": "Call Any",
+    "all-in": "All In"
+};
+
+const TITLES: Record<PreAction, string> = {
+    "check-fold": "Checks when your turn comes if checking is free; folds if someone bets first.",
+    check: "Checks when your turn comes. Clears if someone bets first.",
+    fold: "Folds your hand when your turn comes.",
+    "call-exact": "Calls this exact amount when your turn comes. Clears if the bet is raised.",
+    "call-any": "Calls whatever the bet is when your turn comes.",
+    "all-in": "Calls all-in when your turn comes (the call commits your whole stack)."
+};
 
 /**
  * CoinPoker-style pre-action bar (ui#388): tick-to-arm buttons shown while it is not
- * the player's turn. The set adapts to what the player will actually be able to do
- * when action returns to them:
- *
- *   - can check  →  Check/Fold · Check · Call Any
- *   - owe a bet  →  Fold · Call {amount} · Call Any
- *   - committed, only a raise can return action  →  Fold · Call Any
- *
- * Arming one fires it the instant the player's turn comes (no betting bar).
+ * the player's turn. `buttons` (from preActionButtons) already encodes which options
+ * apply — can check, owe a bet, owe an all-in call, or committed (empty → nothing
+ * shown). Arming one fires it the instant the player's turn comes (no betting bar).
  */
-export const PreActionControls: React.FC<PreActionControlsProps> = ({ armed, onArm, canCheck, amountToCallMicro, callAmountLabel, isMobileLandscape }) => {
-    const callAny: Btn = { action: "call-any", label: "Call Any", title: "Calls whatever the bet is when your turn comes." };
-
-    let buttons: Btn[];
-    if (canCheck) {
-        buttons = [
-            { action: "check-fold", label: "Check/Fold", title: "Checks when your turn comes if checking is free; folds if someone bets first." },
-            { action: "check", label: "Check", title: "Checks when your turn comes. Clears if someone bets first." },
-            callAny
-        ];
-    } else if (amountToCallMicro > BigInt(0)) {
-        buttons = [
-            { action: "fold", label: "Fold", title: "Folds your hand when your turn comes." },
-            { action: "call-exact", label: `Call ${callAmountLabel}`, title: "Calls this exact amount when your turn comes. Clears if the bet is raised." },
-            callAny
-        ];
-    } else {
-        // Committed this round (you bet/called) — action only returns via a raise, so
-        // there is no concrete amount to show; only fold-to-a-raise or call-any apply.
-        buttons = [
-            { action: "fold", label: "Fold", title: "Folds if you get raised." },
-            callAny
-        ];
-    }
+export const PreActionControls: React.FC<PreActionControlsProps> = ({ buttons, armed, onArm, callAmountLabel, isMobileLandscape }) => {
+    if (buttons.length === 0) return null;
 
     return (
         <div className="flex justify-center gap-2">
-            {buttons.map(({ action, label, title }) => {
+            {buttons.map(action => {
                 const isArmed = armed === action;
+                const label = action === "call-exact" ? `Call ${callAmountLabel}` : LABELS[action];
                 return (
                     <button
                         key={action}
@@ -68,7 +52,7 @@ export const PreActionControls: React.FC<PreActionControlsProps> = ({ armed, onA
                         role="checkbox"
                         aria-checked={isArmed}
                         aria-label={`Pre-select ${label} for your turn`}
-                        title={title}
+                        title={TITLES[action]}
                         onClick={() => onArm(isArmed ? null : action)}
                         className={`flex items-center gap-2 rounded-lg border font-semibold transition-colors ${
                             isMobileLandscape ? "px-3 py-1 text-xs" : "px-4 py-3 text-sm lg:text-base"

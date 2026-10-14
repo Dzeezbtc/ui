@@ -1,15 +1,15 @@
 /**
  * Tests for the CoinPoker-style pre-action bar rules (ui#388): when the bar shows,
- * what each pre-action resolves to on the player's turn, and when a stale selection
- * is invalidated (the button set changes with the betting situation).
+ * which buttons it shows per betting situation, and what each pre-action resolves to
+ * on the player's turn.
  */
 import { PlayerStatus, TexasHoldemRound } from "@block52/poker-vm-sdk";
 import {
     shouldShowPreActions,
     shouldClearPreAction,
     resolvePreAction,
+    preActionButtons,
     isBettingRound,
-    isPreActionStillValid,
     PreActionsState,
     PreActionLegal
 } from "./preActions";
@@ -45,53 +45,43 @@ describe("shouldShowPreActions", () => {
     );
 });
 
-describe("resolvePreAction", () => {
-    it("check-fold: checks when free", () => {
-        expect(resolvePreAction("check-fold", canCheck)).toBe("check");
+describe("preActionButtons", () => {
+    it("can check → Check/Fold · Check · Call Any", () => {
+        expect(preActionButtons(true, false, false)).toEqual(["check-fold", "check", "call-any"]);
+        // owe/all-in flags are ignored once you can check
+        expect(preActionButtons(true, true, true)).toEqual(["check-fold", "check", "call-any"]);
     });
-    it("check-fold: folds only when genuinely facing a bet", () => {
+    it("committed with nothing owed → nothing (bar hidden)", () => {
+        expect(preActionButtons(false, false, false)).toEqual([]);
+    });
+    it("owe a bet you can cover → Fold · Call {amount} · Call Any", () => {
+        expect(preActionButtons(false, true, false)).toEqual(["fold", "call-exact", "call-any"]);
+    });
+    it("owe a bet that would jam → Fold · All In", () => {
+        expect(preActionButtons(false, true, true)).toEqual(["fold", "all-in"]);
+    });
+});
+
+describe("resolvePreAction", () => {
+    it("check-fold: checks when free, folds only when genuinely facing a bet", () => {
+        expect(resolvePreAction("check-fold", canCheck)).toBe("check");
         expect(resolvePreAction("check-fold", facingBet)).toBe("fold");
         expect(resolvePreAction("check-fold", blindTurn)).toBeNull();
     });
-    it("check: checks when free, otherwise does nothing (never calls)", () => {
+    it("check: checks when free, otherwise nothing (never calls)", () => {
         expect(resolvePreAction("check", canCheck)).toBe("check");
         expect(resolvePreAction("check", facingBet)).toBeNull();
     });
-    it("fold: folds whenever fold is legal, else nothing", () => {
+    it("fold: folds whenever fold is legal", () => {
         expect(resolvePreAction("fold", facingBet)).toBe("fold");
-        expect(resolvePreAction("fold", canCheck)).toBe("fold");
         expect(resolvePreAction("fold", { hasCheckAction: false, hasCallAction: false, hasFoldAction: false })).toBeNull();
     });
-    it("call-exact and call-any: call when facing a bet, check when there is none, never fold", () => {
-        for (const a of ["call-exact", "call-any"] as const) {
+    it("call-exact / call-any / all-in: call when facing a bet (all-in is a capped call)", () => {
+        for (const a of ["call-exact", "call-any", "all-in"] as const) {
             expect(resolvePreAction(a, facingBet)).toBe("call");
             expect(resolvePreAction(a, canCheck)).toBe("check");
             expect(resolvePreAction(a, blindTurn)).toBeNull();
         }
-    });
-});
-
-describe("isPreActionStillValid", () => {
-    it("call-any survives any situation", () => {
-        expect(isPreActionStillValid("call-any", true, 0n, null)).toBe(true);
-        expect(isPreActionStillValid("call-any", false, 7n, null)).toBe(true);
-    });
-    it("check-fold / check are valid only while you can still check", () => {
-        expect(isPreActionStillValid("check-fold", true, 0n, null)).toBe(true);
-        expect(isPreActionStillValid("check", true, 0n, null)).toBe(true);
-        expect(isPreActionStillValid("check-fold", false, 3n, null)).toBe(false);
-        expect(isPreActionStillValid("check", false, 3n, null)).toBe(false);
-    });
-    it("fold is valid only once you can no longer check", () => {
-        expect(isPreActionStillValid("fold", false, 3n, null)).toBe(true);
-        expect(isPreActionStillValid("fold", false, 0n, null)).toBe(true);
-        expect(isPreActionStillValid("fold", true, 0n, null)).toBe(false);
-    });
-    it("call-exact clears when checking is free again, the owed amount is zero, or it changes", () => {
-        expect(isPreActionStillValid("call-exact", false, 3n, 3n)).toBe(true);
-        expect(isPreActionStillValid("call-exact", false, 7n, 3n)).toBe(false); // raised
-        expect(isPreActionStillValid("call-exact", false, 0n, 3n)).toBe(false); // nothing owed
-        expect(isPreActionStillValid("call-exact", true, 0n, 3n)).toBe(false); // can check now
     });
 });
 
