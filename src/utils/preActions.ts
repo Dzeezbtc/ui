@@ -2,23 +2,23 @@ import { PlayerStatus, TexasHoldemRound } from "@block52/poker-vm-sdk";
 
 /**
  * The pre-action bar (ui#388), CoinPoker-style. While it is NOT the player's turn
- * they can arm one of three pre-actions, which fires the instant their turn comes
- * (so the betting bar never appears). The three buttons are:
+ * they can arm one pre-action, which fires the instant their turn comes (so the
+ * betting bar never appears). The buttons shown depend on whether the player will
+ * be able to CHECK when action returns to them:
  *
- *   - left   "Check/Fold" — check if checking is free when my turn comes, else fold;
- *   - middle, context-aware:
- *        "Check"        when no one has bet into me (arms `check`);
- *        "Call {amount}" when I face a bet         (arms `call-exact` — that exact size);
- *   - right  "Call Any"  — call whatever the bet is when my turn comes.
+ *   - **Can check** (no bet owed and they haven't committed this round):
+ *       "Check/Fold"  — check if still free on my turn, else fold
+ *       "Check"       — check
+ *       "Call Any"    — call whatever the bet is
+ *   - **Cannot check** (facing a bet, or they already bet/called and only a raise
+ *     brings action back):
+ *       "Fold"            — fold
+ *       "Call {amount}"   — call that exact size (only when a concrete bet is owed)
+ *       "Call Any"        — call whatever the bet is
  *
  * These are pure functions so they can be unit tested apart from the component.
  */
-export type PreAction = "check-fold" | "check" | "call-exact" | "call-any";
-
-/** The middle button's identity depends on whether checking is currently free. */
-export function middlePreAction(facingNoBet: boolean): "check" | "call-exact" {
-    return facingNoBet ? "check" : "call-exact";
-}
+export type PreAction = "check-fold" | "check" | "fold" | "call-exact" | "call-any";
 
 const BETTING_ROUNDS: ReadonlySet<string> = new Set([
     TexasHoldemRound.PREFLOP,
@@ -77,6 +77,10 @@ export function resolvePreAction(action: PreAction, legal: PreActionLegal): Reso
         // Check only. If a bet landed before the turn, checking is impossible — do nothing.
         return legal.hasCheckAction ? "check" : null;
     }
+    if (action === "fold") {
+        // Fold to anything.
+        return legal.hasFoldAction ? "fold" : null;
+    }
     // "call-exact" and "call-any": call whatever the bet is; if there is no bet, check (never fold).
     if (legal.hasCallAction) return "call";
     if (legal.hasCheckAction) return "check";
@@ -85,27 +89,32 @@ export function resolvePreAction(action: PreAction, legal: PreActionLegal): Reso
 
 /**
  * Whether an armed pre-action is still valid for the current table context, so a
- * stale selection never fires the wrong move.
+ * stale selection never fires the wrong move and never lingers on the wrong button
+ * set after the betting picture changes.
  *
- *   - "check-fold" / "call-any" survive a bet landing (they are defined for both cases);
- *   - "check" is only valid while checking is free (clears when a bet lands);
- *   - "call-exact" is tied to a specific call size (clears when a bet lands away, or
- *     when the amount changes — e.g. a raise — so it never calls more than was shown).
+ *   - "call-any" is offered in every situation, so it always survives;
+ *   - "check-fold" / "check" belong to the can-check button set — they clear the
+ *     moment a bet lands (the buttons switch to Fold/Call);
+ *   - "fold" belongs to the cannot-check set — it clears if checking becomes free again;
+ *   - "call-exact" is tied to a specific owed amount — it clears if checking becomes
+ *     free, the bet goes to zero, or the amount changes (e.g. a raise).
  */
 export function isPreActionStillValid(
     action: PreAction,
-    facingNoBet: boolean,
-    currentCallMicro: bigint,
+    canCheck: boolean,
+    amountToCallMicro: bigint,
     armedCallMicro: bigint | null
 ): boolean {
     switch (action) {
-        case "check-fold":
         case "call-any":
             return true;
+        case "check-fold":
         case "check":
-            return facingNoBet;
+            return canCheck;
+        case "fold":
+            return !canCheck;
         case "call-exact":
-            return !facingNoBet && armedCallMicro != null && currentCallMicro === armedCallMicro;
+            return !canCheck && amountToCallMicro > BigInt(0) && armedCallMicro != null && amountToCallMicro === armedCallMicro;
     }
 }
 
