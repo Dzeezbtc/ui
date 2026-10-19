@@ -39,3 +39,53 @@
         box-shadow: 0 0 0 2px rgba(236, 72, 153, 0.9), 0 0 12px 2px rgba(236, 72, 153, 0.6);
     }
 }
+
+/* Multi-tabling workspace (ui#55, PR 2). The pill bar and the single-table
+   "+ Table" entry are fixed, top-centre overlays — they sit where the table
+   header is empty and never take layout space, so the felt below is unchanged.
+   z-index clears the table header (z-100) but stays well below modals. */
+.b52-mt-bar-fixed {
+    position: fixed;
+    top: 6px;
+    left: 50%;
+    transform: translateX(-50%);
+    z-index: 120;
+    max-width: calc(100vw - 16px);
+    border-radius: 14px;
+    overflow: hidden;
+    box-shadow: 0 8px 28px rgba(0, 0, 0, 0.5);
+}
+
+.b52-mt-bar-fixed .b52-pill-bar {
+    border-bottom: none;
+    border-radius: 14px;
+}
+
+.b52-mt-add {
+    position: fixed;
+    top: 8px;
+    left: 50%;
+    transform: translateX(-50%);
+    z-index: 120;
+    padding: 4px 12px;
+    border-radius: 10px;
+    border: 1px solid rgba(148, 163, 184, 0.4);
+    background: rgba(15, 23, 42, 0.7);
+    color: rgb(226, 232, 240);
+    font-size: 12px;
+    font-weight: 600;
+    cursor: pointer;
+    backdrop-filter: blur(6px);
+    transition: background 0.15s ease, color 0.15s ease;
+}
+
+.b52-mt-add:hover {
+    background: rgba(51, 65, 85, 0.8);
+    color: #fff;
+}
+
+@media (prefers-reduced-motion: reduce) {
+    .b52-mt-add {
+        transition: none;
+    }
+}
