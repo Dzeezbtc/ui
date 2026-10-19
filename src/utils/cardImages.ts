@@ -64,7 +64,7 @@ import backLegacySvg from "../assets/cards/Back.svg";
 import backCustomSvg from "../assets/cards/BackCustom.svg";
 
 // jsDelivr CDN against the block52/cards GitHub repo — edge-cached, unlike raw.githubusercontent.com.
-const CDN_BASE = "https://cdn.jsdelivr.net/gh/block52/cards@main";
+const CDN_BASE = "https://cdn.jsdelivr.net/gh/Dzeezbtc/cards@0700cfb";
 
 const CARD_IMAGES: Record<string, string> = {
     "2C": as2C, "2D": as2D, "2H": as2H, "2S": as2S,
