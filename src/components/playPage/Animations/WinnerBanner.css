@@ -1,0 +1,52 @@
+/* Last-pot winner banner (ui#848) — a brief, non-intrusive readout near the top
+   of the table. Doesn't block clicks on the game underneath. */
+
+.b52-winner-banner {
+    position: absolute;
+    top: 10px;
+    left: 50%;
+    transform: translateX(-50%);
+    z-index: 30;
+    display: inline-flex;
+    align-items: center;
+    gap: 8px;
+    max-width: 90%;
+    padding: 8px 16px;
+    border-radius: 9999px;
+    background: rgba(15, 23, 42, 0.86);
+    border: 1px solid rgba(244, 196, 48, 0.55);
+    box-shadow: 0 2px 14px rgba(0, 0, 0, 0.45), 0 0 10px rgba(244, 196, 48, 0.25);
+    color: #f8fafc;
+    font-size: 14px;
+    font-weight: 600;
+    white-space: nowrap;
+    pointer-events: none; /* never block the game underneath */
+    animation: b52-winner-banner-in 220ms ease-out;
+}
+
+.b52-winner-banner__trophy {
+    font-size: 15px;
+    line-height: 1;
+}
+
+.b52-winner-banner__text {
+    overflow: hidden;
+    text-overflow: ellipsis;
+}
+
+@keyframes b52-winner-banner-in {
+    from {
+        opacity: 0;
+        transform: translate(-50%, -6px);
+    }
+    to {
+        opacity: 1;
+        transform: translate(-50%, 0);
+    }
+}
+
+@media (prefers-reduced-motion: reduce) {
+    .b52-winner-banner {
+        animation: none;
+    }
+}

@@ -152,6 +152,7 @@ import {
     type TableSize
 } from "../../config/stageGeometry";
 import CustomDealer from "../../assets/CustomDealer.svg";
+import WinnerBanner from "./Animations/WinnerBanner";
 import { useDealerPosition } from "../../hooks/game/useDealerPosition";
 
 // Turn Notification
@@ -1551,6 +1552,9 @@ const Table = React.memo(() => {
                                     );
                                 })}
                         </div>
+
+                        {/* Last-pot winner banner (ui#848) */}
+                        <WinnerBanner />
 
                         {/* Dealer Button — convert seat number to rotated screen position */}
                         {(() => {
