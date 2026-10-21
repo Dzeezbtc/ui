@@ -1,18 +1,20 @@
 /* Last-pot winner banner (ui#848) — a pill that rolls right-to-left through a
    window over the middle half of the screen, in the clear strip above the top
-   seat. It slides out of the window's right edge and into its left edge, clipped
-   like a train through a tunnel — no fade.
+   seat. It slides out of the window's right edge, drifts slowly through the
+   middle, and into its left edge, clipped like a train through a tunnel — no
+   fade, and no visible edge.
    Rendered in a portal on <body> so the table's scaling transform can't move it.
    Doesn't block clicks on the game underneath. */
 
-/* The visible window: a quarter of the screen in from each side. */
+/* The visible window: 62.5% of the screen, centred. Clipped only at the left
+   and right (clip-path), never top or bottom, so there's no visible box. */
 .b52-winner-banner-track {
     position: fixed;
     /* top is set inline: just under the table info bar (winnerBannerTop). */
-    left: 25vw;
-    width: 50vw;
-    height: 56px; /* room for the pill and its glow */
-    overflow: hidden; /* the "tunnel" edges clip the pill */
+    left: 18.75vw;
+    width: 62.5vw;
+    height: 44px;
+    clip-path: inset(-40px 0); /* the invisible "tunnel" edges */
     z-index: 60;
     pointer-events: none; /* never block the game underneath */
 }
@@ -26,16 +28,15 @@
     gap: 8px;
     padding: 8px 16px;
     border-radius: 9999px;
-    background: rgba(15, 23, 42, 0.86);
+    background: rgba(15, 23, 42, 0.92);
     border: 1px solid rgba(244, 196, 48, 0.55);
-    box-shadow: 0 0 10px rgba(244, 196, 48, 0.25);
     color: #f8fafc;
     font-size: 14px;
     font-weight: 600;
     white-space: nowrap;
     transform: translate(0, -50%);
     /* Duration matches BANNER_MS in WinnerBanner.tsx. */
-    animation: b52-winner-banner-roll 7000ms linear forwards;
+    animation: b52-winner-banner-roll 8000ms linear forwards;
 }
 
 .b52-winner-banner__avatar {
@@ -58,14 +59,21 @@
     white-space: nowrap;
 }
 
-/* Out of the right edge, across, and fully into the left edge: it travels the
-   window's width plus its own. */
+/* Slides in from the right edge, drifts slowly through the middle for ~5s so it
+   can be read, then slides fully into the left edge. The centre is half the
+   window (31.25vw) plus half the pill to the left of the start. */
 @keyframes b52-winner-banner-roll {
-    from {
+    0% {
         transform: translate(0, -50%);
     }
-    to {
-        transform: translate(calc(-50vw - 100%), -50%);
+    18% {
+        transform: translate(calc(-31.25vw - 50% + 4vw), -50%);
+    }
+    82% {
+        transform: translate(calc(-31.25vw - 50% - 4vw), -50%);
+    }
+    100% {
+        transform: translate(calc(-62.5vw - 100%), -50%);
     }
 }
 
