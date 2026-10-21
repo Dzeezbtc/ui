@@ -126,13 +126,17 @@ describe("PotSizedBetButtons — presets below the minimum bet are greyed out", 
         expect(onAmountSelect).not.toHaveBeenCalled();
     });
 
-    // ui#768: at pot-limit the engine caps the max at the pot, so a deep
-    // stack's max is not an all-in and must not be labelled one.
-    it("labels the max button MAX when the pot-limit caps it below the stack", () => {
+    // ui#857: at pot-limit the pot caps the max below a deep stack, so Pot is
+    // the max. There is no MAX button; ALL-IN is greyed out until the stack is
+    // smaller than a pot-sized bet.
+    it("greys out ALL-IN (and shows no MAX) when the pot-limit caps the bet below the stack", () => {
         const { onAllIn } = renderButtons({ maxIsAllIn: false });
-        expect(screen.queryByText("ALL-IN")).toBeNull();
-        fireEvent.click(screen.getByText("MAX"));
-        expect(onAllIn).toHaveBeenCalledTimes(1);
+        expect(screen.queryByText("MAX")).toBeNull();
+        const allIn = screen.getByText("ALL-IN");
+        expect(allIn).toBeDisabled();
+        expect(allIn).toHaveAttribute("title", "Pot is the most you can bet at pot-limit");
+        fireEvent.click(allIn);
+        expect(onAllIn).not.toHaveBeenCalled();
     });
 
     describe("cent rounding at the minimum boundary", () => {
@@ -190,11 +194,19 @@ describe("PotSizedBetButtons — presets above the max are greyed out (ui#857)",
         expect(onAllIn).toHaveBeenCalledTimes(1);
     });
 
-    it("at pot-limit, greys out presets above the cap and labels the max button MAX", () => {
+    it("at pot-limit with a deep stack, Pot is the max and ALL-IN is greyed out", () => {
         // $2 pot, opening: the cap is the pot ($2), so 1/4–Pot fit; none exceed it.
         renderButtons({ totalPotMicro: 2_000_000n, minAmount: 0.02, maxAmount: 2, maxIsAllIn: false });
         expect(screen.getByText("Pot")).not.toBeDisabled();
-        expect(screen.getByText("MAX")).not.toBeDisabled();
+        expect(screen.getByText("ALL-IN")).toBeDisabled();
+    });
+
+    it("at pot-limit with a stack under a pot-sized bet, Pot greys out and ALL-IN lights up", () => {
+        // $2 pot but only $1.50 behind: the stack is the max, so it's an all-in.
+        const { onAllIn } = renderButtons({ totalPotMicro: 2_000_000n, minAmount: 0.02, maxAmount: 1.5, maxIsAllIn: true });
+        expect(screen.getByText("Pot")).toBeDisabled();
+        fireEvent.click(screen.getByText("ALL-IN"));
+        expect(onAllIn).toHaveBeenCalledTimes(1);
     });
 
     it("titles a preset above the pot-limit cap accordingly", () => {

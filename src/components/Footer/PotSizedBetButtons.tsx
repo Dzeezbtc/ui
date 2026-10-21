@@ -76,10 +76,12 @@ export const PotSizedBetButtons: React.FC<PotSizedBetButtonsProps> = ({
             <button
                 className="btn-all-in px-1 lg:px-2 py-1 lg:py-1.5 rounded-lg w-full border shadow-md text-[10px] lg:text-xs transition-all duration-200 font-medium transform active:scale-105"
                 onClick={onAllIn}
-                disabled={disabled}
-                title={maxIsAllIn ? undefined : "The most the pot-limit allows"}
+                // At pot-limit, Pot already is the max: ALL-IN only lights up when the
+                // whole stack is less than a pot-sized bet (ui#857), never as "MAX".
+                disabled={disabled || !maxIsAllIn}
+                title={maxIsAllIn ? undefined : "Pot is the most you can bet at pot-limit"}
             >
-                {maxIsAllIn ? "ALL-IN" : "MAX"}
+                ALL-IN
             </button>
         </div>
     );
