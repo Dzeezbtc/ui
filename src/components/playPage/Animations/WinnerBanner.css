@@ -83,6 +83,6 @@
     .b52-winner-banner {
         left: 50%;
         transform: translateX(-50%);
-        animation: b52-winner-banner-fade 20000ms linear forwards;
+        animation: b52-winner-banner-fade 12000ms linear forwards;
     }
 }
