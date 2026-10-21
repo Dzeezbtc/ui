@@ -1,16 +1,17 @@
-/* Last-pot winner banner (ui#848) — a brief, non-intrusive readout near the top
-   of the table. Doesn't block clicks on the game underneath. */
+/* Last-pot winner banner (ui#848) — a pill that rolls right-to-left across the
+   middle half of the screen, in the clear strip above the top seat, then fades.
+   Rendered in a portal on <body> so the table's scaling transform can't move it.
+   Doesn't block clicks on the game underneath. */
 
 .b52-winner-banner {
-    position: absolute;
-    top: 10px;
+    position: fixed;
+    top: 108px; /* below the header + table info bar, above the top seat's cards */
     left: 50%;
-    transform: translateX(-50%);
-    z-index: 30;
+    z-index: 60;
     display: inline-flex;
     align-items: center;
     gap: 8px;
-    max-width: 90%;
+    max-width: 50vw;
     padding: 8px 16px;
     border-radius: 9999px;
     background: rgba(15, 23, 42, 0.86);
@@ -21,7 +22,9 @@
     font-weight: 600;
     white-space: nowrap;
     pointer-events: none; /* never block the game underneath */
-    animation: b52-winner-banner-in 220ms ease-out;
+    opacity: 0;
+    /* Duration matches BANNER_MS in WinnerBanner.tsx. */
+    animation: b52-winner-banner-roll 5000ms linear forwards;
 }
 
 .b52-winner-banner__trophy {
@@ -34,19 +37,39 @@
     text-overflow: ellipsis;
 }
 
-@keyframes b52-winner-banner-in {
-    from {
+/* Appears a quarter of the screen in from the right, rolls to a quarter in from
+   the left, fading in and out at the ends. */
+@keyframes b52-winner-banner-roll {
+    0% {
         opacity: 0;
-        transform: translate(-50%, -6px);
+        transform: translateX(calc(-50% + 25vw));
     }
-    to {
+    10% {
         opacity: 1;
-        transform: translate(-50%, 0);
+    }
+    90% {
+        opacity: 1;
+    }
+    100% {
+        opacity: 0;
+        transform: translateX(calc(-50% - 25vw));
+    }
+}
+
+@keyframes b52-winner-banner-fade {
+    0%,
+    100% {
+        opacity: 0;
+    }
+    10%,
+    90% {
+        opacity: 1;
     }
 }
 
 @media (prefers-reduced-motion: reduce) {
     .b52-winner-banner {
-        animation: none;
+        transform: translateX(-50%);
+        animation-name: b52-winner-banner-fade;
     }
 }
