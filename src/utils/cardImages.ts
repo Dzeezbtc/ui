@@ -64,7 +64,9 @@ import backLegacySvg from "../assets/cards/Back.svg";
 import backCustomSvg from "../assets/cards/BackCustom.svg";
 
 // jsDelivr CDN against the block52/cards GitHub repo — edge-cached, unlike raw.githubusercontent.com.
-const CDN_BASE = "https://cdn.jsdelivr.net/gh/block52/cards@main";
+// Pinned to the commit that adds the marble set (block52/cards#4): immutable, so
+// the CDN serves it before and after that PR merges, with no stale-cache window.
+const CDN_BASE = "https://cdn.jsdelivr.net/gh/block52/cards@f2c7ba1";
 
 const CARD_IMAGES: Record<string, string> = {
     "2C": as2C, "2D": as2D, "2H": as2H, "2S": as2S,
@@ -88,7 +90,7 @@ const CARD_IMAGES: Record<string, string> = {
 export type CardBackStyle = "default" | "block52" | "custom" | string;
 
 /**
- * Get the URL for a chip image by filename (e.g. "25chip.svg", "1cent.svg")
+ * Get the URL for a chip image by path under chips/ (e.g. "marble/25chip.webp", "chip.svg")
  */
 export function getChipImageUrl(file: string): string {
     return `${CDN_BASE}/chips/${file}`;
