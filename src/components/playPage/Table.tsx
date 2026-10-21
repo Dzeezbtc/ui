@@ -51,6 +51,7 @@ import { formatPotDisplay, formatChipCount } from "../../utils/potDisplayUtils";
 // // Position arrays now come from useTableLayout hook
 // import { playerPosition, dealerPosition, vacantPlayerPosition } from "../../utils/PositionArray";
 import PokerActionPanel from "../Footer";
+import WinnerBanner from "./Animations/WinnerBanner";
 
 // Extracted Table components
 import {
@@ -152,7 +153,6 @@ import {
     type TableSize
 } from "../../config/stageGeometry";
 import CustomDealer from "../../assets/CustomDealer.svg";
-import WinnerBanner from "./Animations/WinnerBanner";
 import { useDealerPosition } from "../../hooks/game/useDealerPosition";
 
 // Turn Notification
