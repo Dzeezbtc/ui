@@ -47,20 +47,25 @@ const WinnerBanner: React.FC = () => {
     // positioned (or scaled) by the table stage it's mounted from. Keyed on the
     // text so a new pot restarts the roll.
     return createPortal(
-        <div key={text} className="b52-winner-banner" style={{ top }} role="status" aria-live="polite">
-            {avatarUrl && (
-                <NftAvatarImage
-                    src={avatarUrl}
-                    alt="Winner avatar"
-                    imgClassName="b52-winner-banner__avatar"
-                    chipClassName="b52-winner-banner__avatar"
-                    fallbackClassName="b52-winner-banner__avatar"
-                />
-            )}
-            <span className="b52-winner-banner__trophy" aria-hidden="true">
-                🏆
-            </span>
-            <span className="b52-winner-banner__text">{text}</span>
+        // The track is the visible window (the middle half of the screen); the
+        // pill slides out of its right edge and into its left, like a train
+        // through a tunnel, clipped rather than faded.
+        <div key={text} className="b52-winner-banner-track" style={{ top }} role="status" aria-live="polite">
+            <div className="b52-winner-banner">
+                {avatarUrl && (
+                    <NftAvatarImage
+                        src={avatarUrl}
+                        alt="Winner avatar"
+                        imgClassName="b52-winner-banner__avatar"
+                        chipClassName="b52-winner-banner__avatar"
+                        fallbackClassName="b52-winner-banner__avatar"
+                    />
+                )}
+                <span className="b52-winner-banner__trophy" aria-hidden="true">
+                    🏆
+                </span>
+                <span className="b52-winner-banner__text">{text}</span>
+            </div>
         </div>,
         document.body
     );

@@ -1,13 +1,26 @@
-/* Last-pot winner banner (ui#848) — a pill that rolls right-to-left across the
-   middle half of the screen, in the clear strip above the top seat, then fades.
+/* Last-pot winner banner (ui#848) — a pill that rolls right-to-left through a
+   window over the middle half of the screen, in the clear strip above the top
+   seat. It slides out of the window's right edge and into its left edge, clipped
+   like a train through a tunnel — no fade.
    Rendered in a portal on <body> so the table's scaling transform can't move it.
    Doesn't block clicks on the game underneath. */
 
-.b52-winner-banner {
+/* The visible window: a quarter of the screen in from each side. */
+.b52-winner-banner-track {
     position: fixed;
     /* top is set inline: just under the table info bar (winnerBannerTop). */
-    left: 50%;
+    left: 25vw;
+    width: 50vw;
+    height: 56px; /* room for the pill and its glow */
+    overflow: hidden; /* the "tunnel" edges clip the pill */
     z-index: 60;
+    pointer-events: none; /* never block the game underneath */
+}
+
+.b52-winner-banner {
+    position: absolute;
+    top: 50%;
+    left: 100%; /* starts just past the right edge, hidden */
     display: inline-flex;
     align-items: center;
     gap: 8px;
@@ -15,13 +28,12 @@
     border-radius: 9999px;
     background: rgba(15, 23, 42, 0.86);
     border: 1px solid rgba(244, 196, 48, 0.55);
-    box-shadow: 0 2px 14px rgba(0, 0, 0, 0.45), 0 0 10px rgba(244, 196, 48, 0.25);
+    box-shadow: 0 0 10px rgba(244, 196, 48, 0.25);
     color: #f8fafc;
     font-size: 14px;
     font-weight: 600;
     white-space: nowrap;
-    pointer-events: none; /* never block the game underneath */
-    opacity: 0;
+    transform: translate(0, -50%);
     /* Duration matches BANNER_MS in WinnerBanner.tsx. */
     animation: b52-winner-banner-roll 7000ms linear forwards;
 }
@@ -46,22 +58,14 @@
     white-space: nowrap;
 }
 
-/* Appears a quarter of the screen in from the right, rolls to a quarter in from
-   the left, fading in and out at the ends. */
+/* Out of the right edge, across, and fully into the left edge: it travels the
+   window's width plus its own. */
 @keyframes b52-winner-banner-roll {
-    0% {
-        opacity: 0;
-        transform: translateX(calc(-50% + 25vw));
+    from {
+        transform: translate(0, -50%);
     }
-    10% {
-        opacity: 1;
-    }
-    90% {
-        opacity: 1;
-    }
-    100% {
-        opacity: 0;
-        transform: translateX(calc(-50% - 25vw));
+    to {
+        transform: translate(calc(-50vw - 100%), -50%);
     }
 }
 
@@ -78,7 +82,8 @@
 
 @media (prefers-reduced-motion: reduce) {
     .b52-winner-banner {
-        transform: translateX(-50%);
+        left: 50%;
+        transform: translate(-50%, -50%);
         animation-name: b52-winner-banner-fade;
     }
 }
