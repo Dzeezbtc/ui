@@ -9,17 +9,16 @@
  */
 
 import React, { useState } from "react";
-import { FaCopy, FaShare, FaQrcode } from "react-icons/fa";
-import { IoSettingsOutline } from "react-icons/io5";
-import { LuPanelLeftOpen, LuPanelLeftClose } from "react-icons/lu";
+import { FaCopy, FaShare, FaQrcode, FaRedo } from "react-icons/fa";
 import { RxExit } from "react-icons/rx";
 import { QRCodeSVG } from "qrcode.react";
 import { Modal } from "../../../common/Modal";
 import { NetworkSelector } from "../../../NetworkSelector";
 import { ProfileAvatarButton } from "../../../profile";
-import { formatGameFormatDisplay, isSitAndGoFormat } from "../../../../utils/gameFormatUtils";
+import { formatGameFormatDisplay, formatTableGameDisplay, isSitAndGoFormat } from "../../../../utils/gameFormatUtils";
+import { displayGameFormat } from "../../../../utils/createGameType";
 import { buildHandShareUrl, buildShareOnXUrl } from "../../../../utils/handReplay";
-import { GameFormat, GameOptionsDTO, PlayerDTO } from "@block52/poker-vm-sdk";
+import { GameFormat, GameOptionsDTO, GameVariant, PlayerDTO } from "@block52/poker-vm-sdk";
 import { useBlindLevel } from "../../../../hooks/game/useBlindLevel";
 import styles from "./TableHeader.module.css";
 
@@ -42,6 +41,7 @@ export interface TableHeaderProps {
 
     // Game data
     gameFormat: GameFormat | null;
+    gameVariant: GameVariant | undefined;
     gameOptions: GameOptionsDTO | null;
     tableActivePlayers: PlayerDTO[];
 
@@ -64,22 +64,18 @@ export interface TableHeaderProps {
     // Current user state
     currentPlayerData: PlayerDTO | null;
 
-    // Sidebar state
-    openSidebar: boolean;
-
-    // Settings sidebar state
-    openSettings: boolean;
-
     // Handlers
     handleLobbyClick: () => void;
     handleCopyTableLink: () => void;
     handleDepositClick: () => void;
     fetchAccountBalance: () => void;
     copyToClipboard: (text: string) => void;
-    onCloseSideBar: () => void;
-    onToggleSettings: () => void;
     handleLeaveTableClick: () => void;
     handleShareHand: () => void;
+    /** Opens the latest completed hand's replay in a new tab (ui#816); absent in replay mode. */
+    handleOpenReplay?: () => void;
+    /** The hand the replay button opens; null before the first hand completes. */
+    replayHand?: number | null;
 }
 
 export const TableHeader: React.FC<TableHeaderProps> = ({
@@ -87,6 +83,7 @@ export const TableHeader: React.FC<TableHeaderProps> = ({
     tableName,
     isMobileLandscape,
     gameFormat,
+    gameVariant,
     gameOptions,
     tableActivePlayers,
     publicKey,
@@ -98,17 +95,15 @@ export const TableHeader: React.FC<TableHeaderProps> = ({
     actionCount,
     nextToAct,
     currentPlayerData,
-    openSidebar,
-    openSettings,
     handleLobbyClick,
     handleCopyTableLink,
     handleDepositClick,
     fetchAccountBalance,
     copyToClipboard,
-    onCloseSideBar,
-    onToggleSettings,
     handleLeaveTableClick,
     handleShareHand,
+    handleOpenReplay,
+    replayHand = null,
 }) => {
     // Owned here rather than passed down from Table. The hook ticks once a
     // second to drive the blind countdown, and TableHeader is its only consumer
@@ -168,12 +163,25 @@ export const TableHeader: React.FC<TableHeaderProps> = ({
                         <FaQrcode size={12} />
                         <span className="hidden sm:inline">Share via QR Code</span>
                     </button>
+                    {/* Replay (ui#816): the previous hand, in a new tab, with media controls */}
+                    {handleOpenReplay && (
+                        <button
+                            onClick={handleOpenReplay}
+                            disabled={replayHand === null}
+                            className={`flex items-center gap-1.5 px-3 py-1.5 rounded-lg text-sm font-semibold transition-all duration-200 hover:opacity-80 border disabled:opacity-40 disabled:cursor-not-allowed ${styles.copyTableButton}`}
+                            title={replayHand === null ? "No completed hand to replay yet" : `Replay hand #${replayHand} in a new tab`}
+                            data-testid="open-replay"
+                        >
+                            <FaRedo size={12} />
+                            <span className="hidden sm:inline">Replay</span>
+                        </button>
+                    )}
                     {/* Game Format & Variant Display - Desktop Only */}
                     {gameOptions && (
                         <div className={`hidden md:flex items-center ml-4 px-3 py-1 rounded-lg ${styles.gameFormatContainer}`}>
                             <span className={`text-sm font-semibold ${styles.brandText}`}>
-                                {gameFormat ? `${formatGameFormatDisplay(gameFormat)} • ` : ""}
-                                Texas Hold'em
+                                {gameFormat ? `${displayGameFormat(gameFormat, gameOptions.scheduledStartTime, formatGameFormatDisplay)} • ` : ""}
+                                {formatTableGameDisplay(gameVariant, gameOptions.bettingLimit)}
                                 {gameOptions.minPlayers && gameOptions.maxPlayers && (
                                     <span className={`ml-1 ${styles.secondaryText}`}>
                                         ({tableActivePlayers.length}/{gameOptions.maxPlayers} Players)
@@ -307,21 +315,8 @@ export const TableHeader: React.FC<TableHeaderProps> = ({
 
                 {/* Right Section */}
                 <div className="flex items-center z-10 mr-1 sm:mr-3">
-                    {/* Settings gear icon */}
-                    <span
-                        className={`cursor-pointer transition-colors duration-200 px-1 sm:px-2 py-0.5 sm:py-1 rounded hover:opacity-80 mr-1 sm:mr-2 ${openSettings ? styles.sidebarToggleOpen : styles.sidebarToggleClosed}`}
-                        onClick={onToggleSettings}
-                        title="Toggle Settings"
-                    >
-                        <IoSettingsOutline size={14} />
-                    </span>
-                    <span
-                        className={`cursor-pointer transition-colors duration-200 px-1 sm:px-2 py-0.5 sm:py-1 rounded hover:opacity-80 ${openSidebar ? styles.sidebarToggleOpen : styles.sidebarToggleClosed}`}
-                        onClick={onCloseSideBar}
-                        title="Toggle Action Log"
-                    >
-                        {openSidebar ? <LuPanelLeftOpen size={14} /> : <LuPanelLeftClose size={14} />}
-                    </span>
+                    {/* Panel tab controls removed — the floating panel's own tab bar
+                        (History / Settings) switches tabs now (ui#752). */}
                     {/* Only show Leave Table button if user is seated — and never
                         for SNG, where the roster is frozen once play starts
                         (poker-vm#2343) and leave/claim is handled by the SNG

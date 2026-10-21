@@ -35,6 +35,9 @@ export class CosmosApi extends HTTPClient {
     public getSentTransactions = (senderQuery: string) => this.get(`/cosmos/tx/v1beta1/txs?query=${encodeURIComponent(senderQuery)}&order_by=2&limit=10`);
     public getReceivedTransactions = (recipientQuery: string) =>
         this.get(`/cosmos/tx/v1beta1/txs?query=${encodeURIComponent(recipientQuery)}&order_by=2&limit=10`);
+    /** The single most recent tx matching an event query (e.g. `message.sender='b521…'`). */
+    public getLatestTransaction = (eventQuery: string) =>
+        this.get(`/cosmos/tx/v1beta1/txs?query=${encodeURIComponent(eventQuery)}&order_by=2&limit=1`);
     public getValidators = (limit?: number) => this.get(`/cosmos/staking/v1beta1/validators${limit ? `?pagination.limit=${limit}` : ""}`);
     public getValidatorsByStatus = (status: string, signal?: AbortSignal) =>
         this.get(`/cosmos/staking/v1beta1/validators?status=${status}&pagination.limit=100`, { signal });
@@ -85,6 +88,8 @@ export class CometRpcApi extends HTTPClient {
     /** ABCI query of a gRPC method path with hex-encoded protobuf `data`, at `height` (0 = latest). */
     public abciQuery = (path: string, dataHex: string, height: number) =>
         this.get(`abci_query?path=${encodeURIComponent(`"${path}"`)}&data=${dataHex}&height=${height}`);
+    /** The block at `height` (its header carries the block time signed queries must match). */
+    public block = (height: number) => this.get(`block?height=${height}`);
 }
 
 export class IndexerApi extends HTTPClient {

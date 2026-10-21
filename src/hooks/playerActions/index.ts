@@ -23,9 +23,11 @@ import { useAutoDeal } from "./useAutoDeal";
 import { useAutoPostBlinds } from "./useAutoPostBlinds";
 import { useAutoNewHand } from "./useAutoNewHand";
 import { useAutoFold } from "./useAutoFold";
+import { useCallClock } from "./useCallClock";
+import { callClock } from "./callClock";
 import { useAutoMuck } from "./useAutoMuck";
 import { useAutoSitOutNextBB } from "./useAutoSitOutNextBB";
-import { usePreCheck } from "./usePreCheck";
+import { usePreAction } from "./usePreAction";
 
 export {
     betHand,
@@ -55,9 +57,11 @@ export {
     useAutoPostBlinds,
     useAutoNewHand,
     useAutoFold,
+    useCallClock,
+    callClock,
     useAutoMuck,
     useAutoSitOutNextBB,
-    usePreCheck
+    usePreAction
 };
 
 export type { OptimisticActionType, SitInMethod, SitOutMethod };

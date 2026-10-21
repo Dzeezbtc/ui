@@ -57,8 +57,9 @@ import {
     TableHeader,
     MobileTableHeader,
     TableBoard,
-    TableSidebar,
-    TableSettingsSidebar,
+    TablePanel,
+    TablePanelExpandTab,
+    type TablePanelTab,
     TableModals,
     PlayerSeating,
     PlayerActionButtons,
@@ -77,11 +78,13 @@ import { formatUSDCToSimpleDollars } from "../../utils/numberUtils";
 import { toast } from "react-toastify";
 
 import { isValidPlayerAddress } from "../../utils/addressUtils";
-import { CardBackStyle } from "../../utils/cardImages";
+import { CardBackStyle, getDealerImageUrl } from "../../utils/cardImages";
 import { cssVars } from "../../utils/cssVars";
 import { ANIMATION_CSS_VARS } from "../../bus/timing";
 
 import "./Table.css"; // Import the Table CSS file
+
+const DESKTOP_PANEL_COLLAPSED_KEY = "b52.tablePanelCollapsed";
 
 //// TODO get these hooks to subscribe to the wss connection
 
@@ -113,6 +116,10 @@ import { useGameResults } from "../../hooks/game/useGameResults"; // Game result
 import { usePlayerLegalActions } from "../../hooks/playerActions/usePlayerLegalActions";
 import { SitOutIntentProvider } from "../../context/SitOutIntentContext";
 import { useGameOptions } from "../../hooks/game/useGameOptions";
+import { hasTournamentStarted } from "../../utils/scheduledSng";
+import { describeReplayStep, latestCompletedHand } from "../../utils/replayTimeline";
+import { useReplayTimeline } from "../../hooks/game/useReplayTimeline";
+import { ReplayTransport } from "./ReplayTransport";
 import { getCosmosBalance, getCosmosAddressSync, getFormattedCosmosAddress } from "../../utils/cosmosAccountUtils";
 import { useGameStateContext } from "../../context/GameStateContext";
 import { useGameSettings } from "../../context/GameSettingsContext";
@@ -144,7 +151,6 @@ import {
     PLAYER_UI_PADDING,
     type TableSize
 } from "../../config/stageGeometry";
-import CustomDealer from "../../assets/CustomDealer.svg";
 import { useDealerPosition } from "../../hooks/game/useDealerPosition";
 
 // Turn Notification
@@ -697,12 +703,23 @@ const GeometryToggleButton: React.FC = () => {
 const Table = React.memo(() => {
     const { id } = useParams<{ id: string }>();
     // Game state context and subscription
-    const { subscribeToTable, unsubscribeFromTable, gameState, gameFormat, gameName, validationError, error, loadHistoricalState, isReplayMode, replayHandNumber, replayActionIndex, connection } =
+    const { subscribeToTable, unsubscribeFromTable, gameState, gameFormat, gameVariant, gameName, validationError, error, loadHistoricalState, isReplayMode, replayHandNumber, connection } =
         useGameStateContext();
     const { currentNetwork } = useNetwork();
 
     // Replay mode — read hand/index query params from the readonly share link.
-    const { isReplayMode: hasReplayParams, handNumber: replayHandParam, actionIndex: replayActionParam, clearReplayParams } = useReplayMode();
+    const { isReplayMode: hasReplayParams, handNumber: replayHandParam, actionIndex: replayActionParam, clearReplayParams, setReplayHand } = useReplayMode();
+
+    // Replay (ui#816). Live table: the circle-arrow button opens the latest
+    // completed hand's replay in a NEW tab (the live table stays as it is).
+    // Replay tab: the timeline + transport drive loadHistoricalStateAtHeight.
+    const replayHand = useMemo(() => latestCompletedHand(gameState), [gameState]);
+    const handleOpenReplay = useCallback(() => {
+        if (!id || replayHand === null) return;
+        window.open(buildHandShareUrl(window.location.origin, id, replayHand), "_blank", "noopener");
+    }, [id, replayHand]);
+    const replay = useReplayTimeline({ tableId: id, handNumber: replayHandNumber, active: isReplayMode });
+    const replayStepLabel = useMemo(() => describeReplayStep(gameState), [gameState]);
     const indexerApi = useIndexerApi();
 
     // No-wallet detection: must be declared before the subscribeToTable useEffect that depends on it.
@@ -747,15 +764,17 @@ const Table = React.memo(() => {
     // Update to use the imported hook
     const tableDataValues = useTableData();
     const { isUserAlreadyPlaying, emptySeatIndexes } = useVacantSeatData();
-    // Determine if we're in a Sit & Go waiting for players state
-    // This is true when: it's a sit-and-go, the user is seated, but not all seats are filled
+    // Determine if we're in a Sit & Go waiting for players state: it's a
+    // sit-and-go, the user is seated, seats are still empty, and the tournament
+    // has not started. A scheduled sit-and-go (poker-vm#2680) starts with empty
+    // seats, so "started" is read from the state, not from the seat count.
     const isSitAndGoWaitingForPlayers = useMemo(() => {
         const isSitAndGo = isSitAndGoFormat(gameFormat);
         const hasEmptySeats = hasElements(emptySeatIndexes);
-        const result = isSitAndGo && isUserAlreadyPlaying && hasEmptySeats;
+        const result = isSitAndGo && isUserAlreadyPlaying && hasEmptySeats && !hasTournamentStarted(gameState);
 
         return result;
-    }, [gameFormat, isUserAlreadyPlaying, emptySeatIndexes.length]);
+    }, [gameFormat, isUserAlreadyPlaying, emptySeatIndexes.length, gameState]);
 
     // invoke hook for seat loop
     const { winnerInfo } = useWinnerInfo();
@@ -795,7 +814,29 @@ const Table = React.memo(() => {
     }, [publicKey, fetchAccountBalance]);
 
     // Zoom is now managed by useTableLayout hook
-    const [openSidebar, setOpenSidebar] = useState(false);
+    //
+    // Always-visible floating panel with two tabs (History default, then
+    // Settings) — replaces the two former fly-out overlays (ui#752). The panel
+    // is never closed; the header gear/panel controls just switch the tab.
+    const [panelTab, setPanelTab] = useState<TablePanelTab>("history");
+    // Phones: the panel covers the felt, so it is closed until opened from the hamburger menu.
+    const [mobilePanelOpen, setMobilePanelOpen] = useState(false);
+    // Desktop: the panel can be collapsed to a slim edge tab; the choice is remembered.
+    const [desktopPanelCollapsed, setDesktopPanelCollapsed] = useState<boolean>(() => {
+        try {
+            return localStorage.getItem(DESKTOP_PANEL_COLLAPSED_KEY) === "1";
+        } catch {
+            return false;
+        }
+    });
+    const setDesktopPanelCollapsedPersisted = useCallback((collapsed: boolean) => {
+        setDesktopPanelCollapsed(collapsed);
+        try {
+            localStorage.setItem(DESKTOP_PANEL_COLLAPSED_KEY, collapsed ? "1" : "0");
+        } catch {
+            // storage unavailable (private mode) — keep in-memory state only
+        }
+    }, []);
 
     // Leave table modal state
     const [isLeaveModalOpen, setIsLeaveModalOpen] = useState(false);
@@ -1129,22 +1170,6 @@ const Table = React.memo(() => {
     // Position arrays are now managed by useTableLayout hook
     // useEffect(() => { ... }, [tableSize, id]);
 
-    const onCloseSideBar = useCallback(() => {
-        setOpenSidebar(prev => {
-            if (!prev) setOpenSettings(false);
-            return !prev;
-        });
-    }, []);
-
-    const [openSettings, setOpenSettings] = useState(false);
-
-    const onToggleSettings = useCallback(() => {
-        setOpenSettings(prev => {
-            if (!prev) setOpenSidebar(false);
-            return !prev;
-        });
-    }, []);
-
     // Memoize formatted balance - Cosmos returns microunits (6 decimals)
     const balanceFormatted = useMemo(() => (accountBalance ? formatUSDCToSimpleDollars(accountBalance) : "0.00"), [accountBalance]);
 
@@ -1309,26 +1334,27 @@ const Table = React.memo(() => {
                     }}
                 />
             )}
-            {/* Replay mode banner */}
+            {/* Replay transport (ui#816): hand selector, play / pause / step / scrub, Go Live */}
             {isReplayMode && replayHandNumber != null && (
-                <div
-                    // Bottom pill: the table header (also z-[100], later in the DOM) covered
-                    // a top banner, and replay mode has no action panel down here.
-                    className="fixed bottom-4 left-1/2 -translate-x-1/2 z-[150] flex items-center justify-center gap-4 py-2 px-4 text-sm rounded-full shadow-lg"
-                    style={{ background: "rgba(214, 60, 94, 0.95)", color: "#fff" }}
-                >
-                    <span>
-                        Viewing hand #{replayHandNumber}
-                        {replayActionIndex != null ? ` at action ${replayActionIndex}` : " · final state (read-only)"}
-                    </span>
-                    <button
-                        onClick={clearReplayParams}
-                        className="px-3 py-1 rounded text-xs font-bold transition-opacity hover:opacity-80"
-                        style={{ background: "rgba(255,255,255,0.2)", color: "#fff" }}
-                    >
-                        Go Live
-                    </button>
-                </div>
+                <ReplayTransport
+                    handNumber={replayHandNumber}
+                    latestHand={replay.latestHand}
+                    stepCount={replay.steps.length}
+                    position={replay.transport.position}
+                    isPlaying={replay.transport.isPlaying}
+                    speed={replay.transport.speed}
+                    stepLabel={replayStepLabel}
+                    isLoading={replay.isLoading}
+                    error={replay.error}
+                    onTogglePlay={replay.transport.togglePlay}
+                    onStepBack={replay.transport.stepBack}
+                    onStepForward={replay.transport.stepForward}
+                    onSeek={replay.transport.seek}
+                    onSpeed={replay.transport.setSpeed}
+                    onPrevHand={() => setReplayHand(replayHandNumber - 1)}
+                    onNextHand={() => setReplayHand(replayHandNumber + 1)}
+                    onGoLive={clearReplayParams}
+                />
             )}
             {/* DEBUG OVERLAY: Press D/C/B/S/G to toggle debug tools */}
             <LayoutDebugOverlay />
@@ -1370,6 +1396,8 @@ const Table = React.memo(() => {
                 <MobileTableHeader
                     tableId={id || ""}
                     tableName={gameName}
+                    handleOpenReplay={isReplayMode ? undefined : handleOpenReplay}
+                    replayHand={replayHand}
                     currentNetwork={currentNetwork}
                     gameFormat={gameFormat || null}
                     gameOptions={gameOptions}
@@ -1388,16 +1416,16 @@ const Table = React.memo(() => {
                     minBuyIn={gameOptions?.minBuyIn || "0"}
                     maxBuyIn={gameOptions?.maxBuyIn || "0"}
                     walletBalance={accountBalance}
-                    openSidebar={openSidebar}
-                    openSettings={openSettings}
                     tableStyle={tableStyle}
                     onCycleTableStyle={() => setTableStyle(s => (s === "modern" ? "classic" : s === "classic" ? "nouns" : "modern"))}
+                    onOpenPanel={tab => {
+                        setPanelTab(tab);
+                        setMobilePanelOpen(true);
+                    }}
                     handleLobbyClick={handleLobbyClick}
                     handleCopyTableLink={handleCopyTableLink}
                     fetchAccountBalance={fetchAccountBalance}
                     copyToClipboard={copyToClipboard}
-                    onCloseSideBar={onCloseSideBar}
-                    onToggleSettings={onToggleSettings}
                     handleLeaveTableClick={handleLeaveTableClick}
                     handleShareHand={handleShareHand}
                 />
@@ -1405,8 +1433,11 @@ const Table = React.memo(() => {
                 <TableHeader
                     tableId={id || ""}
                     tableName={gameName}
+                    handleOpenReplay={isReplayMode ? undefined : handleOpenReplay}
+                    replayHand={replayHand}
                     isMobileLandscape={isMobileLandscape}
                     gameFormat={gameFormat || null}
+                    gameVariant={gameVariant}
                     gameOptions={gameOptions}
                     tableActivePlayers={tableActivePlayers}
                     publicKey={publicKey}
@@ -1418,15 +1449,11 @@ const Table = React.memo(() => {
                     actionCount={actionCount}
                     nextToAct={nextToAct}
                     currentPlayerData={currentPlayerData || null}
-                    openSidebar={openSidebar}
-                    openSettings={openSettings}
                     handleLobbyClick={handleLobbyClick}
                     handleCopyTableLink={handleCopyTableLink}
                     handleDepositClick={handleDepositClick}
                     fetchAccountBalance={fetchAccountBalance}
                     copyToClipboard={copyToClipboard}
-                    onCloseSideBar={onCloseSideBar}
-                    onToggleSettings={onToggleSettings}
                     handleLeaveTableClick={handleLeaveTableClick}
                     handleShareHand={handleShareHand}
                 />
@@ -1531,7 +1558,7 @@ const Table = React.memo(() => {
                             if (!dPos) return null;
                             return (
                                 <div className="absolute w-12 h-12 z-[25]" style={{ left: dPos.left, top: dPos.top, transform: "translate(-50%, -50%)" }}>
-                                    <img src={CustomDealer} alt="Dealer Button" className="w-full h-full" />
+                                    <img src={getDealerImageUrl()} alt="Dealer Button" className="w-full h-full" />
                                 </div>
                             );
                         })()}
@@ -1603,11 +1630,15 @@ const Table = React.memo(() => {
                     </div>
                 ))}
 
-            {/*//! ACTION LOG OVERLAY */}
-            <TableSidebar isOpen={openSidebar} />
-
-            {/*//! SETTINGS OVERLAY */}
-            <TableSettingsSidebar isOpen={openSettings} />
+            {/*//! FLOATING PANEL — History + Settings tabs (ui#752). Always visible on
+                desktop; on phones it opens from the hamburger menu and closes itself. */}
+            {isCompactMobile ? (
+                mobilePanelOpen && <TablePanel activeTab={panelTab} onSelectTab={setPanelTab} onClose={() => setMobilePanelOpen(false)} />
+            ) : desktopPanelCollapsed ? (
+                <TablePanelExpandTab onExpand={() => setDesktopPanelCollapsedPersisted(false)} />
+            ) : (
+                <TablePanel activeTab={panelTab} onSelectTab={setPanelTab} onCollapse={() => setDesktopPanelCollapsedPersisted(true)} />
+            )}
 
             {/* Layout Debug Panel */}
             <LayoutDebugInfo viewportMode={viewportMode} startIndex={startIndex} tableSize={tableSize} results={results} setStartIndex={setStartIndex} />
