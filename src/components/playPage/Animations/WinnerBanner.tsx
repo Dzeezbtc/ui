@@ -7,7 +7,7 @@ import { NftAvatarImage } from "../../profile/NftAvatarImage";
 import "./WinnerBanner.css";
 
 /** How long the last-pot banner rolls before it unmounts (ms); matches the CSS animation. */
-const BANNER_MS = 8000;
+const BANNER_MS = 6000;
 
 /**
  * Last-pot winner banner (ui#848): a brief, non-intrusive readout of who won the

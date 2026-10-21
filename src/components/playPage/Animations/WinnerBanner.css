@@ -1,7 +1,7 @@
 /* Last-pot winner banner (ui#848) — a pill that rolls right-to-left through a
    window over the middle half of the screen, in the clear strip above the top
-   seat. It slides out of the window's right edge, drifts slowly through the
-   middle, and into its left edge, clipped like a train through a tunnel — no
+   seat. It rolls at a steady speed out of the window's right edge and into its
+   left edge, clipped like a train through a tunnel — no
    fade, and no visible edge.
    Rendered in a portal on <body> so the table's scaling transform can't move it.
    Doesn't block clicks on the game underneath. */
@@ -36,7 +36,7 @@
     white-space: nowrap;
     transform: translate(0, -50%);
     /* Duration matches BANNER_MS in WinnerBanner.tsx. */
-    animation: b52-winner-banner-roll 8000ms linear forwards;
+    animation: b52-winner-banner-roll 6000ms linear forwards;
 }
 
 .b52-winner-banner__avatar {
@@ -59,20 +59,13 @@
     white-space: nowrap;
 }
 
-/* Slides in from the right edge, drifts slowly through the middle for ~5s so it
-   can be read, then slides fully into the left edge. The centre is half the
-   window (31.25vw) plus half the pill to the left of the start. */
+/* One continuous roll at a steady speed: out of the right edge, across, and
+   fully into the left edge (the window's width plus the pill's own). */
 @keyframes b52-winner-banner-roll {
-    0% {
+    from {
         transform: translate(0, -50%);
     }
-    18% {
-        transform: translate(calc(-31.25vw - 50% + 4vw), -50%);
-    }
-    82% {
-        transform: translate(calc(-31.25vw - 50% - 4vw), -50%);
-    }
-    100% {
+    to {
         transform: translate(calc(-62.5vw - 100%), -50%);
     }
 }
