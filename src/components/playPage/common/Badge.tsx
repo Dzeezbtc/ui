@@ -1,6 +1,7 @@
 import React from "react";
 import { hasValue } from "../../../utils/guards";
 import { usePlayerActionDropBox } from "../../../hooks/player/usePlayerActionDropBox";
+import { WinAmountFloat } from "./WinAmountFloat";
 import { useSeatJoinNotification } from "../../../hooks/notifications/useSeatJoinNotification";
 import { useGameStateContext } from "../../../context/GameStateContext";
 import { isTournamentFormat } from "../../../utils/gameFormatUtils";
@@ -36,7 +37,7 @@ type BadgeProps = {
 const Badge: React.FC<BadgeProps> = React.memo(({
     count, value, color, canExtend, onExtend,
     tournamentPlace, tournamentPayout,
-    isWinner, winnerHandDescription, isTurnTimerActive,
+    isWinner, winnerAmount, winnerHandDescription, isTurnTimerActive,
     round, isFolded, isAllIn, isSeated, isSittingOut, playerEquity, onSitIn
 }) => {
     // Track previous banner mode so we can detect timer→action transitions
@@ -276,6 +277,9 @@ const Badge: React.FC<BadgeProps> = React.memo(({
                     </div>
                 </div>
             </div>
+
+            {/* Floating "+amount" pill on a winning seat (ui#861) */}
+            {isWinner && <WinAmountFloat formattedAmount={winnerAmount} />}
 
             {/* Timer Extension Icon - Timer icon inside badge */}
             {canExtend && onExtend && (
