@@ -12,7 +12,6 @@ export const RaiseBetControls: React.FC<RaiseBetControlsProps> = ({
     displayOffset,
     totalPotMicro,
     callAmountMicro,
-    bigBlindMicro,
     isInvalid,
     isMobileLandscape,
     isTournament,
@@ -22,7 +21,8 @@ export const RaiseBetControls: React.FC<RaiseBetControlsProps> = ({
     onAmountChange,
     onIncrement,
     onDecrement,
-    onAllIn
+    onAllIn,
+    maxIsAllIn
 }) => {
     return (
         <>
@@ -48,7 +48,6 @@ export const RaiseBetControls: React.FC<RaiseBetControlsProps> = ({
                 <PotSizedBetButtons
                     totalPotMicro={totalPotMicro}
                     callAmountMicro={callAmountMicro}
-                    bigBlindMicro={bigBlindMicro}
                     minAmount={minAmount}
                     maxAmount={maxAmount}
                     isTournament={isTournament}
@@ -57,6 +56,7 @@ export const RaiseBetControls: React.FC<RaiseBetControlsProps> = ({
                     disabled={disabled}
                     onAmountSelect={onAmountChange}
                     onAllIn={onAllIn}
+                    maxIsAllIn={maxIsAllIn}
                 />
             )}
         </>
