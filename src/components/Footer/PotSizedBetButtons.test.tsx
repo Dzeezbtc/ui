@@ -17,7 +17,8 @@ const baseProps: PotSizedBetButtonsProps = {
     disabled: false,
     onAmountSelect: jest.fn(),
     onAllIn: jest.fn(),
-    maxIsAllIn: true
+    maxIsAllIn: true,
+    allowBlindMultiples: true
 };
 
 const renderButtons = (overrides: Partial<PotSizedBetButtonsProps> = {}) => {
@@ -202,6 +203,16 @@ describe("PotSizedBetButtons — pre-flop presets (0.01/0.02)", () => {
         minAmount: 0.03,
         maxAmount: 2
     };
+
+    it("Omaha / pot-limit opens with pot fractions, never big-blind multiples", () => {
+        renderButtons({ ...sbUnopened, allowBlindMultiples: false });
+        for (const label of ["1/4 Pot", "1/2 Pot", "3/4 Pot", "Pot"]) {
+            expect(screen.getByText(label)).toBeInTheDocument();
+        }
+        for (const label of ["2x", "2.5x", "3x", "5x"]) {
+            expect(screen.queryByText(label)).not.toBeInTheDocument();
+        }
+    });
 
     it("shows the four opening multiples 2x / 2.5x / 3x / 5x (no Pot) in an unopened pot", () => {
         renderButtons(sbUnopened);

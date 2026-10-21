@@ -1,4 +1,4 @@
-import { ActionDTO, PlayerActionType, TexasHoldemRound } from "@block52/poker-vm-sdk";
+import { ActionDTO, BettingLimit, GameVariant, PlayerActionType, TexasHoldemRound } from "@block52/poker-vm-sdk";
 import { currentRoundContribution } from "./chipUtils";
 import type { PotFraction } from "./calculatePotBetAmount";
 
@@ -66,4 +66,16 @@ export function preflopPresetAmount(highestContribution: bigint, callAmount: big
     const raiseTo = (highestContribution * multiple.numerator) / multiple.denominator;
     const alreadyIn = highestContribution - callAmount;
     return raiseTo - alreadyIn;
+}
+
+/**
+ * Whether a table opens with big-blind multiples at all. Omaha, and any
+ * pot-limit table, sizes every bet against the pot — including the open — so
+ * its bar is always 1/4 · 1/2 · 3/4 · Pot. Only no-limit Hold'em opens in blinds.
+ *
+ * @param variant The table's variant (GameStateResponseDTO.variant)
+ * @param bettingLimit The table's betting limit (gameOptions.bettingLimit; absent = no-limit)
+ */
+export function allowsBlindMultiples(variant: GameVariant | undefined, bettingLimit: BettingLimit | string | undefined): boolean {
+    return variant !== GameVariant.OMAHA && bettingLimit !== BettingLimit.POT_LIMIT;
 }

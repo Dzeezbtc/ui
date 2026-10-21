@@ -3,12 +3,13 @@
  * for the opening raise only; once there's a raise — or on any later street — the
  * component shows pot fractions instead.
  */
-import { ActionDTO, PlayerActionType, TexasHoldemRound } from "@block52/poker-vm-sdk";
+import { ActionDTO, BettingLimit, GameVariant, PlayerActionType, TexasHoldemRound } from "@block52/poker-vm-sdk";
 import {
     highestPreflopContribution,
     postedBigBlind,
     isPreflopRaised,
     showPreflopMultiples,
+    allowsBlindMultiples,
     preflopPresetAmount,
     UNOPENED_PREFLOP_PRESETS
 } from "./preflopPresets";
@@ -107,5 +108,21 @@ describe("preflopPresetAmount (chips added = raise-to total − chips already in
 
     it("uses exact fractions in tournament chips (2.5x of 50 → 125)", () => {
         expect(preflopPresetAmount(50n, 50n, UNOPENED_PREFLOP_PRESETS[1].multiple)).toBe(125n);
+    });
+});
+
+describe("allowsBlindMultiples — only no-limit Hold'em opens in blinds", () => {
+    it("no-limit Hold'em uses the multiples", () => {
+        expect(allowsBlindMultiples(GameVariant.TEXAS_HOLDEM, BettingLimit.NO_LIMIT)).toBe(true);
+        expect(allowsBlindMultiples(GameVariant.TEXAS_HOLDEM, undefined)).toBe(true); // absent = no-limit
+    });
+
+    it("Omaha never does, at any limit", () => {
+        expect(allowsBlindMultiples(GameVariant.OMAHA, BettingLimit.POT_LIMIT)).toBe(false);
+        expect(allowsBlindMultiples(GameVariant.OMAHA, BettingLimit.NO_LIMIT)).toBe(false);
+    });
+
+    it("pot-limit Hold'em sizes the open against the pot too", () => {
+        expect(allowsBlindMultiples(GameVariant.TEXAS_HOLDEM, BettingLimit.POT_LIMIT)).toBe(false);
     });
 });

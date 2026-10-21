@@ -21,7 +21,8 @@ export const PotSizedBetButtons: React.FC<PotSizedBetButtonsProps> = ({
     disabled,
     onAmountSelect,
     onAllIn,
-    maxIsAllIn
+    maxIsAllIn,
+    allowBlindMultiples
 }) => {
     const potBetMicro = (variation: PotBetVariation): bigint =>
         calculatePotBetWithVariation(
@@ -37,7 +38,8 @@ export const PotSizedBetButtons: React.FC<PotSizedBetButtonsProps> = ({
     // The opening raise pre-flop uses big-blind multiples (2x/2.5x/3x/5x, ui#751) —
     // four buttons, no pot. The moment there's a raise, or on any later street, the
     // bar reverts to pot fractions (1/4 · 1/2 · 3/4 · Pot).
-    const useMultiples = showPreflopMultiples(currentRound, previousActions);
+    // Omaha and pot-limit tables never open in blinds — always pot fractions.
+    const useMultiples = allowBlindMultiples && showPreflopMultiples(currentRound, previousActions);
     const highest = useMultiples ? highestPreflopContribution(previousActions) : 0n;
     const presets: { label: string; micro: bigint }[] = useMultiples
         ? UNOPENED_PREFLOP_PRESETS.map(({ label, multiple }) => ({
