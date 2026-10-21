@@ -64,9 +64,7 @@ import backLegacySvg from "../assets/cards/Back.svg";
 import backCustomSvg from "../assets/cards/BackCustom.svg";
 
 // jsDelivr CDN against the block52/cards GitHub repo — edge-cached, unlike raw.githubusercontent.com.
-// Pinned to the commit that adds the marble set (block52/cards#4): immutable, so
-// the CDN serves it before and after that PR merges, with no stale-cache window.
-const CDN_BASE = "https://cdn.jsdelivr.net/gh/block52/cards@f2c7ba1";
+const CDN_BASE = "https://cdn.jsdelivr.net/gh/block52/cards@main";
 
 const CARD_IMAGES: Record<string, string> = {
     "2C": as2C, "2D": as2D, "2H": as2H, "2S": as2S,
@@ -111,10 +109,10 @@ export function getSoundUrl(file: string): string {
 }
 
 /**
- * Get the URL for the dealer button image
+ * Get the URL for the dealer button image (marble set, matches the chips — see ui#776)
  */
 export function getDealerImageUrl(): string {
-    return `${CDN_BASE}/dealer.svg`;
+    return `${CDN_BASE}/chips/marble/dealer.webp`;
 }
 
 /**

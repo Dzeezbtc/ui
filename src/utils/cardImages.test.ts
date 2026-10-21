@@ -16,7 +16,7 @@ const BUNDLED_SVG = "test-file-stub";
 // Non-critical assets (chips, sounds, dealer) are still served from a CDN — jsDelivr,
 // against the block52/cards GitHub repo. raw.githubusercontent.com is not a CDN and was
 // the source of the intermittent load failures we moved away from.
-const CDN_BASE = "https://cdn.jsdelivr.net/gh/block52/cards@f2c7ba1";
+const CDN_BASE = "https://cdn.jsdelivr.net/gh/block52/cards@main";
 
 describe("cardImages", () => {
     describe("getChipImageUrl", () => {
@@ -43,7 +43,7 @@ describe("cardImages", () => {
 
     describe("getDealerImageUrl", () => {
         it("should return correct dealer image URL", () => {
-            expect(getDealerImageUrl()).toBe(`${CDN_BASE}/dealer.svg`);
+            expect(getDealerImageUrl()).toBe(`${CDN_BASE}/chips/marble/dealer.webp`);
         });
     });
 
