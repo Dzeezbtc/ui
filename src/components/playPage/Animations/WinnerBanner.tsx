@@ -2,6 +2,8 @@ import React, { useEffect, useRef, useState } from "react";
 import { createPortal } from "react-dom";
 import { useWinnerInfo } from "../../../hooks/game/useWinnerInfo";
 import { winnerBannerText } from "../../../utils/winnerBanner";
+import { useProfileAvatar } from "../../../context/profile/ProfileAvatarContext";
+import { NftAvatarImage } from "../../profile/NftAvatarImage";
 import "./WinnerBanner.css";
 
 /** How long the last-pot banner rolls before it unmounts (ms); matches the CSS animation. */
@@ -15,13 +17,17 @@ const BANNER_MS = 7000;
  */
 const WinnerBanner: React.FC = () => {
     const { winnerInfo } = useWinnerInfo();
+    const { getAvatarForAddress } = useProfileAvatar();
     const [text, setText] = useState<string | null>(null);
+    // The sole winner's address, for their avatar/NFT; null for a split pot.
+    const [winnerAddress, setWinnerAddress] = useState<string | null>(null);
     const timer = useRef<ReturnType<typeof setTimeout> | undefined>(undefined);
 
     useEffect(() => {
         const next = winnerBannerText(winnerInfo);
         if (!next) return; // no winners this frame — leave the current banner to time out
         setText(next);
+        setWinnerAddress(winnerInfo && winnerInfo.length === 1 ? winnerInfo[0].address : null);
         if (timer.current) clearTimeout(timer.current);
         timer.current = setTimeout(() => setText(null), BANNER_MS);
         return () => {
@@ -31,11 +37,23 @@ const WinnerBanner: React.FC = () => {
 
     if (!text) return null;
 
+    // The winner's avatar (an NFT when they've linked one) leads the banner.
+    const avatarUrl = winnerAddress ? getAvatarForAddress(winnerAddress) : null;
+
     // Portal to <body>: the banner rolls across the screen, so it must not be
     // positioned (or scaled) by the table stage it's mounted from. Keyed on the
     // text so a new pot restarts the roll.
     return createPortal(
         <div key={text} className="b52-winner-banner" role="status" aria-live="polite">
+            {avatarUrl && (
+                <NftAvatarImage
+                    src={avatarUrl}
+                    alt="Winner avatar"
+                    imgClassName="b52-winner-banner__avatar"
+                    chipClassName="b52-winner-banner__avatar"
+                    fallbackClassName="b52-winner-banner__avatar"
+                />
+            )}
             <span className="b52-winner-banner__trophy" aria-hidden="true">
                 🏆
             </span>
