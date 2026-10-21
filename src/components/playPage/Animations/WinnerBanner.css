@@ -11,7 +11,6 @@
     display: inline-flex;
     align-items: center;
     gap: 8px;
-    max-width: 50vw;
     padding: 8px 16px;
     border-radius: 9999px;
     background: rgba(15, 23, 42, 0.86);
@@ -43,8 +42,8 @@
 }
 
 .b52-winner-banner__text {
-    overflow: hidden;
-    text-overflow: ellipsis;
+    /* Always the whole message, however long: never truncated. */
+    white-space: nowrap;
 }
 
 /* Appears a quarter of the screen in from the right, rolls to a quarter in from
