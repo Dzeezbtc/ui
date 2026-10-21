@@ -1,5 +1,3 @@
-import { describeWinningHand } from "./winningHandText";
-
 /**
  * Builds the last-pot winner banner text (ui#848) from the resolved winners.
  * Pure + typed so it can be unit-tested apart from the component.
@@ -9,10 +7,8 @@ export interface BannerWinner {
     /** "0.03" for cash (USDC), "1,240 chips" for SNG/tournaments. */
     formattedAmount: string;
     handName?: string;
-    /** The engine's hand description, e.g. "Full House, 8s over 7s". */
+    /** The engine's hand description, e.g. "Full House, 8s over 7s", shown as-is. */
     description?: string;
-    /** The winning five cards as mnemonics ("6D"), for a flush's suit. */
-    cards?: string[];
     /** "showdown" shows the winning hand; "uncontested" just shows the amount. */
     winType?: string;
 }
@@ -31,7 +27,7 @@ function wonPhrase(formattedAmount: string): string {
 }
 
 /**
- * "Seat 3 wins the $12.50 pot with Full House, Eights over Sevens", or for a
+ * "Seat 3 wins the $12.50 pot with Full House, 8s over 7s", or for a
  * split pot "Split pot — Seat 3 $6.25 · Seat 5 $6.25". Null when there are no
  * winners.
  */
@@ -40,7 +36,9 @@ export function winnerBannerText(winners: BannerWinner[] | null | undefined): st
     if (winners.length === 1) {
         const w = winners[0];
         const engineHand = w.description || w.handName;
-        const hand = w.winType === "showdown" && engineHand ? ` with ${describeWinningHand(engineHand, w.cards)}` : "";
+        // The engine's wording as-is, so the banner matches the seat labels and
+        // hand log (wording changes belong upstream in the engine — see poker-vm).
+        const hand = w.winType === "showdown" && engineHand ? ` with ${engineHand}` : "";
         return `Seat ${w.seat} wins ${wonPhrase(w.formattedAmount)}${hand}`;
     }
     return `Split pot — ${winners.map(w => `Seat ${w.seat} ${bannerAmount(w.formattedAmount)}`).join(" · ")}`;

@@ -7,25 +7,17 @@ describe("winnerBannerText", () => {
         expect(winnerBannerText([])).toBeNull();
     });
 
-    it("single showdown winner spells out the winning hand", () => {
+    it("single showdown winner shows the engine's hand description as-is", () => {
         expect(
             winnerBannerText([
                 { seat: 3, formattedAmount: "12.50", description: "Full House, 8s over 7s", handName: "Full House, 8s over 7s", winType: "showdown" }
             ])
-        ).toBe("Seat 3 wins the $12.50 pot with Full House, Eights over Sevens");
-    });
-
-    it("names a flush's suit from the winning cards", () => {
-        expect(
-            winnerBannerText([
-                { seat: 2, formattedAmount: "0.40", description: "Flush, 6 high", cards: ["6D", "5D", "4D", "3D", "2D"], winType: "showdown" }
-            ])
-        ).toBe("Seat 2 wins the $0.40 pot with Diamond Flush, Six high");
+        ).toBe("Seat 3 wins the $12.50 pot with Full House, 8s over 7s");
     });
 
     it("falls back to the hand name when there is no description", () => {
         expect(winnerBannerText([{ seat: 1, formattedAmount: "1.00", handName: "Four 4s", winType: "showdown" }])).toBe(
-            "Seat 1 wins the $1.00 pot with Quad Fours"
+            "Seat 1 wins the $1.00 pot with Four 4s"
         );
     });
 
