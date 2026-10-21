@@ -6,15 +6,19 @@
    Rendered in a portal on <body> so the table's scaling transform can't move it.
    Doesn't block clicks on the game underneath. */
 
-/* The visible window: 62.5% of the screen, centred. Clipped only at the left
-   and right (clip-path), never top or bottom, so there's no visible box. */
+/* The visible window: 62.5% of the screen, centred. overflow: hidden is the
+   invisible "tunnel": unlike clip-path it doesn't force a repaint every frame, so
+   the browser can slide the pill on the GPU without re-drawing anything. The
+   window is tall enough that only the left/right edges ever clip. */
 .b52-winner-banner-track {
     position: fixed;
     /* top is set inline: just under the table info bar (winnerBannerTop). */
     left: 18.75vw;
     width: 62.5vw;
-    height: 44px;
-    clip-path: inset(-40px 0); /* the invisible "tunnel" edges */
+    height: 48px;
+    overflow: hidden;
+    contain: layout paint;
+    transform: translateZ(0); /* its own compositor layer */
     z-index: 60;
     pointer-events: none; /* never block the game underneath */
 }
