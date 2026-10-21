@@ -1,4 +1,4 @@
-import { GameListItem, GameFormat, GameVariant } from "@block52/poker-vm-sdk";
+import { BettingLimit, GameListItem, GameFormat, GameVariant } from "@block52/poker-vm-sdk";
 import { getGameFormat, getGameVariant } from "./gameFormatUtils";
 
 /**
@@ -16,6 +16,8 @@ export interface GameWithFormat {
     currentPlayers: number;
     gameFormat: GameFormat | "unknown";
     gameVariant: GameVariant | "unknown";
+    /** Betting limit (ui#824); absent for legacy tables created before the field existed = no-limit. */
+    bettingLimit?: BettingLimit;
     smallBlind: string;
     bigBlind: string;
     status: string;
@@ -27,6 +29,8 @@ export interface GameWithFormat {
     entryFee?: string;
     /** Protocol fee rate in basis points (1000 = 10%); absent/0 = none (poker-vm#2592). */
     protocolFeeBps?: number;
+    /** Scheduled start, epoch ms (poker-vm#2680); absent = the sit-and-go starts only when full. */
+    scheduledStartTime?: number;
 }
 
 /**
@@ -53,6 +57,7 @@ export const convertGameListItemToGameWithFormat = (game: GameListItem): GameWit
         currentPlayers: game.currentPlayers ? game.currentPlayers : 0,
         gameFormat: getGameFormat(game.format),
         gameVariant: getGameVariant(game.variant),
+        bettingLimit: opts.bettingLimit,
         smallBlind: opts.smallBlind,
         bigBlind: opts.bigBlind,
         status: "waiting",
@@ -60,6 +65,7 @@ export const convertGameListItemToGameWithFormat = (game: GameListItem): GameWit
         timeout: opts.timeout,
         createdAt: game.createdAt,
         updatedAt: game.updatedAt,
+        scheduledStartTime: opts.scheduledStartTime,
         entryFee: opts.entryFee,
         protocolFeeBps: opts.protocolFeeBps
     };

@@ -53,11 +53,13 @@ const SettingsTab: React.FC = () => {
         turnNotificationSound,
         playerActionSounds,
         autoMuck,
+        callClock,
         sitInOptions,
         preSelectCheck,
         toggleTurnNotificationSound,
         togglePlayerActionSounds,
         toggleAutoMuck,
+        toggleCallClock,
         toggleSitInOptions,
         togglePreSelectCheck
     } = useGameSettings();
@@ -83,14 +85,20 @@ const SettingsTab: React.FC = () => {
                 onToggle={toggleAutoMuck}
             />
             <ToggleRow
+                label="Call the Clock"
+                description="When another player's clock runs out and they don't act, call the clock on them so the table isn't stuck waiting. The chain checks their time really is up before folding them."
+                checked={callClock}
+                onToggle={toggleCallClock}
+            />
+            <ToggleRow
                 label="Sit-In Options"
                 description="Choose how to enter (Sit In Next Hand vs Next Big Blind) when you take a seat. When off, you're sat in automatically and dealt in next hand."
                 checked={sitInOptions}
                 onToggle={toggleSitInOptions}
             />
             <ToggleRow
-                label="Pre-Select Check"
-                description="Show a Check box before your turn when checking is free, so you can queue an auto-check. Clears if a bet lands — it can only ever check, never fold."
+                label="Pre-Select Check/Fold"
+                description="Show a Check/Fold box before your turn when checking is free. When your turn comes it checks if it's still free, or folds if someone bets first."
                 checked={preSelectCheck}
                 onToggle={togglePreSelectCheck}
             />

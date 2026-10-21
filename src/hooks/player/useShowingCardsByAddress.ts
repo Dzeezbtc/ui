@@ -2,6 +2,7 @@ import { useMemo } from "react";
 import { useGameStateContext } from "../../context/GameStateContext";
 import { PlayerDTO, PlayerStatus, TexasHoldemRound } from "@block52/poker-vm-sdk";
 import { ShowingCardsByAddressReturn, ShowingCardData } from "../../types/index";
+import { isRevealedHand } from "../../bus/deriveEvents";
 
 /**
  * Custom hook to get hole cards of players who have shown their cards
@@ -14,7 +15,7 @@ import { ShowingCardsByAddressReturn, ShowingCardData } from "../../types/index"
  */
 export const useShowingCardsByAddress = (): ShowingCardsByAddressReturn => {
   // Get game state directly from Context - real-time data via WebSocket
-  const { gameState, isLoading, error } = useGameStateContext();
+  const { gameState, isLoading, error, isReplayMode } = useGameStateContext();
   
   // Check if round is showdown or end
   const isShowdown = useMemo((): boolean => {
@@ -33,9 +34,11 @@ export const useShowingCardsByAddress = (): ShowingCardsByAddressReturn => {
     try {
       return gameState.players
         .filter((player: PlayerDTO) => 
-          player.status === PlayerStatus.SHOWING && 
-          player.holeCards && 
-          player.holeCards.length === 2
+          // Any count of real cards: two for Hold'em, four for Omaha (ui#768).
+          // In a replay the only real cards in state are ones the viewer is
+          // entitled to see (shown at showdown, or their own — ui#816), on
+          // every step of the hand, whatever the player's status was then.
+          (player.status === PlayerStatus.SHOWING || isReplayMode) && isRevealedHand(player.holeCards)
         )
         .map((player: PlayerDTO) => ({
           address: player.address,
@@ -46,7 +49,7 @@ export const useShowingCardsByAddress = (): ShowingCardsByAddressReturn => {
       console.error("Error filtering showing players:", err);
       return [];
     }
-  }, [showingFingerprint]);
+  }, [showingFingerprint, isReplayMode]);
 
   const showingBySeat = useMemo(() => {
     const bySeat = new Map<number, ShowingCardData>();

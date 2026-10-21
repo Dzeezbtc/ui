@@ -1,4 +1,5 @@
 import React, { useCallback, useEffect, useState } from "react";
+import { formatStartsAt, scheduledSngPhase, type ScheduledSngPhase } from "../utils/scheduledSng";
 import { truncateMiddle } from "../utils/stringUtils";
 import { useFindGames, GameWithFormat, treasuryAddress } from "../hooks/game/useFindGames";
 import { useDeleteGame } from "../hooks/game/useDeleteGame";
@@ -7,7 +8,8 @@ import useCosmosWallet from "../hooks/wallet/useCosmosWallet";
 import { formatMicroAsUsdc } from "../constants/currency";
 import { computeSngEntryBreakdown } from "../utils/buyInUtils";
 import { sortTablesByAvailableSeats } from "../utils/tableSortingUtils";
-import { isCashFormat, isTournamentFormat, formatGameFormatDisplay, formatGameVariantDisplay } from "../utils/gameFormatUtils";
+import { isCashFormat, isTournamentFormat, formatGameFormatDisplay, formatTableGameDisplay, toGameVariant } from "../utils/gameFormatUtils";
+import { displayGameFormat } from "../utils/createGameType";
 import DeleteTableModal from "./modals/DeleteTableModal";
 import ForceCloseTableModal from "./modals/ForceCloseTableModal";
 import { Pagination, SortButton, SortDirection } from "./common";
@@ -53,6 +55,19 @@ const formatBuyIn = (game: GameWithFormat) => {
 interface TableListProps {
     onCreateTable?: () => void;
 }
+
+/** A scheduled sit-and-go's phase at render time (poker-vm#2680). */
+const scheduledPhase = (game: GameWithFormat): ScheduledSngPhase =>
+    scheduledSngPhase({ scheduledStartTime: game.scheduledStartTime, minPlayers: game.minPlayers, registered: game.currentPlayers, nowMs: Date.now() });
+
+/** "Starts 20:30 · min 4" for a scheduled sit-and-go; "" otherwise. */
+const scheduledLabel = (game: GameWithFormat): string => {
+    const phase = scheduledPhase(game);
+    if (phase === "unscheduled" || game.scheduledStartTime === undefined) return "";
+    if (phase === "cancelled") return "Cancelled: not enough players";
+    if (phase === "ready") return "Starting";
+    return `Starts ${formatStartsAt(game.scheduledStartTime)} · min ${game.minPlayers}`;
+};
 
 const TableList: React.FC<TableListProps> = ({ onCreateTable }) => {
     const { games: rawGames, isLoading, error, refetch } = useFindGames();
@@ -330,7 +345,7 @@ const TableList: React.FC<TableListProps> = ({ onCreateTable }) => {
                             <th className="hidden md:table-cell md:w-[120px] px-2 sm:px-4 py-3 text-center text-sm font-semibold text-gray-400">
                                 <SortButton label="Format" direction={formatSortDir} onClick={handleFormatSortClick} />
                             </th>
-                            <th className="hidden sm:table-cell sm:w-[120px] px-2 sm:px-4 py-3 text-center text-sm font-semibold text-gray-400">Variant</th>
+                            <th className="hidden sm:table-cell sm:w-[160px] px-2 sm:px-4 py-3 text-center text-sm font-semibold text-gray-400">Game</th>
                             <th className="w-[18%] sm:w-[100px] px-2 sm:px-4 py-3 text-center text-sm font-semibold text-gray-400">
                                 <SortButton label="Players" direction={playersSortDir} onClick={handlePlayersSortClick} />
                             </th>
@@ -427,15 +442,27 @@ const TableList: React.FC<TableListProps> = ({ onCreateTable }) => {
                                             </td>
                                         )}
                                         <td className="hidden md:table-cell px-2 sm:px-4 py-4 text-center">
-                                            <span className="text-white capitalize">{formatGameFormatDisplay(game.gameFormat)}</span>
+                                            {/* A scheduled sit-and-go is a Tournament (ui#823), as the create form calls it. */}
+                                            <span className="text-white capitalize" data-testid="lobby-format">
+                                                {displayGameFormat(game.gameFormat, game.scheduledStartTime, formatGameFormatDisplay)}
+                                            </span>
                                         </td>
+                                        {/* The game as the table header names it (ui#824): the limit spelled out
+                                            when it is not no-limit — "Pot-Limit Omaha", not just "Omaha". */}
                                         <td className="hidden sm:table-cell px-2 sm:px-4 py-4 text-center">
-                                            <span className="text-white capitalize">{formatGameVariantDisplay(game.gameVariant)}</span>
+                                            <span className="text-white" data-testid="lobby-game">
+                                                {formatTableGameDisplay(toGameVariant(game.gameVariant), game.bettingLimit)}
+                                            </span>
                                         </td>
                                         <td className="px-2 sm:px-4 py-4 text-center">
                                             <span className="text-white font-semibold">
                                                 {game.currentPlayers}/{game.maxPlayers}
                                             </span>
+                                            {scheduledLabel(game) && (
+                                                <span className="block text-xs text-blue-300 mt-1" data-testid="scheduled-start-label">
+                                                    {scheduledLabel(game)}
+                                                </span>
+                                            )}
                                         </td>
                                         <td className="px-2 sm:px-4 py-4 text-center">
                                             <span className="block truncate text-gray-300 font-mono text-sm" title={formatBuyIn(game)}>
@@ -447,10 +474,10 @@ const TableList: React.FC<TableListProps> = ({ onCreateTable }) => {
                                                 href={`/table/${game.gameId}`}
                                                 target="_blank"
                                                 rel="noopener noreferrer"
-                                                aria-label={`Join ${formatGameFormatDisplay(game.gameFormat)} table with ${game.currentPlayers} of ${game.maxPlayers} players, blinds $${formatMicroAsUsdc(game.smallBlind, 2)}/$${formatMicroAsUsdc(game.bigBlind, 2)}`}
+                                                aria-label={`Join ${displayGameFormat(game.gameFormat, game.scheduledStartTime, formatGameFormatDisplay)} table with ${game.currentPlayers} of ${game.maxPlayers} players, blinds $${formatMicroAsUsdc(game.smallBlind, 2)}/$${formatMicroAsUsdc(game.bigBlind, 2)}`}
                                                 className={`inline-block px-3 sm:px-4 py-2 text-white text-sm font-semibold rounded-lg transition-all hover:opacity-90 ${styles.actionButton}`}
                                             >
-                                                {game.currentPlayers === game.maxPlayers ? "Full" : "Join"}
+                                                {scheduledPhase(game) === "cancelled" ? "Cancelled" : game.currentPlayers === game.maxPlayers ? "Full" : "Join"}
                                             </a>
                                         </td>
                                         <td className="hidden sm:table-cell px-2 sm:px-4 py-4 text-center">

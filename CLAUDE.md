@@ -392,12 +392,34 @@ yarn lint:fix
 yarn lint:warn
 ```
 
-### Reuse `utils/` Helpers
+### Guards and `utils/`, Not Functions in Components
 
-Prefer existing helpers in `src/utils/` over re-implementing common checks
-inline. Before writing a null/empty/length check or a conversion by hand, look
-for a helper — and if one is missing, add a tested helper rather than inlining
-the logic.
+Logic lives in `src/utils/` (or a hook when it needs React state), **never as
+helper functions declared inside a component body or module**. A component
+should render and wire up hooks; anything that computes, parses, formats,
+compares or validates belongs in a named, exported, unit-tested helper.
+
+```typescript
+// ❌ WRONG - logic defined inside the component file
+const shortAddress = (addr: string) => `${addr.slice(0, 8)}...${addr.slice(-8)}`;
+export const PlayerSeat: React.FC<Props> = ({ player }) => {
+    const label = shortAddress(player.address);
+    if (player.holeCards && player.holeCards.length > 0) { ... }
+};
+
+// ✅ CORRECT - import tested helpers and guards
+import { truncateHash } from "../utils/formatUtils";
+import { hasElements } from "../utils/guards";
+export const PlayerSeat: React.FC<Props> = ({ player }) => {
+    const label = truncateHash(player.address);
+    if (hasElements(player.holeCards)) { ... }
+};
+```
+
+Before writing a null/empty/length check or a conversion by hand, look for an
+existing helper. If one is missing, add it to `src/utils/` **with a colocated
+`*.test.ts`** rather than inlining the logic. Reuse beats re-implementation:
+grep `src/utils/` first.
 
 Most common: `src/utils/guards.ts` for null/empty checks.
 
@@ -413,8 +435,109 @@ if (hasValue(value)) { ... }
 ```
 
 Available guards: `hasValue` / `isNullish` (null-or-undefined), `hasElements` /
-`isEmpty` (array length), `hasContent` / `isBlank` (strings). For type
+`isEmpty` / `safeLength` (arrays), `hasContent` / `isBlank` (strings). For type
 conversions, see Commandment 12 (`utils/typeConversions`).
+
+### New Features Must Be Unit Tested
+
+A new feature is not done until it has unit tests. This already happens for
+much of the codebase (utils, bus decorators, hooks); it is the rule, not the
+exception, for anything new.
+
+- **Utils / guards / conversions:** colocated `src/utils/<name>.test.ts`
+  covering the happy path and the edge cases (null, empty, boundary values).
+- **Bus decorators and pure stream logic:** a test per decorator file in
+  `src/bus/`, exercised in isolation with hand-built `prev`/`next` snapshots.
+- **API classes / HTTP:** `src/tests/`, mocking axios at module level, one
+  describe block per method, success **and** error paths (Architecture
+  Commandment 7).
+- **Hooks:** `@testing-library/react` `renderHook` tests next to the hook.
+- **Components:** test the extracted logic (above), not the JSX. If a component
+  has behavior worth testing, the behavior belongs in a util or hook.
+
+Run `yarn test` before opening a PR. A PR that adds a feature without tests
+should say so explicitly and why; "will add tests later" is not acceptable.
+
+### Issues and Pull Requests
+
+**Check all three repos before doing any work, and before filing a new issue.**
+Someone may already have reported it, designed it, started it, built it, or
+closed it as won't-fix — and often in a *different* repo from the one you are
+in. Block52 is one product split across `block52/ui`, `block52/poker-vm`
+(SDK + Go engine) and `block52/pokerchain` (chain), so a UI request may already
+be an engine issue, a chain feature, or code that already exists.
+
+**Never create a GitHub issue until both passes below are done.**
+
+1. **Issue pass — all three repos, open and closed.** Search by the symptom,
+   the feature name, the component or hook name, and any synonyms
+   ("blinds tab" / "blind structure" / "blind level"):
+
+   ```bash
+   for r in ui poker-vm pokerchain; do
+     gh issue list --repo block52/$r --search "<keywords>" --state all --limit 50
+     gh pr list    --repo block52/$r --search "<keywords>" --state all --limit 50
+   done
+   ```
+
+   The TypeScript engine's issues live in `block52/ts-engine`; divergence
+   records go there too.
+
+2. **Code pass — all three repos.** Grep the code for the behaviour before
+   claiming it is missing. The UI already wires more than it shows (dev-only
+   pages, feature flags, hooks with no caller), and the engine or chain may
+   already expose the data or action the request needs:
+
+   ```bash
+   grep -rn -i "<feature>" ../ui/src ../poker-vm/pvm/go/engine ../poker-vm/sdk/src ../pokerchain/x --include=*.ts --include=*.tsx --include=*.go
+   ```
+
+   Then say in the issue what exists today and where (file paths), so the
+   issue is about the gap, not a restatement of the feature.
+
+- If an issue exists, work against it (`Closes #NNN` in the PR body) and
+  comment on it rather than opening a duplicate. If it exists in another
+  repo, file the UI slice only when there is UI work, and link it.
+- If none exists, file one **before** the PR so the discussion and the decision
+  have a home, and link related issues in other block52 repos
+  (`poker-vm`, `pokerchain`) when the change spans them.
+- A big idea is one issue, not an epic plus a dozen sub-tickets. Split only
+  when someone is about to build a piece.
+- **Label every issue.** One type label (`bug`, `enhancement`, `feature`,
+  `tech debt`, `dev-ops`, `documentation`) plus the area labels that apply
+  (`UI`, `ux`, `sit-and-go`, `table-layout`, `mobile`, `admin`, `chat`,
+  `visual`, `animation`, `lobby`, `deposit`, …). Use `gh label list` to see
+  what exists; don't invent names. An unlabelled issue is invisible to the
+  boards and filters that drive triage.
+
+**Every PR with a visible change includes screenshots.** Put before/after
+screenshots (or a short recording) of the affected screen in the PR
+description — the lobby row, the modal, the panel, whatever changed. Capture
+them against the PVM stub (`packages/e2e`: inject a state frame, then
+`page.screenshot()`), so reviewers see the real rendering, not a mock. A PR
+with no visible change says so explicitly in its description instead.
+
+**Never commit screenshots to the repo.** Screenshots (and recordings) exist
+to show reviewers what changed between before and after, so they belong in the
+PR description only — upload them there (drag-and-drop into the PR body or a
+comment). Do not `git add` PNG/JPG/GIF/video files, and delete or gitignore
+any that a Playwright run leaves behind. The one exception is an image a test
+genuinely needs as a fixture (e.g. a visual-regression baseline or a unit-test
+input); that file is committed deliberately, lives next to the test that uses
+it, and the PR says why.
+
+**Resolve review comments on PRs.** Every review comment gets one of three
+outcomes before the PR is re-requested for review or merged:
+
+1. **Fixed** - push the change and reply naming the commit.
+2. **Declined** - reply explaining why, and let the reviewer resolve it.
+3. **Out of scope** - reply with the follow-up issue number you filed.
+
+Never leave a comment unanswered, never resolve a reviewer's thread without
+replying, and never force-push over a branch that has unresolved review
+threads (it detaches the comments from the diff). Use
+`gh pr view <N> --comments` and `gh api graphql` review-thread queries to list
+what is still open.
 
 ## Hooks Architecture
 
@@ -763,12 +886,16 @@ VITE_WALLETCONNECT_PROJECT_ID=your_project_id
 
 When making changes:
 
-1. Follow code style (double quotes, semicolons)
-2. Run linting before commit: `yarn lint:fix`
-3. Add JSDoc comments to new hooks
-4. Update relevant documentation
-5. Test changes thoroughly
+1. Check existing issues and PRs first; work against an issue (see
+   "Issues and Pull Requests")
+2. Follow code style (double quotes, semicolons)
+3. Put logic in `src/utils/` guards and helpers, not in components
+4. Add unit tests for every new feature; run `yarn test`
+5. Run linting before commit: `yarn lint:fix`
+6. Add JSDoc comments to new hooks
+7. Update relevant documentation
+8. Resolve every review comment before re-requesting review or merging
 
 ---
 
-Last Updated: 2026-07-14
+Last Updated: 2026-10-19
