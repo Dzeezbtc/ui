@@ -1,19 +1,19 @@
-import React, { useEffect, useRef, useState } from "react";
+import React, { useEffect, useLayoutEffect, useRef, useState } from "react";
 import { createPortal } from "react-dom";
 import { useWinnerInfo } from "../../../hooks/game/useWinnerInfo";
-import { winnerBannerText, winnerBannerTop } from "../../../utils/winnerBanner";
+import { winnerBannerRollDistance, winnerBannerText, winnerBannerTop } from "../../../utils/winnerBanner";
 import { useProfileAvatar } from "../../../context/profile/ProfileAvatarContext";
 import { NftAvatarImage } from "../../profile/NftAvatarImage";
 import "./WinnerBanner.css";
 
-/** How long the last-pot banner rolls before it unmounts (ms); matches the CSS animation. */
+/** How long the last-pot banner takes to roll across, end to end (ms). */
 const BANNER_MS = 20000;
 
 /**
  * Last-pot winner banner (ui#848): a brief, non-intrusive readout of who won the
  * last pot and how much. After a pot is awarded it rolls right-to-left across the
- * middle of the screen above the table, then fades — a calmer alternative to
- * the gold celebration (ui#847) that still tells you who won. Handles split pots.
+ * middle of the screen above the table, in and out through invisible edges — a
+ * calmer alternative to the gold celebration (ui#847) that still tells you who won. Handles split pots.
  */
 const WinnerBanner: React.FC = () => {
     const { winnerInfo } = useWinnerInfo();
@@ -24,6 +24,8 @@ const WinnerBanner: React.FC = () => {
     // Measured when a banner starts, so it clears the header at any window size.
     const [top, setTop] = useState<number>(() => winnerBannerTop(null));
     const timer = useRef<ReturnType<typeof setTimeout> | undefined>(undefined);
+    const trackRef = useRef<HTMLDivElement>(null);
+    const pillRef = useRef<HTMLDivElement>(null);
 
     useEffect(() => {
         const next = winnerBannerText(winnerInfo);
@@ -38,6 +40,23 @@ const WinnerBanner: React.FC = () => {
         };
     }, [winnerInfo]);
 
+    // The roll, in plain pixels measured once per banner, via the Web Animations
+    // API: a pixel translate runs on the compositor, so it stays smooth while the
+    // table re-renders. (Reduced motion keeps the CSS fade instead.)
+    useLayoutEffect(() => {
+        const track = trackRef.current;
+        const pill = pillRef.current;
+        if (!text || !track || !pill || typeof pill.animate !== "function") return;
+        if (window.matchMedia?.("(prefers-reduced-motion: reduce)").matches) return;
+        const distance = winnerBannerRollDistance(track.clientWidth, pill.offsetWidth);
+        const roll = pill.animate([{ transform: "translate3d(0, 0, 0)" }, { transform: `translate3d(${-distance}px, 0, 0)` }], {
+            duration: BANNER_MS,
+            easing: "linear",
+            fill: "forwards"
+        });
+        return () => roll.cancel();
+    }, [text]);
+
     if (!text) return null;
 
     // The winner's avatar (an NFT when they've linked one) leads the banner.
@@ -50,8 +69,8 @@ const WinnerBanner: React.FC = () => {
         // The track is the visible window (the middle half of the screen); the
         // pill slides out of its right edge and into its left, like a train
         // through a tunnel, clipped rather than faded.
-        <div key={text} className="b52-winner-banner-track" style={{ top }} role="status" aria-live="polite">
-            <div className="b52-winner-banner">
+        <div key={text} ref={trackRef} className="b52-winner-banner-track" style={{ top }} role="status" aria-live="polite">
+            <div ref={pillRef} className="b52-winner-banner">
                 {avatarUrl && (
                     <NftAvatarImage
                         src={avatarUrl}

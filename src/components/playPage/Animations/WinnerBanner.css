@@ -25,9 +25,12 @@
 
 .b52-winner-banner {
     position: absolute;
-    top: 50%;
-    /* Starts a few px past the right edge so not even a sliver of its border
-       sits on the clip line before it rolls in. */
+    top: 0;
+    bottom: 0;
+    height: max-content;
+    margin: auto 0; /* vertically centred in the window */
+    /* Starts just past the right edge (BANNER_EDGE_MARGIN_PX) so not even a sliver
+       of its border sits on the clip line before it rolls in. */
     left: calc(100% + 6px);
     display: inline-flex;
     align-items: center;
@@ -40,12 +43,9 @@
     font-size: 14px;
     font-weight: 600;
     white-space: nowrap;
-    transform: translate3d(0, -50%, 0);
-    /* Composited on the GPU for a smooth roll. */
+    /* The roll itself is a pixel translate set from WinnerBanner.tsx (Web
+       Animations API), so it runs on the compositor. */
     will-change: transform;
-    backface-visibility: hidden;
-    /* Duration matches BANNER_MS in WinnerBanner.tsx. */
-    animation: b52-winner-banner-roll 20000ms linear forwards;
 }
 
 .b52-winner-banner__avatar {
@@ -68,18 +68,6 @@
     white-space: nowrap;
 }
 
-/* One continuous roll at a steady speed: out of the right edge, across, and
-   fully into the left edge (the window's width plus the pill's own). */
-@keyframes b52-winner-banner-roll {
-    from {
-        transform: translate3d(0, -50%, 0);
-    }
-    to {
-        /* The window, the pill, and the start/end margins: fully hidden at both ends. */
-        transform: translate3d(calc(-62.5vw - 100% - 12px), -50%, 0);
-    }
-}
-
 @keyframes b52-winner-banner-fade {
     0%,
     100% {
@@ -94,7 +82,7 @@
 @media (prefers-reduced-motion: reduce) {
     .b52-winner-banner {
         left: 50%;
-        transform: translate3d(-50%, -50%, 0);
-        animation-name: b52-winner-banner-fade;
+        transform: translateX(-50%);
+        animation: b52-winner-banner-fade 20000ms linear forwards;
     }
 }

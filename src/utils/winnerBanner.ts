@@ -62,3 +62,19 @@ const BANNER_FALLBACK_TOP_PX = 108;
 export function winnerBannerTop(infoBarBottom: number | null | undefined): number {
     return typeof infoBarBottom === "number" ? Math.round(infoBarBottom) + BANNER_GAP_PX : BANNER_FALLBACK_TOP_PX;
 }
+
+/** How far past each clip edge the pill starts and finishes (px), so not even a sliver shows. */
+export const BANNER_EDGE_MARGIN_PX = 6;
+
+/**
+ * How far the pill travels (px): from just past the window's right edge to just
+ * past its left — the window's width, the pill's own width, and a margin at each
+ * end. A plain pixel distance keeps the roll on the compositor (smooth even while
+ * the table re-renders), unlike a calc() of vw and %.
+ *
+ * @param trackWidth The visible window's width (px)
+ * @param pillWidth The pill's rendered width (px)
+ */
+export function winnerBannerRollDistance(trackWidth: number, pillWidth: number): number {
+    return Math.round(trackWidth + pillWidth + 2 * BANNER_EDGE_MARGIN_PX);
+}

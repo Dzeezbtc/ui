@@ -1,4 +1,4 @@
-import { winnerBannerText, winnerBannerTop } from "./winnerBanner";
+import { winnerBannerRollDistance, winnerBannerText, winnerBannerTop } from "./winnerBanner";
 
 describe("winnerBannerText", () => {
     it("returns null when there are no winners", () => {
@@ -60,5 +60,15 @@ describe("winnerBannerTop", () => {
     it("falls back to a fixed offset when there is no info bar", () => {
         expect(winnerBannerTop(null)).toBe(108);
         expect(winnerBannerTop(undefined)).toBe(108);
+    });
+});
+
+describe("winnerBannerRollDistance", () => {
+    it("covers the window, the pill and a margin at each end", () => {
+        expect(winnerBannerRollDistance(640, 452)).toBe(640 + 452 + 12);
+    });
+
+    it("rounds to whole pixels", () => {
+        expect(winnerBannerRollDistance(640.4, 452.3)).toBe(1105);
     });
 });
