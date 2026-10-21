@@ -24,7 +24,7 @@
     pointer-events: none; /* never block the game underneath */
     opacity: 0;
     /* Duration matches BANNER_MS in WinnerBanner.tsx. */
-    animation: b52-winner-banner-roll 5000ms linear forwards;
+    animation: b52-winner-banner-roll 7000ms linear forwards;
 }
 
 .b52-winner-banner__trophy {

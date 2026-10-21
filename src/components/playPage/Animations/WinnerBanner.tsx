@@ -5,7 +5,7 @@ import { winnerBannerText } from "../../../utils/winnerBanner";
 import "./WinnerBanner.css";
 
 /** How long the last-pot banner rolls before it unmounts (ms); matches the CSS animation. */
-const BANNER_MS = 5000;
+const BANNER_MS = 7000;
 
 /**
  * Last-pot winner banner (ui#848): a brief, non-intrusive readout of who won the
