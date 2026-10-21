@@ -7,7 +7,7 @@ import { NftAvatarImage } from "../../profile/NftAvatarImage";
 import "./WinnerBanner.css";
 
 /** How long the last-pot banner takes to roll across, end to end (ms). */
-const BANNER_MS = 12000;
+const BANNER_MS = 15000;
 
 /**
  * Last-pot winner banner (ui#848): a brief, non-intrusive readout of who won the
@@ -50,7 +50,7 @@ const WinnerBanner: React.FC = () => {
         if (window.matchMedia?.("(prefers-reduced-motion: reduce)").matches) return;
         const distance = winnerBannerRollDistance(track.clientWidth, pill.offsetWidth);
         // The tiny rotation stops Chrome snapping the layer to whole pixels (which
-        // it does to keep text crisp): at this speed the pill moves ~1.4px a
+        // it does to keep text crisp): at this speed the pill moves ~1px a
         // frame, and snapping turns that into a visible judder.
         const roll = pill.animate([{ transform: "translate3d(0, 0, 0) rotate(0.01deg)" }, { transform: `translate3d(${-distance}px, 0, 0) rotate(0.01deg)` }], {
             duration: BANNER_MS,
