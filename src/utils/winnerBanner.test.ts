@@ -1,4 +1,4 @@
-import { winnerBannerText } from "./winnerBanner";
+import { winnerBannerText, winnerBannerTop } from "./winnerBanner";
 
 describe("winnerBannerText", () => {
     it("returns null when there are no winners", () => {
@@ -48,5 +48,17 @@ describe("winnerBannerText", () => {
                 { seat: 5, formattedAmount: "6.25" }
             ])
         ).toBe("Split pot — Seat 3 $6.25 · Seat 5 $6.25");
+    });
+});
+
+describe("winnerBannerTop", () => {
+    it("sits just under the info bar, whatever its height", () => {
+        expect(winnerBannerTop(100)).toBe(108); // desktop: one-line header
+        expect(winnerBannerTop(185.4)).toBe(193); // narrow window: header wraps
+    });
+
+    it("falls back to a fixed offset when there is no info bar", () => {
+        expect(winnerBannerTop(null)).toBe(108);
+        expect(winnerBannerTop(undefined)).toBe(108);
     });
 });

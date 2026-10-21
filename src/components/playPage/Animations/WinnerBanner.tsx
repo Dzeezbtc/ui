@@ -1,7 +1,7 @@
 import React, { useEffect, useRef, useState } from "react";
 import { createPortal } from "react-dom";
 import { useWinnerInfo } from "../../../hooks/game/useWinnerInfo";
-import { winnerBannerText } from "../../../utils/winnerBanner";
+import { winnerBannerText, winnerBannerTop } from "../../../utils/winnerBanner";
 import { useProfileAvatar } from "../../../context/profile/ProfileAvatarContext";
 import { NftAvatarImage } from "../../profile/NftAvatarImage";
 import "./WinnerBanner.css";
@@ -21,12 +21,15 @@ const WinnerBanner: React.FC = () => {
     const [text, setText] = useState<string | null>(null);
     // The sole winner's address, for their avatar/NFT; null for a split pot.
     const [winnerAddress, setWinnerAddress] = useState<string | null>(null);
+    // Measured when a banner starts, so it clears the header at any window size.
+    const [top, setTop] = useState<number>(() => winnerBannerTop(null));
     const timer = useRef<ReturnType<typeof setTimeout> | undefined>(undefined);
 
     useEffect(() => {
         const next = winnerBannerText(winnerInfo);
         if (!next) return; // no winners this frame — leave the current banner to time out
         setText(next);
+        setTop(winnerBannerTop(document.querySelector(".sub-header")?.getBoundingClientRect().bottom ?? null));
         setWinnerAddress(winnerInfo && winnerInfo.length === 1 ? winnerInfo[0].address : null);
         if (timer.current) clearTimeout(timer.current);
         timer.current = setTimeout(() => setText(null), BANNER_MS);
@@ -44,7 +47,7 @@ const WinnerBanner: React.FC = () => {
     // positioned (or scaled) by the table stage it's mounted from. Keyed on the
     // text so a new pot restarts the roll.
     return createPortal(
-        <div key={text} className="b52-winner-banner" role="status" aria-live="polite">
+        <div key={text} className="b52-winner-banner" style={{ top }} role="status" aria-live="polite">
             {avatarUrl && (
                 <NftAvatarImage
                     src={avatarUrl}

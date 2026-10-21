@@ -5,7 +5,7 @@
 
 .b52-winner-banner {
     position: fixed;
-    top: 108px; /* below the header + table info bar, above the top seat's cards */
+    /* top is set inline: just under the table info bar (winnerBannerTop). */
     left: 50%;
     z-index: 60;
     display: inline-flex;

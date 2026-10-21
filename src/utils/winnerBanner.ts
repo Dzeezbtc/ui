@@ -45,3 +45,20 @@ export function winnerBannerText(winners: BannerWinner[] | null | undefined): st
     }
     return `Split pot — ${winners.map(w => `Seat ${w.seat} ${bannerAmount(w.formattedAmount)}`).join(" · ")}`;
 }
+
+/** Gap between the table's info bar and the banner (px). */
+const BANNER_GAP_PX = 8;
+/** Where the banner sits when there is no info bar to measure (px from the top). */
+const BANNER_FALLBACK_TOP_PX = 108;
+
+/**
+ * The banner's top edge (px from the viewport top): just under the table's info
+ * bar ("$0.01 / $0.02 · Hand #34 …"), whose height depends on the window size —
+ * the header wraps to two lines in a narrow window, so a fixed offset can land
+ * inside it.
+ *
+ * @param infoBarBottom The info bar's bottom edge, or null when it isn't rendered
+ */
+export function winnerBannerTop(infoBarBottom: number | null | undefined): number {
+    return typeof infoBarBottom === "number" ? Math.round(infoBarBottom) + BANNER_GAP_PX : BANNER_FALLBACK_TOP_PX;
+}
