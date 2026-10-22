@@ -51,6 +51,7 @@ import { formatPotDisplay, formatChipCount } from "../../utils/potDisplayUtils";
 // // Position arrays now come from useTableLayout hook
 // import { playerPosition, dealerPosition, vacantPlayerPosition } from "../../utils/PositionArray";
 import PokerActionPanel from "../Footer";
+import WinnerBanner from "./Animations/WinnerBanner";
 
 // Extracted Table components
 import {
@@ -1550,6 +1551,9 @@ const Table = React.memo(() => {
                                     );
                                 })}
                         </div>
+
+                        {/* Last-pot winner banner (ui#848) */}
+                        <WinnerBanner />
 
                         {/* Dealer Button — convert seat number to rotated screen position */}
                         {(() => {
