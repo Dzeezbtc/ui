@@ -235,15 +235,47 @@
     object-fit: contain;
 }
 
-/* Pot pills: the chip stack + amount pill (shared with player bets) with a small
-   caption underneath naming the pot. */
-.pot-display,
+.pot-display {
+    font-size: 28px;
+    background-color: color-mix(in srgb, #000000 25%, transparent);
+    border-radius: 9999px;
+    color: #ffffff;
+    padding: 4px 10px;
+}
+
+@media (min-width: 640px) {
+    .pot-display {
+        font-size: 20px;
+        padding: 3px 8px;
+    }
+}
+
 .pot-display-secondary {
+    font-size: 26px;
+    background-color: color-mix(in srgb, #000000 25%, transparent);
+    border-radius: 9999px;
+    color: #ffffff;
+    padding: 4px 10px;
+    margin-top: 4px;
+}
+
+
+@media (min-width: 640px) {
+    .pot-display-secondary {
+        font-size: 18px;
+        padding: 3px 8px;
+    }
+}
+
+/* "Pot as Chips" setting (ui#772): the chip stack + amount pill (shared with
+   player bets) with a small caption underneath naming the pot. */
+.pot-chips,
+.pot-chips-secondary {
     display: flex;
     justify-content: center;
 }
 
-.pot-display-secondary {
+.pot-chips-secondary {
     margin-top: 6px;
 }
 
@@ -572,7 +604,21 @@
     pointer-events: none;
 }
 
-/* Nouns-themed pot pills */
+/* Nouns-themed pot displays */
+.nouns-table-felt .pot-display,
+.nouns-table-felt .pot-display-secondary {
+    font-family: "Silkscreen", monospace;
+    border: 2px solid rgba(214, 60, 94, 0.3);
+    background-color: rgba(26, 26, 46, 0.6);
+}
+
+/* Nouns-themed total pot */
+.nouns-table-felt .pot-display {
+    background: linear-gradient(135deg, rgba(214, 60, 94, 0.2), rgba(43, 131, 246, 0.2));
+    border: 2px solid rgba(214, 60, 94, 0.3);
+}
+
+/* Nouns-themed pot pill caption */
 .nouns-table-felt .pot-pill-label {
     font-family: "Silkscreen", monospace;
     color: rgba(214, 60, 94, 0.9);

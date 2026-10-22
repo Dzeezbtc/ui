@@ -57,13 +57,15 @@ const SettingsTab: React.FC = () => {
         sitInOptions,
         preSelectCheck,
         winCelebration,
+        potAsChips,
         toggleTurnNotificationSound,
         togglePlayerActionSounds,
         toggleAutoMuck,
         toggleCallClock,
         toggleSitInOptions,
         togglePreSelectCheck,
-        toggleWinCelebration
+        toggleWinCelebration,
+        togglePotAsChips
     } = useGameSettings();
 
     return (
@@ -85,6 +87,12 @@ const SettingsTab: React.FC = () => {
                 description="Play the gold-chip celebration animation on the winning seat. Turn off for a calmer table — the pot still awards, just without the animation."
                 checked={winCelebration}
                 onToggle={toggleWinCelebration}
+            />
+            <ToggleRow
+                label="Pot as Chips"
+                description="Show the pot as a chip stack with the amount, like the bets in front of players. When off, it shows as plain text."
+                checked={potAsChips}
+                onToggle={togglePotAsChips}
             />
             <ToggleRow
                 label="Auto Muck"

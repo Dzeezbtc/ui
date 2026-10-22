@@ -12,6 +12,7 @@ import React, { useMemo } from "react";
 import { getCardImageUrl, getCardBackUrl, CardBackStyle } from "../../../../utils/cardImages";
 import { PotDisplayValues } from "../../../../utils/potDisplayUtils";
 import { useCardAnimations } from "../../../../hooks/animations/useCardAnimations";
+import { useGameSettings } from "../../../../context/GameSettingsContext";
 import OppositePlayerCards from "../../Card/OppositePlayerCards";
 import { TotalPotDisplay } from "./TotalPotDisplay";
 import { MainPotDisplay } from "./MainPotDisplay";
@@ -52,6 +53,7 @@ export const TableBoard: React.FC<TableBoardProps> = ({
     // into place when its staggered flag turns on, one after another. Late mount /
     // replay reveals already-dealt slots immediately.
     const { revealedSlots } = useCardAnimations();
+    const { potAsChips } = useGameSettings();
 
     // Memoize community cards rendering
     const communityCardsElements = useMemo(() => {
@@ -117,14 +119,21 @@ export const TableBoard: React.FC<TableBoardProps> = ({
                     <>
                         {potDisplayValues.showTotalPot && (
                             <TotalPotDisplay
-                                amount={potDisplayValues.totalPotRaw}
+                                amount={potDisplayValues.totalPot}
+                                rawAmount={potDisplayValues.totalPotRaw}
                                 isTournamentStyle={potDisplayValues.isTournamentStyle}
                                 hasMainPot={potDisplayValues.showMainPot}
+                                asChips={potAsChips}
                             />
                         )}
                         {/* Main Pot only post-flop, and only when it differs from Total Pot (#639) */}
                         {potDisplayValues.showMainPot && (
-                            <MainPotDisplay amount={potDisplayValues.mainPotRaw} isTournamentStyle={potDisplayValues.isTournamentStyle} />
+                            <MainPotDisplay
+                                amount={potDisplayValues.mainPot}
+                                rawAmount={potDisplayValues.mainPotRaw}
+                                isTournamentStyle={potDisplayValues.isTournamentStyle}
+                                asChips={potAsChips}
+                            />
                         )}
                     </>
                 )}
