@@ -4,6 +4,7 @@ import { useWinnerInfo } from "../../../hooks/game/useWinnerInfo";
 import { winnerBannerRollDistance, winnerBannerText, winnerBannerTop } from "../../../utils/winnerBanner";
 import { useProfileAvatar } from "../../../context/profile/ProfileAvatarContext";
 import { NftAvatarImage } from "../../profile/NftAvatarImage";
+import { hasElements } from "../../../utils/guards";
 import "./WinnerBanner.css";
 
 /** How long the last-pot banner takes to roll across, end to end (ms). */
@@ -32,7 +33,7 @@ const WinnerBanner: React.FC = () => {
         if (!next) return; // no winners this frame — leave the current banner to time out
         setText(next);
         setTop(winnerBannerTop(document.querySelector(".sub-header")?.getBoundingClientRect().bottom ?? null));
-        setWinnerAddress(winnerInfo && winnerInfo.length === 1 ? winnerInfo[0].address : null);
+        setWinnerAddress(hasElements(winnerInfo) && winnerInfo.length === 1 ? winnerInfo[0].address : null);
         if (timer.current) clearTimeout(timer.current);
         timer.current = setTimeout(() => setText(null), BANNER_MS);
         return () => {

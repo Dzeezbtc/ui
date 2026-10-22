@@ -1,3 +1,5 @@
+import { hasElements } from "./guards";
+
 /**
  * Builds the last-pot winner banner text (ui#848) from the resolved winners.
  * Pure + typed so it can be unit-tested apart from the component.
@@ -32,7 +34,7 @@ function wonPhrase(formattedAmount: string): string {
  * winners.
  */
 export function winnerBannerText(winners: BannerWinner[] | null | undefined): string | null {
-    if (!winners || winners.length === 0) return null;
+    if (!hasElements(winners)) return null;
     if (winners.length === 1) {
         const w = winners[0];
         const engineHand = w.description || w.handName;
