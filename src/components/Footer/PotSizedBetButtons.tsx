@@ -2,6 +2,7 @@ import React from "react";
 import { calculatePotBetWithVariation, PotBetVariation } from "../../utils/calculatePotBetAmount";
 import { highestPreflopContribution, preflopPresetAmount, showPreflopMultiples, UNOPENED_PREFLOP_PRESETS } from "../../utils/preflopPresets";
 import { microBigIntToUsdc, roundMicroToCent } from "../../constants/currency";
+import { presetExceedsMax } from "../../utils/potPresetLimits";
 import type { PotSizedBetButtonsProps } from "./types";
 
 const POT_FRACTION_PRESETS: { label: string; variation: PotBetVariation }[] = [
@@ -63,18 +64,22 @@ export const PotSizedBetButtons: React.FC<PotSizedBetButtonsProps> = ({
         <div className="flex justify-between gap-1 lg:gap-2 mb-1">
             {presets.map(({ label, micro }) => {
                 const amount = presetAmount(micro);
-                // Each preset is judged on its own: one that would bet less than the
-                // legal minimum (one big blind to open, the min raise when facing a
-                // bet) is greyed out rather than silently resized.
+                // Each preset is judged on its own and greyed out rather than silently
+                // resized: one below the legal minimum (one big blind to open, the min
+                // raise when facing a bet), or one above the most the player may put
+                // in (ui#857) — a short stack shoves with ALL-IN, not a "Pot" button.
                 const belowMin = amount < minAmount;
+                const aboveMax = presetExceedsMax(micro, maxAmount, isTournament);
+                const aboveMaxTitle = maxIsAllIn ? "More than your stack" : "More than the pot-limit allows";
                 return (
                     <button
                         key={label}
                         className="btn-pot px-1 lg:px-2 py-1 lg:py-1.5 rounded-lg w-full border shadow-md text-[10px] lg:text-xs transition-all duration-200 transform hover:scale-105 disabled:hover:scale-100"
-                        // Above the stack, the preset selects the whole stack (all-in).
+                        // Capped only for cent rounding: a pot-limit Pot whose true size
+                        // fits the cap can round a fraction of a cent above it.
                         onClick={() => onAmountSelect(Math.min(amount, maxAmount))}
-                        disabled={disabled || cannotAffordMin || belowMin}
-                        title={belowMin ? "Below the minimum bet" : undefined}
+                        disabled={disabled || cannotAffordMin || belowMin || aboveMax}
+                        title={belowMin ? "Below the minimum bet" : aboveMax ? aboveMaxTitle : undefined}
                     >
                         {label}
                     </button>
@@ -84,10 +89,12 @@ export const PotSizedBetButtons: React.FC<PotSizedBetButtonsProps> = ({
             <button
                 className="btn-all-in px-1 lg:px-2 py-1 lg:py-1.5 rounded-lg w-full border shadow-md text-[10px] lg:text-xs transition-all duration-200 font-medium transform active:scale-105"
                 onClick={onAllIn}
-                disabled={disabled}
-                title={maxIsAllIn ? undefined : "The most the pot-limit allows"}
+                // At pot-limit, Pot already is the max: ALL-IN only lights up when the
+                // whole stack is less than a pot-sized bet (ui#857), never as "MAX".
+                disabled={disabled || !maxIsAllIn}
+                title={maxIsAllIn ? undefined : "Pot is the most you can bet at pot-limit"}
             >
-                {maxIsAllIn ? "ALL-IN" : "MAX"}
+                ALL-IN
             </button>
         </div>
     );
