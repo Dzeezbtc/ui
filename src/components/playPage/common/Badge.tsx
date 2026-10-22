@@ -279,7 +279,7 @@ const Badge: React.FC<BadgeProps> = React.memo(({
             </div>
 
             {/* Floating "+amount" pill on a winning seat (ui#861) */}
-            {isWinner && <WinAmountFloat formattedAmount={winnerAmount} />}
+            {isWinner && <WinAmountFloat formattedAmount={winnerAmount} isTournament={isTournament} />}
 
             {/* Timer Extension Icon - Timer icon inside badge */}
             {canExtend && onExtend && (
