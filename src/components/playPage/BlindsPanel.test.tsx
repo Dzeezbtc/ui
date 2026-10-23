@@ -95,23 +95,20 @@ describe("BlindsPanel", () => {
         expect(screen.getByTestId("blinds-panel-countdown")).toHaveTextContent("2:00");
     });
 
-    it("lists this game's whole schedule with when each level starts", () => {
+    it("lists every level of this game's schedule with its minutes", () => {
         mockUseBlindLevel.mockReturnValue(activeInfo({ secondsRemaining: 120, levelDurationSeconds: 300 }));
         render(<BlindsPanel />);
         fireEvent.click(screen.getByTestId("blinds-panel-tab"));
 
-        expect(screen.getByTestId("blinds-panel-summary")).toHaveTextContent("Starts 50/100 · doubles every 5 min");
+        expect(screen.getByText("Min")).toBeInTheDocument();
         expect(screen.getAllByTestId("blinds-row-upcoming")).toHaveLength(11);
-        // Level 5 is 4 levels away: 2:00 left + 3 × 5 min = 17 min.
-        expect(screen.getByText("800/1,600")).toBeInTheDocument();
-        expect(screen.getByText("17m")).toBeInTheDocument();
-        // Level 11 is 10 levels away: 2 + 9 × 5 = 47 min.
-        expect(screen.getByText("51,200/102,400")).toBeInTheDocument();
-        expect(screen.getByText("47m")).toBeInTheDocument();
+        expect(screen.getByText("800/1,600")).toBeInTheDocument(); // level 5
+        expect(screen.getByText("51,200/102,400")).toBeInTheDocument(); // level 11
+        expect(screen.getAllByText("5")).not.toHaveLength(0); // 5-minute levels
         expect(screen.queryByTestId("blinds-panel-partial")).not.toBeInTheDocument();
     });
 
-    it("dims the levels already played", () => {
+    it("keeps the levels already played in the list", () => {
         mockUseBlindLevel.mockReturnValue(
             activeInfo({ level: 2, smallBlind: 200, bigBlind: 400, nextSmallBlind: 400, nextBigBlind: 800 })
         );
@@ -119,7 +116,7 @@ describe("BlindsPanel", () => {
         fireEvent.click(screen.getByTestId("blinds-panel-tab"));
 
         expect(screen.getAllByTestId("blinds-row-past").map(el => el.textContent)).toEqual(["1", "2"]);
-        expect(screen.getAllByText("Done")).toHaveLength(2);
+        expect(screen.getByText("50/100")).toBeInTheDocument();
         expect(screen.getByTestId("blinds-row-current")).toHaveTextContent("3");
     });
 
@@ -130,7 +127,6 @@ describe("BlindsPanel", () => {
         render(<BlindsPanel />);
         fireEvent.click(screen.getByTestId("blinds-panel-tab"));
 
-        expect(screen.getByTestId("blinds-panel-summary")).toHaveTextContent("ante from level 5");
         expect(screen.getByText("Ante")).toBeInTheDocument();
         expect(screen.getByText("400/800")).toBeInTheDocument();
         expect(screen.getByText("80")).toBeInTheDocument();

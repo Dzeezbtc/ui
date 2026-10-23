@@ -3,9 +3,9 @@
  *
  * A small, non-modal "Blinds" tab + floating panel for SNG/tournament tables.
  * Shows this game's whole blind schedule: every level from the starting blinds to
- * a dozen levels ahead (level · SB/BB · ante when the structure has one · when it
- * starts), with past levels dimmed, the current level highlighted and a countdown
- * to the next. Hidden for cash games.
+ * a dozen levels ahead (level · SB/BB · ante when the structure has one · minutes),
+ * with the current level highlighted and a countdown to the next. Hidden for cash
+ * games.
  *
  * Non-modal: the wrapper paints no backdrop, so gameplay underneath stays
  * clickable. Dismisses on a second tab click, a click elsewhere, or Esc.
@@ -15,7 +15,7 @@
  */
 import React, { useCallback, useEffect, useRef, useState } from "react";
 import { useBlindLevel } from "../../hooks/game/useBlindLevel";
-import { buildBlindLadder, formatBlindCountdown, formatLevelStartsIn, type BlindLadderRow } from "../../utils/blindStructure";
+import { buildBlindLadder, formatBlindCountdown } from "../../utils/blindStructure";
 import { isNullish } from "../../utils/guards";
 import { formatChipCount } from "../../utils/potDisplayUtils";
 import styles from "./BlindsPanel.module.css";
@@ -36,15 +36,6 @@ const writeStoredOpen = (open: boolean): void => {
     } catch {
         // Private mode / blocked storage — remembering open/closed is optional.
     }
-};
-
-/** The "Starts" cell: done / now / countdown to the next level / time until a later one. */
-const startsLabel = (row: BlindLadderRow, secondsRemaining: number, hasTimer: boolean): string => {
-    if (row.isPast) return "Done";
-    if (row.isBreak && row.isCurrent) return "Break";
-    if (row.isCurrent) return "Now";
-    if (row.isNext && hasTimer) return secondsRemaining > 0 ? formatBlindCountdown(secondsRemaining) : "Next hand";
-    return isNullish(row.startsInSeconds) ? "—" : formatLevelStartsIn(row.startsInSeconds);
 };
 
 const BlindsPanel: React.FC = () => {
@@ -94,7 +85,7 @@ const BlindsPanel: React.FC = () => {
         return null;
     }
 
-    const { rows, hasFullSchedule, summary, hasAnte } = buildBlindLadder(blindLevel);
+    const { rows, hasFullSchedule, hasAnte } = buildBlindLadder(blindLevel);
 
     return (
         <div ref={rootRef} className={styles.root} data-testid="blinds-panel-root">
@@ -124,20 +115,14 @@ const BlindsPanel: React.FC = () => {
                         )}
                     </div>
 
-                    {hasFullSchedule && !isNullish(summary) && (
-                        <div className={styles.summary} data-testid="blinds-panel-summary">
-                            {summary}
-                        </div>
-                    )}
-
                     <div className={`${styles.grid} ${hasAnte ? styles.gridWithAnte : ""}`}>
                         <span className={styles.colHead}>Lvl</span>
                         <span className={styles.colHead}>Small / Big</span>
                         {hasAnte && <span className={`${styles.colHead} ${styles.cellRight}`}>Ante</span>}
-                        <span className={`${styles.colHead} ${styles.cellRight}`}>Starts</span>
+                        <span className={`${styles.colHead} ${styles.cellRight}`}>Min</span>
 
                         {rows.map((row, index) => {
-                            const rowClass = row.isCurrent ? styles.rowCurrent : row.isPast ? styles.rowPast : "";
+                            const rowClass = row.isCurrent ? styles.rowCurrent : "";
                             const testId = row.isCurrent ? "blinds-row-current" : row.isNext ? "blinds-row-next" : row.isPast ? "blinds-row-past" : "blinds-row-upcoming";
                             return (
                                 <React.Fragment key={isNullish(row.level) ? `row-${index}` : row.level}>
@@ -151,7 +136,7 @@ const BlindsPanel: React.FC = () => {
                                         </span>
                                     )}
                                     <span className={`${styles.cell} ${styles.cellRight} ${rowClass}`}>
-                                        {startsLabel(row, blindLevel.secondsRemaining, blindLevel.hasTimer)}
+                                        {isNullish(row.minutes) ? "—" : row.minutes}
                                     </span>
                                 </React.Fragment>
                             );
