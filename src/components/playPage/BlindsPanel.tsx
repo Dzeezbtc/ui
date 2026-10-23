@@ -3,20 +3,21 @@
  *
  * A small, non-modal "Blinds" tab + floating panel for SNG/tournament tables.
  * Shows this game's whole blind schedule: every level from the starting blinds to
- * a dozen levels ahead (level · SB/BB · when it starts), with past levels dimmed,
- * the current level highlighted and a countdown to the next. Hidden for cash games.
+ * a dozen levels ahead (level · SB/BB · ante when the structure has one · when it
+ * starts), with past levels dimmed, the current level highlighted and a countdown
+ * to the next. Hidden for cash games.
  *
  * Non-modal: the wrapper paints no backdrop, so gameplay underneath stays
  * clickable. Dismisses on a second tab click, a click elsewhere, or Esc.
  *
- * The schedule is derived from the game state (see buildBlindLadder): the engine
- * multiplies the starting blinds by the same factor every level, so the current
- * and next blinds give the whole ladder.
+ * The schedule comes from the table's own blind structure (or its doubling),
+ * expanded level by level as the engine plays it (see buildBlindLadder).
  */
 import React, { useCallback, useEffect, useRef, useState } from "react";
 import { useBlindLevel } from "../../hooks/game/useBlindLevel";
 import { buildBlindLadder, formatBlindCountdown, formatLevelStartsIn, type BlindLadderRow } from "../../utils/blindStructure";
 import { isNullish } from "../../utils/guards";
+import { formatChipCount } from "../../utils/potDisplayUtils";
 import styles from "./BlindsPanel.module.css";
 
 const STORAGE_KEY = "b52.blindsPanel.open";
@@ -40,6 +41,7 @@ const writeStoredOpen = (open: boolean): void => {
 /** The "Starts" cell: done / now / countdown to the next level / time until a later one. */
 const startsLabel = (row: BlindLadderRow, secondsRemaining: number, hasTimer: boolean): string => {
     if (row.isPast) return "Done";
+    if (row.isBreak && row.isCurrent) return "Break";
     if (row.isCurrent) return "Now";
     if (row.isNext && hasTimer) return secondsRemaining > 0 ? formatBlindCountdown(secondsRemaining) : "Next hand";
     return isNullish(row.startsInSeconds) ? "—" : formatLevelStartsIn(row.startsInSeconds);
@@ -92,8 +94,7 @@ const BlindsPanel: React.FC = () => {
         return null;
     }
 
-    const { rows, hasFullSchedule, multiplier, startingBlindsFormatted } = buildBlindLadder(blindLevel);
-    const levelMinutes = rows[0]?.minutes;
+    const { rows, hasFullSchedule, summary, hasAnte } = buildBlindLadder(blindLevel);
 
     return (
         <div ref={rootRef} className={styles.root} data-testid="blinds-panel-root">
@@ -123,16 +124,16 @@ const BlindsPanel: React.FC = () => {
                         )}
                     </div>
 
-                    {hasFullSchedule && (
+                    {hasFullSchedule && !isNullish(summary) && (
                         <div className={styles.summary} data-testid="blinds-panel-summary">
-                            Starts {startingBlindsFormatted} · {multiplier === 2 ? "doubles" : `×${multiplier}`}
-                            {isNullish(levelMinutes) ? " each level" : ` every ${levelMinutes} min`}
+                            {summary}
                         </div>
                     )}
 
-                    <div className={styles.grid}>
+                    <div className={`${styles.grid} ${hasAnte ? styles.gridWithAnte : ""}`}>
                         <span className={styles.colHead}>Lvl</span>
                         <span className={styles.colHead}>Small / Big</span>
+                        {hasAnte && <span className={`${styles.colHead} ${styles.cellRight}`}>Ante</span>}
                         <span className={`${styles.colHead} ${styles.cellRight}`}>Starts</span>
 
                         {rows.map((row, index) => {
@@ -143,7 +144,12 @@ const BlindsPanel: React.FC = () => {
                                     <span ref={row.isCurrent ? currentRowRef : undefined} className={`${styles.cell} ${rowClass}`} data-testid={testId}>
                                         {isNullish(row.level) ? (row.isCurrent ? "Now" : "Next") : row.level}
                                     </span>
-                                    <span className={`${styles.cell} ${rowClass}`}>{row.blindsFormatted}</span>
+                                    <span className={`${styles.cell} ${rowClass}`}>{row.isBreak ? "Break" : row.blindsFormatted}</span>
+                                    {hasAnte && (
+                                        <span className={`${styles.cell} ${styles.cellRight} ${rowClass}`}>
+                                            {row.ante > 0 && !row.isBreak ? formatChipCount(row.ante) : "—"}
+                                        </span>
+                                    )}
                                     <span className={`${styles.cell} ${styles.cellRight} ${rowClass}`}>
                                         {startsLabel(row, blindLevel.secondsRemaining, blindLevel.hasTimer)}
                                     </span>

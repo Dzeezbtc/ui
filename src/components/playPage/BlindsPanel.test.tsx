@@ -123,6 +123,19 @@ describe("BlindsPanel", () => {
         expect(screen.getByTestId("blinds-row-current")).toHaveTextContent("3");
     });
 
+    it("adds an Ante column when the table's structure has antes", () => {
+        mockUseBlindLevel.mockReturnValue(
+            activeInfo({ blindStructure: { preset: "turbo" }, smallBlind: 25, bigBlind: 50, nextSmallBlind: 50, nextBigBlind: 100 })
+        );
+        render(<BlindsPanel />);
+        fireEvent.click(screen.getByTestId("blinds-panel-tab"));
+
+        expect(screen.getByTestId("blinds-panel-summary")).toHaveTextContent("ante from level 5");
+        expect(screen.getByText("Ante")).toBeInTheDocument();
+        expect(screen.getByText("400/800")).toBeInTheDocument();
+        expect(screen.getByText("80")).toBeInTheDocument();
+    });
+
     it("says only current + next are known when the schedule can't be derived", () => {
         mockUseBlindLevel.mockReturnValue(activeInfo({ nextSmallBlind: 75, nextBigBlind: 150 }));
         render(<BlindsPanel />);
