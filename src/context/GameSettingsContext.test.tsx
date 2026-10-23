@@ -32,3 +32,32 @@ describe("GameSettingsContext — win celebration (ui#847)", () => {
         expect(result.current.winCelebration).toBe(false);
     });
 });
+
+describe("GameSettingsContext — pot as chips (ui#772)", () => {
+    beforeEach(() => {
+        localStorage.clear();
+    });
+
+    it("is off by default, so the pot stays as plain text", () => {
+        const { result } = renderHook(() => useGameSettings(), { wrapper });
+        expect(result.current.potAsChips).toBe(false);
+    });
+
+    it("toggles on and back off, persisting each change", () => {
+        const { result } = renderHook(() => useGameSettings(), { wrapper });
+
+        act(() => result.current.togglePotAsChips());
+        expect(result.current.potAsChips).toBe(true);
+        expect(localStorage.getItem("setting_potaschips")).toBe("true");
+
+        act(() => result.current.togglePotAsChips());
+        expect(result.current.potAsChips).toBe(false);
+        expect(localStorage.getItem("setting_potaschips")).toBe("false");
+    });
+
+    it("remembers the choice across a reload", () => {
+        localStorage.setItem("setting_potaschips", "true");
+        const { result } = renderHook(() => useGameSettings(), { wrapper });
+        expect(result.current.potAsChips).toBe(true);
+    });
+});
