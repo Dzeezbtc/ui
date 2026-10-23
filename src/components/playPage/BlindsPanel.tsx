@@ -103,20 +103,20 @@ const BlindsPanel: React.FC = () => {
 
             {isOpen && (
                 <div className={styles.panel} role="dialog" aria-label="Blind structure" data-testid="blinds-panel">
-                    <div className={styles.header}>
-                        <span className={styles.title}>Blind Structure</span>
-                        {blindLevel.hasTimer && (
+                    {blindLevel.hasTimer && (
+                        <div className={styles.header}>
+                            <span className={styles.title}>Next level</span>
                             <span
                                 className={`${styles.countdown} ${blindLevel.secondsRemaining < 0 ? styles.countdownOvertime : ""}`}
                                 data-testid="blinds-panel-countdown"
                             >
                                 {formatBlindCountdown(blindLevel.secondsRemaining)}
                             </span>
-                        )}
-                    </div>
+                        </div>
+                    )}
 
                     <div className={`${styles.grid} ${hasAnte ? styles.gridWithAnte : ""}`}>
-                        <span className={styles.colHead}>Lvl</span>
+                        <span className={`${styles.colHead} ${styles.cellRight}`}>Lvl</span>
                         <span className={styles.colHead}>Small / Big</span>
                         {hasAnte && <span className={`${styles.colHead} ${styles.cellRight}`}>Ante</span>}
                         <span className={`${styles.colHead} ${styles.cellRight}`}>Min</span>
@@ -126,7 +126,7 @@ const BlindsPanel: React.FC = () => {
                             const testId = row.isCurrent ? "blinds-row-current" : row.isNext ? "blinds-row-next" : row.isPast ? "blinds-row-past" : "blinds-row-upcoming";
                             return (
                                 <React.Fragment key={isNullish(row.level) ? `row-${index}` : row.level}>
-                                    <span ref={row.isCurrent ? currentRowRef : undefined} className={`${styles.cell} ${rowClass}`} data-testid={testId}>
+                                    <span ref={row.isCurrent ? currentRowRef : undefined} className={`${styles.cell} ${styles.cellRight} ${rowClass}`} data-testid={testId}>
                                         {isNullish(row.level) ? (row.isCurrent ? "Now" : "Next") : row.level}
                                     </span>
                                     <span className={`${styles.cell} ${rowClass}`}>{row.isBreak ? "Break" : row.blindsFormatted}</span>

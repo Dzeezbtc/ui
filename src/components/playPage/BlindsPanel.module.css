@@ -80,7 +80,7 @@
     font-weight: 700;
     text-transform: uppercase;
     letter-spacing: 0.04em;
-    color: var(--brand-primary, #3b82f6);
+    color: rgba(255, 255, 255, 0.75);
 }
 
 .countdown {
@@ -120,9 +120,11 @@
     color: #fff;
 }
 
+/* Numbers right-aligned so units sit under units (9 above the 0 of 10). */
 .cellRight {
     text-align: right;
 }
+
 
 .cell.rowCurrent {
     color: #fff;
