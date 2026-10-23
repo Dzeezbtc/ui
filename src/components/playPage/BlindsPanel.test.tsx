@@ -91,7 +91,10 @@ describe("BlindsPanel", () => {
 
         expect(screen.getByTestId("blinds-row-current")).toHaveTextContent("1");
         expect(screen.getByTestId("blinds-row-next")).toHaveTextContent("2");
-        expect(screen.getByText("100/200")).toBeInTheDocument();
+        // The header shows the current level big and what's next; the list repeats it.
+        expect(screen.getByText("Level 1")).toBeInTheDocument();
+        expect(screen.getByText("Next 100 / 200")).toBeInTheDocument();
+        expect(screen.getAllByText("100 / 200").length).toBeGreaterThan(0);
         expect(screen.getByTestId("blinds-panel-countdown")).toHaveTextContent("2:00");
     });
 
@@ -100,11 +103,12 @@ describe("BlindsPanel", () => {
         render(<BlindsPanel />);
         fireEvent.click(screen.getByTestId("blinds-panel-tab"));
 
-        expect(screen.getByText("Min")).toBeInTheDocument();
+        // Every level is 5 minutes: said once, no Min column.
+        expect(screen.getByTestId("blinds-panel-level-length")).toHaveTextContent("5-minute levels");
+        expect(screen.queryByText("Min")).not.toBeInTheDocument();
         expect(screen.getAllByTestId("blinds-row-upcoming")).toHaveLength(11);
-        expect(screen.getByText("800/1,600")).toBeInTheDocument(); // level 5
-        expect(screen.getByText("51,200/102,400")).toBeInTheDocument(); // level 11
-        expect(screen.getAllByText("5")).not.toHaveLength(0); // 5-minute levels
+        expect(screen.getByText("800 / 1,600")).toBeInTheDocument(); // level 5
+        expect(screen.getByText("51,200 / 102,400")).toBeInTheDocument(); // level 11
         expect(screen.queryByTestId("blinds-panel-partial")).not.toBeInTheDocument();
     });
 
@@ -116,7 +120,7 @@ describe("BlindsPanel", () => {
         fireEvent.click(screen.getByTestId("blinds-panel-tab"));
 
         expect(screen.getAllByTestId("blinds-row-past").map(el => el.textContent)).toEqual(["1", "2"]);
-        expect(screen.getByText("50/100")).toBeInTheDocument();
+        expect(screen.getByText("50 / 100")).toBeInTheDocument();
         expect(screen.getByTestId("blinds-row-current")).toHaveTextContent("3");
     });
 
@@ -128,8 +132,27 @@ describe("BlindsPanel", () => {
         fireEvent.click(screen.getByTestId("blinds-panel-tab"));
 
         expect(screen.getByText("Ante")).toBeInTheDocument();
-        expect(screen.getByText("400/800")).toBeInTheDocument();
+        expect(screen.getByText("400 / 800")).toBeInTheDocument();
         expect(screen.getByText("80")).toBeInTheDocument();
+    });
+
+    it("shows a Min column only when level lengths differ (custom tables)", () => {
+        mockUseBlindLevel.mockReturnValue(
+            activeInfo({
+                blindStructure: {
+                    progression: "table",
+                    levels: [
+                        { level: 0, smallBlind: "50", bigBlind: "100", ante: "0", durationMinutes: 4, isBreak: false },
+                        { level: 1, smallBlind: "100", bigBlind: "200", ante: "0", durationMinutes: 6, isBreak: false }
+                    ]
+                }
+            })
+        );
+        render(<BlindsPanel />);
+        fireEvent.click(screen.getByTestId("blinds-panel-tab"));
+
+        expect(screen.getByText("Min")).toBeInTheDocument();
+        expect(screen.queryByTestId("blinds-panel-level-length")).not.toBeInTheDocument();
     });
 
     it("says only current + next are known when the schedule can't be derived", () => {
