@@ -84,23 +84,51 @@ describe("BlindsPanel", () => {
         expect(screen.queryByTestId("blinds-panel")).not.toBeInTheDocument();
     });
 
-    it("highlights the current level and shows SB/BB, minutes and countdown (AC-4)", () => {
+    it("highlights the current level and counts down to the next (AC-4)", () => {
         mockUseBlindLevel.mockReturnValue(activeInfo());
         render(<BlindsPanel />);
         fireEvent.click(screen.getByTestId("blinds-panel-tab"));
 
-        const current = screen.getByTestId("blinds-row-current");
-        expect(current).toHaveTextContent("1");
-        expect(screen.getByText("50/100")).toBeInTheDocument();
+        expect(screen.getByTestId("blinds-row-current")).toHaveTextContent("1");
         expect(screen.getByTestId("blinds-row-next")).toHaveTextContent("2");
         expect(screen.getByText("100/200")).toBeInTheDocument();
         expect(screen.getByTestId("blinds-panel-countdown")).toHaveTextContent("2:00");
     });
 
-    it("notes the pending full structure (AC-6)", () => {
-        mockUseBlindLevel.mockReturnValue(activeInfo());
+    it("lists this game's whole schedule with when each level starts", () => {
+        mockUseBlindLevel.mockReturnValue(activeInfo({ secondsRemaining: 120, levelDurationSeconds: 300 }));
         render(<BlindsPanel />);
         fireEvent.click(screen.getByTestId("blinds-panel-tab"));
-        expect(screen.getByTestId("blinds-panel-pending")).toHaveTextContent("poker-vm#1734");
+
+        expect(screen.getByTestId("blinds-panel-summary")).toHaveTextContent("Starts 50/100 · doubles every 5 min");
+        expect(screen.getAllByTestId("blinds-row-upcoming")).toHaveLength(11);
+        // Level 5 is 4 levels away: 2:00 left + 3 × 5 min = 17 min.
+        expect(screen.getByText("800/1,600")).toBeInTheDocument();
+        expect(screen.getByText("17m")).toBeInTheDocument();
+        // Level 11 is 10 levels away: 2 + 9 × 5 = 47 min.
+        expect(screen.getByText("51,200/102,400")).toBeInTheDocument();
+        expect(screen.getByText("47m")).toBeInTheDocument();
+        expect(screen.queryByTestId("blinds-panel-partial")).not.toBeInTheDocument();
+    });
+
+    it("dims the levels already played", () => {
+        mockUseBlindLevel.mockReturnValue(
+            activeInfo({ level: 2, smallBlind: 200, bigBlind: 400, nextSmallBlind: 400, nextBigBlind: 800 })
+        );
+        render(<BlindsPanel />);
+        fireEvent.click(screen.getByTestId("blinds-panel-tab"));
+
+        expect(screen.getAllByTestId("blinds-row-past").map(el => el.textContent)).toEqual(["1", "2"]);
+        expect(screen.getAllByText("Done")).toHaveLength(2);
+        expect(screen.getByTestId("blinds-row-current")).toHaveTextContent("3");
+    });
+
+    it("says only current + next are known when the schedule can't be derived", () => {
+        mockUseBlindLevel.mockReturnValue(activeInfo({ nextSmallBlind: 75, nextBigBlind: 150 }));
+        render(<BlindsPanel />);
+        fireEvent.click(screen.getByTestId("blinds-panel-tab"));
+
+        expect(screen.getByTestId("blinds-panel-partial")).toHaveTextContent("Only the current and next levels are known");
+        expect(screen.queryByTestId("blinds-panel-summary")).not.toBeInTheDocument();
     });
 });

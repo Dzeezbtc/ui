@@ -42,7 +42,7 @@
 
 .panel {
     pointer-events: auto;
-    width: 220px;
+    width: 240px;
     max-width: calc(100vw - 16px);
     max-height: 320px;
     overflow-y: auto;
@@ -93,6 +93,12 @@
     color: #ef4444; /* red-500 */
 }
 
+.summary {
+    padding: 0 10px 6px;
+    font-size: 10px;
+    color: rgba(255, 255, 255, 0.6);
+}
+
 .grid {
     display: grid;
     grid-template-columns: auto 1fr auto;
@@ -120,9 +126,13 @@
     text-align: right;
 }
 
-.rowCurrent .cell {
+.cell.rowCurrent {
     color: #fff;
     font-weight: 700;
+}
+
+.rowPast {
+    opacity: 0.45;
 }
 
 .rowCurrent {
