@@ -122,6 +122,7 @@ import { describeReplayStep, latestCompletedHand } from "../../utils/replayTimel
 import { useReplayTimeline } from "../../hooks/game/useReplayTimeline";
 import { ReplayTransport } from "./ReplayTransport";
 import { getCosmosBalance, getCosmosAddressSync, getFormattedCosmosAddress } from "../../utils/cosmosAccountUtils";
+import TableChatBox from "../../chat/TableChatBox";
 import { useGameStateContext } from "../../context/GameStateContext";
 import { useGameSettings } from "../../context/GameSettingsContext";
 import { useNetwork } from "../../context/NetworkContext";
@@ -708,6 +709,8 @@ const Table = React.memo(() => {
     const { subscribeToTable, unsubscribeFromTable, gameState, gameFormat, gameVariant, gameName, validationError, error, loadHistoricalState, isReplayMode, replayHandNumber, connection } =
         useGameStateContext();
     const { currentNetwork } = useNetwork();
+    // Who is seated, for chat's "mute spectators" (block52-chat#5).
+    const seatedChatAddresses = useMemo(() => (gameState?.players ?? []).map(p => p.address).filter(Boolean), [gameState?.players]);
 
     // Replay mode — read hand/index query params from the readonly share link.
     const { isReplayMode: hasReplayParams, handNumber: replayHandParam, actionIndex: replayActionParam, clearReplayParams, setReplayHand } = useReplayMode();
@@ -1649,6 +1652,10 @@ const Table = React.memo(() => {
             ) : (
                 <TablePanel activeTab={panelTab} onSelectTab={setPanelTab} onCollapse={() => setDesktopPanelCollapsedPersisted(true)} />
             )}
+
+            {/* Table chat (block52-chat#1): chat box with Quick chat stickers and settings.
+                Hidden in replay mode (a read-only view of a past hand). */}
+            {!isReplayMode && <TableChatBox seatedAddresses={seatedChatAddresses} />}
 
             {/* Layout Debug Panel */}
             <LayoutDebugInfo viewportMode={viewportMode} startIndex={startIndex} tableSize={tableSize} results={results} setStartIndex={setStartIndex} />

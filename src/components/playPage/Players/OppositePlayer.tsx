@@ -28,6 +28,7 @@ import { hasElements } from "../../../utils/guards";
 import { winnerCardHighlight } from "../../../utils/holeCardLayout";
 import { HoleCardRow } from "./HoleCardRow";
 import { getSeatOpacityClass } from "../../../utils/seatOpacity";
+import SeatChatBubble from "../../../chat/SeatChatBubble";
 import styles from "./PlayersCommon.module.css";
 import { NftAvatarImage } from "../../profile/NftAvatarImage";
 
@@ -113,6 +114,8 @@ const OppositePlayer: React.FC<OppositePlayerProps> = React.memo(({ left, top, i
                     top: top
                 }}
             >
+                {/* Table chat (block52-chat#3): this player's sticker or message pops up above the seat. */}
+                <SeatChatBubble address={playerData?.address} />
                 {/* Development Mode Debug Info */}
                 {import.meta.env.VITE_NODE_ENV === "development" && (
                     <div className="absolute top-[-60px] left-1/2 transform -translate-x-1/2 bg-blue-600 bg-opacity-80 text-white px-2 py-1 rounded text-[10px] whitespace-nowrap z-50 border border-blue-400">
