@@ -1,6 +1,6 @@
 import React, { useState, useEffect, useMemo, useCallback } from "react";
 import { NonPlayerActionType, PlayerActionType, PlayerStatus, TexasHoldemRound } from "@block52/poker-vm-sdk";
-import { hasContent, hasElements } from "../../utils/guards";
+import { hasContent, hasElements, isNullish } from "../../utils/guards";
 import { parseMicroToBigInt, microBigIntToUsdc, usdcToMicroBigInt } from "../../constants/currency";
 import { STORAGE_KEYS } from "../../constants/storageKeys";
 import { isTournamentFormat } from "../../utils/gameFormatUtils";
@@ -389,7 +389,8 @@ export const PokerActionPanel: React.FC<PokerActionPanelProps> = ({ tableId, net
     const preActionLegal = { hasCheckAction, hasCallAction, hasFoldAction };
     // "Call {amount}" fires only at the amount it was armed at (ui#875).
     const preActionCallGuard = { armedCallMicro, owedMicro: preActionCallMicro };
-    const preActionFiring = isUsersTurn && preAction != null && resolvePreAction(preAction, preActionLegal, preActionCallGuard) != null;
+    const preActionFiring =
+        isUsersTurn && !isNullish(preAction) && !isNullish(resolvePreAction(preAction, preActionLegal, preActionCallGuard));
 
     const clearPreAction = useCallback(() => {
         setPreAction(null);

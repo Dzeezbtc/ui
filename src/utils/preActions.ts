@@ -1,4 +1,5 @@
 import { PlayerStatus, TexasHoldemRound } from "@block52/poker-vm-sdk";
+import { isNullish } from "./guards";
 
 /**
  * The pre-action bar (ui#388), CoinPoker-style. While it is NOT the player's turn
@@ -118,7 +119,12 @@ export function resolvePreAction(action: PreAction, legal: PreActionLegal, callG
     }
     // "Call {amount}" calls only the amount it was armed at (ui#875). A raise before
     // the turn (or the bet vanishing) stands it down: no action, full turn.
-    if (action === "call-exact" && callGuard && callGuard.armedCallMicro !== null && callGuard.owedMicro !== callGuard.armedCallMicro) {
+    if (
+        action === "call-exact" &&
+        !isNullish(callGuard) &&
+        !isNullish(callGuard.armedCallMicro) &&
+        callGuard.owedMicro !== callGuard.armedCallMicro
+    ) {
         return null;
     }
     // "call-any" calls whatever the bet is. "all-in" was armed because calling
