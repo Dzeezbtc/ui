@@ -10,6 +10,7 @@ import { MultiTablePicker } from "./MultiTablePicker";
 import { TableSessionsProvider, useTableSessions } from "../../context/tableSessions/TableSessionsContext";
 import type { OpenTable } from "../../context/tableSessions/sessionsModel";
 import { TableHeaderSlotProvider } from "../../context/TableHeaderSlotContext";
+import { TableIdProvider } from "../../context/TableIdContext";
 
 /**
  * Multi-tabling workspace (block52/ui#55, PR 2).
@@ -132,14 +133,16 @@ export const MultiTableWorkspace: React.FC = () => {
                         data-testid={`multitable-slot-${t.id}`}
                         data-active={isActive}
                     >
-                        <TableHeaderSlotProvider value={isActive ? headerControls : null}>
-                            <GameStateProvider>
-                                <ActionSubmitProvider>
-                                    <TableStatusReporter tableId={t.id} />
-                                    <Table tableId={t.id} />
-                                </ActionSubmitProvider>
-                            </GameStateProvider>
-                        </TableHeaderSlotProvider>
+                        <TableIdProvider value={t.id}>
+                            <TableHeaderSlotProvider value={isActive ? headerControls : null}>
+                                <GameStateProvider>
+                                    <ActionSubmitProvider>
+                                        <TableStatusReporter tableId={t.id} />
+                                        <Table tableId={t.id} />
+                                    </ActionSubmitProvider>
+                                </GameStateProvider>
+                            </TableHeaderSlotProvider>
+                        </TableIdProvider>
                     </div>
                 );
             })}
