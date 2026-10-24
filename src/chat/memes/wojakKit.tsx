@@ -159,52 +159,220 @@ function mouthEl(m: MouthKind): React.ReactNode {
     }
 }
 
+/** Skull + jaw outlines. Emotion distorts the head; each character has its own jaw. */
+const SKULL = {
+    base: "M-18 -6 C-19 -24 -6 -30 4 -29 C17 -28 24 -18 23 -4 C22 8 18 16 12 21 C6 26 -6 26 -12 20 C-17 14 -18 6 -18 -6 Z",
+    // jaw on the floor: the shocked / soyjak "wow" face
+    long: "M-18 -8 C-19 -26 -6 -32 4 -31 C17 -30 24 -20 23 -6 C24 10 22 26 15 35 C8 43 -7 43 -13 34 C-18 25 -18 8 -18 -8 Z",
+    // crumpled: crying / laughing, cheeks pushed out, chin pulled up
+    crumple: "M-20 -4 C-21 -22 -6 -28 4 -27 C18 -26 26 -16 25 -2 C25 10 20 18 13 22 C6 26 -9 26 -15 21 C-20 16 -21 8 -20 -4 Z",
+    // seething: lumpy, swollen temples
+    seethe: "M-19 -6 C-21 -14 -18 -20 -14 -24 C-10 -30 0 -32 6 -30 C14 -30 20 -26 23 -18 C25 -12 24 -6 24 -2 C23 10 19 18 12 22 C6 27 -7 27 -13 21 C-18 15 -19 6 -19 -6 Z",
+    // the chad: a slab of a jaw
+    chad: "M-18 -8 C-19 -26 -6 -32 4 -31 C17 -30 24 -20 23 -6 L25 12 C26 26 18 33 4 33 C-8 33 -16 29 -17 19 Z",
+    // the nerd: barely a chin (the beard does the work)
+    nerd: "M-18 -6 C-19 -24 -6 -30 4 -29 C17 -28 24 -18 23 -4 C22 5 17 12 9 15 C3 17 -6 17 -12 14 C-17 10 -18 4 -18 -6 Z",
+    // the doomer: gaunt, hollow cheeks
+    gaunt: "M-17 -6 C-18 -24 -6 -30 4 -29 C16 -28 23 -18 22 -4 C21 4 19 10 15 16 C10 25 -4 27 -10 21 C-15 16 -17 6 -17 -6 Z"
+};
+
+function skullFor(who: Who, face: Face): string {
+    if (face === "shock" || face === "wow") return SKULL.long;
+    if (face === "cry" || face === "laugh") return SKULL.crumple;
+    if (face === "rage") return SKULL.seethe;
+    if (who === "chad") return SKULL.chad;
+    if (who === "nerd") return SKULL.nerd;
+    if (who === "doomer") return SKULL.gaunt;
+    return SKULL.base;
+}
+
+/** The big emotional faces, pushed all the way. Returns null for the calm ones. */
+function extremeFace(face: Face, who: Who): React.ReactNode {
+    const thin = { strokeWidth: W * 0.55 };
+    switch (face) {
+        case "cry":
+            return (
+                <g>
+                    {/* forehead creases, brows wrenched up in the middle */}
+                    <path d="M-10 -20 q6 -3 12 0 M-8 -16 q5 -2 10 0" {...thin} />
+                    <path d="M-16 -9 C-12 -10 -8 -14 -5 -18 M12 -9 C8 -10 4 -14 2 -18" strokeWidth={W * 1.1} />
+                    {/* eyes screwed shut, crow's feet */}
+                    <path d="M-14 -4 q4 4 9 0 M0 -4 q4 4 9 0" strokeWidth={W * 1.2} />
+                    <path d="M-15 -2 l-3 -1 M-15 0 l-3 1 M10 -2 l3 -1 M10 0 l3 1" {...thin} />
+                    {/* nose scrunch */}
+                    <path d="M-3 -1 C-4 3 -6 6 -4 7.5 C-2 8.6 1 7.6 1.5 6.5 M-6 4 q-2 1 -2 3" />
+                    {/* bawling mouth: wide, quivering, top teeth, wet */}
+                    <path d="M-15 13 C-12 8 4 7 9 12 C12 16 9 25 -2 25 C-13 25 -17 18 -15 13z" fill={INK} />
+                    <path d="M-12 12 C-8 10 2 9.6 6 11.6 L5 14 C1 12.6 -7 13 -11 14.6z" fill="#fff" strokeWidth={W * 0.5} />
+                    <path d="M-8 22 q5 -4 10 0 q-2 2.4 -5 2.4 q-3 0 -5 -2.4z" fill="#e0727a" stroke="none" />
+                    <path d="M-15 13 q-2 2 -1 4 M9 12 q2 2 1 4" {...thin} />
+                    <g stroke={TEAR} strokeWidth={3.2}>
+                        <path d="M-11 0 q-3 10 -2 26" />
+                        <path d="M6 0 q3 10 2 26" />
+                    </g>
+                    <path d="M-1 8 q1 4 0 7" stroke="#bfe3ff" strokeWidth={1.4} />
+                </g>
+            );
+        case "rage":
+            return (
+                <g>
+                    {/* veins */}
+                    <path d="M-8 -26 q2 3 0 5 q-2 3 0 5 M10 -25 q-2 3 0 5 q2 3 0 5 M17 -12 l3 -2 l1 3" stroke="#8a1f1a" strokeWidth={W * 0.8} />
+                    {/* brows crashing down */}
+                    <path d="M-17 -12 L-4 -6 M13 -13 L1 -6" strokeWidth={W * 2} />
+                    {/* slit eyes, pinprick pupils */}
+                    <path d="M-14 -4 q4 -1.6 8 0 q-4 1.6 -8 0z M0 -4 q4 -1.6 8 0 q-4 1.6 -8 0z" fill="#fff" strokeWidth={W * 0.8} />
+                    <circle cx={-10} cy={-4} r={0.8} fill={INK} stroke="none" />
+                    <circle cx={4} cy={-4} r={0.8} fill={INK} stroke="none" />
+                    <path d="M-3 -1 C-4 3 -6.5 6 -4.5 7.5 C-2.5 8.6 1 7.6 1.5 6.5 M-7 3 q-2 2 -1 5 M3 3 q2 2 1 5" />
+                    {/* teeth gritted so hard the lips peel back */}
+                    <path d="M-16 11 C-10 7 6 7 12 11 C10 20 -12 21 -16 11z" fill="#d76a63" />
+                    <rect x={-14} y={10} width={24} height={8} rx={1.4} fill="#fff" />
+                    <path d="M-14 14 h24 M-10 10 v8 M-6 10 v8 M-2 10 v8 M2 10 v8 M6 10 v8" strokeWidth={W * 0.55} />
+                    <path d="M-19 8 l-3 -2 M-19 12 h-4 M15 8 l3 -2 M15 12 h4" {...thin} />
+                </g>
+            );
+        case "shock":
+        case "wow":
+            return (
+                <g>
+                    <path d="M-15 -17 q5 -6 10 -2 M1 -18 q5 -5 10 0" strokeWidth={W * 1.1} />
+                    <ellipse cx={-9} cy={-6} rx={4.6} ry={4.2} fill="#fff" />
+                    <ellipse cx={5} cy={-6} rx={4.6} ry={4.2} fill="#fff" />
+                    <circle cx={-9.6} cy={-5.4} r={face === "shock" ? 0.9 : 1.6} fill={INK} stroke="none" />
+                    <circle cx={4.4} cy={-5.4} r={face === "shock" ? 0.9 : 1.6} fill={INK} stroke="none" />
+                    <path d="M-2 -1 C-3 3 -5.5 5.5 -3.5 6.5 C-1.5 7.5 1 6.5 1.5 5.5" />
+                    {/* the mouth takes over the lower face */}
+                    <path d="M-12 12 C-12 6 8 6 8 12 L9 26 C9 36 -13 36 -13 26 Z" fill={INK} />
+                    <path d="M-10 10 C-6 8 4 8 6 10 L6 12.6 C2 11 -6 11 -10 12.6z" fill="#fff" strokeWidth={W * 0.5} />
+                    <path d="M-9 30 q7 -6 14 0 q-2 4 -7 4 q-5 0 -7 -4z" fill="#e0727a" stroke="none" />
+                </g>
+            );
+        case "laugh":
+            return (
+                <g>
+                    <path d="M-15 -10 q5 -4 10 0 M1 -11 q5 -4 10 0" strokeWidth={W * 0.9} />
+                    <path d="M-14 -3 q4 -5 9 0 M0 -3 q4 -5 9 0" strokeWidth={W * 1.3} />
+                    <path d="M-15 0 l-3 1 M10 0 l3 1" {...thin} />
+                    <path d="M-2 -1 C-3 3 -5.5 5.5 -3.5 6.5 C-1.5 7.5 1 6.5 1.5 5.5" />
+                    <path d="M-15 10 C-6 8 6 8 12 10 C12 22 4 27 -2 27 C-10 27 -16 20 -15 10z" fill={INK} />
+                    <path d="M-13 10.4 C-6 9 4 9 10 10.4 L9.4 13 C3 12 -6 12 -12.6 13z" fill="#fff" strokeWidth={W * 0.5} />
+                    <path d="M-8 22 q6 -5 12 0 q-2 3 -6 3 q-4 0 -6 -3z" fill="#e0727a" stroke="none" />
+                    <g stroke={TEAR} strokeWidth={2.4}>
+                        <path d="M-15 0 q-4 4 -4 10" />
+                        <path d="M11 0 q4 4 4 10" />
+                    </g>
+                </g>
+            );
+        case "nervous":
+            return (
+                <g>
+                    <path d="M-15 -9 q5 -5 10 -1 M1 -11 q5 -4 10 1" strokeWidth={W * 0.9} />
+                    <ellipse cx={-9} cy={-4} rx={3.4} ry={3} fill="#fff" strokeWidth={W * 0.7} />
+                    <ellipse cx={5} cy={-4} rx={3.4} ry={3} fill="#fff" strokeWidth={W * 0.7} />
+                    <circle cx={-11} cy={-4} r={1.1} fill={INK} stroke="none" />
+                    <circle cx={3} cy={-4} r={1.1} fill={INK} stroke="none" />
+                    <path d="M-2 -1 C-3 3 -5.5 5.5 -3.5 6.5 C-1.5 7.5 1 6.5 1.5 5.5" />
+                    {/* clenched crooked grimace */}
+                    <path d="M-12 11 q3 -2 6 0.6 q3 -2.6 6 0 q3 -2 6 0.4 l-0.4 5 q-9 2 -17.2 -0.6z" fill="#fff" />
+                    <path d="M-12 13.6 h17.6 M-8 11 l0.4 6 M-4 11.4 v5.6 M0 11 l-0.6 6 M3 11.4 v5.4" strokeWidth={W * 0.5} />
+                    <path d="M14 -20 q-4 5 0 8 q4 -3 0 -8z M17 -12 q-3 4 0 6 q3 -2 0 -6z" fill="#7cc0ee" strokeWidth={0.9} />
+                </g>
+            );
+        case "sad":
+            return (
+                <g>
+                    <path d="M-15 -8 C-11 -9 -7 -13 -5 -15 M12 -8 C8 -9 4 -13 2 -15" strokeWidth={W} />
+                    <path d="M-13 -4 q4 -2 8 0 M1 -4 q4 -2 8 0" />
+                    <circle cx={-9} cy={-2.6} r={1.4} fill={INK} stroke="none" />
+                    <circle cx={5} cy={-2.6} r={1.4} fill={INK} stroke="none" />
+                    <path d="M-12 0.6 q3 2 6 0 M2 0.6 q3 2 6 0" {...thin} />
+                    <path d="M-2 -1 C-3 4 -5.5 6.5 -3.5 7.5 C-1.5 8.5 1 7.5 1.5 6.5" />
+                    {/* trembling lip, pouting chin */}
+                    <path d="M-9 16 q2 -4 4 -3 q2 -2 4 0 q2 -1 3 3" />
+                    <path d="M-6 19 q3 2 6 0" {...thin} />
+                </g>
+            );
+        case "grin":
+            return (
+                <g>
+                    <path d="M-15 -9 q5 -1 10 1 M1 -12 q5 -3 10 0" strokeWidth={W * 0.9} />
+                    <path d="M-13 -4 q4 -1.4 8 0 M1 -5 q4 -1.4 8 0" />
+                    <circle cx={-8.4} cy={-3} r={1.3} fill={INK} stroke="none" />
+                    <circle cx={5.6} cy={-4} r={1.3} fill={INK} stroke="none" />
+                    <path d="M-2 -1 C-3 4 -5.5 6.5 -3.5 7.5 C-1.5 8.5 1 7.5 1.5 6.5" />
+                    {/* lopsided, too-many-teeth grin */}
+                    <path d="M-13 12 C-6 15 6 12 13 4 C10 14 2 20 -4 20 C-9 20 -12 16 -13 12z" fill="#fff" />
+                    <path d="M-12 13.4 C-5 16 5 13 12 6 M-8 14.4 l-0.4 4.6 M-4 14.8 v4.8 M0 14.4 v5 M4 13 l0.6 5 M8 10.4 l0.6 4.6" strokeWidth={W * 0.55} />
+                    <path d="M12 3 q3 0 3 3" {...thin} />
+                </g>
+            );
+        case "smug":
+            return (
+                <g>
+                    <path d="M-15 -8 q5 -1 10 0 M1 -13 q5 -4 10 0" strokeWidth={W * 0.9} />
+                    <path d="M-13 -4 q4 -1 8 0 M1 -5 q4 -1 8 0" strokeWidth={W * 1.1} />
+                    <circle cx={-8.4} cy={-3} r={1.3} fill={INK} stroke="none" />
+                    <circle cx={5.6} cy={-4} r={1.3} fill={INK} stroke="none" />
+                    <path d="M-2 -1 C-3 4 -5.5 6.5 -3.5 7.5 C-1.5 8.5 1 7.5 1.5 6.5" />
+                    <path d="M-8 14 q8 1 14 -5" strokeWidth={W * 1.1} />
+                    <path d="M6 9 q2 1 2 3" {...thin} />
+                </g>
+            );
+        default:
+            return null;
+    }
+}
+
 /** The 3/4 wojak head at (0, 0). */
 export const WojakHead: React.FC<{ who: Who; face: Face }> = ({ who, face }) => {
     const f = FACE[face];
-    const fill = who === "npc" ? "#c9c9c9" : f.flush ? "#f4b3a6" : PALE;
+    const fill = who === "npc" ? "#c9c9c9" : face === "rage" ? "#e9877b" : face === "cry" ? "#f6dcd4" : PALE;
     const eyes = who === "npc" && f.eyes === "plain" ? "dots" : f.eyes;
+    const extreme = who === "npc" ? null : extremeFace(face, who);
     return (
         <g stroke={INK} strokeWidth={W} strokeLinecap="round" strokeLinejoin="round" fill="none">
-            {who === "chad" ? (
-                <path d="M-18 -6 C-19 -24 -6 -30 4 -29 C17 -28 24 -18 23 -4 C23 8 21 18 16 24 C10 30 -8 30 -14 22 C-18 16 -18 6 -18 -6 Z" fill={fill} />
-            ) : (
-                <path d="M-18 -6 C-19 -24 -6 -30 4 -29 C17 -28 24 -18 23 -4 C22 8 18 16 12 21 C6 26 -6 26 -12 20 C-17 14 -18 6 -18 -6 Z" fill={fill} />
-            )}
+            <path d={skullFor(who, face)} fill={fill} />
             <path d="M21 -7 C27 -10 29 0 22 4" fill={fill} />
             <path d="M22.5 -4 q2 1.5 0 3.5" strokeWidth={W * 0.6} />
             {who === "nerd" && (
                 <g strokeWidth={W * 0.55}>
-                    <path d="M-16 6 C-14 18 -6 25 2 25 C10 25 17 17 19 9" strokeWidth={W * 0.9} />
-                    {[-14, -11, -8, -5, -2, 1, 4, 7, 10, 13, 16].map((bx, i) => (
-                        <path key={bx} d={`M${bx} ${10 + Math.abs(bx - 1) * -0.25 + (i % 2) * 1.5} l${(i % 3) - 1} 3`} />
+                    {/* the neckbeard hangs off the weak chin */}
+                    <path d="M-16 4 C-16 18 -8 30 2 31 C12 30 18 18 19 6 C14 14 6 18 -2 18 C-10 18 -14 12 -16 4z" fill="#e9e3d6" strokeWidth={W * 0.8} />
+                    {[-12, -8, -4, 0, 4, 8, 12, 15].map((bx, i) => (
+                        <path key={bx} d={`M${bx} ${20 + (i % 2) * 3} l${(i % 3) - 1} 3.4`} />
                     ))}
                 </g>
             )}
             {who === "chad" && (
                 <g>
                     <path d="M-19 -10 C-22 -30 6 -38 22 -22 C14 -26 4 -22 -2 -24 C-8 -20 -14 -18 -19 -10z" fill="#e8c262" />
-                    <path d="M-12 22 q14 6 26 -2" strokeWidth={W * 0.6} strokeDasharray="1 1.6" />
+                    <path d="M-14 24 q16 8 34 -6" strokeWidth={W * 0.6} strokeDasharray="1 1.6" />
+                    <path d="M18 14 q2 6 -2 12" strokeWidth={W * 0.5} />
                 </g>
             )}
-            {eyesEl(eyes, face)}
+            {who === "doomer" && <path d="M-14 6 q2 6 6 8 M16 6 q-1 6 -5 8" strokeWidth={W * 0.5} />}
+            {extreme ?? (
+                <>
+                    {eyesEl(eyes, face)}
+                    {who === "npc" ? <path d="M-2 -1 L-5 7 H1" /> : <path d="M-2 -1 C-3 4 -5.5 6.5 -3.5 7.5 C-1.5 8.5 1 7.5 1.5 6.5" />}
+                    {mouthEl(f.mouth)}
+                    {f.tears && (
+                        <g stroke={TEAR} strokeWidth={2.6}>
+                            <path d="M-11 -1 q-2 9 -1 22" />
+                            <path d="M7 -1 q2 9 1 22" />
+                        </g>
+                    )}
+                </>
+            )}
             {who === "nerd" && (
                 <g strokeWidth={W * 0.75}>
-                    <circle cx={-9} cy={-4} r={5.4} />
-                    <circle cx={5} cy={-4} r={5.4} />
-                    <path d="M-3.6 -4.6 q1.6 -1.2 3.2 0 M10.4 -5 l10 -1.6" />
+                    <circle cx={-9} cy={-5} r={5.6} />
+                    <circle cx={5} cy={-5} r={5.6} />
+                    <path d="M-3.4 -5.6 q1.6 -1.2 3.2 0 M10.6 -6 l10 -1.6" />
                 </g>
             )}
-            {who === "npc" ? <path d="M-2 -1 L-5 7 H1" /> : <path d="M-2 -1 C-3 4 -5.5 6.5 -3.5 7.5 C-1.5 8.5 1 7.5 1.5 6.5" />}
-            {mouthEl(f.mouth)}
-            {who !== "nerd" && <path d="M-15 5 q1 4 3.5 6" strokeWidth={W * 0.5} />}
-            {f.tears && (
-                <g stroke={TEAR} strokeWidth={2.6}>
-                    <path d="M-11 -1 q-2 9 -1 22" />
-                    <path d="M7 -1 q2 9 1 22" />
-                </g>
-            )}
-            {face === "nervous" && <path d="M14 -18 q-3 4 0 6 q3 -2 0 -6z" fill="#7cc0ee" strokeWidth={0.9} />}
+            {who !== "nerd" && who !== "chad" && !extreme && <path d="M-15 5 q1 4 3.5 6" strokeWidth={W * 0.5} />}
             {who === "doomer" && (
                 <g>
                     <path d="M-19 -9 C-20 -28 -6 -34 4 -33 C18 -32 25 -22 23.5 -9 C12 -12 -8 -12 -19 -9z" fill="#2a2a2e" />

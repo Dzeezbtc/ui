@@ -177,7 +177,21 @@ const ChipHead: React.FC<{ who: Who; face: Face }> = ({ who, face }) => (
         {Array.from({ length: 8 }, (_, i) => (
             <rect key={i} x={-2.6} y={-19.2} width={5.2} height={5} rx={1} fill={CREAM} transform={`rotate(${i * 45 + 22.5})`} />
         ))}
+        {/* edge grooves between the spots, like a real chip */}
+        {Array.from({ length: 8 }, (_, i) => (
+            <path key={`g${i}`} d="M0 -19.4 v3.6" stroke={INK} strokeWidth={0.6} opacity={0.5} transform={`rotate(${i * 45})`} />
+        ))}
         <circle cx={0} cy={0} r={14} fill={CREAM} stroke={INK} strokeWidth={1.6} />
+        <circle cx={0} cy={0} r={12.2} fill="none" stroke={CHIP[who]} strokeWidth={0.7} strokeDasharray="1.6 1.4" opacity={0.7} />
+        {/* soft shading under the face and a shine on the rim */}
+        <path d="M-12 6 A14 14 0 0 0 12 6 A16 12 0 0 1 -12 6z" fill="#000" opacity={0.07} />
+        <path d="M-15 -9 A18 18 0 0 1 -6 -17" stroke="#fff" strokeWidth={2.2} strokeLinecap="round" fill="none" opacity={0.75} />
+        {(face === "smile" || face === "calm" || face === "love" || face === "grin" || face === "laugh") && (
+            <g fill="#e8566f" opacity={0.45}>
+                <ellipse cx={-9.6} cy={4} rx={2.4} ry={1.4} />
+                <ellipse cx={9.6} cy={4} rx={2.4} ry={1.4} />
+            </g>
+        )}
         {faceEl(face)}
         {who === "nerd" && (
             <g fill="none" stroke={INK} strokeWidth={1.3}>

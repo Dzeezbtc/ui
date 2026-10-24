@@ -1,5 +1,6 @@
 import React from "react";
 import { ChipPile, Flame } from "./frame";
+import { WojakHead } from "./wojakKit";
 
 /**
  * Wojak-style stickers (block52-chat#2): the plain bald meme face and its family
@@ -135,12 +136,6 @@ export const WOJAK: Record<string, () => React.ReactElement> = {
             </g>
         </g>
     ),
-    "so-over": () => (
-        <g>
-            <Head x={50} y={42} k={1.25} eyes="squeeze" mouth="cry" tears />
-            <path d="M10 76 q8 -8 18 -6 M90 76 q-8 -8 -18 -6" stroke={TEAR} strokeWidth={2.4} fill="none" />
-        </g>
-    ),
     "whale-spotted": () => (
         <g>
             {/* the whale, sitting on its chips, in a top hat */}
@@ -156,7 +151,7 @@ export const WOJAK: Record<string, () => React.ReactElement> = {
                 <path d="M30 22 q2 -6 -2 -10" fill="none" stroke="#8fb3d6" strokeWidth={2} />
             </g>
             {/* the pointing guy */}
-            <Head x={76} y={34} k={0.9} eyes="wide" mouth="open" glasses beard />
+            <g transform="translate(76 32) scale(0.82)"><WojakHead who="nerd" face="wow" /></g>
             <path d="M60 80 C62 62 70 56 76 56 C84 56 92 62 94 80" fill="#9aa59a" stroke={INK} strokeWidth={W} />
             <PointHand x={66} y={60} rot={200} k={0.95} />
         </g>
