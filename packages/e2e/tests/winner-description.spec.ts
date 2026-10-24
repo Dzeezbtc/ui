@@ -26,7 +26,7 @@ test("a showdown winner sent as cards only reads in words on the seat", async ({
   await test.step("open the seeded table and sit down", async () => {
     await page.goto(`/table/${CASH_GAME_ID}`);
     await expect(page.getByRole("button", { name: /^Sit in seat / }).first()).toBeVisible({ timeout: 15_000 });
-    await page.getByText(`Seat ${HERO_SEAT}`, { exact: true }).click();
+    await page.getByRole("button", { name: `Sit in seat ${HERO_SEAT}` }).click();
     const confirm = page.getByRole("button", { name: new RegExp(`Confirm & Join Seat ${HERO_SEAT}`, "i") });
     await expect(confirm).toBeVisible();
     await confirm.click();

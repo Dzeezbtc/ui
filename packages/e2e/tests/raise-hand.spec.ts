@@ -18,7 +18,7 @@ test("raise preflop and bet the flop, through to showdown", async ({ page }) => 
 
   const SEAT = 5;
   await test.step(`sit down at seat ${SEAT} (buy in)`, async () => {
-    await page.getByText(`Seat ${SEAT}`, { exact: true }).click();
+    await page.getByRole("button", { name: `Sit in seat ${SEAT}` }).click();
     const confirm = page.getByRole("button", { name: new RegExp(`Confirm & Join Seat ${SEAT}`, "i") });
     await expect(confirm).toBeVisible();
     await confirm.click();
