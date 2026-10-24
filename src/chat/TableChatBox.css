@@ -436,7 +436,65 @@
     color: var(--chat-brand);
 }
 
+.b52-chat__quick-pack--fav {
+    color: #fbbf24;
+}
+
+.b52-chat__quick-fav-empty {
+    grid-column: 1 / -1;
+    padding: 6px 4px 10px;
+    color: rgba(255, 255, 255, 0.45);
+    font-size: 11.5px;
+}
+
+/* A sticker cell: the sticker plus a small star in its corner (#17). */
+.b52-chat__quick-cell {
+    position: relative;
+}
+
+.b52-chat__fav-toggle {
+    position: absolute;
+    top: 0;
+    right: 0;
+    width: 20px;
+    height: 20px;
+    padding: 0;
+    border: none;
+    border-radius: 9999px;
+    background: rgba(13, 20, 28, 0.85);
+    color: rgba(255, 255, 255, 0.55);
+    font-size: 12px;
+    line-height: 20px;
+    cursor: pointer;
+    opacity: 0;
+    transition: opacity 0.12s ease, transform 0.12s ease, color 0.12s ease;
+}
+
+/* The star shows on hover/focus, and always once favourited. */
+.b52-chat__quick-cell:hover .b52-chat__fav-toggle,
+.b52-chat__fav-toggle:focus-visible,
+.b52-chat__fav-toggle.is-fav {
+    opacity: 1;
+}
+
+.b52-chat__fav-toggle:hover {
+    color: #fbbf24;
+    transform: scale(1.15);
+}
+
+.b52-chat__fav-toggle.is-fav {
+    color: #fbbf24;
+}
+
+/* Touch screens have no hover: always show the star. */
+@media (hover: none) {
+    .b52-chat__fav-toggle {
+        opacity: 1;
+    }
+}
+
 .b52-chat__quick-btn {
+    width: 100%;
     display: flex;
     align-items: center;
     justify-content: center;

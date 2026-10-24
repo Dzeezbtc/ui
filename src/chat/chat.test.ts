@@ -3,17 +3,19 @@ import { STICKERS, STICKER_PACKS, findSticker } from "./stickers";
 import { ribbonLines } from "./StickerArt";
 import { __resetChatSettingsForTests, getChatSettings, isMessageVisible, setPlayerMuted, updateChatSettings } from "./chatSettings";
 import { latestSeatMessage, SEAT_BUBBLE_MS } from "./useSeatChat";
+import { __resetFavouritesForTests, getFavourites, isFavourite, toggleFavourite } from "./favourites";
 
 beforeEach(() => {
     localStorage.clear();
     __resetChatForTests();
     __resetChatSettingsForTests();
+    __resetFavouritesForTests();
 });
 
 describe("stickers (block52-chat#2)", () => {
     it("has the classics plus set v2 (#16), unique slug ids, each in a known pack", () => {
-        expect(STICKERS).toHaveLength(116);
-        expect(new Set(STICKERS.map(s => s.id)).size).toBe(116);
+        expect(STICKERS).toHaveLength(125);
+        expect(new Set(STICKERS.map(s => s.id)).size).toBe(125);
         const packs = new Set(STICKER_PACKS.map(p => p.id));
         expect(STICKERS.every(s => packs.has(s.pack))).toBe(true);
         // Ids go on the wire, so they must pass the relay's slug check.
@@ -102,5 +104,25 @@ describe("seat bubble (block52-chat#3)", () => {
         expect(latestSeatMessage(list, "b521a", 1000 + SEAT_BUBBLE_MS + 1)).toBeNull();
         expect(latestSeatMessage(list, undefined, 1000)).toBeNull();
         expect(latestSeatMessage(list, "b521z", 1000)).toBeNull();
+    });
+});
+
+describe("favourites (block52-chat#17)", () => {
+    it("pins and unpins stickers, in the order added, and remembers them", () => {
+        toggleFavourite("ship-it");
+        toggleFavourite("emotional-damage");
+        expect(getFavourites()).toEqual(["ship-it", "emotional-damage"]);
+        expect(isFavourite("ship-it")).toBe(true);
+        toggleFavourite("ship-it");
+        expect(getFavourites()).toEqual(["emotional-damage"]);
+        expect(JSON.parse(localStorage.getItem("b52.chat.favourites")!)).toEqual(["emotional-damage"]);
+    });
+
+    it("ignores unknown ids, and drops stale or duplicate ids on load", () => {
+        toggleFavourite("not-a-sticker");
+        expect(getFavourites()).toEqual([]);
+        localStorage.setItem("b52.chat.favourites", JSON.stringify(["ship-it", "gone-sticker", "ship-it", 7]));
+        __resetFavouritesForTests();
+        expect(getFavourites()).toEqual(["ship-it"]);
     });
 });

@@ -4,6 +4,7 @@ import { useTableChat } from "./useTableChat";
 import { senderLabel, relativeTime } from "./chatFormat";
 import { STICKERS, STICKER_PACKS, findSticker } from "./stickers";
 import StickerArt from "./StickerArt";
+import { toggleFavourite, useFavourites } from "./favourites";
 import { isMessageVisible, setPlayerMuted, updateChatSettings, useChatSettings } from "./chatSettings";
 
 const EMOJIS = ["😀", "😂", "😎", "😭", "😮", "🤔", "🔥", "👍", "👎", "🙏", "👀", "💪", "🎉", "🤑", "😤", "🫡", "♠️", "♥️", "♦️", "♣️", "🃏", "💰", "🍀", "🤝"];
@@ -43,6 +44,7 @@ export interface TableChatBoxProps {
 const TableChatBox: React.FC<TableChatBoxProps> = ({ seatedAddresses }) => {
     const { messages: allMessages, sendChat, sendSticker } = useTableChat();
     const settings = useChatSettings();
+    const favourites = useFavourites();
     const [view, setView] = useState<ChatView>("chat");
     const [cooldown, setCooldown] = useState(false);
     const [muteTarget, setMuteTarget] = useState<string | null>(null);
@@ -114,6 +116,31 @@ const TableChatBox: React.FC<TableChatBoxProps> = ({ seatedAddresses }) => {
         },
         [submit]
     );
+
+    // One Quick chat cell: tap the sticker to send it; tap the star to pin or
+    // unpin it in Favourites (block52-chat#17).
+    const renderSticker = (id: string, section: string) => {
+        const st = findSticker(id);
+        if (!st) return null;
+        const fav = favourites.includes(id);
+        return (
+            <div key={`${section}-${id}`} className="b52-chat__quick-cell">
+                <button type="button" className="b52-chat__quick-btn" aria-label={st.label} title={st.label} onClick={() => onSticker(st.id)}>
+                    <StickerArt sticker={st} size={62} />
+                </button>
+                <button
+                    type="button"
+                    className={`b52-chat__fav-toggle${fav ? " is-fav" : ""}`}
+                    aria-label={fav ? `Remove ${st.label} from favourites` : `Add ${st.label} to favourites`}
+                    aria-pressed={fav}
+                    title={fav ? "Remove from favourites" : "Add to favourites"}
+                    onClick={() => toggleFavourite(st.id)}
+                >
+                    {fav ? "★" : "☆"}
+                </button>
+            </div>
+        );
+    };
 
     return (
         <div className="b52-chat">
@@ -235,14 +262,16 @@ const TableChatBox: React.FC<TableChatBoxProps> = ({ seatedAddresses }) => {
                         <div className="b52-chat__quick" aria-label="Quick chat stickers">
                             <div className="b52-chat__quick-hint">{cooldown ? "One every 2 seconds…" : "Tap to pop it up above your seat"}</div>
                             <div className="b52-chat__quick-grid">
+                                <div className="b52-chat__quick-pack b52-chat__quick-pack--fav">★ Favourites</div>
+                                {favourites.length === 0 ? (
+                                    <div className="b52-chat__quick-fav-empty">Tap ☆ on any sticker to pin it here.</div>
+                                ) : (
+                                    favourites.map(id => renderSticker(id, "fav"))
+                                )}
                                 {STICKER_PACKS.map(pack => (
                                     <React.Fragment key={pack.id}>
                                         <div className="b52-chat__quick-pack">{pack.label}</div>
-                                        {STICKERS.filter(st => st.pack === pack.id).map(st => (
-                                            <button key={st.id} type="button" className="b52-chat__quick-btn" aria-label={st.label} title={st.label} onClick={() => onSticker(st.id)}>
-                                                <StickerArt sticker={st} size={62} />
-                                            </button>
-                                        ))}
+                                        {STICKERS.filter(st => st.pack === pack.id).map(st => renderSticker(st.id, pack.id))}
                                     </React.Fragment>
                                 ))}
                             </div>

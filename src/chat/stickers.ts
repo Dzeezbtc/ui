@@ -163,7 +163,16 @@ export const STICKERS: readonly StickerDef[] = [
     { id: "free-real-estate", label: "Free real estate", emoji: "🏡", from: "#ec4899", to: "#be185d", pack: "pop-culture" },
     { id: "visible-confusion", label: "Visible confusion", emoji: "😕", from: "#ec4899", to: "#be185d", pack: "pop-culture" },
     { id: "npc-behaviour", label: "NPC behaviour", emoji: "🤖", from: "#ec4899", to: "#be185d", pack: "pop-culture" },
-    { id: "oh-no-anyway", label: "Oh no… anyway", emoji: "🙃", from: "#ec4899", to: "#be185d", pack: "pop-culture" },
+    { id: "chat-is-this-real", label: "Chat, is this real?", emoji: "📺", from: "#ec4899", to: "#be185d", pack: "pop-culture" },
+    { id: "chose-violence", label: "Bro chose violence", emoji: "🥊", from: "#ec4899", to: "#be185d", pack: "pop-culture" },
+    { id: "the-audacity", label: "The audacity", emoji: "😤", from: "#ec4899", to: "#be185d", pack: "pop-culture" },
+    { id: "no-crumbs", label: "Ate and left no crumbs", emoji: "🍽️", from: "#ec4899", to: "#be185d", pack: "pop-culture" },
+    { id: "plot-twist", label: "Plot twist", emoji: "🌀", from: "#ec4899", to: "#be185d", pack: "pop-culture" },
+    { id: "took-it-personally", label: "And I took that personally", emoji: "😠", from: "#ec4899", to: "#be185d", pack: "pop-culture" },
+    { id: "delulu", label: "Delulu", emoji: "🦄", from: "#ec4899", to: "#be185d", pack: "pop-culture" },
+    { id: "main-character", label: "Main character energy", emoji: "🎬", from: "#ec4899", to: "#be185d", pack: "pop-culture" },
+    { id: "this-is-a-wendys", label: "Sir, this is a Wendy's", emoji: "🍔", from: "#ec4899", to: "#be185d", pack: "pop-culture" },
+    { id: "kinda-sus", label: "Kinda sus", emoji: "🕵️", from: "#ec4899", to: "#be185d", pack: "pop-culture" },
 ];
 
 const BY_ID = new Map(STICKERS.map(s => [s.id, s]));

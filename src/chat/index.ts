@@ -18,8 +18,9 @@ export {
     STICKER_COOLDOWN_MS
 } from "./chatBus";
 export type { ChatMessage, OutgoingChat } from "./chatBus";
-export { STICKERS, findSticker } from "./stickers";
-export type { StickerDef } from "./stickers";
+export { STICKERS, STICKER_PACKS, findSticker } from "./stickers";
+export { useFavourites, getFavourites, isFavourite, toggleFavourite } from "./favourites";
+export type { StickerDef, StickerPack } from "./stickers";
 export { useChatSettings, getChatSettings, updateChatSettings, setPlayerMuted, isPlayerMuted, isMessageVisible } from "./chatSettings";
 export type { ChatSettings } from "./chatSettings";
 export { senderLabel, relativeTime } from "./chatFormat";
