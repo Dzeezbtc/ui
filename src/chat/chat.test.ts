@@ -1,5 +1,6 @@
 import { __resetChatForTests, getChatMessages, pushChatMessage, registerChatSender, registerLocalAddress, sendChat, sendSticker, STICKER_COOLDOWN_MS } from "./chatBus";
-import { STICKERS, findSticker } from "./stickers";
+import { STICKERS, STICKER_PACKS, findSticker } from "./stickers";
+import { ribbonLines } from "./StickerArt";
 import { __resetChatSettingsForTests, getChatSettings, isMessageVisible, setPlayerMuted, updateChatSettings } from "./chatSettings";
 import { latestSeatMessage, SEAT_BUBBLE_MS } from "./useSeatChat";
 
@@ -10,11 +11,20 @@ beforeEach(() => {
 });
 
 describe("stickers (block52-chat#2)", () => {
-    it("has the 13 starter phrases with unique ids", () => {
-        expect(STICKERS).toHaveLength(13);
-        expect(new Set(STICKERS.map(s => s.id)).size).toBe(13);
-        expect(findSticker("nice-hand")?.label).toBe("Nice hand");
+    it("has the classics plus set v2 (#16), unique slug ids, each in a known pack", () => {
+        expect(STICKERS).toHaveLength(95);
+        expect(new Set(STICKERS.map(s => s.id)).size).toBe(95);
+        const packs = new Set(STICKER_PACKS.map(p => p.id));
+        expect(STICKERS.every(s => packs.has(s.pack))).toBe(true);
+        // Ids go on the wire, so they must pass the relay's slug check.
+        expect(STICKERS.every(s => /^[a-z0-9-]{1,40}$/.test(s.id))).toBe(true);
+        expect(findSticker("pay-that-man")?.label).toBe("Pay that man his money");
         expect(findSticker("nope")).toBeUndefined();
+    });
+
+    it("splits long phrases over two ribbon lines at the middle space", () => {
+        expect(ribbonLines("SHIP IT")).toEqual(["SHIP IT"]);
+        expect(ribbonLines("SAY HELLO TO MY LITTLE FRIEND")).toEqual(["SAY HELLO TO MY", "LITTLE FRIEND"]);
     });
 });
 

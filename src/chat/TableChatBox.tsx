@@ -2,7 +2,7 @@ import React, { useCallback, useEffect, useRef, useState } from "react";
 import "./TableChatBox.css";
 import { useTableChat } from "./useTableChat";
 import { senderLabel, relativeTime } from "./chatFormat";
-import { STICKERS, findSticker } from "./stickers";
+import { STICKERS, STICKER_PACKS, findSticker } from "./stickers";
 import StickerArt from "./StickerArt";
 import { isMessageVisible, setPlayerMuted, updateChatSettings, useChatSettings } from "./chatSettings";
 
@@ -235,10 +235,15 @@ const TableChatBox: React.FC<TableChatBoxProps> = ({ seatedAddresses }) => {
                         <div className="b52-chat__quick" aria-label="Quick chat stickers">
                             <div className="b52-chat__quick-hint">{cooldown ? "One every 2 seconds…" : "Tap to pop it up above your seat"}</div>
                             <div className="b52-chat__quick-grid">
-                                {STICKERS.map(st => (
-                                    <button key={st.id} type="button" className="b52-chat__quick-btn" aria-label={st.label} title={st.label} onClick={() => onSticker(st.id)}>
-                                        <StickerArt sticker={st} size={62} />
-                                    </button>
+                                {STICKER_PACKS.map(pack => (
+                                    <React.Fragment key={pack.id}>
+                                        <div className="b52-chat__quick-pack">{pack.label}</div>
+                                        {STICKERS.filter(st => st.pack === pack.id).map(st => (
+                                            <button key={st.id} type="button" className="b52-chat__quick-btn" aria-label={st.label} title={st.label} onClick={() => onSticker(st.id)}>
+                                                <StickerArt sticker={st} size={62} />
+                                            </button>
+                                        ))}
+                                    </React.Fragment>
                                 ))}
                             </div>
                         </div>
