@@ -120,6 +120,12 @@ const TableChatBox: React.FC<TableChatBoxProps> = ({ seatedAddresses }) => {
             {open && (
                 <div className="b52-chat__panel" role="log" aria-label="Table chat">
                     <div className="b52-chat__header">
+                        <div className="b52-chat__title-row">
+                            <span className="b52-chat__title">Table chat</span>
+                            <button type="button" className="b52-chat__close" aria-label="Close chat" onClick={toggle}>
+                                ✕
+                            </button>
+                        </div>
                         <div className="b52-chat__tabs" role="tablist">
                             <button type="button" role="tab" aria-selected={view === "chat"} className={`b52-chat__tab${view === "chat" ? " is-active" : ""}`} onClick={() => setView("chat")}>
                                 Chat
@@ -131,9 +137,6 @@ const TableChatBox: React.FC<TableChatBoxProps> = ({ seatedAddresses }) => {
                                 ⚙
                             </button>
                         </div>
-                        <button type="button" className="b52-chat__close" aria-label="Close chat" onClick={toggle}>
-                            ✕
-                        </button>
                     </div>
 
                     {!settings.enabled && view !== "settings" && (
@@ -181,7 +184,7 @@ const TableChatBox: React.FC<TableChatBoxProps> = ({ seatedAddresses }) => {
                             {muteTarget && (
                                 <div className="b52-chat__confirm" role="alertdialog" aria-label="Mute player">
                                     <span>Mute {senderLabel(muteTarget, false)}?</span>
-                                    <button type="button" className="b52-chat__send" onClick={() => { setPlayerMuted(muteTarget, true); setMuteTarget(null); }}>
+                                    <button type="button" className="b52-chat__confirm-btn" onClick={() => { setPlayerMuted(muteTarget, true); setMuteTarget(null); }}>
                                         Mute
                                     </button>
                                     <button type="button" className="b52-chat__link" onClick={() => setMuteTarget(null)}>
@@ -221,8 +224,8 @@ const TableChatBox: React.FC<TableChatBoxProps> = ({ seatedAddresses }) => {
                                     rows={1}
                                     maxLength={300}
                                 />
-                                <button type="button" className="b52-chat__send" onClick={submit} disabled={!draft.trim()}>
-                                    Send
+                                <button type="button" className="b52-chat__send" aria-label="Send" onClick={submit} disabled={!draft.trim()}>
+                                    ➤
                                 </button>
                             </div>
                         </>
@@ -275,8 +278,9 @@ const TableChatBox: React.FC<TableChatBoxProps> = ({ seatedAddresses }) => {
                 </div>
             )}
 
-            <button type="button" className="b52-chat__fab" onClick={toggle} aria-label={open ? "Close chat" : "Open chat"}>
-                💬
+            <button type="button" className={`b52-chat__fab${open ? " is-open" : ""}`} onClick={toggle} aria-label={open ? "Close chat" : "Open chat"}>
+                <span aria-hidden="true">💬</span>
+                <span>Chat</span>
                 {!open && unread > 0 && <span className="b52-chat__badge">{unread > 9 ? "9+" : unread}</span>}
             </button>
         </div>
