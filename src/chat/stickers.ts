@@ -153,6 +153,17 @@ export const STICKERS: readonly StickerDef[] = [
     { id: "down-bad", label: "Down bad", emoji: "📉", from: "#ec4899", to: "#be185d", pack: "pop-culture" },
     { id: "task-failed", label: "Task failed successfully", emoji: "✅", from: "#ec4899", to: "#be185d", pack: "pop-culture" },
     { id: "over-9000", label: "It's over 9000!", emoji: "💯", from: "#ec4899", to: "#be185d", pack: "pop-culture" },
+    { id: "call-an-ambulance", label: "Call an ambulance", emoji: "🚑", from: "#ec4899", to: "#be185d", pack: "pop-culture" },
+    { id: "perfectly-balanced", label: "Perfectly balanced, as all things should be", emoji: "⚖️", from: "#ec4899", to: "#be185d", pack: "pop-culture" },
+    { id: "not-like-this", label: "Not like this", emoji: "😵", from: "#ec4899", to: "#be185d", pack: "pop-culture" },
+    { id: "absolute-cinema", label: "Absolute cinema", emoji: "🎬", from: "#ec4899", to: "#be185d", pack: "pop-culture" },
+    { id: "so-over", label: "It's so over", emoji: "🫠", from: "#ec4899", to: "#be185d", pack: "pop-culture" },
+    { id: "so-back", label: "We're so back", emoji: "🔙", from: "#ec4899", to: "#be185d", pack: "pop-culture" },
+    { id: "captain-now", label: "I'm the captain now", emoji: "🧑‍✈️", from: "#ec4899", to: "#be185d", pack: "pop-culture" },
+    { id: "free-real-estate", label: "Free real estate", emoji: "🏡", from: "#ec4899", to: "#be185d", pack: "pop-culture" },
+    { id: "visible-confusion", label: "Visible confusion", emoji: "😕", from: "#ec4899", to: "#be185d", pack: "pop-culture" },
+    { id: "npc-behaviour", label: "NPC behaviour", emoji: "🤖", from: "#ec4899", to: "#be185d", pack: "pop-culture" },
+    { id: "oh-no-anyway", label: "Oh no… anyway", emoji: "🙃", from: "#ec4899", to: "#be185d", pack: "pop-culture" },
 ];
 
 const BY_ID = new Map(STICKERS.map(s => [s.id, s]));
