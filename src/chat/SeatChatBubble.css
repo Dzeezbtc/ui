@@ -115,3 +115,8 @@
         }
     }
 }
+
+.b52-seat-bubble .b52-emote {
+    display: inline-block;
+    vertical-align: -0.3em;
+}

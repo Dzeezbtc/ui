@@ -5,6 +5,7 @@ import { useSeatChat } from "./useSeatChat";
 import { findSticker } from "./stickers";
 import StickerArt from "./StickerArt";
 import { registerSeat } from "./seatRegistry";
+import RichText from "./RichText";
 
 /**
  * The speech bubble above a seated player's avatar (block52-chat#3): their
@@ -59,7 +60,7 @@ export const SeatChatBubble: React.FC<{ address: string | undefined }> = ({ addr
                             aria-label={sticker ? `${sticker.label} sticker` : `Says: ${msg.text}`}
                             data-testid="seat-chat-bubble"
                         >
-                            {sticker ? <StickerArt sticker={sticker} size={76} /> : <span className="b52-seat-bubble__text">{msg.text}</span>}
+                            {sticker ? <StickerArt sticker={sticker} size={76} /> : <span className="b52-seat-bubble__text"><RichText text={msg.text} size={18} /></span>}
                         </div>
                     </div>,
                     document.body

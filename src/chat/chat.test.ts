@@ -151,23 +151,21 @@ describe("send limits", () => {
         registerLocalAddress("b521me");
     });
 
-    it("lets stickers go 5 a minute, 1.5s apart", () => {
+    it("lets stickers go 2 every 5 minutes, 2s apart", () => {
         expect(sendSticker("thanks", 0)).toBe(true);
-        expect(sendSticker("thanks", 1000)).toBe(false);
-        for (let i = 1; i <= 4; i++) expect(sendSticker("thanks", i * 1500)).toBe(true);
-        expect(sendSticker("thanks", 30_000)).toBe(false);
-        expect(sendSticker("thanks", 60_000)).toBe(true);
+        expect(sendSticker("thanks", 1000)).toBe(false); // too soon
+        expect(sendSticker("thanks", 2000)).toBe(true);
+        expect(sendSticker("thanks", 60_000)).toBe(false); // 2 used
+        expect(sendSticker("thanks", 300_000)).toBe(true);
     });
 
-    it("lets throws go 3 every 3 minutes, two in a row, max 2 at one player", () => {
+    it("lets throws go 3 every 10 minutes, at anyone", () => {
         expect(sendThrow("fish", "b521a", 0)).toBe(true);
         expect(sendThrow("fish", "b521a", 1000)).toBe(true);
-        expect(sendThrow("fish", "b521a", 2000)).toBe(false); // same target cap
-        expect(throwStatus("b521b", 2000)).toEqual({ waitMs: 0, remaining: 1 });
-        expect(sendThrow("chip", "b521b", 2000)).toBe(true);
-        expect(sendThrow("chip", "b521c", 3000)).toBe(false); // 3 used
-        expect(throwStatus("b521c", 3000).waitMs).toBe(177_000);
-        expect(sendThrow("chip", "b521c", 180_000)).toBe(true);
+        expect(sendThrow("fish", "b521a", 2000)).toBe(true); // same player is fine
+        expect(throwStatus(3000)).toEqual({ waitMs: 597_000, remaining: 0 });
+        expect(sendThrow("chip", "b521b", 3000)).toBe(false);
+        expect(sendThrow("chip", "b521b", 600_000)).toBe(true);
     });
 
     it("refuses a throw at yourself or an unknown item", () => {
@@ -184,5 +182,39 @@ describe("seat bubble ignores throws", () => {
             { ...base, id: "2", text: "Fish", throwId: "fish", to: "b521b" }
         ];
         expect(latestSeatMessage(msgs, "b521a", 1500)?.id).toBe("1");
+    });
+});
+
+describe("Chip Crew art (block52-chat#2)", () => {
+    // eslint-disable-next-line @typescript-eslint/no-var-requires
+    const { isKnownArt } = require("./art/Art");
+    // eslint-disable-next-line @typescript-eslint/no-var-requires
+    const { THROWABLES } = require("./throwables");
+    // eslint-disable-next-line @typescript-eslint/no-var-requires
+    const { EMOTES, parseEmotes } = require("./emotes");
+    // eslint-disable-next-line @typescript-eslint/no-var-requires
+    const { STICKERS } = require("./stickers");
+    const EMOJI = /\p{Extended_Pictographic}/u;
+
+    it("draws every sticker, throwable and emote from our own art", () => {
+        for (const s of STICKERS) expect([s.id, isKnownArt(s.icon)]).toEqual([s.id, true]);
+        for (const t of THROWABLES) expect([t.id, isKnownArt(t.art)]).toEqual([t.id, true]);
+        for (const e of EMOTES) expect([e.id, isKnownArt(e.art)]).toEqual([e.id, true]);
+    });
+
+    it("has no system emoji left in the manifests", () => {
+        for (const s of STICKERS) expect(EMOJI.test(JSON.stringify(s))).toBe(false);
+        for (const t of THROWABLES) expect(EMOJI.test(JSON.stringify(t))).toBe(false);
+    });
+
+    it("rejects unknown art", () => {
+        expect(isKnownArt("chippy:nope")).toBe(false);
+        expect(isKnownArt("rocket+nothing")).toBe(false);
+        expect(isKnownArt("chippy:sad+rain-cloud-top")).toBe(true);
+    });
+
+    it("turns :shortcodes: into emotes and leaves unknown ones as text", () => {
+        const parts = parseEmotes("gg :laugh: :nope: wp :fire:");
+        expect(parts.map((p: { text?: string; emote?: { id: string } }) => p.text ?? `[${p.emote?.id}]`)).toEqual(["gg ", "[laugh]", " :nope: wp ", "[fire]"]);
     });
 });

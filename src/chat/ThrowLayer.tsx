@@ -5,6 +5,7 @@ import { ChatMessage, subscribeChatMessages } from "./chatBus";
 import { isMessageVisible, useChatSettings } from "./chatSettings";
 import { findThrowable } from "./throwables";
 import { seatCentre } from "./seatRegistry";
+import ArtIcon from "./art/Art";
 
 /** Throws older than this when they arrive (a reconnect backlog) don't animate. */
 const MAX_AGE_MS = 3000;
@@ -13,7 +14,7 @@ const LINGER_MS = 1300;
 
 interface Flight {
     id: string;
-    emoji: string;
+    art: string;
     spin: boolean;
     from: { x: number; y: number };
     to: { x: number; y: number };
@@ -47,7 +48,7 @@ export const ThrowLayer: React.FC<{ seatedAddresses?: readonly string[] }> = ({ 
                     const from = seatCentre(m.from);
                     const to = seatCentre(m.to);
                     if (!from || !to) continue;
-                    const flight: Flight = { id: m.id, emoji: t.emoji, spin: t.spin, from, to };
+                    const flight: Flight = { id: m.id, art: t.art, spin: t.spin, from, to };
                     setFlights(f => [...f, flight]);
                     setTimeout(() => setFlights(f => f.filter(x => x.id !== flight.id)), FLIGHT_MS + LINGER_MS);
                 }
@@ -95,7 +96,7 @@ const ThrowItem: React.FC<{ flight: Flight }> = ({ flight }) => {
     }, [flight]);
     return (
         <div ref={ref} className="b52-throw-item" style={{ left: flight.from.x, top: flight.from.y }}>
-            {flight.emoji}
+            <ArtIcon spec={flight.art} size={48} />
         </div>
     );
 };

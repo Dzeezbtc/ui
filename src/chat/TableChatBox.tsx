@@ -7,11 +7,13 @@ import StickerArt from "./StickerArt";
 import { toggleFavourite, useFavourites } from "./favourites";
 import { isMessageVisible, setPlayerMuted, updateChatSettings, useChatSettings } from "./chatSettings";
 import { THROWABLES, findThrowable } from "./throwables";
-import { getLocalAddress, sendThrow, stickerWaitMs, throwStatus } from "./chatBus";
+import { getLocalAddress, sendThrow, stickersRemaining, stickerWaitMs, throwStatus } from "./chatBus";
+import { STICKER_RULE, THROW_RULE } from "./rateLimit";
 import { hasStrongLanguage } from "./strongLanguage";
 import ThrowLayer from "./ThrowLayer";
-
-const EMOJIS = ["😀", "😂", "😎", "😭", "😮", "🤔", "🔥", "👍", "👎", "🙏", "👀", "💪", "🎉", "🤑", "😤", "🫡", "♠️", "♥️", "♦️", "♣️", "🃏", "💰", "🍀", "🤝"];
+import ArtIcon from "./art/Art";
+import RichText from "./RichText";
+import { EMOTES } from "./emotes";
 
 const LS_OPEN = "b52.chat.open";
 const LS_DRAFT = "b52.chat.draft";
@@ -121,8 +123,8 @@ const TableChatBox: React.FC<TableChatBoxProps> = ({ seatedAddresses }) => {
         (id: string) => {
             if (!settings.enabled || !throwTarget) return;
             if (!sendThrow(id, throwTarget)) {
-                const { waitMs } = throwStatus(throwTarget);
-                setThrowHint(waitMs > 0 ? `Next throw at ${senderLabel(throwTarget, false)} in ${secs(waitMs)}` : "Can't throw that");
+                const { waitMs } = throwStatus();
+                setThrowHint(waitMs > 0 ? `Out of throws — next one in ${secs(waitMs)}` : "Can't throw that");
                 setTimeout(() => setThrowHint(null), 1800);
             }
         },
@@ -205,7 +207,7 @@ const TableChatBox: React.FC<TableChatBoxProps> = ({ seatedAddresses }) => {
                         <>
                             <div className="b52-chat__messages" ref={listRef}>
                                 {messages.length === 0 ? (
-                                    <div className="b52-chat__empty">Say hello 👋</div>
+                                    <div className="b52-chat__empty"><ArtIcon spec="chippy:happy" size={44} /><span>Say hello</span></div>
                                 ) : (
                                     messages.map(m => {
                                         const sticker = findSticker(m.sticker);
@@ -225,14 +227,14 @@ const TableChatBox: React.FC<TableChatBoxProps> = ({ seatedAddresses }) => {
                                                 </span>
                                                 {thrown ? (
                                                     <span className="b52-chat__text b52-chat__text--throw">
-                                                        {thrown.emoji} threw {/^[aeiou]/i.test(thrown.label) ? "an" : "a"} {thrown.label} at {senderLabel(m.to, m.to?.toLowerCase() === me)}
+                                                        <ArtIcon spec={thrown.art} size={18} className="b52-emote" /> threw {/^[aeiou]/i.test(thrown.label) ? "an" : "a"} {thrown.label} at {senderLabel(m.to, m.to?.toLowerCase() === me)}
                                                     </span>
                                                 ) : sticker ? (
                                                     <span className="b52-chat__sticker">
                                                         <StickerArt sticker={sticker} size={48} />
                                                     </span>
                                                 ) : (
-                                                    <span className="b52-chat__text">{m.text}</span>
+                                                    <span className="b52-chat__text"><RichText text={m.text} /></span>
                                                 )}
                                                 {strong && (
                                                     <span className="b52-chat__block-hint">
@@ -261,26 +263,28 @@ const TableChatBox: React.FC<TableChatBoxProps> = ({ seatedAddresses }) => {
                             )}
 
                             {showEmoji && (
-                                <div className="b52-chat__emoji" role="listbox" aria-label="Emojis">
-                                    {EMOJIS.map(e => (
+                                <div className="b52-chat__emoji" role="listbox" aria-label="Emotes">
+                                    {EMOTES.map(e => (
                                         <button
-                                            key={e}
+                                            key={e.id}
                                             type="button"
                                             className="b52-chat__emoji-btn"
+                                            title={e.label}
+                                            aria-label={e.label}
                                             onClick={() => {
-                                                onDraft(draft + e);
+                                                onDraft(`${draft}${draft && !draft.endsWith(" ") ? " " : ""}:${e.id}: `);
                                                 setShowEmoji(false);
                                             }}
                                         >
-                                            {e}
+                                            <ArtIcon spec={e.art} size={26} />
                                         </button>
                                     ))}
                                 </div>
                             )}
 
                             <div className="b52-chat__composer">
-                                <button type="button" className="b52-chat__emoji-toggle" aria-label="Emojis" onClick={() => setShowEmoji(s => !s)}>
-                                    😊
+                                <button type="button" className="b52-chat__emoji-toggle" aria-label="Emotes" onClick={() => setShowEmoji(s => !s)}>
+                                    <ArtIcon spec="chippy:happy" size={22} />
                                 </button>
                                 <textarea
                                     className="b52-chat__input"
@@ -300,7 +304,7 @@ const TableChatBox: React.FC<TableChatBoxProps> = ({ seatedAddresses }) => {
 
                     {settings.enabled && view === "quick" && (
                         <div className="b52-chat__quick" aria-label="Quick chat stickers">
-                            <div className="b52-chat__quick-hint">{cooldown ?? "Tap to pop it up above your seat"}</div>
+                            <div className="b52-chat__quick-hint">{cooldown ?? `Tap to pop it up above your seat · ${stickersRemaining()} of ${STICKER_RULE.max} left`}</div>
                             <div className="b52-chat__quick-grid">
                                 <div className="b52-chat__quick-pack b52-chat__quick-pack--fav">★ Favourites</div>
                                 {favourites.length === 0 ? (
@@ -321,7 +325,7 @@ const TableChatBox: React.FC<TableChatBoxProps> = ({ seatedAddresses }) => {
                     {settings.enabled && view === "throw" && (
                         <div className="b52-chat__throw" aria-label="Throw something">
                             <div className="b52-chat__quick-hint">
-                                {throwHint ?? (throwTarget ? `Pick something to throw · ${throwStatus(throwTarget).remaining} of 3 left` : "Who's it for?")}
+                                {throwHint ?? (throwTarget ? `Pick something to throw · ${throwStatus().remaining} of ${THROW_RULE.max} left` : "Who's it for?")}
                             </div>
                             {targets.length === 0 ? (
                                 <div className="b52-chat__quick-fav-empty">Nobody else is seated yet.</div>
@@ -337,7 +341,7 @@ const TableChatBox: React.FC<TableChatBoxProps> = ({ seatedAddresses }) => {
                             <div className="b52-chat__throw-grid">
                                 {THROWABLES.map(t => (
                                     <button key={t.id} type="button" className="b52-chat__throw-btn" disabled={!throwTarget} title={t.label} aria-label={`Throw ${t.label}`} onClick={() => onThrow(t.id)}>
-                                        <span className="b52-chat__throw-emoji" aria-hidden="true">{t.emoji}</span>
+                                        <ArtIcon spec={t.art} size={34} className="b52-chat__throw-emoji" />
                                         <span className="b52-chat__throw-label">{t.label}</span>
                                     </button>
                                 ))}
@@ -385,7 +389,7 @@ const TableChatBox: React.FC<TableChatBoxProps> = ({ seatedAddresses }) => {
             )}
 
             <button type="button" className={`b52-chat__fab${open ? " is-open" : ""}`} onClick={toggle} aria-label={open ? "Close chat" : "Open chat"}>
-                <span aria-hidden="true">💬</span>
+                <ArtIcon spec="chippy:happy" size={20} />
                 <span>Chat</span>
                 {!open && unread > 0 && <span className="b52-chat__badge">{unread > 9 ? "9+" : unread}</span>}
             </button>

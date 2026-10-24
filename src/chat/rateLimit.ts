@@ -1,7 +1,6 @@
 /**
- * Send limits for stickers and throwables (block52-chat#7). Tuned so a player
- * can fire off a quick pair, but nobody can keep it up long enough to make the
- * table want to switch the feature off.
+ * Send limits for stickers and throwables (block52-chat#7). Kept low on purpose
+ * so they stay fun and nobody wants to switch them off. Typed chat has no limit.
  */
 export interface RateRule {
     /** How many sends fit in the rolling window. */
@@ -12,12 +11,10 @@ export interface RateRule {
     minGapMs: number;
 }
 
-/** Stickers: 5 a minute, at least 1.5s apart. */
-export const STICKER_RULE: RateRule = { max: 5, windowMs: 60_000, minGapMs: 1500 };
-/** Throwables: 3 every 3 minutes, at least 1s apart (two in a row is fine). */
-export const THROW_RULE: RateRule = { max: 3, windowMs: 180_000, minGapMs: 1000 };
-/** Throwables at the same player: 2 every 3 minutes, so nobody gets pelted. */
-export const THROW_SAME_TARGET_RULE: RateRule = { max: 2, windowMs: 180_000, minGapMs: 0 };
+/** Stickers: 2 every 5 minutes, at least 2s apart. */
+export const STICKER_RULE: RateRule = { max: 2, windowMs: 5 * 60_000, minGapMs: 2000 };
+/** Throwables: 3 every 10 minutes, at least 1s apart (at anyone, in any order). */
+export const THROW_RULE: RateRule = { max: 3, windowMs: 10 * 60_000, minGapMs: 1000 };
 
 export class RateLimiter {
     private sent: number[] = [];

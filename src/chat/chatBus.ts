@@ -8,7 +8,7 @@
  * messages echo locally on send, so the chat box and the seat bubbles work
  * standalone before the ws-server relays chat to other players (#6).
  */
-import { RateLimiter, STICKER_RULE, THROW_RULE, THROW_SAME_TARGET_RULE } from "./rateLimit";
+import { RateLimiter, STICKER_RULE, THROW_RULE } from "./rateLimit";
 import { findSticker } from "./stickers";
 import { findThrowable } from "./throwables";
 
@@ -49,24 +49,20 @@ let sender: ((out: OutgoingChat) => void) | null = null;
 let localAddress: string | undefined;
 const stickerLimit = new RateLimiter(STICKER_RULE);
 const throwLimit = new RateLimiter(THROW_RULE);
-const throwTargetLimits = new Map<string, RateLimiter>();
-
-function targetLimit(to: string): RateLimiter {
-    const key = to.toLowerCase();
-    let l = throwTargetLimits.get(key);
-    if (!l) throwTargetLimits.set(key, (l = new RateLimiter(THROW_SAME_TARGET_RULE)));
-    return l;
-}
 
 /** Ms until we may send another sticker (0 = now). */
 export function stickerWaitMs(now: number = Date.now()): number {
     return stickerLimit.waitMs(now);
 }
 
-/** Ms until we may throw at `to` (0 = now), and throws left overall. */
-export function throwStatus(to: string | undefined, now: number = Date.now()): { waitMs: number; remaining: number } {
-    const wait = Math.max(throwLimit.waitMs(now), to ? targetLimit(to).waitMs(now) : 0);
-    return { waitMs: wait, remaining: throwLimit.remaining(now) };
+/** Ms until we may throw again (0 = now), and throws left in the window. */
+export function throwStatus(now: number = Date.now()): { waitMs: number; remaining: number } {
+    return { waitMs: throwLimit.waitMs(now), remaining: throwLimit.remaining(now) };
+}
+
+/** Stickers left in the current window. */
+export function stickersRemaining(now: number = Date.now()): number {
+    return stickerLimit.remaining(now);
 }
 let seq = 0;
 
@@ -142,9 +138,7 @@ export function sendSticker(id: string, now: number = Date.now()): boolean {
  */
 export function sendThrow(id: string, to: string, now: number = Date.now()): boolean {
     const t = findThrowable(id);
-    if (!t || !to || to.toLowerCase() === localAddress?.toLowerCase() || throwStatus(to, now).waitMs > 0) return false;
-    throwLimit.record(now);
-    targetLimit(to).record(now);
+    if (!t || !to || to.toLowerCase() === localAddress?.toLowerCase() || !throwLimit.tryTake(now)) return false;
     pushChatMessage({ from: localAddress, text: t.label, throwId: id, to, ts: now, mine: true });
     sender?.({ text: t.label, throwId: id, to });
     return true;
@@ -163,6 +157,5 @@ export function __resetChatForTests(): void {
     localAddress = undefined;
     stickerLimit.reset();
     throwLimit.reset();
-    throwTargetLimits.clear();
     listeners.clear();
 }
