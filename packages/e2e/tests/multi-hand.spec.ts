@@ -27,7 +27,7 @@ test("play two hands in a row via new-hand", async ({ page }) => {
 
   await test.step("open the seeded table", async () => {
     await page.goto(`/table/${CASH_GAME_ID}?autonewhand=false`);
-    await expect(page.getByText("Click to Join").first()).toBeVisible({ timeout: 15_000 });
+    await expect(page.getByRole("button", { name: /^Sit in seat / }).first()).toBeVisible({ timeout: 15_000 });
   });
 
   const SEAT = 5;

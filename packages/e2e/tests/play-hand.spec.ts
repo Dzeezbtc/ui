@@ -15,7 +15,7 @@ test("play a full hand solo vs. the stub bot, to showdown", async ({ page }) => 
 
   await test.step("open the seeded table", async () => {
     await page.goto(`/table/${CASH_GAME_ID}`);
-    await expect(page.getByText("Click to Join").first()).toBeVisible({ timeout: 15_000 });
+    await expect(page.getByRole("button", { name: /^Sit in seat / }).first()).toBeVisible({ timeout: 15_000 });
   });
 
   // Seat 5 is top-center and clear of the footer action panel (seats 1-2 sit
