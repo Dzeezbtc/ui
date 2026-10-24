@@ -1,4 +1,5 @@
 import { decomposeAmount, ChipStackEntry, parseCustomAmounts, chipColorClass } from "./chipBreakdown";
+import { CHIP_DENOMINATIONS, TOURNAMENT_CHIP_DENOMINATIONS } from "../constants/chips";
 
 /**
  * Helper: extract just the relevant fields for assertions.
@@ -90,18 +91,18 @@ describe("decomposeAmount", () => {
     // =====================================================================
     describe("exact single denomination", () => {
         it.each([
-            [1, "white", "marble/1chip.webp"],
-            [5, "red", "marble/5chip.webp"],
-            [25, "green", "marble/25chip.webp"],
-            [100, "black", "marble/100chip.webp"],
-            [500, "purple", "marble/500chip.webp"],
-            [1000, "yellow", "marble/1000chip.webp"],
-            [5000, "orange", "marble/5000chip.webp"],
-            [25000, "blue", "marble/25000chip.webp"],
-            [100000, "pink", "marble/100000chip.webp"],
-            [250000, "striped blue/orange", "marble/250000chip.webp"],
-            [1000000, "gold", "marble/1000000chip.webp"],
-            [5000000, "platinum", "marble/5000000chip.webp"],
+            [1, "white", "notched/cash/1chip.svg"],
+            [5, "red", "notched/cash/5chip.svg"],
+            [25, "green", "notched/cash/25chip.svg"],
+            [100, "black", "notched/cash/100chip.svg"],
+            [500, "purple", "notched/cash/500chip.svg"],
+            [1000, "yellow", "notched/cash/1000chip.svg"],
+            [5000, "orange", "notched/cash/5000chip.svg"],
+            [25000, "blue", "notched/cash/25000chip.svg"],
+            [100000, "pink", "notched/cash/100000chip.svg"],
+            [250000, "striped blue/orange", "notched/cash/250000chip.svg"],
+            [1000000, "gold", "notched/cash/1000000chip.svg"],
+            [5000000, "platinum", "notched/cash/5000000chip.svg"],
         ])("$%i → 1 %s chip (%s)", (amount, color, file) => {
             const result = decomposeAmount(amount);
             expect(result).toHaveLength(1);
@@ -536,16 +537,57 @@ describe("decomposeAmount", () => {
     });
 
     // =====================================================================
+    // TOURNAMENT SET (ui#842): point chips, no currency, no fractional chips
+    // =====================================================================
+    describe("tournament chip set", () => {
+        const t = (amount: number) => decomposeAmount(amount, TOURNAMENT_CHIP_DENOMINATIONS);
+
+        it("has the twelve point chips 1 … 5M, largest first, with the dollar chips' colours", () => {
+            expect(TOURNAMENT_CHIP_DENOMINATIONS.map(d => d.value)).toEqual([
+                5000000, 1000000, 250000, 100000, 25000, 5000, 1000, 500, 100, 25, 5, 1
+            ]);
+            for (const d of TOURNAMENT_CHIP_DENOMINATIONS) {
+                const cash = CHIP_DENOMINATIONS.find(c => c.value === d.value)!;
+                expect(d.color).toBe(cash.color);
+                expect(d.file).toBe(cash.file.replace("notched/cash/", "notched/tournament/"));
+            }
+        });
+
+        it("makes exact change for an arbitrary bet from the tournament folder", () => {
+            const result = t(65);
+            expect(result.map(s => [s.value, s.count])).toEqual([[25, 2], [5, 3]]);
+            expect(result.every(s => s.file.startsWith("notched/tournament/"))).toBe(true);
+        });
+
+        it("never uses a cent chip", () => {
+            for (const amount of [0, 1, 7, 31, 1500, 20000, 5000000]) {
+                expect(t(amount).every(s => s.file.startsWith("notched/tournament/") && s.value >= 1)).toBe(true);
+            }
+        });
+
+        it("falls back to a single 1 chip for zero", () => {
+            const [only, ...rest] = t(0);
+            expect(rest).toHaveLength(0);
+            expect(only.value).toBe(1);
+            expect(only.file).toBe("notched/tournament/1chip.svg");
+        });
+
+        it("cash amounts still default to the cash set", () => {
+            expect(decomposeAmount(0.25)[0].file).toBe("notched/cash/25cent.svg");
+        });
+    });
+
+    // =====================================================================
     // FILE REFERENCES (ensure correct image mapping)
     // =====================================================================
     describe("chip image file mapping", () => {
-        it("all results reference valid marble chip image files", () => {
+        it("all results reference valid notched cash chip image files", () => {
             const validFiles = [
-                "marble/1chip.webp", "marble/5chip.webp", "marble/25chip.webp", "marble/100chip.webp",
-                "marble/500chip.webp", "marble/1000chip.webp", "marble/5000chip.webp",
-                "marble/25000chip.webp", "marble/100000chip.webp", "marble/250000chip.webp",
-                "marble/1000000chip.webp", "marble/5000000chip.webp",
-                "marble/1cent.webp", "marble/5cent.webp", "marble/10cent.webp", "marble/25cent.webp", "marble/50cent.webp",
+                "notched/cash/1chip.svg", "notched/cash/5chip.svg", "notched/cash/25chip.svg", "notched/cash/100chip.svg",
+                "notched/cash/500chip.svg", "notched/cash/1000chip.svg", "notched/cash/5000chip.svg",
+                "notched/cash/25000chip.svg", "notched/cash/100000chip.svg", "notched/cash/250000chip.svg",
+                "notched/cash/1000000chip.svg", "notched/cash/5000000chip.svg",
+                "notched/cash/1cent.svg", "notched/cash/5cent.svg", "notched/cash/10cent.svg", "notched/cash/25cent.svg", "notched/cash/50cent.svg",
             ];
 
             // Test a range of amounts

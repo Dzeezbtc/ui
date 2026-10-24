@@ -2,7 +2,10 @@
  * Poker chip denominations and their associated chip images.
  *
  * Each entry maps a dollar value threshold to the chip image file.
- * Images are the marble set on the cards CDN (chips/marble/*.webp, rendered in Blender; see ui#776).
+ * Images are the notched set on the cards CDN (ui#842): flat vector chips with the
+ * value as outlines, readable at table size. Two sets:
+ *   - cash (chips/notched/cash/*.svg): real USDC, $ on dollars and ¢ on cents;
+ *   - tournament (chips/notched/tournament/*.svg): points, no currency.
  * Sorted descending so the first match ≥ threshold wins.
  * The $1 chip also covers any amount less than $1.
  *
@@ -27,29 +30,40 @@ export interface ChipDenomination {
     color: string;
 }
 
+/** Cash games: real USDC, so the chips carry $ and ¢. Values are in dollars. */
 export const CHIP_DENOMINATIONS: ChipDenomination[] = [
-    { value: 5000000, file: "marble/5000000chip.webp", color: "platinum" },
-    { value: 1000000, file: "marble/1000000chip.webp", color: "gold" },
-    { value: 250000, file: "marble/250000chip.webp", color: "striped blue/orange" },
-    { value: 100000, file: "marble/100000chip.webp", color: "pink" },
-    { value: 25000,  file: "marble/25000chip.webp",  color: "blue" },
-    { value: 5000,   file: "marble/5000chip.webp",   color: "orange" },
-    { value: 1000,   file: "marble/1000chip.webp",   color: "yellow" },
-    { value: 500,    file: "marble/500chip.webp",     color: "purple" },
-    { value: 100,    file: "marble/100chip.webp",     color: "black" },
-    { value: 25,     file: "marble/25chip.webp",      color: "green" },
-    { value: 5,      file: "marble/5chip.webp",       color: "red" },
-    { value: 1,      file: "marble/1chip.webp",       color: "white" },
+    { value: 5000000, file: "notched/cash/5000000chip.svg", color: "platinum" },
+    { value: 1000000, file: "notched/cash/1000000chip.svg", color: "gold" },
+    { value: 250000, file: "notched/cash/250000chip.svg", color: "striped blue/orange" },
+    { value: 100000, file: "notched/cash/100000chip.svg", color: "pink" },
+    { value: 25000,  file: "notched/cash/25000chip.svg",  color: "blue" },
+    { value: 5000,   file: "notched/cash/5000chip.svg",   color: "orange" },
+    { value: 1000,   file: "notched/cash/1000chip.svg",   color: "yellow" },
+    { value: 500,    file: "notched/cash/500chip.svg",     color: "purple" },
+    { value: 100,    file: "notched/cash/100chip.svg",     color: "black" },
+    { value: 25,     file: "notched/cash/25chip.svg",      color: "green" },
+    { value: 5,      file: "notched/cash/5chip.svg",       color: "red" },
+    { value: 1,      file: "notched/cash/1chip.svg",       color: "white" },
     // Cent denominations (values in dollars)
-    { value: 0.5,    file: "marble/50cent.webp",      color: "purple" },
-    { value: 0.25,   file: "marble/25cent.webp",      color: "green" },
-    { value: 0.1,    file: "marble/10cent.webp",      color: "yellow" },
-    { value: 0.05,   file: "marble/5cent.webp",       color: "blue" },
-    { value: 0.01,   file: "marble/1cent.webp",       color: "red" },
+    { value: 0.5,    file: "notched/cash/50cent.svg",      color: "purple" },
+    { value: 0.25,   file: "notched/cash/25cent.svg",      color: "green" },
+    { value: 0.1,    file: "notched/cash/10cent.svg",      color: "yellow" },
+    { value: 0.05,   file: "notched/cash/5cent.svg",       color: "blue" },
+    { value: 0.01,   file: "notched/cash/1cent.svg",       color: "red" },
 ];
 
+/**
+ * Sit & Go / tournaments: point chips with no currency mark (ui#842). Same colours
+ * as the dollar chips (green = 25 in both). No fractional chips; 1/5/25/100…
+ * make exact change for any whole-number bet. Values are in chips.
+ */
+export const TOURNAMENT_CHIP_DENOMINATIONS: ChipDenomination[] = CHIP_DENOMINATIONS.filter(d => d.value >= 1).map(d => ({
+    ...d,
+    file: d.file.replace("notched/cash/", "notched/tournament/")
+}));
+
 /** Fallback chip used for amounts < $1 */
-export const DEFAULT_CHIP_FILE = "marble/1chip.webp";
+export const DEFAULT_CHIP_FILE = "notched/cash/1chip.svg";
 
 /** Maximum number of action groups (side-by-side chip placements) to display */
 export const MAX_ACTION_GROUPS = 5;
