@@ -58,6 +58,7 @@ const SettingsTab: React.FC = () => {
         preSelectCheck,
         winCelebration,
         potAsChips,
+        marbleChips,
         toggleTurnNotificationSound,
         togglePlayerActionSounds,
         toggleAutoMuck,
@@ -65,7 +66,8 @@ const SettingsTab: React.FC = () => {
         toggleSitInOptions,
         togglePreSelectCheck,
         toggleWinCelebration,
-        togglePotAsChips
+        togglePotAsChips,
+        toggleMarbleChips
     } = useGameSettings();
 
     return (
@@ -93,6 +95,12 @@ const SettingsTab: React.FC = () => {
                 description="Show the pot as a chip stack with the amount, like the bets in front of players. When off, it shows as plain text."
                 checked={potAsChips}
                 onToggle={togglePotAsChips}
+            />
+            <ToggleRow
+                label="Marble Chips"
+                description="Show photoreal marble chips. When off, chips are flat and sharp, easiest to read at small sizes. Cash games show $ and ¢; tournaments show plain point values."
+                checked={marbleChips}
+                onToggle={toggleMarbleChips}
             />
             <ToggleRow
                 label="Auto Muck"
