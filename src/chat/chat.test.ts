@@ -12,8 +12,8 @@ beforeEach(() => {
 
 describe("stickers (block52-chat#2)", () => {
     it("has the classics plus set v2 (#16), unique slug ids, each in a known pack", () => {
-        expect(STICKERS).toHaveLength(95);
-        expect(new Set(STICKERS.map(s => s.id)).size).toBe(95);
+        expect(STICKERS).toHaveLength(105);
+        expect(new Set(STICKERS.map(s => s.id)).size).toBe(105);
         const packs = new Set(STICKER_PACKS.map(p => p.id));
         expect(STICKERS.every(s => packs.has(s.pack))).toBe(true);
         // Ids go on the wire, so they must pass the relay's slug check.

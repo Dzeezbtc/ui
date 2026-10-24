@@ -141,8 +141,18 @@ export const STICKERS: readonly StickerDef[] = [
     { id: "head-out", label: "Ight, imma head out", emoji: "🚪", from: "#ec4899", to: "#be185d", pack: "pop-culture" },
     { id: "let-him-cook", label: "Let him cook", emoji: "👨‍🍳", from: "#ec4899", to: "#be185d", pack: "pop-culture" },
     { id: "emotional-damage", label: "Emotional damage", emoji: "💔", from: "#ec4899", to: "#be185d", pack: "pop-culture" },
-    { id: "sheesh", label: "Sheesh", emoji: "🥶", from: "#ec4899", to: "#be185d", pack: "pop-culture" },
     { id: "chicken-dinner", label: "Winner winner chicken dinner", emoji: "🍗", from: "#ec4899", to: "#be185d", pack: "pop-culture" },
+    { id: "luck-box", label: "Luck box", emoji: "🍀", from: "#ec4899", to: "#be185d", pack: "pop-culture" },
+    { id: "skill-issue", label: "Skill issue", emoji: "🎮", from: "#ec4899", to: "#be185d", pack: "pop-culture" },
+    { id: "caught-in-4k", label: "Caught in 4K", emoji: "📸", from: "#ec4899", to: "#be185d", pack: "pop-culture" },
+    { id: "copium", label: "Copium", emoji: "🫁", from: "#ec4899", to: "#be185d", pack: "pop-culture" },
+    { id: "touch-grass", label: "Touch grass", emoji: "🌱", from: "#ec4899", to: "#be185d", pack: "pop-culture" },
+    { id: "mission-failed", label: "Mission failed, we'll get 'em next time", emoji: "🎖️", from: "#ec4899", to: "#be185d", pack: "pop-culture" },
+    { id: "built-different", label: "Built different", emoji: "🏗️", from: "#ec4899", to: "#be185d", pack: "pop-culture" },
+    { id: "rent-free", label: "Living rent free", emoji: "🏠", from: "#ec4899", to: "#be185d", pack: "pop-culture" },
+    { id: "down-bad", label: "Down bad", emoji: "📉", from: "#ec4899", to: "#be185d", pack: "pop-culture" },
+    { id: "task-failed", label: "Task failed successfully", emoji: "✅", from: "#ec4899", to: "#be185d", pack: "pop-culture" },
+    { id: "over-9000", label: "It's over 9000!", emoji: "💯", from: "#ec4899", to: "#be185d", pack: "pop-culture" },
 ];
 
 const BY_ID = new Map(STICKERS.map(s => [s.id, s]));
