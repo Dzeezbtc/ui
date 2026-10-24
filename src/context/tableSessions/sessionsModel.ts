@@ -37,6 +37,7 @@ export type SessionsAction =
     | { type: "OPEN"; id: string; name?: string }
     | { type: "CLOSE"; id: string }
     | { type: "SET_ACTIVE"; id: string }
+    | { type: "MOVE"; id: string; toIndex: number }
     | { type: "REPORT"; id: string; status: TableStatus }
     | { type: "HYDRATE"; openTables: OpenTable[]; activeId: string | null };
 
@@ -72,6 +73,17 @@ export function sessionsReducer(state: SessionsState, action: SessionsAction): S
         case "SET_ACTIVE": {
             // Only focus a table that is actually open.
             return has(state.openTables, action.id) ? { ...state, activeId: action.id } : state;
+        }
+        case "MOVE": {
+            // Drag-to-reorder in the pill bar: move a table to a new position.
+            const from = state.openTables.findIndex(t => t.id === action.id);
+            if (from < 0) return state;
+            const to = Math.max(0, Math.min(state.openTables.length - 1, Math.trunc(action.toIndex)));
+            if (to === from) return state;
+            const openTables = [...state.openTables];
+            const [moved] = openTables.splice(from, 1);
+            openTables.splice(to, 0, moved);
+            return { ...state, openTables };
         }
         case "REPORT": {
             // Ignore reports for tables that aren't open (a torn-down table in flight).

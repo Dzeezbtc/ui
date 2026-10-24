@@ -7,8 +7,9 @@ import Table from "../playPage/Table";
 import { TableStatusReporter } from "./TableStatusReporter";
 import { TablePillBar } from "./TablePillBar";
 import { MultiTablePicker } from "./MultiTablePicker";
-import { useTableSessions } from "../../context/tableSessions/TableSessionsContext";
+import { TableSessionsProvider, useTableSessions } from "../../context/tableSessions/TableSessionsContext";
 import type { OpenTable } from "../../context/tableSessions/sessionsModel";
+import { TableHeaderSlotProvider } from "../../context/TableHeaderSlotContext";
 
 /**
  * Multi-tabling workspace (block52/ui#55, PR 2).
@@ -35,10 +36,12 @@ import type { OpenTable } from "../../context/tableSessions/sessionsModel";
 export const MultiTableWorkspace: React.FC = () => {
     const { id: routeId } = useParams<{ id: string }>();
     const navigate = useNavigate();
-    const { openTables, activeId, statusById, canOpenMore, openTable, closeTable, setActive } = useTableSessions();
+    const { openTables, activeId, statusById, canOpenMore, openTable, closeTable, setActive, moveTable } = useTableSessions();
     const [pickerOpen, setPickerOpen] = useState(false);
 
-    // Seed the route's table id as the active session, once per route id. The
+    // Seed the route's table id as the active session, once per route id (the
+    // first route id is already seeded in the provider's initial state; this
+    // covers later in-app navigations to another /table/:id). The
     // sessions actions are dispatch wrappers whose identity changes on every
     // state update, so we deliberately key this on the route id alone and guard
     // with a ref — re-seeding on every status report would steal focus back.
@@ -64,6 +67,7 @@ export const MultiTableWorkspace: React.FC = () => {
 
     const handleSelect = useCallback((id: string) => setActive(id), [setActive]);
     const handleClose = useCallback((id: string) => closeTable(id), [closeTable]);
+    const handleReorder = useCallback((id: string, toIndex: number) => moveTable(id, toIndex), [moveTable]);
     const handlePick = useCallback(
         (id: string, name?: string) => {
             openTable(id, name);
@@ -88,32 +92,34 @@ export const MultiTableWorkspace: React.FC = () => {
 
     const isMulti = effectiveTables.length > 1;
 
+    // The pill bar (or, with one table, a compact "+ Table") goes into the ACTIVE
+    // table's header via the header slot — in the sub-header row on desktop, its
+    // own slim row on phones — so it never floats over header controls.
+    const headerControls = isMulti ? (
+        <TablePillBar
+            openTables={openTables}
+            activeId={activeId}
+            statusById={statusById}
+            canOpenMore={canOpenMore}
+            onSelect={handleSelect}
+            onClose={handleClose}
+            onAddTable={() => setPickerOpen(true)}
+            onReorder={handleReorder}
+        />
+    ) : (
+        <button
+            type="button"
+            className="b52-mt-add"
+            onClick={() => setPickerOpen(true)}
+            title="Open another table"
+            aria-label="Open another table"
+        >
+            + Table
+        </button>
+    );
+
     return (
         <>
-            {isMulti ? (
-                <div className="b52-mt-bar-fixed">
-                    <TablePillBar
-                        openTables={openTables}
-                        activeId={activeId}
-                        statusById={statusById}
-                        canOpenMore={canOpenMore}
-                        onSelect={handleSelect}
-                        onClose={handleClose}
-                        onAddTable={() => setPickerOpen(true)}
-                    />
-                </div>
-            ) : (
-                <button
-                    type="button"
-                    className="b52-mt-add"
-                    onClick={() => setPickerOpen(true)}
-                    title="Open another table"
-                    aria-label="Open another table"
-                >
-                    + Table
-                </button>
-            )}
-
             {effectiveTables.map(t => {
                 const isActive = t.id === effectiveActiveId;
                 return (
@@ -126,12 +132,14 @@ export const MultiTableWorkspace: React.FC = () => {
                         data-testid={`multitable-slot-${t.id}`}
                         data-active={isActive}
                     >
-                        <GameStateProvider>
-                            <ActionSubmitProvider>
-                                <TableStatusReporter tableId={t.id} />
-                                <Table tableId={t.id} />
-                            </ActionSubmitProvider>
-                        </GameStateProvider>
+                        <TableHeaderSlotProvider value={isActive ? headerControls : null}>
+                            <GameStateProvider>
+                                <ActionSubmitProvider>
+                                    <TableStatusReporter tableId={t.id} />
+                                    <Table tableId={t.id} />
+                                </ActionSubmitProvider>
+                            </GameStateProvider>
+                        </TableHeaderSlotProvider>
                     </div>
                 );
             })}
@@ -147,4 +155,18 @@ export const MultiTableWorkspace: React.FC = () => {
     );
 };
 
-export default MultiTableWorkspace;
+/**
+ * The /table/:id route element: the sessions provider seeded with the route's
+ * table id (so a deep link opens that table, not the persisted active one),
+ * wrapping the workspace.
+ */
+export const MultiTableRoute: React.FC = () => {
+    const { id } = useParams<{ id: string }>();
+    return (
+        <TableSessionsProvider initialActiveId={id}>
+            <MultiTableWorkspace />
+        </TableSessionsProvider>
+    );
+};
+
+export default MultiTableRoute;

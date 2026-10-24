@@ -15,7 +15,7 @@ import Dashboard from "./pages/Dashboard";
 // Multi-tabling workspace (ui#55): the /table/:id route now renders a workspace
 // that can keep several tables live at once, each in its own GameStateProvider.
 // It statically imports Table, so Table ships in this lazy chunk.
-const MultiTableWorkspace = lazy(() => import("./components/MultiTable/MultiTableWorkspace"));
+const MultiTableRoute = lazy(() => import("./components/MultiTable/MultiTableWorkspace"));
 const CosmosWalletPage = lazy(() => import("./components/CosmosWalletPage"));
 const BlocksPage = lazy(() => import("./pages/explorer/BlocksPage"));
 const BlockDetailPage = lazy(() => import("./pages/explorer/BlockDetailPage"));
@@ -53,7 +53,6 @@ import { PaymentApiProvider } from "./context/PaymentApiContext";
 import { CosmosApiProvider } from "./context/CosmosApiContext";
 import { IndexerApiProvider } from "./context/IndexerApiContext";
 import { ActionSubmitProvider } from "./context/ActionSubmitContext";
-import { TableSessionsProvider } from "./context/tableSessions/TableSessionsContext";
 
 const queryClient = new QueryClient();
 
@@ -125,14 +124,7 @@ function AppContent() {
             <Suspense fallback={<RouteFallback />}>
             <Routes>
                 <Route path="/test-sdk" element={<TestSdk />} />
-                <Route
-                    path="/table/:id"
-                    element={
-                        <TableSessionsProvider>
-                            <MultiTableWorkspace />
-                        </TableSessionsProvider>
-                    }
-                />
+                <Route path="/table/:id" element={<MultiTableRoute />} />
                 <Route path="/table/admin" element={<TableAdminPage />} /> {/* Legacy - keep for backwards compat */}
                 <Route path="/wallet" element={<CosmosWalletPage />} />
                 {/* User-facing routes */}

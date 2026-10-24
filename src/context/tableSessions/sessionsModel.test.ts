@@ -121,4 +121,27 @@ describe("sessionsReducer — HYDRATE", () => {
         expect(s.openTables).toHaveLength(MAX_OPEN_TABLES);
         expect(s.activeId).toBe("0x0");
     });
+
+    describe("MOVE", () => {
+        const ids = (st: SessionsState) => st.openTables.map(t => t.id);
+        const three = ["a", "b", "c"].reduce((st, id) => sessionsReducer(st, { type: "OPEN", id }), emptySessions);
+
+        it("moves a table forward and back, keeping the active table", () => {
+            expect(ids(sessionsReducer(three, { type: "MOVE", id: "a", toIndex: 2 }))).toEqual(["b", "c", "a"]);
+            const back = sessionsReducer(three, { type: "MOVE", id: "c", toIndex: 0 });
+            expect(ids(back)).toEqual(["c", "a", "b"]);
+            expect(back.activeId).toBe("c");
+        });
+
+        it("swaps two tables", () => {
+            const two = sessionsReducer(sessionsReducer(emptySessions, { type: "OPEN", id: "x" }), { type: "OPEN", id: "y" });
+            expect(ids(sessionsReducer(two, { type: "MOVE", id: "x", toIndex: 1 }))).toEqual(["y", "x"]);
+        });
+
+        it("clamps the index and ignores unknown or no-op moves", () => {
+            expect(ids(sessionsReducer(three, { type: "MOVE", id: "a", toIndex: 99 }))).toEqual(["b", "c", "a"]);
+            expect(sessionsReducer(three, { type: "MOVE", id: "zzz", toIndex: 0 })).toBe(three);
+            expect(sessionsReducer(three, { type: "MOVE", id: "b", toIndex: 1 })).toBe(three);
+        });
+    });
 });
