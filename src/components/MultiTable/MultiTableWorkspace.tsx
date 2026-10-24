@@ -5,10 +5,11 @@ import { GameStateProvider } from "../../context/GameStateContext";
 import { ActionSubmitProvider } from "../../context/ActionSubmitContext";
 import Table from "../playPage/Table";
 import { TableStatusReporter } from "./TableStatusReporter";
-import { TablePillBar } from "./TablePillBar";
+import { TablePillBar, dockIndexAt } from "./TablePillBar";
+import { TableBubble, clampToViewport } from "./TableBubble";
 import { MultiTablePicker } from "./MultiTablePicker";
 import { TableSessionsProvider, useTableSessions } from "../../context/tableSessions/TableSessionsContext";
-import type { OpenTable } from "../../context/tableSessions/sessionsModel";
+import { dockedTables, floatingTables, type OpenTable } from "../../context/tableSessions/sessionsModel";
 import { TableHeaderSlotProvider } from "../../context/TableHeaderSlotContext";
 import { TableIdProvider } from "../../context/TableIdContext";
 
@@ -37,7 +38,8 @@ import { TableIdProvider } from "../../context/TableIdContext";
 export const MultiTableWorkspace: React.FC = () => {
     const { id: routeId } = useParams<{ id: string }>();
     const navigate = useNavigate();
-    const { openTables, activeId, statusById, canOpenMore, openTable, closeTable, setActive, moveTable } = useTableSessions();
+    const { openTables, activeId, statusById, canOpenMore, openTable, closeTable, setActive, moveTable, floatTable, dockTable } =
+        useTableSessions();
     const [pickerOpen, setPickerOpen] = useState(false);
 
     // Seed the route's table id as the active session, once per route id (the
@@ -69,6 +71,31 @@ export const MultiTableWorkspace: React.FC = () => {
     const handleSelect = useCallback((id: string) => setActive(id), [setActive]);
     const handleClose = useCallback((id: string) => closeTable(id), [closeTable]);
     const handleReorder = useCallback((id: string, toIndex: number) => moveTable(id, toIndex), [moveTable]);
+
+    // Floating bubbles (ui#887). Positions are stored as viewport fractions, so
+    // they are re-projected (and clamped on screen) whenever the window resizes.
+    const [viewport, setViewport] = useState(() => ({ width: window.innerWidth, height: window.innerHeight }));
+    useEffect(() => {
+        const onResize = () => setViewport({ width: window.innerWidth, height: window.innerHeight });
+        window.addEventListener("resize", onResize);
+        return () => window.removeEventListener("resize", onResize);
+    }, []);
+    const floatAt = useCallback(
+        (id: string, clientX: number, clientY: number) => {
+            const { x, y } = clampToViewport(clientX, clientY, window.innerWidth, window.innerHeight);
+            floatTable(id, { x: x / window.innerWidth, y: y / window.innerHeight });
+        },
+        [floatTable]
+    );
+    // A bubble released over the header bar docks back as a pill; anywhere else it moves.
+    const handleBubbleDrop = useCallback(
+        (id: string, clientX: number, clientY: number) => {
+            const index = dockIndexAt(clientX, clientY);
+            if (index === null) floatAt(id, clientX, clientY);
+            else dockTable(id, index);
+        },
+        [floatAt, dockTable]
+    );
     const handlePick = useCallback(
         (id: string, name?: string) => {
             openTable(id, name);
@@ -98,7 +125,7 @@ export const MultiTableWorkspace: React.FC = () => {
     // own slim row on phones — so it never floats over header controls.
     const headerControls = isMulti ? (
         <TablePillBar
-            openTables={openTables}
+            openTables={dockedTables(openTables)}
             activeId={activeId}
             statusById={statusById}
             canOpenMore={canOpenMore}
@@ -106,6 +133,8 @@ export const MultiTableWorkspace: React.FC = () => {
             onClose={handleClose}
             onAddTable={() => setPickerOpen(true)}
             onReorder={handleReorder}
+            onFloat={floatAt}
+            showWhenEmpty
         />
     ) : (
         <button
@@ -146,6 +175,30 @@ export const MultiTableWorkspace: React.FC = () => {
                     </div>
                 );
             })}
+
+            {/* Tables pulled out of the header (ui#887) — only meaningful with 2+ open. */}
+            {isMulti &&
+                floatingTables(openTables).map(t => {
+                    const pos = clampToViewport(
+                        (t.bubble?.x ?? 0.5) * viewport.width,
+                        (t.bubble?.y ?? 0.5) * viewport.height,
+                        viewport.width,
+                        viewport.height
+                    );
+                    return (
+                        <TableBubble
+                            key={`bubble-${t.id}`}
+                            id={t.id}
+                            name={t.name}
+                            status={statusById[t.id]}
+                            isActive={t.id === activeId}
+                            x={pos.x}
+                            y={pos.y}
+                            onSelect={handleSelect}
+                            onDrop={handleBubbleDrop}
+                        />
+                    );
+                })}
 
             {pickerOpen && (
                 <MultiTablePicker

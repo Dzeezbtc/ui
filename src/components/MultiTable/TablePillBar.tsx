@@ -1,6 +1,8 @@
 import React, { useCallback, useEffect, useRef, useState } from "react";
+import { createPortal } from "react-dom";
 import "./MultiTable.css";
 import { TablePill } from "./TablePill";
+import { TableBubble } from "./TableBubble";
 import { MAX_OPEN_TABLES, OpenTable, TableStatus } from "../../context/tableSessions/sessionsModel";
 
 /**
@@ -13,6 +15,10 @@ import { MAX_OPEN_TABLES, OpenTable, TableStatus } from "../../context/tableSess
  * pointer moves a few pixels; on touch the pill must be held first, so a quick
  * swipe still scrolls the strip. While dragging, the pill follows the pointer and
  * the others slide aside to show where it will land; releasing calls `onReorder`.
+ *
+ * Dragging a pill DOWN out of the bar (ui#887) pulls it out as a floating
+ * bubble: once the pointer is {@link PULL_OUT_PX} below the bar the pill
+ * follows it freely, and releasing there calls `onFloat` with the drop point.
  */
 export interface TablePillBarProps {
     openTables: OpenTable[];
@@ -24,6 +30,13 @@ export interface TablePillBarProps {
     onAddTable: () => void;
     /** Move table `id` to position `toIndex` (drag or Alt+←/→). */
     onReorder?: (id: string, toIndex: number) => void;
+    /** Pull table `id` out of the bar as a bubble centred at the drop point (ui#887). */
+    onFloat?: (id: string, clientX: number, clientY: number) => void;
+    /**
+     * Keep the bar (just the "+") on screen with no pills, so a bubble can be
+     * docked back into it. Default false: no pills, no bar.
+     */
+    showWhenEmpty?: boolean;
 }
 
 /** Pixels the mouse must travel before a press becomes a drag (a smaller move is a click). */
@@ -32,6 +45,34 @@ export const DRAG_START_PX = 5;
 export const TOUCH_HOLD_MS = 250;
 /** Touch movement that cancels a pending hold (the user is scrolling the strip). */
 const TOUCH_SLOP_PX = 8;
+/** How far below the bar the pointer must go before a dragged pill pulls out as a bubble (ui#887). */
+export const PULL_OUT_PX = 28;
+/** Slack around the bar that still counts as "over the bar" when docking a bubble. */
+const DOCK_SLOP_PX = 14;
+
+/** Class of the bar element, used to find it when docking a bubble. */
+export const PILL_BAR_CLASS = "b52-pill-bar";
+
+/**
+ * Where a bubble dropped at (clientX, clientY) would dock: the pill index it
+ * lands at, or null when the point is not over the header pill bar (ui#887).
+ */
+export const dockIndexAt = (clientX: number, clientY: number, root: ParentNode = document): number | null => {
+    const bar = root.querySelector<HTMLElement>(`.${PILL_BAR_CLASS}`);
+    if (!bar) return null;
+    const r = bar.getBoundingClientRect();
+    const inside =
+        clientX >= r.left - DOCK_SLOP_PX &&
+        clientX <= r.right + DOCK_SLOP_PX &&
+        clientY >= r.top - DOCK_SLOP_PX &&
+        clientY <= r.bottom + DOCK_SLOP_PX;
+    if (!inside) return null;
+    const centers = [...bar.querySelectorAll<HTMLElement>(".b52-table-pill")].map(el => {
+        const b = el.getBoundingClientRect();
+        return b.left + b.width / 2;
+    });
+    return centers.filter(c => c < clientX).length;
+};
 
 /**
  * Where a dragged pill lands: the number of OTHER pills whose centre is left of
@@ -55,6 +96,11 @@ interface DragSession {
     from: number;
     pointerId: number;
     startX: number;
+    startY: number;
+    /** Bottom edge of the bar when the drag began; below it (+ PULL_OUT_PX) the pill pulls out. */
+    barBottom: number;
+    /** The pointer has left the bar downwards: releasing floats the pill. */
+    pulling: boolean;
     isTouch: boolean;
     /** Touch: true once the hold timer fired. Mouse/pen: always true. */
     armed: boolean;
@@ -69,6 +115,12 @@ interface DragView {
     from: number;
     to: number;
     dx: number;
+    /** Vertical offset; non-zero only while pulling out (ui#887). */
+    dy: number;
+    pulling: boolean;
+    /** Pointer position, for the bubble preview while pulling out. */
+    px: number;
+    py: number;
     step: number;
 }
 
@@ -80,8 +132,11 @@ export const TablePillBar: React.FC<TablePillBarProps> = ({
     onSelect,
     onClose,
     onAddTable,
-    onReorder
+    onReorder,
+    onFloat,
+    showWhenEmpty = false
 }) => {
+    const barRef = useRef<HTMLDivElement | null>(null);
     const pillRefs = useRef(new Map<string, HTMLDivElement>());
     const sessionRef = useRef<DragSession | null>(null);
     const suppressClickRef = useRef(false);
@@ -120,14 +175,15 @@ export const TablePillBar: React.FC<TablePillBarProps> = ({
         (session: DragSession) => {
             session.dragging = true;
             measure(session);
-            setDrag({ id: session.id, from: session.from, to: session.from, dx: 0, step: session.step });
+            setDrag({ id: session.id, from: session.from, to: session.from, dx: 0, dy: 0, pulling: false, px: session.startX, py: session.startY, step: session.step });
         },
         [measure]
     );
 
     const handlePointerDown = useCallback(
         (id: string, index: number) => (e: React.PointerEvent<HTMLDivElement>) => {
-            if (!onReorder || openTables.length < 2) return;
+            // Reordering needs two pills; pulling out (ui#887) works with one.
+            if (!(onReorder && openTables.length >= 2) && !onFloat) return;
             if (e.pointerType === "mouse" && e.button !== 0) return;
             stopListening();
 
@@ -136,6 +192,9 @@ export const TablePillBar: React.FC<TablePillBarProps> = ({
                 from: index,
                 pointerId: e.pointerId,
                 startX: e.clientX,
+                startY: e.clientY,
+                barBottom: barRef.current?.getBoundingClientRect().bottom ?? e.clientY,
+                pulling: false,
                 isTouch: e.pointerType === "touch",
                 armed: e.pointerType !== "touch",
                 dragging: false,
@@ -154,25 +213,42 @@ export const TablePillBar: React.FC<TablePillBarProps> = ({
             const move = (ev: PointerEvent) => {
                 if (ev.pointerId !== session.pointerId) return;
                 const dx = ev.clientX - session.startX;
+                const dy = ev.clientY - session.startY;
                 if (!session.armed) {
                     // Touch moved before the hold completed — it's a scroll, not a drag.
-                    if (Math.abs(dx) > TOUCH_SLOP_PX) stopListening();
+                    if (Math.abs(dx) > TOUCH_SLOP_PX || Math.abs(dy) > TOUCH_SLOP_PX) stopListening();
                     return;
                 }
                 if (!session.dragging) {
-                    if (Math.abs(dx) < DRAG_START_PX) return;
+                    if (Math.abs(dx) < DRAG_START_PX && Math.abs(dy) < DRAG_START_PX) return;
                     startDrag(session);
                 }
                 ev.preventDefault();
+                // Pulled down out of the bar: the pill follows the pointer freely and
+                // the others stay put (ui#887). Back up into the bar: reorder again.
+                session.pulling = !!onFloat && ev.clientY > session.barBottom + PULL_OUT_PX;
+                if (session.pulling) {
+                    setDrag({ id: session.id, from: session.from, to: session.from, dx, dy, pulling: true, px: ev.clientX, py: ev.clientY, step: session.step });
+                    return;
+                }
+                if (!onReorder) {
+                    setDrag({ id: session.id, from: session.from, to: session.from, dx: 0, dy: 0, pulling: false, px: ev.clientX, py: ev.clientY, step: session.step });
+                    return;
+                }
                 const to = dropIndexFor(session.centers, session.from, dx);
-                setDrag({ id: session.id, from: session.from, to, dx, step: session.step });
+                setDrag({ id: session.id, from: session.from, to, dx, dy: 0, pulling: false, px: ev.clientX, py: ev.clientY, step: session.step });
             };
             const end = (ev: PointerEvent) => {
                 if (ev.pointerId !== session.pointerId) return;
                 if (session.dragging) {
                     const dx = ev.clientX - session.startX;
-                    const to = ev.type === "pointercancel" ? session.from : dropIndexFor(session.centers, session.from, dx);
-                    if (to !== session.from) onReorder(session.id, to);
+                    const cancelled = ev.type === "pointercancel";
+                    if (!cancelled && session.pulling && onFloat) {
+                        onFloat(session.id, ev.clientX, ev.clientY);
+                    } else if (onReorder) {
+                        const to = cancelled ? session.from : dropIndexFor(session.centers, session.from, dx);
+                        if (to !== session.from) onReorder(session.id, to);
+                    }
                     // The release also fires a click on the pill — don't treat a drop as a select.
                     suppressClickRef.current = true;
                     setTimeout(() => {
@@ -193,7 +269,7 @@ export const TablePillBar: React.FC<TablePillBarProps> = ({
             window.addEventListener("pointercancel", end);
             window.addEventListener("touchmove", touch, { passive: false });
         },
-        [onReorder, openTables.length, startDrag, stopListening]
+        [onReorder, onFloat, openTables.length, startDrag, stopListening]
     );
 
     const handleSelect = useCallback(
@@ -204,13 +280,21 @@ export const TablePillBar: React.FC<TablePillBarProps> = ({
         [onSelect]
     );
 
-    if (openTables.length === 0) return null;
+    if (openTables.length === 0 && !showWhenEmpty) return null;
 
     return (
-        <div role="tablist" aria-label="Open tables" className="b52-pill-bar flex items-center gap-1.5 overflow-x-auto">
+        <div
+            ref={barRef}
+            role="tablist"
+            aria-label="Open tables"
+            className={`${PILL_BAR_CLASS} flex items-center gap-1.5 overflow-x-auto`}
+        >
             {openTables.map((t, index) => {
                 const isDragging = drag?.id === t.id;
                 const offset = drag ? (isDragging ? drag.dx : shiftFor(index, drag.from, drag.to, drag.step)) : 0;
+                // While pulling out, the pill stays put (faded) and a bubble preview
+                // follows the pointer — the header row would clip a moving pill.
+                const pullingThis = isDragging && !!drag?.pulling;
                 return (
                     <TablePill
                         key={t.id}
@@ -226,9 +310,10 @@ export const TablePillBar: React.FC<TablePillBarProps> = ({
                         style={
                             drag
                                 ? {
-                                      transform: `translateX(${offset}px)`,
+                                      transform: `translateX(${pullingThis ? 0 : offset}px)`,
                                       transition: isDragging ? "none" : "transform 150ms ease",
-                                      zIndex: isDragging ? 2 : undefined
+                                      zIndex: isDragging ? 2 : undefined,
+                                      opacity: pullingThis ? 0.35 : undefined
                                   }
                                 : undefined
                         }
@@ -246,6 +331,19 @@ export const TablePillBar: React.FC<TablePillBarProps> = ({
                     />
                 );
             })}
+
+            {drag?.pulling &&
+                createPortal(
+                    <TableBubble
+                        ghost
+                        id={drag.id}
+                        status={statusById[drag.id]}
+                        isActive={drag.id === activeId}
+                        x={drag.px}
+                        y={drag.py}
+                    />,
+                    document.body
+                )}
 
             <button
                 type="button"
