@@ -5,7 +5,7 @@ import { senderLabel, relativeTime } from "./chatFormat";
 import { STICKERS, STICKER_PACKS, findSticker } from "./stickers";
 import StickerArt from "./StickerArt";
 import { toggleFavourite, useFavourites } from "./favourites";
-import { isMessageVisible, setPlayerMuted, updateChatSettings, useChatSettings } from "./chatSettings";
+import { isMessageVisible, setPlayerMuted, STICKER_STYLES, StickerStyle, updateChatSettings, useChatSettings } from "./chatSettings";
 import { THROWABLES, findThrowable } from "./throwables";
 import { getLocalAddress, sendThrow, stickersRemaining, stickerWaitMs, throwStatus } from "./chatBus";
 import { STICKER_RULE, THROW_RULE } from "./rateLimit";
@@ -150,7 +150,7 @@ const TableChatBox: React.FC<TableChatBoxProps> = ({ seatedAddresses }) => {
         return (
             <div key={`${section}-${id}`} className="b52-chat__quick-cell">
                 <button type="button" className="b52-chat__quick-btn" aria-label={st.label} title={st.label} onClick={() => onSticker(st.id)}>
-                    <StickerArt sticker={st} size={62} />
+                    <StickerArt sticker={st} size={76} />
                 </button>
                 <button
                     type="button"
@@ -231,7 +231,7 @@ const TableChatBox: React.FC<TableChatBoxProps> = ({ seatedAddresses }) => {
                                                     </span>
                                                 ) : sticker ? (
                                                     <span className="b52-chat__sticker">
-                                                        <StickerArt sticker={sticker} size={48} />
+                                                        <StickerArt sticker={sticker} size={56} />
                                                     </span>
                                                 ) : (
                                                     <span className="b52-chat__text"><RichText text={m.text} /></span>
@@ -363,6 +363,16 @@ const TableChatBox: React.FC<TableChatBoxProps> = ({ seatedAddresses }) => {
                             <label className="b52-chat__setting">
                                 <span>Mute spectators</span>
                                 <input type="checkbox" role="switch" checked={settings.muteSpectators} disabled={!settings.enabled} onChange={e => updateChatSettings({ muteSpectators: e.target.checked })} />
+                            </label>
+                            <label className="b52-chat__setting">
+                                <span>Sticker style</span>
+                                <select className="b52-chat__select" value={settings.stickerStyle} onChange={e => updateChatSettings({ stickerStyle: e.target.value as StickerStyle })}>
+                                    {STICKER_STYLES.map(s => (
+                                        <option key={s.id} value={s.id}>
+                                            {s.label}
+                                        </option>
+                                    ))}
+                                </select>
                             </label>
                             <label className="b52-chat__setting">
                                 <span>Show throwables</span>

@@ -2,12 +2,23 @@ import { useEffect, useMemo, useState } from "react";
 import { ChatMessage, subscribeChatMessages } from "./chatBus";
 import { isMessageVisible, useChatSettings } from "./chatSettings";
 
-/** How long a seat bubble stays up. */
-export const SEAT_BUBBLE_MS = 4000;
+/** A sticker stays up 5s: notice it, read the caption, get the joke — with a hand on. */
+export const STICKER_BUBBLE_MS = 5000;
+/** Typed messages: 3s plus reading time (~60ms a character), at most 7s. */
+const TEXT_MIN_MS = 3000;
+const TEXT_PER_CHAR_MS = 60;
+/** The longest any bubble stays up. */
+export const SEAT_BUBBLE_MS = 7000;
+
+/** How long this message's bubble stays up. */
+export function bubbleMs(m: Pick<ChatMessage, "sticker" | "text">): number {
+    if (m.sticker) return STICKER_BUBBLE_MS;
+    return Math.min(SEAT_BUBBLE_MS, TEXT_MIN_MS + m.text.length * TEXT_PER_CHAR_MS);
+}
 
 /**
- * The newest message a seated player sent in the last {@link SEAT_BUBBLE_MS},
- * for their speech bubble above the seat (block52-chat#3) — or null. A newer
+ * The newest message a seated player sent, while its bubble is still up
+ * ({@link bubbleMs}), for their speech bubble above the seat (block52-chat#3) — or null. A newer
  * message replaces the bubble, so a seat never stacks bubbles. Respects the
  * chat settings (chat off, bubbles off, muted player).
  */
@@ -22,7 +33,7 @@ export function latestSeatMessage(
         const m = messages[i];
         if (now - m.ts > SEAT_BUBBLE_MS) return null;
         if (m.throwId) continue; // throws fly between seats (ThrowLayer), no bubble
-        if (m.from?.toLowerCase() === a) return m;
+        if (m.from?.toLowerCase() === a) return now - m.ts <= bubbleMs(m) ? m : null;
     }
     return null;
 }
@@ -39,7 +50,7 @@ export function useSeatChat(address: string | undefined): ChatMessage | null {
     // Re-check when the current bubble is due to expire.
     useEffect(() => {
         if (!latest) return;
-        const t = setTimeout(() => setNow(Date.now()), Math.max(0, latest.ts + SEAT_BUBBLE_MS - Date.now()) + 20);
+        const t = setTimeout(() => setNow(Date.now()), Math.max(0, latest.ts + bubbleMs(latest) - Date.now()) + 20);
         return () => clearTimeout(t);
     }, [latest]);
 

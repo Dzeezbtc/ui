@@ -415,7 +415,8 @@
     min-height: 0;
     overflow-y: auto;
     display: grid;
-    grid-template-columns: repeat(4, 1fr);
+    /* 3 across at 76px: the same size the sticker pops up above the seat. */
+    grid-template-columns: repeat(3, 1fr);
     gap: 4px;
     align-content: start;
     scrollbar-width: thin;
@@ -748,4 +749,19 @@
     display: flex;
     align-items: center;
     justify-content: center;
+}
+
+/* Sticker style picker (block52-chat#2) */
+.b52-chat__select {
+    font: inherit;
+    font-size: 12px;
+    color: inherit;
+    background: rgba(0, 0, 0, 0.35);
+    border: 1px solid rgba(255, 255, 255, 0.18);
+    border-radius: 8px;
+    padding: 3px 8px;
+}
+
+.b52-chat__select option {
+    color: #111;
 }

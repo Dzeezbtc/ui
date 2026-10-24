@@ -4,7 +4,7 @@ export type { TableChatBoxProps } from "./TableChatBox";
 export { default as SeatChatBubble } from "./SeatChatBubble";
 export { default as StickerArt } from "./StickerArt";
 export { useTableChat } from "./useTableChat";
-export { useSeatChat, latestSeatMessage, SEAT_BUBBLE_MS } from "./useSeatChat";
+export { useSeatChat, latestSeatMessage, bubbleMs, SEAT_BUBBLE_MS, STICKER_BUBBLE_MS } from "./useSeatChat";
 export {
     pushChatMessage,
     registerChatSender,

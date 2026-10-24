@@ -60,7 +60,7 @@ export const SeatChatBubble: React.FC<{ address: string | undefined }> = ({ addr
                             aria-label={sticker ? `${sticker.label} sticker` : `Says: ${msg.text}`}
                             data-testid="seat-chat-bubble"
                         >
-                            {sticker ? <StickerArt sticker={sticker} size={76} /> : <span className="b52-seat-bubble__text"><RichText text={msg.text} size={18} /></span>}
+                            {sticker ? <StickerArt sticker={sticker} size={96} /> : <span className="b52-seat-bubble__text"><RichText text={msg.text} size={18} /></span>}
                         </div>
                     </div>,
                     document.body

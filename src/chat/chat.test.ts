@@ -2,7 +2,7 @@ import { __resetChatForTests, getChatMessages, pushChatMessage, registerChatSend
 import { STICKERS, STICKER_PACKS, findSticker } from "./stickers";
 import { ribbonLines } from "./StickerArt";
 import { __resetChatSettingsForTests, getChatSettings, isMessageVisible, setPlayerMuted, updateChatSettings } from "./chatSettings";
-import { latestSeatMessage, SEAT_BUBBLE_MS } from "./useSeatChat";
+import { bubbleMs, latestSeatMessage, SEAT_BUBBLE_MS, STICKER_BUBBLE_MS } from "./useSeatChat";
 import { __resetFavouritesForTests, getFavourites, isFavourite, toggleFavourite } from "./favourites";
 
 beforeEach(() => {
@@ -101,9 +101,18 @@ describe("seat bubble (block52-chat#3)", () => {
 
     it("expires after the bubble time, and is null for unknown seats", () => {
         const list = [msg("b521a", 1000)];
-        expect(latestSeatMessage(list, "b521a", 1000 + SEAT_BUBBLE_MS + 1)).toBeNull();
+        expect(latestSeatMessage(list, "b521a", 1000 + bubbleMs(list[0]) + 1)).toBeNull();
+        expect(latestSeatMessage(list, "b521a", 1000 + bubbleMs(list[0]))?.text).toBe("hi");
         expect(latestSeatMessage(list, undefined, 1000)).toBeNull();
         expect(latestSeatMessage(list, "b521z", 1000)).toBeNull();
+    });
+});
+
+describe("bubble time", () => {
+    it("gives stickers 5s and typed text 3-7s by length", () => {
+        expect(bubbleMs({ sticker: "ship-it", text: "Ship it" })).toBe(STICKER_BUBBLE_MS);
+        expect(bubbleMs({ text: "gg" })).toBe(3120);
+        expect(bubbleMs({ text: "x".repeat(300) })).toBe(SEAT_BUBBLE_MS);
     });
 });
 
@@ -216,5 +225,37 @@ describe("Chip Crew art (block52-chat#2)", () => {
     it("turns :shortcodes: into emotes and leaves unknown ones as text", () => {
         const parts = parseEmotes("gg :laugh: :nope: wp :fire:");
         expect(parts.map((p: { text?: string; emote?: { id: string } }) => p.text ?? `[${p.emote?.id}]`)).toEqual(["gg ", "[laugh]", " :nope: wp ", "[fire]"]);
+    });
+});
+
+describe("meme sticker styles (block52-chat#2)", () => {
+    // eslint-disable-next-line @typescript-eslint/no-var-requires
+    const React = require("react");
+    // eslint-disable-next-line @typescript-eslint/no-var-requires
+    const { renderToStaticMarkup } = require("react-dom/server");
+    // eslint-disable-next-line @typescript-eslint/no-var-requires
+    const { MemeSticker } = require("./memes/MemeSticker");
+    // eslint-disable-next-line @typescript-eslint/no-var-requires
+    const { MEME_SPECS } = require("./memes/specs");
+    // eslint-disable-next-line @typescript-eslint/no-var-requires
+    const { isKnownArt } = require("./art/Art");
+    // eslint-disable-next-line @typescript-eslint/no-var-requires
+    const { STICKERS } = require("./stickers");
+
+    it("has a plan for every sticker, using only real art", () => {
+        for (const s of STICKERS) {
+            const spec = MEME_SPECS[s.id];
+            expect([s.id, !!spec]).toEqual([s.id, true]);
+            for (const art of [spec.prop, spec.side, spec.above, spec.hat].filter(Boolean)) expect([s.id, art, isKnownArt(art)]).toEqual([s.id, art, true]);
+        }
+    });
+
+    it.each(["wojak", "rage", "hose", "sticks"])("draws all stickers in the %s style", style => {
+        for (const s of STICKERS) {
+            const html = renderToStaticMarkup(React.createElement(MemeSticker, { sticker: s, style, size: 76 }));
+            expect(html).toContain("<svg");
+            expect(html).toContain("<text");
+            expect((html.match(/<(path|ellipse|circle)/g) ?? []).length).toBeGreaterThanOrEqual(5);
+        }
     });
 });
