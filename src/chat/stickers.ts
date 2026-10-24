@@ -171,6 +171,7 @@ export const STICKERS: readonly StickerDef[] = [
     { id: "took-it-personally", label: "And I took that personally", emoji: "😠", from: "#ec4899", to: "#be185d", pack: "pop-culture" },
     { id: "delulu", label: "Delulu", emoji: "🦄", from: "#ec4899", to: "#be185d", pack: "pop-culture" },
     { id: "main-character", label: "Main character energy", emoji: "🎬", from: "#ec4899", to: "#be185d", pack: "pop-culture" },
+    { id: "thought-main-character", label: "Bro thought he was the main character", emoji: "🤡", from: "#ec4899", to: "#be185d", pack: "pop-culture" },
     { id: "this-is-a-wendys", label: "Sir, this is a Wendy's", emoji: "🍔", from: "#ec4899", to: "#be185d", pack: "pop-culture" },
     { id: "kinda-sus", label: "Kinda sus", emoji: "🕵️", from: "#ec4899", to: "#be185d", pack: "pop-culture" },
 ];
