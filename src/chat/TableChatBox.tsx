@@ -6,6 +6,10 @@ import { STICKERS, STICKER_PACKS, findSticker } from "./stickers";
 import StickerArt from "./StickerArt";
 import { toggleFavourite, useFavourites } from "./favourites";
 import { isMessageVisible, setPlayerMuted, updateChatSettings, useChatSettings } from "./chatSettings";
+import { THROWABLES, findThrowable } from "./throwables";
+import { getLocalAddress, sendThrow, stickerWaitMs, throwStatus } from "./chatBus";
+import { hasStrongLanguage } from "./strongLanguage";
+import ThrowLayer from "./ThrowLayer";
 
 const EMOJIS = ["😀", "😂", "😎", "😭", "😮", "🤔", "🔥", "👍", "👎", "🙏", "👀", "💪", "🎉", "🤑", "😤", "🫡", "♠️", "♥️", "♦️", "♣️", "🃏", "💰", "🍀", "🤝"];
 
@@ -27,7 +31,9 @@ function writeLS(key: string, value: string): void {
     }
 }
 
-type ChatView = "chat" | "quick" | "settings";
+type ChatView = "chat" | "quick" | "throw" | "settings";
+
+const secs = (ms: number) => (ms >= 60_000 ? `${Math.ceil(ms / 60_000)}m` : `${Math.ceil(ms / 1000)}s`);
 
 export interface TableChatBoxProps {
     /** Addresses seated at the table, for "mute spectators" (block52-chat#5). */
@@ -38,7 +44,7 @@ export interface TableChatBoxProps {
  * Table chat box (block52-chat#1). A collapsible panel in the corner of the table
  * with three views: the chat log + composer, Quick chat (one-tap stickers that
  * pop up above your seat, #2/#3), and Settings (chat on/off, seat bubbles,
- * mute spectators, muted players, #5). Rides the game WebSocket (see chatBus);
+ * mute spectators, blocked players, #5/#13), plus Throw (#7). Rides the game WebSocket (see chatBus);
  * own messages echo locally so it works for a demo before the relay (#6).
  */
 const TableChatBox: React.FC<TableChatBoxProps> = ({ seatedAddresses }) => {
@@ -46,8 +52,12 @@ const TableChatBox: React.FC<TableChatBoxProps> = ({ seatedAddresses }) => {
     const settings = useChatSettings();
     const favourites = useFavourites();
     const [view, setView] = useState<ChatView>("chat");
-    const [cooldown, setCooldown] = useState(false);
-    const [muteTarget, setMuteTarget] = useState<string | null>(null);
+    const [cooldown, setCooldown] = useState<string | null>(null);
+    const [blockTarget, setBlockTarget] = useState<string | null>(null);
+    const [throwTarget, setThrowTarget] = useState<string | null>(null);
+    const [throwHint, setThrowHint] = useState<string | null>(null);
+    const me = getLocalAddress()?.toLowerCase();
+    const targets = (seatedAddresses ?? []).filter(a => a && a.toLowerCase() !== me && !settings.muted.includes(a.toLowerCase()));
     const messages = allMessages.filter(m => isMessageVisible(m, settings, seatedAddresses));
     const [open, setOpen] = useState<boolean>(() => readLS(LS_OPEN, "false") === "true");
     const [draft, setDraft] = useState<string>(() => readLS(LS_DRAFT, ""));
@@ -99,12 +109,24 @@ const TableChatBox: React.FC<TableChatBoxProps> = ({ seatedAddresses }) => {
         (id: string) => {
             if (!settings.enabled) return;
             if (!sendSticker(id)) {
-                // Inside the cooldown: show it briefly instead of silently ignoring the tap.
-                setCooldown(true);
-                setTimeout(() => setCooldown(false), 900);
+                // Over the limit: say when the next one is allowed instead of silently ignoring the tap.
+                setCooldown(`Easy! Next sticker in ${secs(stickerWaitMs())}`);
+                setTimeout(() => setCooldown(null), 1500);
             }
         },
         [sendSticker, settings.enabled]
+    );
+
+    const onThrow = useCallback(
+        (id: string) => {
+            if (!settings.enabled || !throwTarget) return;
+            if (!sendThrow(id, throwTarget)) {
+                const { waitMs } = throwStatus(throwTarget);
+                setThrowHint(waitMs > 0 ? `Next throw at ${senderLabel(throwTarget, false)} in ${secs(waitMs)}` : "Can't throw that");
+                setTimeout(() => setThrowHint(null), 1800);
+            }
+        },
+        [settings.enabled, throwTarget]
     );
 
     const onKeyDown = useCallback(
@@ -144,6 +166,7 @@ const TableChatBox: React.FC<TableChatBoxProps> = ({ seatedAddresses }) => {
 
     return (
         <div className="b52-chat">
+            {settings.enabled && <ThrowLayer seatedAddresses={seatedAddresses} />}
             {open && (
                 <div className="b52-chat__panel" role="log" aria-label="Table chat">
                     <div className="b52-chat__header">
@@ -159,6 +182,9 @@ const TableChatBox: React.FC<TableChatBoxProps> = ({ seatedAddresses }) => {
                             </button>
                             <button type="button" role="tab" aria-selected={view === "quick"} className={`b52-chat__tab${view === "quick" ? " is-active" : ""}`} onClick={() => setView("quick")}>
                                 Quick chat
+                            </button>
+                            <button type="button" role="tab" aria-selected={view === "throw"} className={`b52-chat__tab${view === "throw" ? " is-active" : ""}`} onClick={() => setView("throw")}>
+                                Throw
                             </button>
                             <button type="button" role="tab" aria-selected={view === "settings"} aria-label="Chat settings" className={`b52-chat__tab b52-chat__tab--icon${view === "settings" ? " is-active" : ""}`} onClick={() => setView("settings")}>
                                 ⚙
@@ -183,24 +209,38 @@ const TableChatBox: React.FC<TableChatBoxProps> = ({ seatedAddresses }) => {
                                 ) : (
                                     messages.map(m => {
                                         const sticker = findSticker(m.sticker);
+                                        const thrown = findThrowable(m.throwId);
+                                        const strong = !m.mine && !!m.from && !sticker && !thrown && hasStrongLanguage(m.text);
                                         return (
                                             <div key={m.id} className={`b52-chat__msg${m.mine ? " b52-chat__msg--mine" : ""}`}>
                                                 <span className="b52-chat__meta">
                                                     {m.mine || !m.from ? (
                                                         <span className="b52-chat__from">{senderLabel(m.from, m.mine)}</span>
                                                     ) : (
-                                                        <button type="button" className="b52-chat__from b52-chat__from--btn" title="Mute this player" onClick={() => setMuteTarget(m.from ?? null)}>
+                                                        <button type="button" className="b52-chat__from b52-chat__from--btn" title="Block this player" onClick={() => setBlockTarget(m.from ?? null)}>
                                                             {senderLabel(m.from, m.mine)}
                                                         </button>
                                                     )}
                                                     <span className="b52-chat__time">{relativeTime(m.ts)}</span>
                                                 </span>
-                                                {sticker ? (
+                                                {thrown ? (
+                                                    <span className="b52-chat__text b52-chat__text--throw">
+                                                        {thrown.emoji} threw {/^[aeiou]/i.test(thrown.label) ? "an" : "a"} {thrown.label} at {senderLabel(m.to, m.to?.toLowerCase() === me)}
+                                                    </span>
+                                                ) : sticker ? (
                                                     <span className="b52-chat__sticker">
                                                         <StickerArt sticker={sticker} size={48} />
                                                     </span>
                                                 ) : (
                                                     <span className="b52-chat__text">{m.text}</span>
+                                                )}
+                                                {strong && (
+                                                    <span className="b52-chat__block-hint">
+                                                        Don't want to see this?{" "}
+                                                        <button type="button" className="b52-chat__link" onClick={() => setBlockTarget(m.from ?? null)}>
+                                                            Block {senderLabel(m.from, false)}
+                                                        </button>
+                                                    </span>
                                                 )}
                                             </div>
                                         );
@@ -208,13 +248,13 @@ const TableChatBox: React.FC<TableChatBoxProps> = ({ seatedAddresses }) => {
                                 )}
                             </div>
 
-                            {muteTarget && (
-                                <div className="b52-chat__confirm" role="alertdialog" aria-label="Mute player">
-                                    <span>Mute {senderLabel(muteTarget, false)}?</span>
-                                    <button type="button" className="b52-chat__confirm-btn" onClick={() => { setPlayerMuted(muteTarget, true); setMuteTarget(null); }}>
-                                        Mute
+                            {blockTarget && (
+                                <div className="b52-chat__confirm" role="alertdialog" aria-label="Block player">
+                                    <span>Block {senderLabel(blockTarget, false)}? You won't see their chat, stickers or throws.</span>
+                                    <button type="button" className="b52-chat__confirm-btn" onClick={() => { setPlayerMuted(blockTarget, true); setBlockTarget(null); }}>
+                                        Block
                                     </button>
-                                    <button type="button" className="b52-chat__link" onClick={() => setMuteTarget(null)}>
+                                    <button type="button" className="b52-chat__link" onClick={() => setBlockTarget(null)}>
                                         Cancel
                                     </button>
                                 </div>
@@ -260,7 +300,7 @@ const TableChatBox: React.FC<TableChatBoxProps> = ({ seatedAddresses }) => {
 
                     {settings.enabled && view === "quick" && (
                         <div className="b52-chat__quick" aria-label="Quick chat stickers">
-                            <div className="b52-chat__quick-hint">{cooldown ? "One every 2 seconds…" : "Tap to pop it up above your seat"}</div>
+                            <div className="b52-chat__quick-hint">{cooldown ?? "Tap to pop it up above your seat"}</div>
                             <div className="b52-chat__quick-grid">
                                 <div className="b52-chat__quick-pack b52-chat__quick-pack--fav">★ Favourites</div>
                                 {favourites.length === 0 ? (
@@ -278,6 +318,34 @@ const TableChatBox: React.FC<TableChatBoxProps> = ({ seatedAddresses }) => {
                         </div>
                     )}
 
+                    {settings.enabled && view === "throw" && (
+                        <div className="b52-chat__throw" aria-label="Throw something">
+                            <div className="b52-chat__quick-hint">
+                                {throwHint ?? (throwTarget ? `Pick something to throw · ${throwStatus(throwTarget).remaining} of 3 left` : "Who's it for?")}
+                            </div>
+                            {targets.length === 0 ? (
+                                <div className="b52-chat__quick-fav-empty">Nobody else is seated yet.</div>
+                            ) : (
+                                <div className="b52-chat__targets" role="radiogroup" aria-label="Throw at">
+                                    {targets.map(a => (
+                                        <button key={a} type="button" role="radio" aria-checked={throwTarget === a} className={`b52-chat__target${throwTarget === a ? " is-active" : ""}`} onClick={() => setThrowTarget(a)}>
+                                            {senderLabel(a, false)}
+                                        </button>
+                                    ))}
+                                </div>
+                            )}
+                            <div className="b52-chat__throw-grid">
+                                {THROWABLES.map(t => (
+                                    <button key={t.id} type="button" className="b52-chat__throw-btn" disabled={!throwTarget} title={t.label} aria-label={`Throw ${t.label}`} onClick={() => onThrow(t.id)}>
+                                        <span className="b52-chat__throw-emoji" aria-hidden="true">{t.emoji}</span>
+                                        <span className="b52-chat__throw-label">{t.label}</span>
+                                    </button>
+                                ))}
+                            </div>
+                            {!settings.throwables && <div className="b52-chat__quick-fav-empty">Throwables are hidden for you (Settings) — others still see yours.</div>}
+                        </div>
+                    )}
+
                     {view === "settings" && (
                         <div className="b52-chat__settings">
                             <label className="b52-chat__setting">
@@ -292,16 +360,20 @@ const TableChatBox: React.FC<TableChatBoxProps> = ({ seatedAddresses }) => {
                                 <span>Mute spectators</span>
                                 <input type="checkbox" role="switch" checked={settings.muteSpectators} disabled={!settings.enabled} onChange={e => updateChatSettings({ muteSpectators: e.target.checked })} />
                             </label>
+                            <label className="b52-chat__setting">
+                                <span>Show throwables</span>
+                                <input type="checkbox" role="switch" checked={settings.throwables} disabled={!settings.enabled} onChange={e => updateChatSettings({ throwables: e.target.checked })} />
+                            </label>
                             <div className="b52-chat__muted">
-                                <div className="b52-chat__muted-title">Muted players</div>
+                                <div className="b52-chat__muted-title">Blocked players</div>
                                 {settings.muted.length === 0 ? (
-                                    <div className="b52-chat__muted-empty">Nobody. Tap a name in the chat to mute it.</div>
+                                    <div className="b52-chat__muted-empty">Nobody. Tap a name in the chat to block it.</div>
                                 ) : (
                                     settings.muted.map(a => (
                                         <div key={a} className="b52-chat__muted-row">
                                             <span>{senderLabel(a, false)}</span>
                                             <button type="button" className="b52-chat__link" onClick={() => setPlayerMuted(a, false)}>
-                                                Unmute
+                                                Unblock
                                             </button>
                                         </div>
                                     ))

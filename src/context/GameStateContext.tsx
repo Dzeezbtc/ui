@@ -130,11 +130,11 @@ export const GameStateProvider: React.FC<GameStateProviderProps> = ({ children }
     // which address is ours so our own bubbles appear above our seat.
     useEffect(() => {
         registerLocalAddress(getCosmosAddressSync() || undefined);
-        registerChatSender(({ text, sticker }) => {
+        registerChatSender(({ text, sticker, throwId, to }) => {
             const ws = wsRef.current;
             const gameId = currentTableIdRef.current;
             if (ws && ws.readyState === WebSocket.OPEN && gameId) {
-                ws.send(JSON.stringify({ type: "chat", gameId, message: text, sticker, from: getCosmosAddressSync() || undefined, ts: Date.now() }));
+                ws.send(JSON.stringify({ type: "chat", gameId, message: text, sticker, throw: throwId, to, from: getCosmosAddressSync() || undefined, ts: Date.now() }));
             }
         });
         return () => registerChatSender(null);
@@ -386,11 +386,11 @@ export const GameStateProvider: React.FC<GameStateProviderProps> = ({ children }
                     // state: divert it to the chat bus, never into the game pipeline.
                     // Our own messages come back from the relay too; they were
                     // already echoed locally, so skip them.
-                    const chat = message as { type?: string; from?: string; message?: string; sticker?: string; ts?: number };
+                    const chat = message as { type?: string; from?: string; message?: string; sticker?: string; throw?: string; to?: string; ts?: number };
                     if (chat?.type === "chat") {
                         const me = getCosmosAddressSync()?.toLowerCase();
                         if (typeof chat.message === "string" && chat.from?.toLowerCase() !== me) {
-                            pushChatMessage({ from: chat.from, text: chat.message, sticker: chat.sticker, ts: chat.ts ?? Date.now(), mine: false });
+                            pushChatMessage({ from: chat.from, text: chat.message, sticker: chat.sticker, throwId: chat.throw, to: chat.to, ts: chat.ts ?? Date.now(), mine: false });
                         }
                         continue;
                     }

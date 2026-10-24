@@ -1,4 +1,4 @@
-import { __resetChatForTests, getChatMessages, pushChatMessage, registerChatSender, registerLocalAddress, sendChat, sendSticker, STICKER_COOLDOWN_MS } from "./chatBus";
+import { __resetChatForTests, getChatMessages, pushChatMessage, registerChatSender, registerLocalAddress, sendChat, sendSticker, sendThrow, throwStatus, STICKER_COOLDOWN_MS } from "./chatBus";
 import { STICKERS, STICKER_PACKS, findSticker } from "./stickers";
 import { ribbonLines } from "./StickerArt";
 import { __resetChatSettingsForTests, getChatSettings, isMessageVisible, setPlayerMuted, updateChatSettings } from "./chatSettings";
@@ -124,5 +124,65 @@ describe("favourites (block52-chat#17)", () => {
         localStorage.setItem("b52.chat.favourites", JSON.stringify(["ship-it", "gone-sticker", "ship-it", 7]));
         __resetFavouritesForTests();
         expect(getFavourites()).toEqual(["ship-it"]);
+    });
+});
+
+import { hasStrongLanguage } from "./strongLanguage";
+
+describe("strong language prompt (block52-chat#13)", () => {
+    it("spots strong words, with suffixes and masking", () => {
+        expect(hasStrongLanguage("what the fuck")).toBe(true);
+        expect(hasStrongLanguage("Shitty river")).toBe(true);
+        expect(hasStrongLanguage("f*ck that")).toBe(true);
+        expect(hasStrongLanguage("you absolute DICKHEAD")).toBe(true);
+    });
+
+    it("leaves ordinary words alone (no Scunthorpe problem)", () => {
+        expect(hasStrongLanguage("nice hand, well played")).toBe(false);
+        expect(hasStrongLanguage("Scunthorpe classic")).toBe(false);
+        expect(hasStrongLanguage("I folded the dickens out of that")).toBe(false);
+        expect(hasStrongLanguage("shiitake mushrooms")).toBe(false);
+    });
+});
+
+describe("send limits", () => {
+    beforeEach(() => {
+        __resetChatForTests();
+        registerLocalAddress("b521me");
+    });
+
+    it("lets stickers go 5 a minute, 1.5s apart", () => {
+        expect(sendSticker("thanks", 0)).toBe(true);
+        expect(sendSticker("thanks", 1000)).toBe(false);
+        for (let i = 1; i <= 4; i++) expect(sendSticker("thanks", i * 1500)).toBe(true);
+        expect(sendSticker("thanks", 30_000)).toBe(false);
+        expect(sendSticker("thanks", 60_000)).toBe(true);
+    });
+
+    it("lets throws go 3 every 3 minutes, two in a row, max 2 at one player", () => {
+        expect(sendThrow("fish", "b521a", 0)).toBe(true);
+        expect(sendThrow("fish", "b521a", 1000)).toBe(true);
+        expect(sendThrow("fish", "b521a", 2000)).toBe(false); // same target cap
+        expect(throwStatus("b521b", 2000)).toEqual({ waitMs: 0, remaining: 1 });
+        expect(sendThrow("chip", "b521b", 2000)).toBe(true);
+        expect(sendThrow("chip", "b521c", 3000)).toBe(false); // 3 used
+        expect(throwStatus("b521c", 3000).waitMs).toBe(177_000);
+        expect(sendThrow("chip", "b521c", 180_000)).toBe(true);
+    });
+
+    it("refuses a throw at yourself or an unknown item", () => {
+        expect(sendThrow("fish", "B521ME", 0)).toBe(false);
+        expect(sendThrow("nope", "b521a", 0)).toBe(false);
+    });
+});
+
+describe("seat bubble ignores throws", () => {
+    it("shows the last chat, not a throw", () => {
+        const base = { mine: false, from: "b521a", ts: 1000 };
+        const msgs = [
+            { ...base, id: "1", text: "hi" },
+            { ...base, id: "2", text: "Fish", throwId: "fish", to: "b521b" }
+        ];
+        expect(latestSeatMessage(msgs, "b521a", 1500)?.id).toBe("1");
     });
 });

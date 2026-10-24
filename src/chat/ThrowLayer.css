@@ -1,0 +1,22 @@
+/* Throwables in flight (block52-chat#7): a top layer that never takes clicks. */
+.b52-throw-layer {
+    position: fixed;
+    inset: 0;
+    z-index: 910; /* above seat bubbles (900); below modals */
+    pointer-events: none;
+}
+
+.b52-throw-item {
+    position: absolute;
+    width: 48px;
+    height: 48px;
+    margin: -24px 0 0 -24px;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    font-size: 40px;
+    line-height: 1;
+    opacity: 0;
+    filter: drop-shadow(0 8px 10px rgba(0, 0, 0, 0.55));
+    will-change: transform, opacity;
+}

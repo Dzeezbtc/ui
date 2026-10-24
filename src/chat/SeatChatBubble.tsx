@@ -4,6 +4,7 @@ import "./SeatChatBubble.css";
 import { useSeatChat } from "./useSeatChat";
 import { findSticker } from "./stickers";
 import StickerArt from "./StickerArt";
+import { registerSeat } from "./seatRegistry";
 
 /**
  * The speech bubble above a seated player's avatar (block52-chat#3): their
@@ -19,6 +20,9 @@ export const SeatChatBubble: React.FC<{ address: string | undefined }> = ({ addr
     const msg = useSeatChat(address);
     const anchorRef = useRef<HTMLSpanElement>(null);
     const [pos, setPos] = useState<{ x: number; y: number } | null>(null);
+
+    // Tell throwables (#7) where this player's seat is.
+    useLayoutEffect(() => registerSeat(address, anchorRef.current?.parentElement ?? null), [address]);
 
     // Track the seat's on-screen position while a bubble is up.
     useLayoutEffect(() => {

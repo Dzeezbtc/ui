@@ -21,6 +21,7 @@ export function latestSeatMessage(
     for (let i = messages.length - 1; i >= 0; i--) {
         const m = messages[i];
         if (now - m.ts > SEAT_BUBBLE_MS) return null;
+        if (m.throwId) continue; // throws fly between seats (ThrowLayer), no bubble
         if (m.from?.toLowerCase() === a) return m;
     }
     return null;

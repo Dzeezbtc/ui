@@ -13,6 +13,9 @@ export {
     subscribeChatMessages,
     sendChat,
     sendSticker,
+    sendThrow,
+    stickerWaitMs,
+    throwStatus,
     clearChat,
     getChatMessages,
     STICKER_COOLDOWN_MS
@@ -24,3 +27,10 @@ export type { StickerDef, StickerPack } from "./stickers";
 export { useChatSettings, getChatSettings, updateChatSettings, setPlayerMuted, isPlayerMuted, isMessageVisible } from "./chatSettings";
 export type { ChatSettings } from "./chatSettings";
 export { senderLabel, relativeTime } from "./chatFormat";
+export { default as ThrowLayer } from "./ThrowLayer";
+export { THROWABLES, findThrowable } from "./throwables";
+export type { ThrowableDef } from "./throwables";
+export { registerSeat, seatCentre } from "./seatRegistry";
+export { hasStrongLanguage } from "./strongLanguage";
+export { RateLimiter, STICKER_RULE, THROW_RULE, THROW_SAME_TARGET_RULE } from "./rateLimit";
+export type { RateRule } from "./rateLimit";

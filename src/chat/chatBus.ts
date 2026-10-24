@@ -8,7 +8,9 @@
  * messages echo locally on send, so the chat box and the seat bubbles work
  * standalone before the ws-server relays chat to other players (#6).
  */
+import { RateLimiter, STICKER_RULE, THROW_RULE, THROW_SAME_TARGET_RULE } from "./rateLimit";
 import { findSticker } from "./stickers";
+import { findThrowable } from "./throwables";
 
 export interface ChatMessage {
     id: string;
@@ -18,6 +20,10 @@ export interface ChatMessage {
     text: string;
     /** Quick-chat sticker id (block52-chat#2), when this message is a sticker. */
     sticker?: string;
+    /** Throwable id (block52-chat#7), when this message is a throw at another player. */
+    throwId?: string;
+    /** The target player's address, for a throw. */
+    to?: string;
     ts: number;
     /** True for messages this client sent. */
     mine: boolean;
@@ -27,17 +33,41 @@ export interface ChatMessage {
 export interface OutgoingChat {
     text: string;
     sticker?: string;
+    throwId?: string;
+    to?: string;
 }
 
 const MAX_MESSAGES = 100;
-/** One sticker per player every this many ms — keeps the felt readable. */
-export const STICKER_COOLDOWN_MS = 2000;
+/** @deprecated kept for callers; the real limits live in rateLimit.ts. */
+export const STICKER_COOLDOWN_MS = STICKER_RULE.minGapMs;
+/** @deprecated kept for callers; the real limits live in rateLimit.ts. */
+export const THROW_COOLDOWN_MS = THROW_RULE.minGapMs;
 
 let messages: ChatMessage[] = [];
 const listeners = new Set<(messages: ChatMessage[]) => void>();
 let sender: ((out: OutgoingChat) => void) | null = null;
 let localAddress: string | undefined;
-let lastStickerAt = -Infinity;
+const stickerLimit = new RateLimiter(STICKER_RULE);
+const throwLimit = new RateLimiter(THROW_RULE);
+const throwTargetLimits = new Map<string, RateLimiter>();
+
+function targetLimit(to: string): RateLimiter {
+    const key = to.toLowerCase();
+    let l = throwTargetLimits.get(key);
+    if (!l) throwTargetLimits.set(key, (l = new RateLimiter(THROW_SAME_TARGET_RULE)));
+    return l;
+}
+
+/** Ms until we may send another sticker (0 = now). */
+export function stickerWaitMs(now: number = Date.now()): number {
+    return stickerLimit.waitMs(now);
+}
+
+/** Ms until we may throw at `to` (0 = now), and throws left overall. */
+export function throwStatus(to: string | undefined, now: number = Date.now()): { waitMs: number; remaining: number } {
+    const wait = Math.max(throwLimit.waitMs(now), to ? targetLimit(to).waitMs(now) : 0);
+    return { waitMs: wait, remaining: throwLimit.remaining(now) };
+}
 let seq = 0;
 
 function emit(): void {
@@ -47,9 +77,10 @@ function emit(): void {
 
 /** Append a chat message (capped to the most recent {@link MAX_MESSAGES}). */
 export function pushChatMessage(msg: Omit<ChatMessage, "id">): void {
-    // An unknown sticker id (an older/newer client) shows as its text only.
+    // An unknown sticker/throwable id (an older/newer client) shows as its text only.
     const sticker = findSticker(msg.sticker) ? msg.sticker : undefined;
-    const next = messages.concat({ ...msg, sticker, id: `c${Date.now()}_${seq++}` });
+    const throwId = findThrowable(msg.throwId) && msg.to ? msg.throwId : undefined;
+    const next = messages.concat({ ...msg, sticker, throwId, to: throwId ? msg.to : undefined, id: `c${Date.now()}_${seq++}` });
     messages = next.length > MAX_MESSAGES ? next.slice(next.length - MAX_MESSAGES) : next;
     emit();
 }
@@ -98,10 +129,24 @@ export function sendChat(text: string): void {
  */
 export function sendSticker(id: string, now: number = Date.now()): boolean {
     const sticker = findSticker(id);
-    if (!sticker || now - lastStickerAt < STICKER_COOLDOWN_MS) return false;
-    lastStickerAt = now;
+    if (!sticker || !stickerLimit.tryTake(now)) return false;
     pushChatMessage({ from: localAddress, text: sticker.label, sticker: id, ts: now, mine: true });
     sender?.({ text: sticker.label, sticker: id });
+    return true;
+}
+
+/**
+ * Throw something at another player's seat (block52-chat#7). Returns false (and
+ * sends nothing) for an unknown throwable, no target, a throw at yourself, or
+ * inside the cooldown.
+ */
+export function sendThrow(id: string, to: string, now: number = Date.now()): boolean {
+    const t = findThrowable(id);
+    if (!t || !to || to.toLowerCase() === localAddress?.toLowerCase() || throwStatus(to, now).waitMs > 0) return false;
+    throwLimit.record(now);
+    targetLimit(to).record(now);
+    pushChatMessage({ from: localAddress, text: t.label, throwId: id, to, ts: now, mine: true });
+    sender?.({ text: t.label, throwId: id, to });
     return true;
 }
 
@@ -116,6 +161,8 @@ export function __resetChatForTests(): void {
     messages = [];
     sender = null;
     localAddress = undefined;
-    lastStickerAt = -Infinity;
+    stickerLimit.reset();
+    throwLimit.reset();
+    throwTargetLimits.clear();
     listeners.clear();
 }

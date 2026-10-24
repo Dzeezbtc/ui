@@ -2,9 +2,11 @@
  * Per-player chat settings (block52-chat#5), stored in localStorage:
  *  - chat on/off: off hides the chat box and every bubble, and stops sending;
  *  - seat bubbles on/off: keep the chat box but no bubbles on the felt;
- *  - muted players: their messages and stickers are hidden everywhere;
- *  - mute spectators: hide messages from anyone not seated at the table.
- * Muting only hides on this client; nothing is sent to anyone.
+ *  - blocked players (stored as `muted`): their messages, stickers and throws
+ *    are hidden everywhere (#13);
+ *  - mute spectators: hide messages from anyone not seated at the table;
+ *  - throwables on/off (#7).
+ * Blocking only hides on this client; nothing is sent to anyone.
  */
 import { useEffect, useState } from "react";
 
@@ -12,12 +14,14 @@ export interface ChatSettings {
     enabled: boolean;
     seatBubbles: boolean;
     muteSpectators: boolean;
-    /** Lower-cased wallet addresses. */
+    /** Show throwables flying between seats (#7). */
+    throwables: boolean;
+    /** Blocked players' lower-cased wallet addresses (#13). */
     muted: string[];
 }
 
 const LS_KEY = "b52.chat.settings";
-const DEFAULTS: ChatSettings = { enabled: true, seatBubbles: true, muteSpectators: false, muted: [] };
+const DEFAULTS: ChatSettings = { enabled: true, seatBubbles: true, muteSpectators: false, throwables: true, muted: [] };
 
 function load(): ChatSettings {
     try {
@@ -28,6 +32,7 @@ function load(): ChatSettings {
             enabled: typeof p.enabled === "boolean" ? p.enabled : DEFAULTS.enabled,
             seatBubbles: typeof p.seatBubbles === "boolean" ? p.seatBubbles : DEFAULTS.seatBubbles,
             muteSpectators: typeof p.muteSpectators === "boolean" ? p.muteSpectators : DEFAULTS.muteSpectators,
+            throwables: typeof p.throwables === "boolean" ? p.throwables : DEFAULTS.throwables,
             muted: Array.isArray(p.muted) ? p.muted.filter((a: unknown) => typeof a === "string").map((a: string) => a.toLowerCase()) : []
         };
     } catch {
