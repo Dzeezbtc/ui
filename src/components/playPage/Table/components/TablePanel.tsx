@@ -14,6 +14,7 @@ import React from "react";
 import { FaChevronRight, FaTimes } from "react-icons/fa";
 import ActionsLog from "../../../ActionsLog";
 import { useGameSettings } from "../../../../context/GameSettingsContext";
+import { CHIP_STYLES } from "../../../../config/chipSets";
 
 export type TablePanelTab = "history" | "settings";
 
@@ -48,6 +49,37 @@ const ToggleRow: React.FC<ToggleRowProps> = ({ label, description, checked, onTo
     </div>
 );
 
+interface ChoiceRowProps {
+    label: string;
+    description: string;
+    options: readonly { id: string; label: string }[];
+    value: string;
+    onChange: (id: string) => void;
+}
+
+/** A setting with a few named options, shown as a segmented control. */
+const ChoiceRow: React.FC<ChoiceRowProps> = ({ label, description, options, value, onChange }) => (
+    <div className="py-3 border-b border-white/10 last:border-0">
+        <p className="text-white text-xs font-semibold leading-tight">{label}</p>
+        <p className="text-gray-400 text-[10px] mt-0.5 leading-snug">{description}</p>
+        <div role="radiogroup" aria-label={label} className="mt-2 inline-flex rounded-full bg-gray-700/70 p-0.5">
+            {options.map(option => (
+                <button
+                    key={option.id}
+                    role="radio"
+                    aria-checked={option.id === value}
+                    onClick={() => onChange(option.id)}
+                    className={`px-3 py-1 rounded-full text-[11px] font-semibold transition-colors duration-200 focus:outline-none focus:ring-2 focus:ring-blue-500 ${
+                        option.id === value ? "bg-blue-500 text-white" : "text-gray-300 hover:text-white"
+                    }`}
+                >
+                    {option.label}
+                </button>
+            ))}
+        </div>
+    </div>
+);
+
 const SettingsTab: React.FC = () => {
     const {
         turnNotificationSound,
@@ -58,7 +90,7 @@ const SettingsTab: React.FC = () => {
         preSelectCheck,
         winCelebration,
         potAsChips,
-        marbleChips,
+        chipStyle,
         toggleTurnNotificationSound,
         togglePlayerActionSounds,
         toggleAutoMuck,
@@ -67,7 +99,7 @@ const SettingsTab: React.FC = () => {
         togglePreSelectCheck,
         toggleWinCelebration,
         togglePotAsChips,
-        toggleMarbleChips
+        setChipStyle
     } = useGameSettings();
 
     return (
@@ -96,11 +128,12 @@ const SettingsTab: React.FC = () => {
                 checked={potAsChips}
                 onToggle={togglePotAsChips}
             />
-            <ToggleRow
-                label="Marble Chips"
-                description="Show photoreal marble chips. When off, chips are flat and sharp, easiest to read at small sizes. Cash games show $ and ¢; tournaments show plain point values."
-                checked={marbleChips}
-                onToggle={toggleMarbleChips}
+            <ChoiceRow
+                label="Chips"
+                description="Marble is photoreal; Flat is sharpest at small sizes. Cash games show $ and ¢; tournaments show plain point values."
+                options={CHIP_STYLES}
+                value={chipStyle}
+                onChange={setChipStyle}
             />
             <ToggleRow
                 label="Auto Muck"

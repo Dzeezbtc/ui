@@ -1,29 +1,14 @@
 /**
- * Poker chip denominations and their associated chip images.
+ * Poker chip denominations and their images.
  *
- * Each entry maps a dollar value threshold to the chip image file.
- * Images are on the cards CDN in two styles × two sets (ui#842), chosen by the
- * "Marble Chips" setting and the game format:
- *   - marble (default): photoreal marble, pearl value on a black face
- *     (chips/marble-pearl/{cash,tournament}/*.webp);
- *   - notched: flat vector chips, sharpest at small sizes
- *     (chips/notched/{cash,tournament}/*.svg).
- * Cash sets carry $ on dollars and ¢ on cents; tournament sets are points with
- * no currency and no fractional chips. *
- * Visual colors (for reference — actual colours come from the images):
- *   $1      = white
- *   $5      = red
- *   $25     = green
- *   $100    = black
- *   $500    = purple
- *   $1000   = yellow
- *   $5000   = orange
- *   $25000  = blue
- *   $100000 = pink
- *   $250000 = striped blue/orange
- *   $1000000 = gold
- *   $5000000 = platinum
+ * The chip looks and denominations are configured in config/chipSets.ts
+ * (ui#842); this module turns them into the per-style cash and tournament lists
+ * the chip breakdown walks, sorted descending so the first match ≥ threshold
+ * wins. Cash sets carry $ on dollars and ¢ on cents; tournament sets are points
+ * with no currency and no fractional chips.
  */
+
+import { CHIP_DENOMINATION_CONFIG, CHIP_STYLES, DEFAULT_CHIP_STYLE_ID, findChipStyle, type ChipStyleConfig } from "../config/chipSets";
 
 export interface ChipDenomination {
     value: number;
@@ -31,68 +16,39 @@ export interface ChipDenomination {
     color: string;
 }
 
-/** The two chip looks (ui#842). */
-export type ChipStyle = "marble" | "notched";
-
-/** Folder and file type of each style under the CDN chips folder. */
-const CHIP_STYLE_FILES: Record<ChipStyle, { dir: string; ext: string }> = {
-    marble: { dir: "marble-pearl", ext: "webp" },
-    notched: { dir: "notched", ext: "svg" }
-};
-
-/** Every denomination, largest first. Values are in dollars (cash) or chips (tournament). */
-const DENOMINATIONS: { value: number; name: string; color: string }[] = [
-    { value: 5000000, name: "5000000chip", color: "platinum" },
-    { value: 1000000, name: "1000000chip", color: "gold" },
-    { value: 250000, name: "250000chip", color: "striped blue/orange" },
-    { value: 100000, name: "100000chip", color: "pink" },
-    { value: 25000,  name: "25000chip",  color: "blue" },
-    { value: 5000,   name: "5000chip",   color: "orange" },
-    { value: 1000,   name: "1000chip",   color: "yellow" },
-    { value: 500,    name: "500chip",    color: "purple" },
-    { value: 100,    name: "100chip",    color: "black" },
-    { value: 25,     name: "25chip",     color: "green" },
-    { value: 5,      name: "5chip",      color: "red" },
-    { value: 1,      name: "1chip",      color: "white" },
-    // Cent denominations (cash only; values in dollars)
-    { value: 0.5,    name: "50cent",     color: "purple" },
-    { value: 0.25,   name: "25cent",     color: "green" },
-    { value: 0.1,    name: "10cent",     color: "yellow" },
-    { value: 0.05,   name: "5cent",      color: "blue" },
-    { value: 0.01,   name: "1cent",      color: "red" },
-];
-
-const buildChipSet = (style: ChipStyle, isTournament: boolean): ChipDenomination[] => {
-    const { dir, ext } = CHIP_STYLE_FILES[style];
+const buildChipSet = (style: ChipStyleConfig, isTournament: boolean): ChipDenomination[] => {
     const set = isTournament ? "tournament" : "cash";
-    return DENOMINATIONS.filter(d => !isTournament || d.value >= 1).map(d => ({
+    return CHIP_DENOMINATION_CONFIG.filter(d => !isTournament || d.value >= 1).map(d => ({
         value: d.value,
-        file: `${dir}/${set}/${d.name}.${ext}`,
+        file: `${style.dir}/${set}/${d.file}.${style.ext}`,
         color: d.color
     }));
 };
 
-const CHIP_SETS: Record<ChipStyle, { cash: ChipDenomination[]; tournament: ChipDenomination[] }> = {
-    marble: { cash: buildChipSet("marble", false), tournament: buildChipSet("marble", true) },
-    notched: { cash: buildChipSet("notched", false), tournament: buildChipSet("notched", true) }
-};
+// Built once per configured style, so each lookup returns a stable array.
+const CHIP_SETS = new Map(
+    CHIP_STYLES.map(style => [style.id, { cash: buildChipSet(style, false), tournament: buildChipSet(style, true) }])
+);
 
 /**
- * The chips to draw: cash ($/¢) or tournament (points, same colours as the dollar
- * chips, no fractional chips; 1/5/25/100… make exact change for any whole-number
- * bet), in the chosen style. Largest first. Returns a stable array per style/set.
+ * The chips to draw for a style (an id from config/chipSets; unknown ids get the
+ * default) and format: cash ($/¢) or tournament (points, same colours as the
+ * dollar chips, no fractional chips; 1/5/25/100… make exact change for any
+ * whole-number bet). Largest first.
  */
-export const getChipSet = (style: ChipStyle, isTournament: boolean): ChipDenomination[] =>
-    isTournament ? CHIP_SETS[style].tournament : CHIP_SETS[style].cash;
+export const getChipSet = (styleId: string, isTournament: boolean): ChipDenomination[] => {
+    const sets = CHIP_SETS.get(findChipStyle(styleId).id)!;
+    return isTournament ? sets.tournament : sets.cash;
+};
 
-/** Cash chips in the default (marble) style. */
-export const CHIP_DENOMINATIONS: ChipDenomination[] = getChipSet("marble", false);
+/** Cash chips in the default style. */
+export const CHIP_DENOMINATIONS: ChipDenomination[] = getChipSet(DEFAULT_CHIP_STYLE_ID, false);
 
-/** Tournament chips in the default (marble) style. */
-export const TOURNAMENT_CHIP_DENOMINATIONS: ChipDenomination[] = getChipSet("marble", true);
+/** Tournament chips in the default style. */
+export const TOURNAMENT_CHIP_DENOMINATIONS: ChipDenomination[] = getChipSet(DEFAULT_CHIP_STYLE_ID, true);
 
 /** Fallback chip used for amounts < $1 */
-export const DEFAULT_CHIP_FILE = "marble-pearl/cash/1chip.webp";
+export const DEFAULT_CHIP_FILE = CHIP_DENOMINATIONS.find(d => d.value === 1)!.file;
 
 /** Maximum number of action groups (side-by-side chip placements) to display */
 export const MAX_ACTION_GROUPS = 5;

@@ -1,6 +1,7 @@
 import React from "react";
 import { act, renderHook } from "@testing-library/react";
 import { GameSettingsProvider, useGameSettings, useChipStyle } from "./GameSettingsContext";
+import { DEFAULT_CHIP_STYLE_ID } from "../config/chipSets";
 
 const wrapper: React.FC<{ children: React.ReactNode }> = ({ children }) => <GameSettingsProvider>{children}</GameSettingsProvider>;
 
@@ -62,27 +63,33 @@ describe("GameSettingsContext — pot as chips (ui#772)", () => {
     });
 });
 
-describe("GameSettingsContext — marble chips (ui#842)", () => {
-    beforeEach(() => localStorage.removeItem("setting_marblechips"));
+describe("GameSettingsContext — chip style (ui#842)", () => {
+    beforeEach(() => localStorage.removeItem("setting_chipstyle"));
 
-    it("defaults to the photoreal marble chips", () => {
+    it("defaults to the configured default style (marble)", () => {
         const { result } = renderHook(() => ({ settings: useGameSettings(), style: useChipStyle() }), { wrapper });
-        expect(result.current.settings.marbleChips).toBe(true);
+        expect(result.current.settings.chipStyle).toBe(DEFAULT_CHIP_STYLE_ID);
         expect(result.current.style).toBe("marble");
     });
 
-    it("turning it off switches to the notched chips and is remembered", () => {
+    it("choosing another style switches to it and is remembered", () => {
         const { result } = renderHook(() => ({ settings: useGameSettings(), style: useChipStyle() }), { wrapper });
-        act(() => result.current.settings.toggleMarbleChips());
+        act(() => result.current.settings.setChipStyle("notched"));
         expect(result.current.style).toBe("notched");
-        expect(localStorage.getItem("setting_marblechips")).toBe("false");
+        expect(localStorage.getItem("setting_chipstyle")).toBe("notched");
 
         const { result: reloaded } = renderHook(() => useChipStyle(), { wrapper });
         expect(reloaded.current).toBe("notched");
     });
 
-    it("useChipStyle falls back to marble outside the provider", () => {
+    it("an unknown or retired stored style falls back to the default", () => {
+        localStorage.setItem("setting_chipstyle", "holographic");
+        const { result } = renderHook(() => useChipStyle(), { wrapper });
+        expect(result.current).toBe(DEFAULT_CHIP_STYLE_ID);
+    });
+
+    it("useChipStyle falls back to the default outside the provider", () => {
         const { result } = renderHook(() => useChipStyle());
-        expect(result.current).toBe("marble");
+        expect(result.current).toBe(DEFAULT_CHIP_STYLE_ID);
     });
 });

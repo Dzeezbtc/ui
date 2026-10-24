@@ -9,6 +9,7 @@
  */
 
 import React, { createContext, useContext, useState, useCallback, useMemo } from "react";
+import { findChipStyle } from "../config/chipSets";
 import { getAutoDealEnabled, getAutoPostBlindsEnabled, getAutoNewHandEnabled, getAutoFoldEnabled, getCallClockEnabled } from "../utils/urlParams";
 
 const LS_KEY_AUTO_DEAL = "setting_autodeal";
@@ -24,7 +25,7 @@ const LS_KEY_SITIN_OPTIONS = "setting_sitinoptions";
 const LS_KEY_PRE_SELECT_CHECK = "setting_preselectcheck";
 const LS_KEY_WIN_CELEBRATION = "setting_wincelebration";
 const LS_KEY_POT_AS_CHIPS = "setting_potaschips";
-const LS_KEY_MARBLE_CHIPS = "setting_marblechips";
+const LS_KEY_CHIP_STYLE = "setting_chipstyle";
 
 function readBoolSetting(key: string, fallback: boolean): boolean {
     const stored = localStorage.getItem(key);
@@ -62,11 +63,11 @@ export interface GameSettings {
     // shows as a chip stack + amount pill with a POT caption, matching the player
     // bets on the table (ui#772).
     potAsChips: boolean;
-    // When ON (default), chips are the photoreal marble set (pearl value on a
-    // black face). When OFF, the flat notched SVG set, sharpest at small sizes
-    // (ui#842). Either way cash games show $/¢ chips and SNG/tournaments show
-    // point chips.
-    marbleChips: boolean;
+    // Which chip look to draw: an id from config/chipSets.ts (ui#842). Defaults to
+    // the photoreal marble set; "notched" is the flat set, sharpest at small
+    // sizes. Either way cash games show $/¢ chips and SNG/tournaments show point
+    // chips.
+    chipStyle: string;
 }
 
 export interface GameSettingsContextValue extends GameSettings {
@@ -83,7 +84,7 @@ export interface GameSettingsContextValue extends GameSettings {
     togglePreSelectCheck: () => void;
     toggleWinCelebration: () => void;
     togglePotAsChips: () => void;
-    toggleMarbleChips: () => void;
+    setChipStyle: (id: string) => void;
 }
 
 const GameSettingsContext = createContext<GameSettingsContextValue | null>(null);
@@ -128,9 +129,8 @@ export const GameSettingsProvider: React.FC<{ children: React.ReactNode }> = ({ 
     const [potAsChips, setPotAsChips] = useState<boolean>(() =>
         readBoolSetting(LS_KEY_POT_AS_CHIPS, false)
     );
-    const [marbleChips, setMarbleChips] = useState<boolean>(() =>
-        readBoolSetting(LS_KEY_MARBLE_CHIPS, true)
-    );
+    // An unknown or retired id falls back to the configured default.
+    const [chipStyle, setChipStyleState] = useState<string>(() => findChipStyle(localStorage.getItem(LS_KEY_CHIP_STYLE)).id);
 
     const toggleAutoDeal = useCallback(() => {
         setAutoDeal(prev => {
@@ -236,12 +236,10 @@ export const GameSettingsProvider: React.FC<{ children: React.ReactNode }> = ({ 
         });
     }, []);
 
-    const toggleMarbleChips = useCallback(() => {
-        setMarbleChips(prev => {
-            const next = !prev;
-            localStorage.setItem(LS_KEY_MARBLE_CHIPS, String(next));
-            return next;
-        });
+    const setChipStyle = useCallback((id: string) => {
+        const next = findChipStyle(id).id;
+        localStorage.setItem(LS_KEY_CHIP_STYLE, next);
+        setChipStyleState(next);
     }, []);
 
     const value = useMemo<GameSettingsContextValue>(
@@ -259,7 +257,7 @@ export const GameSettingsProvider: React.FC<{ children: React.ReactNode }> = ({ 
             preSelectCheck,
             winCelebration,
             potAsChips,
-            marbleChips,
+            chipStyle,
             toggleAutoDeal,
             toggleAutoPostBlinds,
             toggleAutoNewHand,
@@ -273,7 +271,7 @@ export const GameSettingsProvider: React.FC<{ children: React.ReactNode }> = ({ 
             togglePreSelectCheck,
             toggleWinCelebration,
             togglePotAsChips,
-            toggleMarbleChips
+            setChipStyle
         }),
         [
             autoDeal,
@@ -289,7 +287,7 @@ export const GameSettingsProvider: React.FC<{ children: React.ReactNode }> = ({ 
             preSelectCheck,
             winCelebration,
             potAsChips,
-            marbleChips,
+            chipStyle,
             toggleAutoDeal,
             toggleAutoPostBlinds,
             toggleAutoNewHand,
@@ -302,7 +300,7 @@ export const GameSettingsProvider: React.FC<{ children: React.ReactNode }> = ({ 
             togglePreSelectCheck,
             toggleWinCelebration,
             togglePotAsChips,
-            toggleMarbleChips
+            setChipStyle
         ]
     );
 
@@ -310,12 +308,13 @@ export const GameSettingsProvider: React.FC<{ children: React.ReactNode }> = ({ 
 };
 
 /**
- * Which chip style to draw (ui#842). Safe outside a GameSettingsProvider (e.g. a
- * standalone chip preview), where it falls back to the default marble set.
+ * Which chip look to draw: a style id from config/chipSets.ts (ui#842). Safe
+ * outside a GameSettingsProvider (e.g. a standalone chip preview), where it falls
+ * back to the configured default.
  */
-export const useChipStyle = (): "marble" | "notched" => {
+export const useChipStyle = (): string => {
     const context = useContext(GameSettingsContext);
-    return context?.marbleChips === false ? "notched" : "marble";
+    return context?.chipStyle ?? findChipStyle(null).id;
 };
 
 export const useGameSettings = (): GameSettingsContextValue => {
