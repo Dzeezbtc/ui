@@ -1,5 +1,5 @@
 import React, { useEffect, useState, useCallback, useMemo } from "react";
-import { localDateTimeToUnixSeconds } from "../utils/scheduledSng";
+import { localDateTimeToUnixSeconds, LATE_REGISTRATION_LEVEL_OPTIONS, lateRegistrationOptionLabel } from "../utils/scheduledSng";
 import { useNavigate } from "react-router-dom"; // Import useNavigate for navigation
 
 import "./Dashboard.css"; // Import the CSS file with animations
@@ -31,7 +31,7 @@ import type { CreateTableOptions } from "../hooks/game/useNewTable"; // Import t
 
 // Cosmos wallet utils
 import { isValidSeedPhrase } from "../utils/cosmos";
-import { defaultBettingLimitFor, isTournamentFormat, toCreatableBettingLimit, toGameVariant } from "../utils/gameFormatUtils";
+import { bettingLimitLabel, creatableBettingLimits, defaultBettingLimitFor, isTournamentFormat, toCreatableBettingLimit, toGameVariant } from "../utils/gameFormatUtils";
 import { CREATE_GAME_TYPES, createGameTypeFormat, createGameTypeLabel, isScheduledCreateType, toCreateGameType, type CreateGameType } from "../utils/createGameType";
 import { computeTableCreationFeeMicro, CREATION_FEE_BIG_BLINDS } from "../utils/tableCreationFee";
 import {
@@ -89,7 +89,6 @@ const Dashboard: React.FC = () => {
 
     // New game creation states
     const [showCreateGameModal, setShowCreateGameModal] = useState(false);
-    const [selectedContractAddress, setSelectedContractAddress] = useState("0x4c1d6ea77a2ba47dcd0771b7cde0df30a6df1bfaa7");
     const [createGameError, setCreateGameError] = useState("");
 
     // Modal game options
@@ -121,6 +120,7 @@ const Dashboard: React.FC = () => {
     // modalSngMinPlayers registered, or earlier when full.
     const [modalScheduledStart, setModalScheduledStart] = useState(""); // datetime-local value
     const [modalSngMinPlayers, setModalSngMinPlayers] = useState(2);
+    const [modalLateRegLevels, setModalLateRegLevels] = useState(0); // poker-vm#2731; 0 = off
     const [modalSngBlindsIndex, setModalSngBlindsIndex] = useState(1); // 25 / 50
     // Blind structure (ui#860, poker-vm#1734): doubling (the two selects above
     // and below), an engine preset, or a custom structure in the SDK's text form.
@@ -204,7 +204,6 @@ const Dashboard: React.FC = () => {
         }
     }, [passwordEnabled]);
 
-    const DEFAULT_GAME_CONTRACT = "0x4c1d6ea77a2ba47dcd0771b7cde0df30a6df1bfaa7"; // Example address
 
     // Function to handle creating a new game using Cosmos blockchain
     // Paid table name (poker-vm#337): live cost preview + validation. We normalize
@@ -267,7 +266,8 @@ const Dashboard: React.FC = () => {
                         // A structure carries its own level times; the opening level's is sent for the lobby.
                         blindLevelDuration: sngOpeningBlinds?.durationMinutes ?? modalBlindLevelDuration,
                         ...(blindPlan.structure && { blindStructure: blindPlan.structure }),
-                        ...(scheduled && { startTime })
+                        ...(scheduled && { startTime }),
+                        ...(scheduled && modalLateRegLevels > 0 && { lateRegistrationLevels: modalLateRegLevels })
                     }
                 })
             };
@@ -876,13 +876,17 @@ const Dashboard: React.FC = () => {
                                             <select
                                                 value={modalBettingLimit}
                                                 onChange={e => {
-                                                    const limit = toCreatableBettingLimit(e.target.value);
+                                                    const limit = toCreatableBettingLimit(e.target.value, modalGameVariant);
                                                     if (limit) setModalBettingLimit(limit);
                                                 }}
+                                                data-testid="create-betting-limit"
                                                 className="w-full p-2 rounded bg-gray-700 text-white border border-gray-600 focus:border-blue-500 focus:outline-none focus:ring-2 focus:ring-blue-500/50 transition-all duration-200"
                                             >
-                                                <option value={BettingLimit.NO_LIMIT}>No-Limit</option>
-                                                <option value={BettingLimit.POT_LIMIT}>Pot-Limit</option>
+                                                {creatableBettingLimits(modalGameVariant).map(limit => (
+                                                    <option key={limit} value={limit}>
+                                                        {bettingLimitLabel(limit)}
+                                                    </option>
+                                                ))}
                                             </select>
                                         </div>
                                     </div>
@@ -984,8 +988,24 @@ const Dashboard: React.FC = () => {
                                                             ))}
                                                         </select>
                                                     </div>
+                                                    <div className="col-span-2">
+                                                        <label className="block text-gray-300 text-xs mb-1">Late registration</label>
+                                                        <select
+                                                            data-testid="late-registration"
+                                                            value={modalLateRegLevels}
+                                                            onChange={e => setModalLateRegLevels(Number(e.target.value))}
+                                                            className="w-full p-2 rounded bg-gray-700 text-white border border-gray-600 focus:border-blue-500 focus:outline-none text-sm"
+                                                        >
+                                                            {LATE_REGISTRATION_LEVEL_OPTIONS.map(n => (
+                                                                <option key={n} value={n}>
+                                                                    {lateRegistrationOptionLabel(n)}
+                                                                </option>
+                                                            ))}
+                                                        </select>
+                                                    </div>
                                                     <p className="col-span-2 text-gray-400 text-xs">
                                                         Starts when the table fills, or at the start time with at least the minimum. Cancelled with refunds if fewer have registered 15 minutes after the start time.
+                                                        {modalLateRegLevels > 0 && " Late entrants take an empty seat with a full starting stack until the window closes or someone finishes in the money."}
                                                     </p>
                                                 </div>
                                             )}
@@ -1216,27 +1236,6 @@ const Dashboard: React.FC = () => {
                                         </>
                                     )}
 
-                                    <div>
-                                        <label className="block text-white text-sm mb-1">Variant</label>
-                                        <select
-                                            value={selectedContractAddress}
-                                            onChange={e => setSelectedContractAddress(e.target.value)}
-                                            className="w-full p-2 rounded bg-gray-700 text-white border border-gray-600 focus:border-blue-500 focus:outline-none focus:ring-2 focus:ring-blue-500/50 transition-all duration-200"
-                                        >
-                                            <React.Fragment>
-                                                <option value={DEFAULT_GAME_CONTRACT}>Texas Hold'em</option>
-                                                <option value="" disabled>
-                                                    Omaha (Coming Soon)
-                                                </option>
-                                                <option value="" disabled>
-                                                    Seven Card Stud (Coming Soon)
-                                                </option>
-                                                <option value="" disabled>
-                                                    Blackjack (Coming Soon)
-                                                </option>
-                                            </React.Fragment>
-                                        </select>
-                                    </div>
 
                                     <div className="flex items-center justify-between rounded bg-gray-900 border border-gray-700 p-2 text-sm">
                                         <span className="text-gray-400">Table Creation Fee ({CREATION_FEE_BIG_BLINDS.toString()} big blinds)</span>
