@@ -5,9 +5,8 @@ import { WinAmountFloat } from "./WinAmountFloat";
 import { useSeatJoinNotification } from "../../../hooks/notifications/useSeatJoinNotification";
 import { useGameStateContext } from "../../../context/GameStateContext";
 import { isTournamentFormat } from "../../../utils/gameFormatUtils";
-import { formatForSitAndGo, formatForCashGame, formatUSDCToSimpleDollars, convertUSDCToNumber } from "../../../utils/numberUtils";
+import { formatUSDCToSimpleDollars, bigBlindInStackUnits, formatSeatStack } from "../../../utils/numberUtils";
 import { useStacksInBigBlinds } from "../../../context/GameSettingsContext";
-import { formatBigBlinds, stackInBigBlinds } from "../../../utils/stackInBigBlinds";
 import ProgressBar from "./ProgressBar";
 import { colors } from "../../../utils/colorConfig";
 import "./Badge.css";
@@ -49,21 +48,11 @@ const Badge: React.FC<BadgeProps> = React.memo(({
     const { gameFormat, gameState } = useGameStateContext();
     const isTournament = isTournamentFormat(gameFormat);
 
-    // Stacks in big blinds (ui#895), if the player turned it on for this format.
-    // The big blind is the table's current one (a tournament's rises by level);
-    // cash blinds are micro-USDC, so convert to dollars like the stack.
+    // "45.5 BB" if the player turned on stacks in big blinds for this format
+    // (ui#895), else "$100.00" (cash) or "10,000" (tournament chips).
     const showInBigBlinds = useStacksInBigBlinds(isTournament);
-    const bigBlindRaw = gameState?.gameOptions?.bigBlind;
-    const bigBlind = bigBlindRaw ? (isTournament ? Number(bigBlindRaw) : convertUSDCToNumber(bigBlindRaw)) : 0;
-    const stackBigBlinds = showInBigBlinds ? stackInBigBlinds(value, bigBlind) : null;
-
-    // Format the value based on game format using clean utility functions
-    const formattedValue =
-        stackBigBlinds !== null
-            ? formatBigBlinds(stackBigBlinds) // "45.5 BB"
-            : isTournament
-              ? formatForSitAndGo(value) // Returns "10,000" format (tournament chips)
-              : formatForCashGame(value); // Returns "$100.00" format (cash game)
+    const bigBlind = showInBigBlinds ? bigBlindInStackUnits(gameState?.gameOptions?.bigBlind, isTournament) : null;
+    const formattedValue = formatSeatStack(value, isTournament, bigBlind);
 
     // Get action display data for this player
     const actionDisplay = usePlayerActionDropBox(count);
