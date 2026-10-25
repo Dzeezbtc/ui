@@ -1,6 +1,8 @@
 import React from "react";
 import { ChipPile } from "./frame";
 import { Obj } from "./scene";
+import { Character } from "./cast";
+import { CAST, COMEBACK_CAST } from "./castList";
 
 /**
  * Movie references (block52-chat#2): every movie / TV line is said by a
@@ -749,4 +751,10 @@ export const MOVIE_LINES_2: [string, string, string, Who2][] = [
 for (const [id, , speaker, who] of MOVIE_LINES_2) {
     MOVIE_ART[id] = quick(who);
     MOVIE_SPEAKERS[id] = speaker;
+}
+
+// The cast kit (cast.tsx) supersedes the quick drawings above for everyone it covers.
+for (const [id, spec] of [...Object.entries(CAST), ...Object.entries(COMEBACK_CAST)]) {
+    MOVIE_ART[id] = () => <Character c={spec} />;
+    MOVIE_SPEAKERS[id] = spec.who;
 }

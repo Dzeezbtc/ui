@@ -17,6 +17,7 @@ import ThrowLayer from "./ThrowLayer";
 import ArtIcon from "./art/Art";
 import RichText from "./RichText";
 import { EMOTES } from "./emotes";
+import { REPLIES } from "./memes/castList";
 
 const LS_OPEN = "b52.chat.open";
 const LS_DRAFT = "b52.chat.draft";
@@ -356,9 +357,9 @@ const TableChatBox: React.FC<TableChatBoxProps> = ({ seatedAddresses: seatedProp
                                                 ) : (
                                                     <span className="b52-chat__text"><RichText text={m.text} /></span>
                                                 )}
-                                                {!m.mine && sticker && findSticker(`${sticker.id}-reply`) && (
-                                                    <button type="button" className="b52-chat__reply" onClick={() => onSticker(`${sticker.id}-reply`)}>
-                                                        Reply: “{findSticker(`${sticker.id}-reply`)!.label}”
+                                                {!m.mine && sticker && findSticker(REPLIES[sticker.id]) && (
+                                                    <button type="button" className="b52-chat__reply" onClick={() => onSticker(REPLIES[sticker.id])}>
+                                                        Reply: “{findSticker(REPLIES[sticker.id])!.label}”
                                                     </button>
                                                 )}
                                                 {strong && (
