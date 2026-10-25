@@ -68,7 +68,7 @@ function writeLS(key: string, value: string): void {
     }
 }
 
-type ChatView = "chat" | "quick" | "throw" | "settings";
+type ChatView = "chat" | "quick" | "fav" | "throw" | "settings";
 
 const secs = (ms: number) => (ms >= 60_000 ? `${Math.ceil(ms / 60_000)}m` : `${Math.ceil(ms / 1000)}s`);
 
@@ -306,6 +306,9 @@ const TableChatBox: React.FC<TableChatBoxProps> = ({ seatedAddresses: seatedProp
                             <button type="button" role="tab" aria-selected={view === "quick"} className={`b52-chat__tab${view === "quick" ? " is-active" : ""}`} onClick={() => setView("quick")}>
                                 Quick chat
                             </button>
+                            <button type="button" role="tab" aria-selected={view === "fav"} className={`b52-chat__tab${view === "fav" ? " is-active" : ""}`} onClick={() => setView("fav")}>
+                                ★ Favourites
+                            </button>
                             <button type="button" role="tab" aria-selected={view === "throw"} className={`b52-chat__tab${view === "throw" ? " is-active" : ""}`} onClick={() => setView("throw")}>
                                 Throw
                             </button>
@@ -432,18 +435,25 @@ const TableChatBox: React.FC<TableChatBoxProps> = ({ seatedAddresses: seatedProp
                         <div className="b52-chat__quick" aria-label="Quick chat stickers">
                             <div className="b52-chat__quick-hint">{cooldown ?? `Tap to pop it up above your seat · ${stickersRemaining()} of ${STICKER_RULE.max} left`}</div>
                             <div className="b52-chat__quick-grid">
-                                <div className="b52-chat__quick-pack b52-chat__quick-pack--fav">★ Favourites</div>
-                                {favourites.length === 0 ? (
-                                    <div className="b52-chat__quick-fav-empty">Tap ☆ on any sticker to pin it here.</div>
-                                ) : (
-                                    favourites.map(id => renderSticker(id, "fav"))
-                                )}
                                 {STICKER_PACKS.map(pack => (
                                     <React.Fragment key={pack.id}>
                                         <div className="b52-chat__quick-pack">{pack.label}</div>
                                         {STICKERS.filter(st => st.pack === pack.id).map(st => renderSticker(st.id, pack.id))}
                                     </React.Fragment>
                                 ))}
+                            </div>
+                        </div>
+                    )}
+
+                    {settings.enabled && view === "fav" && (
+                        <div className="b52-chat__quick" aria-label="Favourite stickers">
+                            <div className="b52-chat__quick-hint">{cooldown ?? `Your favourites from every pack · ${stickersRemaining()} of ${STICKER_RULE.max} left`}</div>
+                            <div className="b52-chat__quick-grid">
+                                {favourites.length === 0 ? (
+                                    <div className="b52-chat__quick-fav-empty">Nothing here yet. Tap ☆ on any sticker in Quick chat to add it to your favourites.</div>
+                                ) : (
+                                    favourites.map(id => renderSticker(id, "fav"))
+                                )}
                             </div>
                         </div>
                     )}
