@@ -121,7 +121,7 @@ const PointHand: React.FC<{ x: number; y: number; rot?: number; k?: number }> = 
 export const WOJAK: Record<string, () => React.ReactElement> = {
     "this-is-fine": () => (
         <g>
-            <rect x={0} y={0} width={100} height={80} fill="#fff1e0" />
+            <rect className="b52-bg" x={0} y={0} width={100} height={80} fill="#fff1e0" />
             <Flame x={10} y={74} k={1.25} />
             <Flame x={90} y={74} k={1.35} />
             <Flame x={22} y={30} k={0.8} />

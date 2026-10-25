@@ -43,7 +43,7 @@ const eyes = (dx = 0, dy = 0) => (
 export const STICKS_SET: Record<string, () => React.ReactElement> = {
     "this-is-fine": () => (
         <g>
-            <rect x={0} y={0} width={100} height={80} fill="#ffe2b8" />
+            <rect className="b52-bg" x={0} y={0} width={100} height={80} fill="#ffe2b8" />
             <Flame x={10} y={76} k={1.3} line={1.2} />
             <Flame x={90} y={76} k={1.3} line={1.2} />
             <Flame x={20} y={30} k={0.8} line={1.2} />
@@ -71,7 +71,7 @@ export const STICKS_SET: Record<string, () => React.ReactElement> = {
     ),
     "donk-bet": () => (
         <g>
-            <rect x={0} y={0} width={100} height={80} fill="#fff" />
+            <rect className="b52-bg" x={0} y={0} width={100} height={80} fill="#fff" />
             <ChipPile x={50} y={78} k={1.1} line={1} />
             <Guy
                 x={50}
@@ -103,7 +103,7 @@ export const STICKS_SET: Record<string, () => React.ReactElement> = {
     ),
     "whale-spotted": () => (
         <g>
-            <rect x={0} y={0} width={100} height={80} fill="#fff" />
+            <rect className="b52-bg" x={0} y={0} width={100} height={80} fill="#fff" />
             {/* the whale, in a shirt and tie, at a table, with all the chips */}
             <path d="M0 62 h62" stroke={INK} strokeWidth={W} />
             <ChipPile x={30} y={62} k={0.95} line={1} />
@@ -134,7 +134,7 @@ export const STICKS_SET: Record<string, () => React.ReactElement> = {
     ),
     "so-over": () => (
         <g>
-            <rect x={0} y={0} width={100} height={80} fill="#fff" />
+            <rect className="b52-bg" x={0} y={0} width={100} height={80} fill="#fff" />
             <path d="M0 66 h100" stroke={INK} strokeWidth={W} />
             {/* face-down on the floor, one chip left */}
             <g stroke={INK} strokeWidth={W} strokeLinecap="round" strokeLinejoin="round" fill="none">

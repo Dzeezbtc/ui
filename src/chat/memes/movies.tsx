@@ -196,10 +196,10 @@ const Body: React.FC<{ jacket: string; shirt?: string; skin?: string; hands?: "d
 };
 
 const Bg: React.FC<{ fill: string; children?: React.ReactNode }> = ({ fill, children }) => (
-    <>
+    <g className="b52-bg">
         <rect x={-5} y={-5} width={110} height={90} fill={fill} />
         {children}
-    </>
+    </g>
 );
 
 const SKIN = { light: "#f2c9a3", tan: "#e0ad83", olive: "#d9a27a", brown: "#9a6845", deep: "#6e4a31", purple: "#8b6aa6", yellow: "#f5d23c", grey: "#d8d4cc" };
@@ -761,7 +761,7 @@ for (const [id, spec] of [...Object.entries(CAST), ...Object.entries(COMEBACK_CA
 
 MOVIE_ART["your-father"] = () => (
     <>
-        <rect x={-5} y={-5} width={110} height={90} fill="#2a2f45" />
+        <rect className="b52-bg" x={-5} y={-5} width={110} height={90} fill="#2a2f45" />
         <VaderBody />
         <path d="M74 60 L84 48" stroke="#1d1d1d" strokeWidth={6} strokeLinecap="round" />
         <g transform="translate(85 46) rotate(25)">

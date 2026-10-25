@@ -34,40 +34,47 @@ export const MemeFrame: React.FC<{ style: MemeStyle; label: string; size?: numbe
               ? { textLength: 92, lengthAdjust: "spacingAndGlyphs" as const }
               : {};
     const hose = style === "hose";
+    // No box, frame or background: just the character and its props pop up,
+    // fading out where the body runs off the bottom, with the caption floating
+    // underneath as outlined lettering that reads on any table colour.
     return (
-        <svg viewBox="0 0 100 100" width={size} height={size} role="img" aria-label={label}>
+        <svg viewBox="0 0 100 100" width={size} height={size} role="img" aria-label={label} overflow="visible">
             <defs>
-                <clipPath id={`c${uid}`}>
-                    <rect x={2} y={2} width={96} height={hose ? 74 : 76} rx={3} />
-                </clipPath>
-                {hose && (
-                    <radialGradient id={`v${uid}`} cx="50%" cy="45%" r="70%">
-                        <stop offset="0.55" stopColor="#f1e4c3" />
-                        <stop offset="1" stopColor="#c7ac7c" />
-                    </radialGradient>
-                )}
+                <style>{".b52-bg{display:none}"}</style>
+                <linearGradient id={`f${uid}`} gradientUnits="userSpaceOnUse" x1="0" y1="64" x2="0" y2="80">
+                    <stop offset="0" stopColor="#fff" />
+                    <stop offset="1" stopColor="#000" />
+                </linearGradient>
+                <mask id={`m${uid}`} maskUnits="userSpaceOnUse" x={-20} y={-20} width={140} height={100}>
+                    <rect x={-20} y={-20} width={140} height={100} fill={`url(#f${uid})`} />
+                </mask>
+                <filter id={`s${uid}`} x="-20%" y="-20%" width="140%" height="140%">
+                    <feDropShadow dx="0" dy="1.6" stdDeviation="1.4" floodColor="#000" floodOpacity="0.45" />
+                </filter>
             </defs>
-            <rect x={0.8} y={0.8} width={98.4} height={98.4} rx={5} fill={hose ? "#f1e4c3" : "#ffffff"} stroke="#1a1a1a" strokeWidth={1.4} />
-            <g clipPath={`url(#c${uid})`}>
-                {hose && <rect x={0} y={0} width={100} height={80} fill={`url(#v${uid})`} />}
-                {children}
+            <g filter={`url(#s${uid})`}>
+                <g mask={`url(#m${uid})`}>{children}</g>
             </g>
-            {hose ? (
-                <>
-                    <path d="M3 79 h94 l-3 9.5 l3 9.5 h-94 l3 -9.5z" fill="#141414" />
-                    {lines.map((l, i) => (
-                        <text key={i} x={50} y={one ? 88.5 : 84 + i * 9.4} textAnchor="middle" dominantBaseline="central" fontFamily={HOSE_FONT} fontWeight={900} fontSize={one ? fs : 8.6} fill="#f1e4c3" letterSpacing="0.4" {...fit(l)}>
-                            {l}
-                        </text>
-                    ))}
-                </>
-            ) : (
-                lines.map((l, i) => (
-                    <text key={i} x={50} y={one ? 88.5 : 82.2 + i * 9.8} textAnchor="middle" dominantBaseline="central" fontFamily={SANS} fontWeight={900} fontSize={fs} fill="#111" {...fit(l)}>
-                        {l}
-                    </text>
-                ))
-            )}
+            {lines.map((l, i) => (
+                <text
+                    key={i}
+                    x={50}
+                    y={one ? 88.5 : 83 + i * 9.8}
+                    textAnchor="middle"
+                    dominantBaseline="central"
+                    fontFamily={hose ? HOSE_FONT : SANS}
+                    fontWeight={900}
+                    fontSize={hose ? hoseFs : fs}
+                    fill="#fff"
+                    stroke="#111"
+                    strokeWidth={3}
+                    strokeLinejoin="round"
+                    paintOrder="stroke"
+                    {...fit(l)}
+                >
+                    {l}
+                </text>
+            ))}
         </svg>
     );
 };

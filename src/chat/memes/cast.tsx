@@ -721,7 +721,7 @@ export const Character: React.FC<{ c: CastSpec }> = ({ c }) => {
                     <rect x={-10} y={-40} width={120} height={70} />
                 </clipPath>
             </defs>
-            <rect x={-5} y={-5} width={110} height={90} fill={c.bg} />
+            <rect className="b52-bg" x={-5} y={-5} width={110} height={90} fill={c.bg} />
             {c.scene}
             <Torso
                 c={c.costume}

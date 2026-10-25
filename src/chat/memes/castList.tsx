@@ -255,7 +255,7 @@ export const CAST: Record<string, CastSpec> = {
         hands: "up",
         scene: (
             <>
-                <ellipse cx={50} cy={86} rx={60} ry={16} fill="#e8592a" opacity={0.6} />
+                <g className="b52-bg"><ellipse cx={50} cy={86} rx={60} ry={16} fill="#e8592a" opacity={0.6} /></g>
                 <path d="M78 76 V8" stroke="#7a5230" strokeWidth={3} />
                 <circle cx={78} cy={6} r={3.6} fill="#e8f4ff" stroke="#1d1d1d" strokeWidth={1} />
             </>
@@ -769,7 +769,7 @@ export const CAST: Record<string, CastSpec> = {
         costume: { kind: "uniform", color: "#6a7aa0" },
         scene: (
             <>
-                <rect x={-5} y={56} width={110} height={30} fill="#2a5a8a" />
+                <g className="b52-bg"><rect x={-5} y={56} width={110} height={30} fill="#2a5a8a" /></g>
                 <path d="M74 70 l6 -14 l6 14z" fill="#6a7a8a" stroke="#1d1d1d" strokeWidth={1} />
             </>
         ),
@@ -1056,9 +1056,9 @@ export const COMEBACK_CAST: Record<string, CastSpec> = {
         costume: { kind: "tee", color: "#5a8ad8" },
         scene: (
             <>
-                <rect x={-5} y={-5} width={110} height={90} fill="#f2c94c" />
+                <g className="b52-bg"><rect x={-5} y={-5} width={110} height={90} fill="#f2c94c" />
                 <rect x={4} y={4} width={92} height={50} rx={4} fill="#9ad0f0" stroke="#1d1d1d" strokeWidth={1.2} />
-                <path d="M50 4 v50" stroke="#1d1d1d" strokeWidth={1.2} />
+                <path d="M50 4 v50" stroke="#1d1d1d" strokeWidth={1.2} /></g>
             </>
         ),
         over: <path d="M46 14 l2 -5 l2 4 l2 -5 l1 6" fill="#8a6a3a" stroke="#1d1d1d" strokeWidth={0.8} />,

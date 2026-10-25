@@ -170,7 +170,7 @@ export const MemeScene: React.FC<{ kit: StyleKit; spec: MemeSpec; uid: string }>
     return (
         <g>
             {kit.propFilter && <defs><filter id={`pf${uid}`} colorInterpolationFilters="sRGB">{kit.propFilter}</filter></defs>}
-            <rect x={-5} y={-5} width={110} height={90} fill={spec.bg ?? kit.bgFor?.(spec.who) ?? kit.bg} />
+            <rect className="b52-bg" x={-5} y={-5} width={110} height={90} fill={spec.bg ?? kit.bgFor?.(spec.who) ?? kit.bg} />
             {fxBack(fx, cx)}
             {hasSide && <Obj spec={spec.side!} x={75} y={46} s={0.64} filter={filterId} />}
             <g transform={`translate(${cx} 36) scale(${k})`}>
