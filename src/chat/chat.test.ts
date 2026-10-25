@@ -14,8 +14,8 @@ beforeEach(() => {
 
 describe("stickers (block52-chat#2)", () => {
     it("has the classics plus set v2 (#16), unique slug ids, each in a known pack", () => {
-        expect(STICKERS).toHaveLength(207);
-        expect(new Set(STICKERS.map(s => s.id)).size).toBe(207);
+        expect(STICKERS).toHaveLength(229);
+        expect(new Set(STICKERS.map(s => s.id)).size).toBe(229);
         const packs = new Set(STICKER_PACKS.map(p => p.id));
         expect(STICKERS.every(s => packs.has(s.pack))).toBe(true);
         // Ids go on the wire, so they must pass the relay's slug check.
@@ -243,7 +243,7 @@ describe("meme sticker styles (block52-chat#2)", () => {
     const { STICKERS } = require("./stickers");
 
     it("has a plan for every sticker, using only real art", () => {
-        for (const s of STICKERS.filter((x: { pack: string }) => x.pack !== "movies")) {
+        for (const s of STICKERS.filter((x: { pack: string }) => x.pack !== "movies" && x.pack !== "rage-faces")) {
             const spec = MEME_SPECS[s.id];
             expect([s.id, !!spec]).toEqual([s.id, true]);
             for (const art of [spec.prop, spec.side, spec.above, spec.hat].filter(Boolean)) expect([s.id, art, isKnownArt(art)]).toEqual([s.id, art, true]);
@@ -251,7 +251,7 @@ describe("meme sticker styles (block52-chat#2)", () => {
     });
 
     it.each(["wojak", "rage", "hose", "sticks"])("draws all stickers in the %s style", style => {
-        for (const s of STICKERS.filter((x: { pack: string }) => x.pack !== "movies")) {
+        for (const s of STICKERS.filter((x: { pack: string }) => x.pack !== "movies" && x.pack !== "rage-faces")) {
             const html = renderToStaticMarkup(React.createElement(MemeSticker, { sticker: s, style, size: 76 }));
             expect(html).toContain("<svg");
             expect(html).toContain("<text");
@@ -318,5 +318,28 @@ describe("movie comebacks", () => {
             expect([reply, !!findSticker(reply as string)]).toEqual([reply, true]);
         }
         for (const s of STICKERS.filter(x => x.pack === "movies")) expect([s.id, !!MOVIE_ART[s.id]]).toEqual([s.id, true]);
+    });
+});
+
+describe("rage faces pack", () => {
+    // eslint-disable-next-line @typescript-eslint/no-var-requires
+    const React = require("react");
+    // eslint-disable-next-line @typescript-eslint/no-var-requires
+    const { renderToStaticMarkup } = require("react-dom/server");
+    // eslint-disable-next-line @typescript-eslint/no-var-requires
+    const { RAGE_FACES } = require("./memes/rageFaces");
+    // eslint-disable-next-line @typescript-eslint/no-var-requires
+    const { STICKERS } = require("./stickers");
+    // eslint-disable-next-line @typescript-eslint/no-var-requires
+    const { StickerArt } = require("./StickerArt");
+
+    it("draws every rage-face sticker, and every drawing has a sticker", () => {
+        const pack = STICKERS.filter((s: { pack: string }) => s.pack === "rage-faces");
+        expect(pack.length).toBe(Object.keys(RAGE_FACES).length);
+        for (const s of pack) {
+            expect([s.id, !!RAGE_FACES[s.id]]).toEqual([s.id, true]);
+            const html = renderToStaticMarkup(React.createElement(StickerArt, { sticker: s, size: 76 }));
+            expect(html).toContain("<svg");
+        }
     });
 });

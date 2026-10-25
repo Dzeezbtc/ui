@@ -33,6 +33,7 @@ export interface StickerPack {
 export const STICKER_PACKS: readonly StickerPack[] = [
     { id: "classics", label: "Classics" },
     { id: "movies", label: "Movie references" },
+    { id: "rage-faces", label: "Rage faces" },
     { id: "hype", label: "Hype & wins" },
     { id: "bad-beats", label: "Bad beats & tilt" },
     { id: "calls", label: "Calls & folds" },
@@ -258,6 +259,29 @@ export const STICKERS: readonly StickerDef[] = [
     { id: "busy-dyin", label: "…or get busy dyin'.", icon: "clapper", from: "#a855f7", to: "#6b21a8", pack: "movies" },
     { id: "only-one", label: "There can be only one!", icon: "clapper", from: "#a855f7", to: "#6b21a8", pack: "movies" },
     { id: "two-men-enter", label: "Two men enter, one man leaves!", icon: "clapper", from: "#a855f7", to: "#6b21a8", pack: "movies" },
+    // Rage faces (block52-chat#2): drawn in StickerArt from memes/rageFaces.tsx.
+    { id: "rage-fffuuu", label: "FFFUUUUU", icon: "chippy:grimace", from: "#f3f4f6", to: "#9ca3af", pack: "rage-faces" },
+    { id: "rage-y-u-no", label: "Y U NO fold?!", icon: "chippy:grimace", from: "#f3f4f6", to: "#9ca3af", pack: "rage-faces" },
+    { id: "rage-me-gusta", label: "Me gusta", icon: "chippy:grimace", from: "#f3f4f6", to: "#9ca3af", pack: "rage-faces" },
+    { id: "rage-forever-alone", label: "Forever alone", icon: "chippy:grimace", from: "#f3f4f6", to: "#9ca3af", pack: "rage-faces" },
+    { id: "rage-okay", label: "Okay.", icon: "chippy:grimace", from: "#f3f4f6", to: "#9ca3af", pack: "rage-faces" },
+    { id: "rage-challenge-accepted", label: "Challenge accepted", icon: "chippy:grimace", from: "#f3f4f6", to: "#9ca3af", pack: "rage-faces" },
+    { id: "rage-poker-face", label: "Poker face", icon: "chippy:grimace", from: "#f3f4f6", to: "#9ca3af", pack: "rage-faces" },
+    { id: "rage-cereal-guy", label: "Wait… what?!", icon: "chippy:grimace", from: "#f3f4f6", to: "#9ca3af", pack: "rage-faces" },
+    { id: "rage-quit", label: "Rage quit", icon: "chippy:grimace", from: "#f3f4f6", to: "#9ca3af", pack: "rage-faces" },
+    { id: "rage-true-story", label: "True story.", icon: "chippy:grimace", from: "#f3f4f6", to: "#9ca3af", pack: "rage-faces" },
+    { id: "rage-f-yea", label: "F*ck yea!", icon: "chippy:grimace", from: "#f3f4f6", to: "#9ca3af", pack: "rage-faces" },
+    { id: "rage-kidding-me", label: "Are you kidding me?", icon: "chippy:grimace", from: "#f3f4f6", to: "#9ca3af", pack: "rage-faces" },
+    { id: "rage-derp", label: "Derp", icon: "chippy:grimace", from: "#f3f4f6", to: "#9ca3af", pack: "rage-faces" },
+    { id: "rage-lol", label: "LOL", icon: "chippy:grimace", from: "#f3f4f6", to: "#9ca3af", pack: "rage-faces" },
+    { id: "rage-sweet-jesus", label: "Sweet Jesus", icon: "chippy:grimace", from: "#f3f4f6", to: "#9ca3af", pack: "rage-faces" },
+    { id: "rage-mother-of-god", label: "Mother of God", icon: "chippy:grimace", from: "#f3f4f6", to: "#9ca3af", pack: "rage-faces" },
+    { id: "rage-problem", label: "Problem?", icon: "chippy:grimace", from: "#f3f4f6", to: "#9ca3af", pack: "rage-faces" },
+    { id: "rage-pfftch", label: "Pfftch", icon: "chippy:grimace", from: "#f3f4f6", to: "#9ca3af", pack: "rage-faces" },
+    { id: "rage-better-than-expected", label: "Everything went better than expected", icon: "chippy:grimace", from: "#f3f4f6", to: "#9ca3af", pack: "rage-faces" },
+    { id: "rage-close-enough", label: "Close enough", icon: "chippy:grimace", from: "#f3f4f6", to: "#9ca3af", pack: "rage-faces" },
+    { id: "rage-aww-yea", label: "Aww yea", icon: "chippy:grimace", from: "#f3f4f6", to: "#9ca3af", pack: "rage-faces" },
+    { id: "rage-oh-crap", label: "Oh crap", icon: "chippy:grimace", from: "#f3f4f6", to: "#9ca3af", pack: "rage-faces" },
 ];
 
 const BY_ID = new Map(STICKERS.map(s => [s.id, s]));

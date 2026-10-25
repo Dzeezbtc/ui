@@ -6,6 +6,7 @@ import { useChatSettings } from "./chatSettings";
 import MemeSticker from "./memes/MemeSticker";
 import { MemeFrame } from "./memes/frame";
 import { MOVIE_ART, MOVIE_SPEAKERS } from "./memes/movies";
+import { RAGE_FACES } from "./memes/rageFaces";
 /**
  * Split a phrase for the ribbon: one line when short, otherwise two lines
  * broken at the space nearest the middle.
@@ -35,6 +36,16 @@ export const StickerArt: React.FC<{ sticker: StickerDef; size?: number }> = ({ s
             <MemeFrame style="wojak" label={`\u201c${sticker.label}\u201d`} size={size}>
                 <title>{`${sticker.label} — ${MOVIE_SPEAKERS[sticker.id]}`}</title>
                 {movie()}
+            </MemeFrame>
+        );
+    }
+    // Rage faces are always the classic rage-comic line art.
+    const rage = RAGE_FACES[sticker.id];
+    if (rage && !sticker.art) {
+        return (
+            <MemeFrame style="rage" label={sticker.label} size={size}>
+                <title>{sticker.label}</title>
+                {rage.draw()}
             </MemeFrame>
         );
     }
