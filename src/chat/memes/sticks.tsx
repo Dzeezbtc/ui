@@ -26,7 +26,7 @@ const Guy: React.FC<{
         <path d="M-7 8 L-6 -9 Q0 -12 6 -9 L7 8 Z" fill={shirt} strokeWidth={W * 0.8} />
         {head ?? (
             <>
-                <circle cx={0} cy={-20} r={10} fill="#fff" />
+                <ellipse cx={0} cy={-20} rx={10.6} ry={9.7} fill="#fff" />
                 {face}
             </>
         )}

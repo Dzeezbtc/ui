@@ -29,7 +29,7 @@ export const STICKER_STYLES: readonly { id: StickerStyle; label: string }[] = [
     { id: "wojak", label: "Wojak" },
     { id: "rage", label: "Rage comic" },
     { id: "hose", label: "Rubber hose" },
-    { id: "sticks", label: "Stick figures" },
+    { id: "sticks", label: "Cyanide-style stick figures" },
     { id: "cartoon", label: "Chip Crew" }
 ];
 
