@@ -356,6 +356,11 @@ const TableChatBox: React.FC<TableChatBoxProps> = ({ seatedAddresses: seatedProp
                                                 ) : (
                                                     <span className="b52-chat__text"><RichText text={m.text} /></span>
                                                 )}
+                                                {!m.mine && sticker && findSticker(`${sticker.id}-reply`) && (
+                                                    <button type="button" className="b52-chat__reply" onClick={() => onSticker(`${sticker.id}-reply`)}>
+                                                        Reply: “{findSticker(`${sticker.id}-reply`)!.label}”
+                                                    </button>
+                                                )}
                                                 {strong && (
                                                     <span className="b52-chat__block-hint">
                                                         Don't want to see this?{" "}

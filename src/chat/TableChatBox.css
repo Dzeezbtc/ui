@@ -898,3 +898,16 @@
     font-size: 12px;
     cursor: pointer;
 }
+
+/* One-tap comeback to a movie line (block52-chat#2) */
+.b52-chat__reply {
+    display: block;
+    margin-top: 4px;
+    border: 1px solid var(--chat-brand);
+    background: color-mix(in srgb, var(--chat-brand) 18%, transparent);
+    color: inherit;
+    font-size: 11px;
+    border-radius: 999px;
+    padding: 2px 10px;
+    cursor: pointer;
+}

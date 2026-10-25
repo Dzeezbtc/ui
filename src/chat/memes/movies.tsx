@@ -491,3 +491,164 @@ export const MOVIE_SPEAKERS: Record<string, string> = {
     "absolute-cinema": "Martin Scorsese",
     "chicken-dinner": "a Vegas card counter"
 };
+
+// ── The big movie-line set: quick cut-out characters from a few traits ────────
+
+type Hair = "short" | "long" | "bald" | "slick" | "curly" | "spiky" | "side" | "messy" | "receding";
+type Extra = "shades" | "glasses" | "beard" | "stubble" | "mustache" | "scar" | "visor";
+interface Who2 {
+    skin: string;
+    hair: Hair;
+    hairCol?: string;
+    jacket: string;
+    shirt?: string;
+    tie?: string;
+    eyes?: Eyes;
+    mouth?: Mouth;
+    shape?: Shape;
+    extras?: Extra[];
+    hat?: string;
+    hold?: string;
+    hands?: "down" | "up" | "point" | "thumb" | "hold" | "frame";
+    bg: string;
+    custom?: () => React.ReactElement;
+}
+
+const HAIR = (h: Hair, c: string): React.ReactNode => {
+    const st = { fill: c, stroke: INK, strokeWidth: L };
+    switch (h) {
+        case "long":
+            return <path d="M28 34 C22 14 34 6 50 6 C66 6 78 14 72 34 C70 52 66 58 64 44 C62 22 38 22 36 44 C34 58 30 52 28 34z" {...st} />;
+        case "slick":
+            return <path d="M29 26 C27 10 46 6 56 8 C68 8 74 16 71 26 C64 16 48 15 40 18 C35 20 31 23 29 26z" {...st} />;
+        case "curly":
+            return <path d="M27 30 C20 18 30 4 42 8 C46 2 56 2 60 8 C72 4 80 18 73 30 C68 18 32 18 27 30z" {...st} />;
+        case "spiky":
+            return <path d="M29 24 l-4 -12 l9 6 l2 -12 l7 9 l7 -12 l5 12 l8 -9 l1 12 l9 -6 l-4 12 C62 18 38 18 29 24z" {...st} />;
+        case "side":
+            return <path d="M29 26 C28 10 44 8 52 12 C60 8 72 12 71 26 C66 18 56 16 50 18 C42 16 34 18 29 26z" {...st} />;
+        case "messy":
+            return <path d="M28 26 l-3 -8 l6 2 l0 -8 l6 5 l4 -8 l4 7 l6 -8 l3 8 l7 -5 l-1 8 l6 -1 l-4 8 C62 18 38 18 28 26z" {...st} />;
+        case "receding":
+            return <path d="M29 30 C28 20 32 16 35 26z M71 30 C72 20 68 16 65 26z M42 12 q8 -3 16 0" {...st} />;
+        case "bald":
+            return null;
+        default:
+            return <path d="M29 24 C28 12 70 10 71 24 C64 17 36 17 29 24z" {...st} />;
+    }
+};
+
+const EXTRA = (e: Extra): React.ReactNode => {
+    switch (e) {
+        case "shades":
+            return <path d="M32 24 h36 v4 q-2 7 -9 7 q-6 0 -8 -5 h-2 q-2 5 -8 5 q-7 0 -9 -7z" fill="#111" />;
+        case "glasses":
+            return (
+                <g fill="none" stroke={INK} strokeWidth={L * 1.2}>
+                    <rect x={36} y={22} width={12} height={10} rx={3} />
+                    <rect x={52} y={22} width={12} height={10} rx={3} />
+                </g>
+            );
+        case "beard":
+            return <path d="M32 38 C34 52 44 56 50 56 C56 56 66 52 68 38 C60 46 40 46 32 38z" fill="#5a3f2a" stroke={INK} strokeWidth={L} />;
+        case "stubble":
+            return <Stubble y={46} w={11} />;
+        case "mustache":
+            return <path d="M42 39 q8 -4 16 0 q-8 2 -16 0z" fill="#3a2717" stroke={INK} strokeWidth={L * 0.6} />;
+        case "scar":
+            return <path d="M30 14 l10 10 M33 13 l1 3 M36 16 l1 3" stroke="#9b3b3b" strokeWidth={1.4} />;
+        case "visor":
+            return <path d="M30 20 q20 -8 40 0 l4 4 q-24 -6 -48 0z" fill="#5f8f5a" stroke={INK} strokeWidth={L} />;
+    }
+};
+
+function quick(w: Who2): () => React.ReactElement {
+    if (w.custom) return w.custom;
+    return () => (
+        <>
+            <Bg fill={w.bg} />
+            <Body jacket={w.jacket} shirt={w.shirt} tie={w.tie} skin={w.skin} hands={w.hands ?? (w.hold ? "hold" : "down")} hold={w.hold ? <Obj spec={w.hold} x={0} y={-6} s={0.3} /> : undefined} />
+            <Head skin={w.skin} shape={w.shape ?? "round"} ears />
+            <Nose />
+            {HAIR(w.hair, w.hairCol ?? "#3a2717")}
+            <CutEyes kind={w.eyes ?? "plain"} />
+            {(w.extras ?? []).map(e => (
+                <React.Fragment key={e}>{EXTRA(e)}</React.Fragment>
+            ))}
+            <CutMouth kind={w.mouth ?? "flat"} />
+            {w.hat && <Obj spec={w.hat} x={50} y={8} s={0.42} />}
+        </>
+    );
+}
+
+const S2 = SKIN;
+/** id → [label, who says it, look]. Pairs: the comeback's id ends in "-reply". */
+export const MOVIE_LINES_2: [string, string, string, Who2][] = [
+    ["breakfast", "I eat pieces of shit like you for breakfast", "Shooter McGavin", { skin: S2.light, hair: "side", hairCol: "#2a1d14", jacket: "#2f3f66", shirt: "#f2f2f2", eyes: "angry", mouth: "smirk", bg: "#7fae6a", extras: ["mustache"] }],
+    ["breakfast-reply", "You eat pieces of shit for breakfast?", "Happy Gilmore", { skin: S2.light, hair: "messy", hairCol: "#3a2717", jacket: "#b3212b", eyes: "wide", mouth: "o", bg: "#7fae6a", hat: "cowboy-hat" }],
+    ["want-the-truth", "I want the truth!", "Lt. Kaffee", { skin: S2.light, hair: "side", hairCol: "#2a1d14", jacket: "#f4f4f4", shirt: "#ffffff", tie: "#111", eyes: "angry", mouth: "shout", shape: "square", bg: "#7a5a3a" }],
+    ["want-the-truth-reply", "You can't handle the truth!", "Col. Jessup", { skin: S2.light, hair: "receding", hairCol: "#8f8a80", jacket: "#2e3d2a", shirt: "#c8b78f", eyes: "angry", mouth: "shout", bg: "#7a5a3a" }],
+    [
+        "your-father",
+        "I am your father",
+        "Darth Vader",
+        {
+            skin: "#111",
+            hair: "bald",
+            jacket: "#111",
+            bg: "#2a2f45",
+            custom: () => (
+                <>
+                    <Bg fill="#2a2f45" />
+                    <Body jacket="#111" skin="#111" hands="point" />
+                    <path d="M28 40 C26 14 40 6 50 6 C60 6 74 14 72 40 L66 52 H34 Z" fill="#151515" stroke="#555" strokeWidth={L} />
+                    <path d="M38 26 l8 0 l-2 6 h-6z M62 26 l-8 0 l2 6 h6z" fill="#3a3f4a" />
+                    <path d="M44 40 l6 10 l6 -10 M46 44 h8" fill="none" stroke="#777" strokeWidth={L} />
+                </>
+            )
+        }
+    ],
+    ["your-father-reply", "Noooooo!", "Luke Skywalker", { skin: S2.light, hair: "side", hairCol: "#d9b26a", jacket: "#2a2a2a", eyes: "sad", mouth: "shout", bg: "#2a2f45", hands: "up" }],
+    ["big-deal", "I'm kind of a big deal", "Ron Burgundy", { skin: S2.light, hair: "side", hairCol: "#5a3f2a", jacket: "#8a2f2f", shirt: "#ffffff", tie: "#d6a531", extras: ["mustache"], eyes: "smug", mouth: "smirk", bg: "#3b5a8a" }],
+    ["big-deal-reply", "Really?", "Veronica Corningstone", { skin: S2.light, hair: "long", hairCol: "#d9b26a", jacket: "#c46a8a", eyes: "smug", mouth: "flat", bg: "#3b5a8a" }],
+    ["find-you", "I will find you", "Bryan Mills", { skin: S2.light, hair: "short", hairCol: "#5a5a5a", jacket: "#1d1d1f", eyes: "angry", mouth: "flat", shape: "long", bg: "#2c3a40", hold: "phone" }],
+    ["find-you-reply", "Good luck.", "Marko", { skin: S2.light, hair: "slick", hairCol: "#1d1d1d", jacket: "#3a3a3a", eyes: "smug", mouth: "smirk", bg: "#2c3a40", extras: ["stubble"] }],
+    ["inconceivable", "Inconceivable!", "Vizzini", { skin: S2.light, hair: "receding", hairCol: "#3a2717", jacket: "#8a2f2f", eyes: "crazy", mouth: "shout", shape: "wide", bg: "#7d8f5a" }],
+    ["inconceivable-reply", "You keep using that word…", "Inigo Montoya", { skin: S2.olive, hair: "long", hairCol: "#1d1d1d", jacket: "#2a2a2a", extras: ["mustache"], eyes: "smug", mouth: "flat", bg: "#7d8f5a" }],
+    ["fetch", "That's so fetch!", "Gretchen Wieners", { skin: S2.light, hair: "curly", hairCol: "#6b4a2f", jacket: "#e8a6c0", eyes: "wide", mouth: "smile", bg: "#f2c6d8" }],
+    ["fetch-reply", "Stop trying to make fetch happen", "Regina George", { skin: S2.light, hair: "long", hairCol: "#e8c262", jacket: "#e85c8a", eyes: "smug", mouth: "frown", bg: "#f2c6d8" }],
+    ["say-what", "Say 'what' again, motherf**ker!", "Jules", { skin: S2.brown, hair: "curly", hairCol: "#1d1d1d", jacket: "#151515", shirt: "#ffffff", tie: "#151515", extras: ["mustache"], eyes: "angry", mouth: "shout", bg: "#c79a3a", hands: "point" }],
+    ["say-what-reply", "What?", "Brett", { skin: S2.light, hair: "side", hairCol: "#3a2717", jacket: "#6d8a9a", eyes: "wide", mouth: "o", bg: "#c79a3a" }],
+    ["best-friends", "Did we just become best friends?", "Brennan", { skin: S2.light, hair: "side", hairCol: "#6b4a2f", jacket: "#5f7d9a", eyes: "wide", mouth: "grin", bg: "#e8c48a" }],
+    ["best-friends-reply", "Yup!", "Dale", { skin: S2.light, hair: "short", hairCol: "#3a2717", jacket: "#8a5a3a", eyes: "wide", mouth: "grin", shape: "wide", bg: "#e8c48a", hands: "thumb" }],
+    ["bigger-boat", "We're gonna need a bigger boat", "Chief Brody", { skin: S2.light, hair: "receding", hairCol: "#8f8a80", jacket: "#c8b78f", eyes: "wide", mouth: "flat", bg: "#3a7fb0", extras: ["glasses"] }],
+    ["feel-lucky", "Do you feel lucky, punk?", "Harry Callahan", { skin: S2.tan, hair: "side", hairCol: "#7a5532", jacket: "#5a5a5a", tie: "#2a2a2a", shirt: "#ffffff", eyes: "angry", mouth: "flat", shape: "long", bg: "#7a6a5a", hands: "point" }],
+    ["talkin-to-me", "You talkin' to me?", "Travis Bickle", { skin: S2.light, hair: "spiky", hairCol: "#2a1d14", jacket: "#5a4a2f", eyes: "angry", mouth: "smirk", shape: "narrow", bg: "#2f2f3a", hands: "point" }],
+    ["cant-refuse", "An offer he can't refuse", "Vito Corleone", { skin: S2.light, hair: "slick", hairCol: "#8f8a80", jacket: "#151515", shirt: "#ffffff", tie: "#151515", eyes: "smug", mouth: "flat", shape: "jaw", bg: "#3a2a1d" }],
+    ["entertained", "Are you not entertained?!", "Maximus", { skin: S2.tan, hair: "short", hairCol: "#2a1d14", jacket: "#7a5532", eyes: "angry", mouth: "shout", extras: ["beard"], bg: "#c79a5a", hands: "up" }],
+    ["sparta", "This is Sparta!", "Leonidas", { skin: S2.tan, hair: "long", hairCol: "#1d1d1d", jacket: "#8a1f1f", eyes: "angry", mouth: "shout", extras: ["beard"], bg: "#c76a2a", hands: "up" }],
+    ["not-leaving", "I'm not f**king leaving!", "Jordan Belfort", { skin: S2.light, hair: "slick", hairCol: "#8a5a33", jacket: "#2a2f45", shirt: "#ffffff", tie: "#8a1f2b", eyes: "crazy", mouth: "shout", bg: "#2f4a6a", hands: "up" }],
+    ["your-opinion", "That's just, like, your opinion, man", "The Dude", { skin: S2.light, hair: "long", hairCol: "#7a5532", jacket: "#c4a77a", extras: ["beard"], eyes: "smug", mouth: "flat", bg: "#8a6a9a" }],
+    ["nearly-killed-me", "That last hand… nearly killed me", "James Bond", { skin: S2.light, hair: "short", hairCol: "#c8a86a", jacket: "#151515", shirt: "#ffffff", tie: "#151515", eyes: "smug", mouth: "flat", shape: "square", bg: "#2a4a3a" }],
+    ["in-or-out", "You're either in or you're out", "Danny Ocean", { skin: S2.light, hair: "short", hairCol: "#7a7a7a", jacket: "#2a2a2e", shirt: "#ffffff", eyes: "smug", mouth: "smirk", bg: "#5a2a3a", extras: ["stubble"] }],
+    ["the-odds", "Never tell me the odds!", "Han Solo", { skin: S2.light, hair: "side", hairCol: "#5a3f2a", jacket: "#2a2a2a", shirt: "#f2f2f2", eyes: "smug", mouth: "smirk", bg: "#1d2440" }],
+    ["droids", "These aren't the droids you're looking for", "Obi-Wan Kenobi", { skin: S2.light, hair: "short", hairCol: "#e4e4e4", jacket: "#a08060", extras: ["beard"], eyes: "smug", mouth: "flat", bg: "#c9a46a", hands: "frame" }],
+    ["hasta-la-vista", "Hasta la vista, baby", "The T-800", { skin: S2.tan, hair: "short", hairCol: "#4a3426", jacket: "#1a1a1c", extras: ["shades"], mouth: "smirk", shape: "block", bg: "#c7642a", hands: "thumb" }],
+    ["one-million", "One MILLION dollars", "Dr. Evil", { skin: S2.light, hair: "bald", jacket: "#8a8a8a", extras: ["scar"], eyes: "smug", mouth: "smirk", bg: "#3a3a5a", hands: "point" }],
+    ["filthy-animal", "Keep the change, ya filthy animal", "Johnny (Home Alone)", { skin: S2.light, hair: "slick", hairCol: "#1d1d1d", jacket: "#3a3a3a", hat: "cowboy-hat", eyes: "angry", mouth: "smirk", bg: "#3a3a3a", hold: "cash" }],
+    ["finds-a-way", "Life, uh, finds a way", "Ian Malcolm", { skin: S2.light, hair: "curly", hairCol: "#1d1d1d", jacket: "#151515", extras: ["glasses"], eyes: "smug", mouth: "smirk", bg: "#3f6a3a" }],
+    ["king-of-the-world", "I'm the king of the world!", "Jack Dawson", { skin: S2.light, hair: "side", hairCol: "#c8a86a", jacket: "#f2f2f2", eyes: "wide", mouth: "grin", bg: "#5aa0d0", hands: "up" }],
+    ["center-for-ants", "What is this? A center for ants?!", "Derek Zoolander", { skin: S2.light, hair: "slick", hairCol: "#c8a86a", jacket: "#e8e8e8", eyes: "angry", mouth: "shout", shape: "narrow", bg: "#d8d0c0" }],
+    ["first-or-last", "If you ain't first, you're last", "Ricky Bobby", { skin: S2.light, hair: "short", hairCol: "#6b4a2f", jacket: "#2f6fc0", eyes: "wide", mouth: "grin", bg: "#e85c2a", hands: "thumb" }],
+    ["bad-choice", "Milk was a bad choice", "Ron Burgundy", { skin: S2.light, hair: "side", hairCol: "#5a3f2a", jacket: "#8a2f2f", shirt: "#ffffff", tie: "#d6a531", extras: ["mustache"], eyes: "sad", mouth: "frown", bg: "#e8e0c8" }],
+    ["dumber", "We are all now dumber for having listened to it", "The principal", { skin: S2.light, hair: "receding", hairCol: "#8f8a80", jacket: "#5a5a5a", shirt: "#ffffff", tie: "#2a2a2a", extras: ["glasses"], eyes: "smug", mouth: "frown", bg: "#c8c0a8" }],
+    ["price-is-wrong", "The price is wrong, bitch!", "Happy Gilmore", { skin: S2.light, hair: "messy", hairCol: "#3a2717", jacket: "#b3212b", eyes: "angry", mouth: "shout", bg: "#e8b84a", hands: "up" }],
+    ["world-burn", "Some men just want to watch the world burn", "Alfred", { skin: S2.light, hair: "receding", hairCol: "#e4e4e4", jacket: "#151515", shirt: "#ffffff", tie: "#151515", extras: ["glasses"], eyes: "sad", mouth: "flat", bg: "#c75a2a" }],
+    ["my-precious", "My precious", "Gollum", { skin: "#c8c4b0", hair: "bald", jacket: "#8a8070", eyes: "crazy", mouth: "teeth", shape: "egg", bg: "#3a3a2a", hold: "chip" }],
+    ["them-apples", "How do you like them apples?", "Will Hunting", { skin: S2.light, hair: "short", hairCol: "#6b4a2f", jacket: "#6d7f96", eyes: "smug", mouth: "grin", bg: "#8a3a2a" }]
+];
+
+for (const [id, , speaker, who] of MOVIE_LINES_2) {
+    MOVIE_ART[id] = quick(who);
+    MOVIE_SPEAKERS[id] = speaker;
+}

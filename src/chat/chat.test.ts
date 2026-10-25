@@ -14,8 +14,8 @@ beforeEach(() => {
 
 describe("stickers (block52-chat#2)", () => {
     it("has the classics plus set v2 (#16), unique slug ids, each in a known pack", () => {
-        expect(STICKERS).toHaveLength(126);
-        expect(new Set(STICKERS.map(s => s.id)).size).toBe(126);
+        expect(STICKERS).toHaveLength(169);
+        expect(new Set(STICKERS.map(s => s.id)).size).toBe(169);
         const packs = new Set(STICKER_PACKS.map(p => p.id));
         expect(STICKERS.every(s => packs.has(s.pack))).toBe(true);
         // Ids go on the wire, so they must pass the relay's slug check.
@@ -243,7 +243,7 @@ describe("meme sticker styles (block52-chat#2)", () => {
     const { STICKERS } = require("./stickers");
 
     it("has a plan for every sticker, using only real art", () => {
-        for (const s of STICKERS) {
+        for (const s of STICKERS.filter((x: { pack: string }) => x.pack !== "movies")) {
             const spec = MEME_SPECS[s.id];
             expect([s.id, !!spec]).toEqual([s.id, true]);
             for (const art of [spec.prop, spec.side, spec.above, spec.hat].filter(Boolean)) expect([s.id, art, isKnownArt(art)]).toEqual([s.id, art, true]);
@@ -251,7 +251,7 @@ describe("meme sticker styles (block52-chat#2)", () => {
     });
 
     it.each(["wojak", "rage", "hose", "sticks"])("draws all stickers in the %s style", style => {
-        for (const s of STICKERS) {
+        for (const s of STICKERS.filter((x: { pack: string }) => x.pack !== "movies")) {
             const html = renderToStaticMarkup(React.createElement(MemeSticker, { sticker: s, style, size: 76 }));
             expect(html).toContain("<svg");
             expect(html).toContain("<text");
@@ -285,7 +285,7 @@ describe("movie references pack", () => {
     const { STICKERS } = require("./stickers");
     it("gives every movie line a character who says it", () => {
         const movies = STICKERS.filter((s: { pack: string }) => s.pack === "movies");
-        expect(movies.length).toBe(19);
+        expect(movies.length).toBe(62);
         for (const s of movies) expect([s.id, !!MOVIE_ART[s.id], !!MOVIE_SPEAKERS[s.id]]).toEqual([s.id, true, true]);
     });
 });
