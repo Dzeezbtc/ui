@@ -8,7 +8,7 @@ import { ChipPile, Flame } from "./frame";
  * Our own gags. 100×76 art area.
  */
 const INK = "#111";
-const W = 1.6;
+const W = 2.1;
 
 const Guy: React.FC<{
     x: number;
@@ -23,10 +23,10 @@ const Guy: React.FC<{
     <g transform={`translate(${x} ${y}) scale(${k})`} stroke={INK} strokeWidth={W} strokeLinecap="round" strokeLinejoin="round" fill="none">
         <path d={legs} />
         <path d={arms} />
-        <path d="M-7 8 L-6 -9 Q0 -12 6 -9 L7 8 Z" fill={shirt} strokeWidth={W * 0.8} />
+        <path d="M-6 8 L-6.4 -6 Q-6.4 -10 0 -10 Q6.4 -10 6.4 -6 L6 8 Z" fill={shirt} />
         {head ?? (
             <>
-                <ellipse cx={0} cy={-20} rx={10.6} ry={9.7} fill="#fff" />
+                <path d="M0 -32 C7.2 -32 10 -26.6 10 -19 C10 -12 7 -9.4 0 -9.4 C-7 -9.4 -10 -12 -10 -19 C-10 -26.6 -7.2 -32 0 -32z" fill="#f8c38f" />
                 {face}
             </>
         )}
@@ -71,7 +71,7 @@ export const STICKS_SET: Record<string, () => React.ReactElement> = {
     ),
     "donk-bet": () => (
         <g>
-            <rect x={0} y={0} width={100} height={80} fill="#d9ecd0" />
+            <rect x={0} y={0} width={100} height={80} fill="#fff" />
             <ChipPile x={50} y={78} k={1.1} line={1} />
             <Guy
                 x={50}
@@ -103,7 +103,7 @@ export const STICKS_SET: Record<string, () => React.ReactElement> = {
     ),
     "whale-spotted": () => (
         <g>
-            <rect x={0} y={0} width={100} height={80} fill="#d6e6f5" />
+            <rect x={0} y={0} width={100} height={80} fill="#fff" />
             {/* the whale, in a shirt and tie, at a table, with all the chips */}
             <path d="M0 62 h62" stroke={INK} strokeWidth={W} />
             <ChipPile x={30} y={62} k={0.95} line={1} />
@@ -134,7 +134,7 @@ export const STICKS_SET: Record<string, () => React.ReactElement> = {
     ),
     "so-over": () => (
         <g>
-            <rect x={0} y={0} width={100} height={80} fill="#e2e2e8" />
+            <rect x={0} y={0} width={100} height={80} fill="#fff" />
             <path d="M0 66 h100" stroke={INK} strokeWidth={W} />
             {/* face-down on the floor, one chip left */}
             <g stroke={INK} strokeWidth={W} strokeLinecap="round" strokeLinejoin="round" fill="none">

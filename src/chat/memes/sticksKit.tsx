@@ -9,12 +9,16 @@ import type { Face, Who } from "./specs";
  * on a stick body, stick arms with no hands, flat pastel backgrounds.
  */
 const INK = "#111";
-const W = 1.6;
+const W = 2.1;
+/** Skin: the warm peach of the current comics. */
+const SKIN = "#f8c38f";
+/** The tall egg head of the current comics, centred near (0, -2). */
+export const EGG = "M0 -21.5 C11 -21.5 15.4 -13 15.4 -1 C15.4 10 10.6 15.4 0 15.4 C-10.6 15.4 -15.4 10 -15.4 -1 C-15.4 -13 -11 -21.5 0 -21.5z";
 const TEAR = "#5aa9e6";
 
 const SHIRT: Record<Who, string> = {
-    guy: "#e05a4f",
-    nerd: "#2e9a4e",
+    guy: "#ff8c12",
+    nerd: "#2fc12a",
     doomer: "#2a2a2e",
     chad: "#3d7fd6",
     npc: "#9a9a9a",
@@ -40,7 +44,7 @@ const BG: Record<Who, string> = {
  * tongues, no shading. Extremes come from mouth size and eye shape.
  */
 function faceEl(face: Face): React.ReactNode {
-    const eye = (x: number, ry = 1.9, dy = 0, rx = 1.05) => <ellipse key={x} cx={x} cy={-2 + dy} rx={rx} ry={ry} fill={INK} stroke="none" />;
+    const eye = (x: number, ry = 1.75, dy = 0, rx = 1.35) => <ellipse key={x} cx={x} cy={-2 + dy} rx={rx} ry={ry} fill={INK} stroke="none" />;
     const st = { fill: "none", stroke: INK, strokeWidth: 1.1, strokeLinecap: "round" as const, strokeLinejoin: "round" as const };
     const hole = (d: string) => <path d={d} fill={INK} stroke={INK} strokeWidth={0.8} strokeLinejoin="round" />;
     let eyes: React.ReactNode = [eye(-3.8), eye(3.8)];
@@ -144,7 +148,8 @@ function faceEl(face: Face): React.ReactNode {
     return (
         <g>
             {eyes}
-            {mouth}
+            {/* mouths sit small and high, clear of the chin */}
+            <g transform="translate(0 3.4) scale(0.72) translate(0 -3.4)">{mouth}</g>
             {face === "cry" && (
                 <g stroke={TEAR} strokeWidth={1.4} fill="none" strokeLinecap="round">
                     <path d="M-4 0 v12" />
@@ -179,16 +184,16 @@ const Head: React.FC<{ who: Who; face: Face }> = ({ who, face }) => {
     }
     return (
         <g stroke={INK} strokeWidth={W}>
-            <ellipse cx={0} cy={-2} rx={17.6} ry={16} fill={who === "npc" ? "#cfcfcf" : "#fff"} />
-            <g transform="translate(0 -1) scale(1.32)">{faceEl(face)}</g>
+            <path d={EGG} fill={who === "npc" ? "#cfcfcf" : SKIN} />
+            <g transform="translate(0 -1.5) scale(1.3)">{faceEl(face)}</g>
             {who === "nerd" && (
-                <g fill="none" strokeWidth={1.1} transform="translate(0 -1) scale(1.32)">
+                <g fill="none" strokeWidth={1.1} transform="translate(0 -1.5) scale(1.3)">
                     <circle cx={-4} cy={-2} r={3.6} />
                     <circle cx={4} cy={-2} r={3.6} />
                     <path d="M-0.4 -2.4 h0.8" />
                 </g>
             )}
-            {who === "chad" && face !== "cool" && <path transform="translate(0 -1) scale(1.32)" d="M-8 -4 h16 v1 q-1 3.4 -4 3.4 q-3 0 -3.4 -2.4 h-1.2 q-0.4 2.4 -3.4 2.4 q-3 0 -4 -3.4z" fill={INK} />}
+            {who === "chad" && face !== "cool" && <path transform="translate(0 -1.5) scale(1.3)" d="M-8 -4 h16 v1 q-1 3.4 -4 3.4 q-3 0 -3.4 -2.4 h-1.2 q-0.4 2.4 -3.4 2.4 q-3 0 -4 -3.4z" fill={INK} />}
             {who === "doomer" && (
                 <g>
                     <path d="M-16.5 -4 C-18 -22 18 -22 16.5 -4 C8 -8 -8 -8 -16.5 -4z" fill="#2a2a2e" />
@@ -224,7 +229,7 @@ export const SticksBust: React.FC<BustProps> = ({ who, face, pose, hat, hold, co
     return (
         <g transform="scale(1.25)">
             <g stroke={INK} strokeWidth={W} strokeLinecap="round" strokeLinejoin="round" fill="none">
-                <path d="M-3 44 l-3 16 M3 44 l3 16" />
+                <path d="M-4 46 q-2 8 -2.6 16 M4 46 q2 8 2.6 16" />
                 {showArms ? (
                     <>
                         <path d={`M-7 20 L${lh[0]} ${lh[1]}`} />
@@ -233,7 +238,7 @@ export const SticksBust: React.FC<BustProps> = ({ who, face, pose, hat, hold, co
                 ) : (
                     <path d="M-7 20 l-6 14 M7 20 l6 14" />
                 )}
-                {!costumed && <path d="M-9 44 L-8 17 Q0 13 8 17 L9 44 Z" fill={SHIRT[who]} strokeWidth={W * 0.8} />}
+                {!costumed && <path d="M-8 47 L-8.8 21 Q-8.8 14 0 14 Q8.8 14 8.8 21 L8 47 Z" fill={SHIRT[who]} />}
             </g>
             <Head who={who} face={face} />
             {hat && <Obj spec={hat} x={HAT_AT[hat][0]} y={HAT_AT[hat][1]} s={HAT_AT[hat][2]} />}
@@ -245,4 +250,4 @@ export const SticksBust: React.FC<BustProps> = ({ who, face, pose, hat, hold, co
 /** The stick style uses a flat pastel background tied to who's in it. */
 export const sticksBg = (who: Who): string => BG[who];
 
-export const STICKS_KIT: StyleKit = { ink: INK, line: W, bg: "#fde9cf", bgFor: sticksBg, lookTorso: 0.55, Bust: SticksBust };
+export const STICKS_KIT: StyleKit = { ink: INK, line: W, bg: "#fff", bgFor: () => "#fff", lookTorso: 0.55, Bust: SticksBust };
