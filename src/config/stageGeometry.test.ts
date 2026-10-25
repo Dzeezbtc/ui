@@ -1,4 +1,4 @@
-import { getSeatPositions, getViewportMode, layoutSizeFor, LAYOUT_SIZES, type TableSize } from "./stageGeometry";
+import { getSeatPositions, getViewportMode, layoutSizeFor, LAYOUT_SIZES, type TableSize, TABLE_SIZE_OPTIONS } from "./stageGeometry";
 
 describe("getViewportMode", () => {
     const originalMatchMedia = window.matchMedia;
@@ -110,5 +110,11 @@ describe("layoutSizeFor (ui#877)", () => {
             expect(LAYOUT_SIZES).toContain(size);
             expect(getSeatPositions(size).length).toBe(size);
         }
+    });
+});
+
+describe("table sizes players can create (ui#877)", () => {
+    it("offers 2, 4, 6, 8 and 9 seats — not 3, 5 or 7", () => {
+        expect(TABLE_SIZE_OPTIONS).toEqual([2, 4, 6, 8, 9]);
     });
 });
