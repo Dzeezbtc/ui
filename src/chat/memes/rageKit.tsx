@@ -268,5 +268,6 @@ export const RAGE_KIT: StyleKit = {
     line: W,
     bg: "#ffffff",
     propFilter: <feColorMatrix type="saturate" values="0.75" />,
+    lookTorso: 0.8,
     Bust: RageBust
 };

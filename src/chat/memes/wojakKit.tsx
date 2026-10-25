@@ -470,7 +470,7 @@ const HAT_AT: Record<string, [number, number, number]> = {
     "cowboy-hat": [0, -30, 0.6]
 };
 
-export const WojakBust: React.FC<BustProps> = ({ who, face, pose, hat, hold }) => {
+export const WojakBust: React.FC<BustProps> = ({ who, face, pose, hat, hold, costumed }) => {
     if (who === "whale") return <WhaleBody face={face} />;
     const [lh, rh] = HANDS[pose];
     const [ls, rs] = SHOULDERS;
@@ -488,7 +488,7 @@ export const WojakBust: React.FC<BustProps> = ({ who, face, pose, hat, hold }) =
     const rightKind = pose === "point" ? "point" : pose === "thumb" ? "thumb" : "open";
     return (
         <g>
-            <path d="M-36 70 C-34 44 -22 33 -7 29 L7 29 C22 33 34 44 36 70Z" fill={sleeve} stroke={INK} strokeWidth={W} strokeLinejoin="round" />
+            {!costumed && <path d="M-36 70 C-34 44 -22 33 -7 29 L7 29 C22 33 34 44 36 70Z" fill={sleeve} stroke={INK} strokeWidth={W} strokeLinejoin="round" />}
             {who === "doomer" && <path d="M-8 29 q8 8 16 0" fill="none" stroke="#555" strokeWidth={W} />}
             {who === "donkey" ? <DonkeyHead face={face} /> : who === "fish" ? <FishHead face={face} /> : <WojakHead who={who} face={face} />}
             {hat && <Obj spec={hat} x={HAT_AT[hat][0]} y={HAT_AT[hat][1]} s={HAT_AT[hat][2]} />}
@@ -505,4 +505,4 @@ export const WojakBust: React.FC<BustProps> = ({ who, face, pose, hat, hold }) =
     );
 };
 
-export const WOJAK_KIT: StyleKit = { ink: INK, line: W, bg: "#ffffff", Bust: WojakBust };
+export const WOJAK_KIT: StyleKit = { ink: INK, line: W, bg: "#ffffff", lookTorso: 1, Bust: WojakBust };

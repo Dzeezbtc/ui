@@ -259,3 +259,21 @@ describe("meme sticker styles (block52-chat#2)", () => {
         }
     });
 });
+
+describe("who's who (seats and avatars, not addresses)", () => {
+    // eslint-disable-next-line @typescript-eslint/no-var-requires
+    const { registerTablePlayers, playerLabel, getTablePlayers, __resetPlayersForTests } = require("./players");
+    beforeEach(() => __resetPlayersForTests());
+
+    it("names seated players by name, else seat; others are spectators", () => {
+        registerTablePlayers([
+            { address: "b521AAA", seat: 2, avatar: "https://x/a.png" },
+            { address: "b521bbb", seat: 1, name: "Dzee" }
+        ]);
+        expect(playerLabel("b521aaa")).toBe("Seat 2");
+        expect(playerLabel("B521BBB")).toBe("Dzee");
+        expect(playerLabel("b521zzz")).toBe("Spectator");
+        expect(playerLabel("b521aaa", true)).toBe("You");
+        expect(getTablePlayers().map((p: { seat: number }) => p.seat)).toEqual([1, 2]);
+    });
+});

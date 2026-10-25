@@ -14,6 +14,8 @@ export type Face =
 export type Pose = "none" | "point" | "up" | "hold" | "shrug" | "facepalm" | "pray" | "push" | "clap" | "salute" | "thumb" | "chin" | "cheeks";
 export type Fx =
     | "flames" | "sweat" | "steam" | "sparkles" | "rain" | "zzz" | "question" | "motion" | "hearts" | "stars" | "spotlight" | "chips" | "ice" | "money" | "bubble";
+import type { Look } from "./looks";
+
 export type Hat = "captain-hat" | "chef-hat" | "wizard-hat" | "crown" | "hard-hat" | "cowboy-hat";
 
 export interface MemeSpec {
@@ -32,6 +34,8 @@ export interface MemeSpec {
     sign?: string;
     /** panel background colour */
     bg?: string;
+    /** a movie costume (looks.tsx) */
+    look?: Look;
 }
 
 const S = (who: Who, face: Face, rest: Partial<MemeSpec> = {}): MemeSpec => ({ who, face, ...rest });
@@ -54,7 +58,7 @@ export const MEME_SPECS: Record<string, MemeSpec> = {
     // Hype & wins
     "all-in-baby": S("chad", "grin", { pose: "push", fx: ["chips"], sign: "ALL IN" }),
     "ship-it": S("chad", "grin", { hat: "captain-hat", side: "ship" }),
-    "pay-that-man": S("guy", "smug", { pose: "hold", prop: "cash" }),
+    "pay-that-man": S("guy", "smug", { pose: "hold", prop: "cash", look: "kgb" }),
     "daddy-new-stack": S("guy", "nervous", { pose: "pray", above: "chip-stack" }),
     bink: S("nerd", "wow", { pose: "up", side: "slot" }),
     nutted: S("chad", "smug", { pose: "hold", prop: "peanut" }),
@@ -105,7 +109,7 @@ export const MEME_SPECS: Record<string, MemeSpec> = {
     "gutshot-gang": S("chad", "cool", { side: "target" }),
     // Table banter
     "min-raise": S("nerd", "confused", { fx: ["question"], side: "chip" }),
-    "show-me-the-money": S("guy", "wow", { pose: "up", fx: ["money"] }),
+    "show-me-the-money": S("guy", "wow", { pose: "hold", prop: "phone", fx: ["money"] }),
     "hold-my-chips": S("chad", "grin", { pose: "hold", prop: "beer" }),
     "nit-alert": S("guy", "shock", { side: "siren" }),
     "fish-on": S("guy", "grin", { pose: "hold", prop: "fishing-rod" }),
@@ -124,15 +128,15 @@ export const MEME_SPECS: Record<string, MemeSpec> = {
     "this-is-fine": S("guy", "calm", { fx: ["flames"] }),
     "im-in-danger": S("guy", "nervous", { fx: ["sweat"], side: "siren" }),
     "not-great": S("guy", "neutral", { side: "radiation" }),
-    "its-a-trap": S("guy", "shock", { side: "mousetrap" }),
+    "its-a-trap": S("fish", "shock", { side: "mousetrap", look: "admiral" }),
     stonks: S("npc", "smug", { side: "chart-up" }),
     "big-mistake": S("chad", "smug", { pose: "hold", prop: "shopping-bag" }),
-    "shall-not-pass": S("guy", "determined", { hat: "wizard-hat", pose: "up" }),
-    "one-does-not-simply": S("guy", "neutral", { pose: "chin", side: "ring" }),
-    "ill-be-back": S("chad", "cool", { pose: "thumb" }),
-    "little-friend": S("guy", "grin", { side: "boom" }),
-    inevitable: S("chad", "smug", { pose: "hold", prop: "gauntlet" }),
-    "why-so-serious": S("guy", "grin", { side: "joker-card" }),
+    "shall-not-pass": S("guy", "determined", { look: "wizard" }),
+    "one-does-not-simply": S("guy", "neutral", { pose: "chin", side: "ring", look: "warrior" }),
+    "ill-be-back": S("guy", "cool", { pose: "thumb", look: "terminator" }),
+    "little-friend": S("guy", "rage", { side: "chip-stack", fx: ["motion"], look: "gangster" }),
+    inevitable: S("guy", "smug", { pose: "hold", prop: "gauntlet", look: "titan" }),
+    "why-so-serious": S("guy", "grin", { side: "joker-card", look: "clown" }),
     "head-out": S("guy", "neutral", { side: "door" }),
     "let-him-cook": S("guy", "smug", { hat: "chef-hat" }),
     "emotional-damage": S("guy", "dizzy", { fx: ["stars"], above: "broken-heart" }),
@@ -147,9 +151,9 @@ export const MEME_SPECS: Record<string, MemeSpec> = {
     "rent-free": S("guy", "smile", { above: "house" }),
     "down-bad": S("doomer", "sad", { fx: ["rain"] }),
     "task-failed": S("guy", "smile", { side: "check" }),
-    "over-9000": S("nerd", "shock", { side: "burst-9000" }),
+    "over-9000": S("nerd", "shock", { side: "burst-9000", look: "scouter" }),
     "call-an-ambulance": S("chad", "smug", { side: "ambulance" }),
-    "perfectly-balanced": S("guy", "calm", { side: "scales" }),
+    "perfectly-balanced": S("guy", "calm", { side: "scales", look: "titan" }),
     "not-like-this": S("guy", "shock", { pose: "cheeks" }),
     "absolute-cinema": S("guy", "wow", { pose: "up", side: "clapper" }),
     "so-over": S("guy", "cry"),

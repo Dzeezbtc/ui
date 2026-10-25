@@ -43,6 +43,7 @@
  * - ActionsLog: Game history
  */
 
+import { useProfileAvatar } from "../../context/profile/ProfileAvatarContext";
 import { buildHandShareUrl } from "../../utils/handReplay";
 import { useEffect, useState, useMemo, useCallback, memo, useRef } from "react";
 import { isSitAndGoFormat, isTournamentFormat } from "../../utils/gameFormatUtils";
@@ -710,7 +711,16 @@ const Table = React.memo(() => {
         useGameStateContext();
     const { currentNetwork } = useNetwork();
     // Who is seated, for chat's "mute spectators" (block52-chat#5).
-    const seatedChatAddresses = useMemo(() => (gameState?.players ?? []).map(p => p.address).filter(Boolean), [gameState?.players]);
+    // Who is seated — seat and avatar — so chat shows avatars / "Seat N" instead of
+    // wallet addresses (and for "mute spectators", block52-chat#5).
+    const { getAvatarForAddress } = useProfileAvatar();
+    const chatPlayers = useMemo(
+        () =>
+            (gameState?.players ?? [])
+                .filter(p => Boolean(p.address))
+                .map(p => ({ address: p.address, seat: Number(p.seat), avatar: getAvatarForAddress(p.address, p.avatar) })),
+        [gameState?.players, getAvatarForAddress]
+    );
 
     // Replay mode — read hand/index query params from the readonly share link.
     const { isReplayMode: hasReplayParams, handNumber: replayHandParam, actionIndex: replayActionParam, clearReplayParams, setReplayHand } = useReplayMode();
@@ -1655,7 +1665,7 @@ const Table = React.memo(() => {
 
             {/* Table chat (block52-chat#1): chat box with Quick chat stickers and settings.
                 Hidden in replay mode (a read-only view of a past hand). */}
-            {!isReplayMode && <TableChatBox seatedAddresses={seatedChatAddresses} />}
+            {!isReplayMode && <TableChatBox players={chatPlayers} />}
 
             {/* Layout Debug Panel */}
             <LayoutDebugInfo viewportMode={viewportMode} startIndex={startIndex} tableSize={tableSize} results={results} setStartIndex={setStartIndex} />

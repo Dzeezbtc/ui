@@ -271,6 +271,7 @@ export const HOSE_KIT: StyleKit = {
     ink: INK,
     line: 1.8,
     bg: "transparent",
+    lookTorso: 0,
     propFilter: (
         <>
             <feColorMatrix type="matrix" values="0.85 0.25 0.05 0 0.02  0.2 0.75 0.1 0 0.02  0.15 0.2 0.55 0 0  0 0 0 1 0" />

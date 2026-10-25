@@ -43,3 +43,6 @@ export { C as ART_PALETTE } from "./art/ink";
 export { EMOTES, findEmote, parseEmotes } from "./emotes";
 export type { EmoteDef } from "./emotes";
 export { default as RichText } from "./RichText";
+export { registerTablePlayers, getTablePlayer, getTablePlayers, playerLabel, useTablePlayers } from "./players";
+export type { TablePlayer } from "./players";
+export { default as PlayerTag } from "./PlayerTag";

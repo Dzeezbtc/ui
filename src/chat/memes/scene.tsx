@@ -2,6 +2,7 @@ import React from "react";
 import { ArtLayers } from "../art/Art";
 import { ChipPile, Flame } from "./frame";
 import type { Face, Fx, Hat, MemeSpec, Pose, Who } from "./specs";
+import { LookOverlay } from "./looks";
 
 /**
  * Lays out a meme sticker from its plan (specs.ts) in a given style. The style
@@ -18,6 +19,8 @@ export interface BustProps {
     pose: Pose;
     hat?: Hat;
     hold?: React.ReactNode;
+    /** wearing a movie costume: the style skips its own shirt so the costume shows */
+    costumed?: boolean;
 }
 
 export interface StyleKit {
@@ -28,6 +31,8 @@ export interface StyleKit {
     bgFor?: (who: Who) => string;
     /** an SVG filter for borrowed objects, so they sit in the style (sepia, greyscale…) */
     propFilter?: React.ReactNode;
+    /** how wide this style's body is for costumes (0 = no torso) */
+    lookTorso: number;
     Bust: React.FC<BustProps>;
 }
 
@@ -169,7 +174,9 @@ export const MemeScene: React.FC<{ kit: StyleKit; spec: MemeSpec; uid: string }>
             {fxBack(fx, cx)}
             {hasSide && <Obj spec={spec.side!} x={75} y={46} s={0.64} filter={filterId} />}
             <g transform={`translate(${cx} 36) scale(${k})`}>
-                <kit.Bust who={spec.who} face={spec.face} pose={pose} hat={spec.hat} hold={hold} />
+                {spec.look && <LookOverlay look={spec.look} torso={kit.lookTorso} line={kit.line} part="body" />}
+                <kit.Bust who={spec.who} face={spec.face} pose={pose} hat={spec.hat} hold={hold} costumed={!!spec.look && kit.lookTorso > 0} />
+                {spec.look && <LookOverlay look={spec.look} torso={kit.lookTorso} line={kit.line} part="head" />}
             </g>
             {spec.above && <Obj spec={spec.above} x={cx + 22} y={10} s={0.34} filter={filterId} />}
             {fxFront(fx, cx, kit.ink, kit.line)}

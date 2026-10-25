@@ -248,7 +248,7 @@ const HAT_AT: Record<string, [number, number, number]> = {
     "cowboy-hat": [0, -19, 0.56]
 };
 
-export const SticksBust: React.FC<BustProps> = ({ who, face, pose, hat, hold }) => {
+export const SticksBust: React.FC<BustProps> = ({ who, face, pose, hat, hold, costumed }) => {
     if (who === "whale") {
         return (
             <g stroke={INK} strokeWidth={W} strokeLinejoin="round" transform="translate(-26 -14)">
@@ -274,7 +274,7 @@ export const SticksBust: React.FC<BustProps> = ({ who, face, pose, hat, hold }) 
                 ) : (
                     <path d="M-7 20 l-6 14 M7 20 l6 14" />
                 )}
-                <path d="M-9 44 L-8 17 Q0 13 8 17 L9 44 Z" fill={SHIRT[who]} strokeWidth={W * 0.8} />
+                {!costumed && <path d="M-9 44 L-8 17 Q0 13 8 17 L9 44 Z" fill={SHIRT[who]} strokeWidth={W * 0.8} />}
             </g>
             <Head who={who} face={face} />
             {hat && <Obj spec={hat} x={HAT_AT[hat][0]} y={HAT_AT[hat][1]} s={HAT_AT[hat][2]} />}
@@ -286,4 +286,4 @@ export const SticksBust: React.FC<BustProps> = ({ who, face, pose, hat, hold }) 
 /** The stick style uses a flat pastel background tied to who's in it. */
 export const sticksBg = (who: Who): string => BG[who];
 
-export const STICKS_KIT: StyleKit = { ink: INK, line: W, bg: "#fde9cf", bgFor: sticksBg, Bust: SticksBust };
+export const STICKS_KIT: StyleKit = { ink: INK, line: W, bg: "#fde9cf", bgFor: sticksBg, lookTorso: 0.55, Bust: SticksBust };
