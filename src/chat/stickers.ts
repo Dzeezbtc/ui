@@ -229,7 +229,6 @@ export const STICKERS: readonly StickerDef[] = [
     { id: "had-me-at-hello", label: "You had me at hello.", icon: "clapper", from: "#a855f7", to: "#6b21a8", pack: "movies" },
     { id: "what-9000", label: "WHAT, 9000?!", icon: "clapper", from: "#a855f7", to: "#6b21a8", pack: "movies" },
     { id: "oscar-goes-to", label: "And the Oscar goes to…", icon: "clapper", from: "#a855f7", to: "#6b21a8", pack: "movies" },
-    { id: "keep-swimming", label: "Just keep swimming.", icon: "clapper", from: "#a855f7", to: "#6b21a8", pack: "movies" },
     { id: "who-else", label: "Then who the hell else are you talkin' to?", icon: "clapper", from: "#a855f7", to: "#6b21a8", pack: "movies" },
     { id: "cannoli", label: "Leave the gun. Take the cannoli.", icon: "clapper", from: "#a855f7", to: "#6b21a8", pack: "movies" },
     { id: "bye-felicia", label: "Bye, Felicia.", icon: "clapper", from: "#a855f7", to: "#6b21a8", pack: "movies" },
@@ -257,7 +256,6 @@ export const STICKERS: readonly StickerDef[] = [
     { id: "expect-you-to-die", label: "No, Mr. Bond, I expect you to die!", icon: "clapper", from: "#a855f7", to: "#6b21a8", pack: "movies" },
     { id: "busy-livin", label: "Get busy livin'…", icon: "clapper", from: "#a855f7", to: "#6b21a8", pack: "movies" },
     { id: "busy-dyin", label: "…or get busy dyin'.", icon: "clapper", from: "#a855f7", to: "#6b21a8", pack: "movies" },
-    { id: "dead-people", label: "I see dead people.", icon: "clapper", from: "#a855f7", to: "#6b21a8", pack: "movies" },
     { id: "only-one", label: "There can be only one!", icon: "clapper", from: "#a855f7", to: "#6b21a8", pack: "movies" },
     { id: "two-men-enter", label: "Two men enter, one man leaves!", icon: "clapper", from: "#a855f7", to: "#6b21a8", pack: "movies" },
 ];

@@ -14,8 +14,8 @@ beforeEach(() => {
 
 describe("stickers (block52-chat#2)", () => {
     it("has the classics plus set v2 (#16), unique slug ids, each in a known pack", () => {
-        expect(STICKERS).toHaveLength(209);
-        expect(new Set(STICKERS.map(s => s.id)).size).toBe(209);
+        expect(STICKERS).toHaveLength(207);
+        expect(new Set(STICKERS.map(s => s.id)).size).toBe(207);
         const packs = new Set(STICKER_PACKS.map(p => p.id));
         expect(STICKERS.every(s => packs.has(s.pack))).toBe(true);
         // Ids go on the wire, so they must pass the relay's slug check.
@@ -285,7 +285,7 @@ describe("movie references pack", () => {
     const { STICKERS } = require("./stickers");
     it("gives every movie line a character who says it", () => {
         const movies = STICKERS.filter((s: { pack: string }) => s.pack === "movies");
-        expect(movies.length).toBe(103);
+        expect(movies.length).toBe(101);
         for (const s of movies) expect([s.id, !!MOVIE_ART[s.id], !!MOVIE_SPEAKERS[s.id]]).toEqual([s.id, true, true]);
     });
 });

@@ -2,7 +2,7 @@ import React from "react";
 import { ChipPile } from "./frame";
 import { Obj } from "./scene";
 import { Character } from "./cast";
-import { CAST, COMEBACK_CAST } from "./castList";
+import { CAST, COMEBACK_CAST, VaderBody } from "./castList";
 
 /**
  * Movie references (block52-chat#2): every movie / TV line is said by a
@@ -758,3 +758,12 @@ for (const [id, spec] of [...Object.entries(CAST), ...Object.entries(COMEBACK_CA
     MOVIE_ART[id] = () => <Character c={spec} />;
     MOVIE_SPEAKERS[id] = spec.who;
 }
+
+MOVIE_ART["your-father"] = () => (
+    <>
+        <rect x={-5} y={-5} width={110} height={90} fill="#2a2f45" />
+        <VaderBody />
+        <path d="M74 60 L86 44" stroke="#1d1d1d" strokeWidth={6} strokeLinecap="round" />
+        <ellipse cx={87} cy={42} rx={3.6} ry={3.2} fill="#141414" stroke="#555" strokeWidth={0.8} />
+    </>
+);

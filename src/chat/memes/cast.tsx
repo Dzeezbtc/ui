@@ -55,6 +55,9 @@ function facePath(shape: FaceShape): string {
     }
 }
 
+/** Half the face's width at ear level, per shape — ears and hair curtains attach here. */
+export const HALF_WIDTH: Record<FaceShape, number> = { round: 21, egg: 18, block: 22, long: 16, narrow: 16, square: 19, jaw: 20, wide: 23, heart: 18, oval: 18 };
+
 // ── 2. hair ─────────────────────────────────────────────────────────────────
 
 export type Hairline = "low" | "mid" | "high" | "receding" | "widow" | "sideL" | "sideR" | "middle" | "fringe" | "bald" | "flat";
@@ -139,63 +142,69 @@ function curlRing(rx: number, ry: number, r: number, from = 200, to = 340): [num
     return pts;
 }
 
-const HairBack: React.FC<{ h: HairSpec; topClip: string }> = ({ h, topClip }) => {
+const HairBack: React.FC<{ h: HairSpec; topClip: string; hw: number }> = ({ h, topClip, hw }) => {
     const v = h.volume ?? 2;
     const st = { fill: h.color, stroke: INK, strokeWidth: L };
     const len = h.length ?? "none";
-    const drop = { none: 0, ears: 36, collar: 46, chin: 52, shoulder: 62, long: 76 }[len];
+    const drop = { none: 0, ears: 38, collar: 48, chin: 52, shoulder: 62, long: 76 }[len];
+    const curls = h.texture === "curly" || h.texture === "jheri";
     const parts: React.ReactNode[] = [];
-    // Long hair falls behind the face and past it on both sides.
+    // Long hair hangs as two curtains beside the face — never a block under the chin.
     if (drop) {
-        const w = 21 + v;
-        if (h.texture === "curly" || h.texture === "jheri") {
-            const pts: [number, number][] = [];
-            for (let y = 26; y <= drop; y += 5) {
-                pts.push([CX - w + 1, y], [CX + w - 1, y]);
-            }
-            parts.push(<path key="lb" d={`M${CX - w} 24 V${drop} H${CX + w} V24Z`} {...st} strokeWidth={0} />);
-            parts.push(
-                ...pts.map(([x, y], i) => <circle key={`c${i}`} cx={x} cy={y} r={3.6} {...st} />)
-            );
-        } else {
-            parts.push(
-                <path
-                    key="lb"
-                    d={`M${CX - w} 22 C${CX - w - 2} ${drop - 10} ${CX - w + 2} ${drop} ${CX - w + 6} ${drop} H${CX + w - 6} C${CX + w - 2} ${drop} ${CX + w + 2} ${drop - 10} ${CX + w} 22Z`}
-                    {...st}
-                />
-            );
+        const out = hw + 4 + v * 0.6;
+        for (const side of [-1, 1]) {
+            const xo = CX + side * out;
+            const xi = CX + side * (hw - 3);
+            const wave = curls ? 3 : h.texture === "wavy" ? 1.6 : 0.4;
+            let d = `M${CX + side * (hw - 1)} 14 Q${xo + side * 1} 14 ${xo} 26`;
+            for (let y = 26; y < drop; y += 8) d += ` q${side * wave} 4 0 8`;
+            d += ` L${xi + side * 2} ${drop} Q${xi} ${drop - 6} ${xi} ${drop - 12} L${xi} 30 Z`;
+            parts.push(<path key={`curtain${side}`} d={d} {...st} />);
+            if (curls)
+                for (let y = 30; y < drop - 2; y += 6)
+                    parts.push(<path key={`cl${side}${y}`} d={`M${xo - side * 2} ${y} q${side * 2} 2 0 4`} fill="none" stroke="#000" strokeOpacity={0.35} strokeWidth={0.7} />);
+            else parts.push(<path key={`st${side}`} d={`M${xo - side * 3} 28 Q${xo - side * 2} ${(28 + drop) / 2} ${xo - side * 4} ${drop - 4}`} fill="none" stroke="#000" strokeOpacity={0.25} strokeWidth={0.7} />);
         }
     }
-    // Volume: the hair standing off the skull, seen as a rim around the TOP only
-    // (clipped above the temples, so short hair never frames the face like a hood).
+    // Volume: hair standing off the skull, only ever visible ABOVE the temples.
     const vol: React.ReactNode[] = [];
     if (h.line !== "bald" && v > 0) {
-        if (h.texture === "curly" || h.texture === "jheri") {
-            vol.push(...curlRing(19 + v * 0.6, 20 + v * 0.6, 3 + v * 0.35).map(([x, y], i) => <circle key={`v${i}`} cx={x} cy={y} r={3 + v * 0.35} {...st} />));
+        if (curls) {
+            // one scalloped mass: the outline bumps outward between points along the arc
+            const pts = curlRing(hw + v * 0.5, 20 + v * 0.6, 0, 186, 354);
+            const bump = 2.4 + v * 0.35;
+            let d = `M${CX - hw} ${CY + 2} L${pts[0][0].toFixed(1)} ${pts[0][1].toFixed(1)}`;
+            for (let i = 1; i < pts.length; i++) {
+                const [x0, y0] = pts[i - 1];
+                const [x1, y1] = pts[i];
+                const mx = (x0 + x1) / 2;
+                const my = (y0 + y1) / 2;
+                const nx = mx - CX;
+                const ny = my - (CY - 4);
+                const n = Math.hypot(nx, ny) || 1;
+                d += ` Q${(mx + (nx / n) * bump).toFixed(1)} ${(my + (ny / n) * bump).toFixed(1)} ${x1.toFixed(1)} ${y1.toFixed(1)}`;
+            }
+            d += ` L${CX + hw} ${CY + 2}Z`;
+            vol.push(<path key="curls" d={d} {...st} />);
         } else if (h.texture === "spiky" || h.texture === "flame") {
             const n = h.texture === "flame" ? 7 : 9;
-            const tall = h.texture === "flame" ? 18 + v * 2 : 4 + v;
-            let d = `M${CX - 20} ${CY - 2}`;
+            const tall = h.texture === "flame" ? 18 + v * 2 : 3 + v;
+            let d = `M${CX - hw} ${CY - 2}`;
             for (let i = 0; i <= n; i++) {
-                const a = Math.PI + (Math.PI * i) / n;
-                const ox = CX + 21 * Math.cos(a);
-                const oy = CY - 2 + 21 * Math.sin(a);
-                const tx = CX + (21 + tall * (1 - Math.abs(i - n / 2) / n)) * Math.cos(a + 0.12);
-                const ty = CY - 2 + (21 + tall * (1 - Math.abs(i - n / 2) / n)) * Math.sin(a + 0.12);
-                d += ` L${ox.toFixed(1)} ${oy.toFixed(1)} L${tx.toFixed(1)} ${ty.toFixed(1)}`;
+                const a2 = Math.PI + (Math.PI * i) / n;
+                const k = 1 - Math.abs(i - n / 2) / n;
+                d += ` L${(CX + (hw + 1) * Math.cos(a2)).toFixed(1)} ${(CY - 2 + 21 * Math.sin(a2)).toFixed(1)} L${(CX + (hw + 1 + tall * k) * Math.cos(a2 + 0.12)).toFixed(1)} ${(CY - 2 + (21 + tall * k) * Math.sin(a2 + 0.12)).toFixed(1)}`;
             }
-            d += ` L${CX + 20} ${CY - 2}Z`;
+            d += ` L${CX + hw} ${CY - 2}Z`;
             vol.push(<path key="sp" d={d} {...st} />);
         } else {
-            vol.push(<ellipse key="vol" cx={CX} cy={CY - 3} rx={20 + v} ry={20 + v * 1.1} {...st} />);
+            vol.push(<ellipse key="vol" cx={CX} cy={CY - 3} rx={hw + v} ry={20 + v * 1.1} {...st} />);
         }
     }
-    const longSides = drop >= 46;
     return (
         <g>
             {parts}
-            <g clipPath={longSides ? undefined : `url(#${topClip})`}>{vol}</g>
+            <g clipPath={`url(#${topClip})`}>{vol}</g>
         </g>
     );
 };
@@ -223,9 +232,9 @@ const HairFront: React.FC<{ h: HairSpec; clipId: string }> = ({ h, clipId }) => 
 // ── 3. features ─────────────────────────────────────────────────────────────
 
 export type Brows = "none" | "straight" | "thick" | "thin" | "arched" | "angry" | "worried" | "raised" | "bushy" | "devil";
-export type EyeKind = "plain" | "angry" | "wide" | "smug" | "sad" | "closed" | "crazy" | "squint" | "shades" | "aviators";
+export type EyeKind = "plain" | "angry" | "wide" | "smug" | "sad" | "closed" | "crazy" | "squint" | "shades" | "aviators" | "almond" | "droopy" | "narrow";
 export type MouthKind = "flat" | "smile" | "grin" | "shout" | "frown" | "smirk" | "o" | "teeth" | "pout" | "bigGrin";
-export type NoseKind = "small" | "big" | "hook" | "button" | "wide" | "long";
+export type NoseKind = "small" | "big" | "hook" | "button" | "wide" | "long" | "pointy" | "bulb" | "roman" | "upturned" | "flat";
 export type Facial = "mustache" | "chevron" | "pencil" | "handlebar" | "goatee" | "beard" | "fullBeard" | "stubble" | "sideburns" | "chops" | "soulPatch";
 
 const browPath: Record<Exclude<Brows, "none">, [string, number]> = {
@@ -251,8 +260,19 @@ const Eyes: React.FC<{ kind: EyeKind; look?: number }> = ({ kind, look = 0 }) =>
         );
     if (kind === "closed")
         return <path d="M37 27 q6 -4 11 0 M52 27 q6 -4 11 0" fill="none" stroke={INK} strokeWidth={L * 1.4} strokeLinecap="round" />;
-    const rx = kind === "squint" ? 6.2 : 6.4;
-    const ry = kind === "squint" ? 3.4 : kind === "wide" ? 8 : 7.2;
+    if (kind === "almond")
+        return (
+            <g>
+                {[-1, 1].map(s => (
+                    <g key={s}>
+                        <path d={`M${CX + s * 6.4 - 6} 28 q6 -4.6 12 0 q-6 3 -12 0z`} fill="#fff" stroke={INK} strokeWidth={L} />
+                        <circle cx={CX + s * 6.4 + s * 1.6} cy={27.6} r={1.5} fill={INK} />
+                    </g>
+                ))}
+            </g>
+        );
+    const rx = kind === "squint" ? 6.2 : kind === "narrow" ? 6 : 6.4;
+    const ry = kind === "squint" ? 3.4 : kind === "narrow" ? 4.6 : kind === "wide" ? 8 : 7.2;
     const pr = kind === "wide" ? 0.9 : kind === "crazy" ? 1.9 : 1.6;
     return (
         <g>
@@ -260,7 +280,8 @@ const Eyes: React.FC<{ kind: EyeKind; look?: number }> = ({ kind, look = 0 }) =>
                 <g key={s}>
                     <ellipse cx={CX + s * rx} cy={28} rx={rx} ry={ry} fill="#fff" stroke={INK} strokeWidth={L} />
                     <circle cx={CX + s * (kind === "crazy" ? rx * 1.25 : rx * 0.35) + look} cy={28 + (kind === "smug" ? 1.6 : 0.4)} r={pr} fill={INK} />
-                    {kind === "smug" && <path d={`M${CX + s * rx - rx} 27 h${rx * 2}`} stroke={INK} strokeWidth={L * 1.4} />}
+                    {(kind === "smug" || kind === "droopy") && <path d={`M${CX + s * rx - rx} ${kind === "droopy" ? 26 : 27} h${rx * 2}`} stroke={INK} strokeWidth={L * 1.4} />}
+                    {kind === "droopy" && <path d={`M${CX + s * rx - rx} 22 q${rx} -3 ${rx * 2} 0 v4 h-${rx * 2}z`} fill="#000" fillOpacity={0.12} stroke="none" />}
                     {kind === "sad" && <path d={`M${CX + s * rx - rx} ${25 - s * 2} L${CX + s * rx + rx} ${25 + s * 2}`} stroke={INK} strokeWidth={L * 1.3} />}
                     {kind === "angry" && <path d={`M${CX + s * rx - rx} ${24 + s * 1.6} L${CX + s * rx + rx} ${24 - s * 1.6}`} stroke={INK} strokeWidth={L * 1.5} />}
                 </g>
@@ -323,7 +344,17 @@ const Nose: React.FC<{ kind: NoseKind }> = ({ kind }) => {
                   ? "M49.4 30 q3 7 1 10 q-2 1 -4 -1"
                   : kind === "button"
                     ? "M48 37 q2 2 4 0"
-                    : "M49.4 35 q3 2 0.6 3.6";
+                    : kind === "pointy"
+                      ? "M49 32 l4 7 l-4 0.6"
+                      : kind === "bulb"
+                        ? "M49 33 q1 3 -1 5 q2 3 5 1 q2 -3 -1 -4"
+                        : kind === "roman"
+                          ? "M48.6 30 q4 2 3 8 q-1 2 -4 1"
+                          : kind === "upturned"
+                            ? "M49 34 q2 3 4 2 q-1 2 -4 1.6"
+                            : kind === "flat"
+                              ? "M46 38 h8 M47 36 q3 -1 6 0"
+                              : "M49.4 35 q3 2 0.6 3.6";
     return <path d={d} fill="none" stroke={INK} strokeWidth={L} strokeLinecap="round" />;
 };
 
@@ -694,6 +725,7 @@ export interface CastSpec {
 export const Character: React.FC<{ c: CastSpec }> = ({ c }) => {
     const id = `hc${React.useId().replace(/[^a-zA-Z0-9_-]/g, "")}`;
     const face = facePath(c.face ?? "round");
+    const hw = HALF_WIDTH[c.face ?? "round"];
     const longHair = ["shoulder", "long", "chin"].includes(c.hair.length ?? "none");
     const showEars = c.ears ?? (!longHair && !(c.hair.texture === "jheri" || c.hair.texture === "curly") && (c.hair.volume ?? 2) < 6);
     return (
@@ -709,11 +741,11 @@ export const Character: React.FC<{ c: CastSpec }> = ({ c }) => {
             <rect x={-5} y={-5} width={110} height={90} fill={c.bg} />
             {c.scene}
             <Torso c={c.costume} skin={c.skin} hands={c.hands ?? (c.hold ? "hold" : "down")} hold={c.hold ? <Obj spec={c.hold} x={0} y={-6} s={0.3} /> : undefined} />
-            <HairBack h={c.hair} topClip={`${id}t`} />
+            <HairBack h={c.hair} topClip={`${id}t`} hw={hw} />
             {showEars && (
                 <g fill={c.skin} stroke={INK} strokeWidth={L}>
-                    <ellipse cx={28.4} cy={34} rx={3} ry={4.4} />
-                    <ellipse cx={71.6} cy={34} rx={3} ry={4.4} />
+                    <path d={`M${CX - hw + 1} 29 q-4.6 -1 -4.4 4.6 q0.4 5 4.4 4.6`} />
+                    <path d={`M${CX + hw - 1} 29 q4.6 -1 4.4 4.6 q-0.4 5 -4.4 4.6`} />
                 </g>
             )}
             <path d={face} fill={c.skin} stroke={INK} strokeWidth={L} />
