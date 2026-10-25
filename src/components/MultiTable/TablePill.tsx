@@ -1,5 +1,6 @@
 import React from "react";
 import { getCardImageUrl } from "../../utils/cardImages";
+import { truncateMiddle } from "../../utils/stringUtils";
 import type { TableStatus } from "../../context/tableSessions/sessionsModel";
 
 /**
@@ -29,8 +30,8 @@ export interface TablePillProps {
     onMove?: (delta: -1 | 1) => void;
 }
 
-/** A short, human label when the table hasn't reported a name yet. */
-const shortId = (id: string): string => (id.length > 10 ? `${id.slice(0, 6)}…${id.slice(-4)}` : id);
+/** A short, human label when the table hasn't reported a name yet, e.g. "0x6958…c545" (shared helper, per review). */
+const shortId = (id: string): string => (id.length > 10 ? truncateMiddle(id, 6, 4, "…") : id);
 
 const MiniCard: React.FC<{ card: string }> = ({ card }) => (
     <img
