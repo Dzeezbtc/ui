@@ -1,3 +1,4 @@
+import { isNullish } from "../../utils/guards";
 import React from "react";
 import { LoadingSpinner } from "../common";
 import { TexasHoldemRound, ActionDTO, PlayerStatus } from "@block52/poker-vm-sdk";
@@ -43,7 +44,7 @@ export const MainActionButtons: React.FC<MainActionButtonsProps> = ({
             {(canFold || loading === "fold") && (
                 <FoldButton
                     loading={loading === "fold"}
-                    disabled={loading !== null}
+                    disabled={!isNullish(loading)}
                     isMobileLandscape={isMobileLandscape}
                     onClick={onFold}
                 />
@@ -62,7 +63,7 @@ export const MainActionButtons: React.FC<MainActionButtonsProps> = ({
                         isMobileLandscape ? "px-2 py-0.5 text-[10px]" : "px-2 lg:px-4 py-1.5 lg:py-2 text-xs lg:text-sm"
                     }`}
                     onClick={onCheck}
-                    disabled={loading !== null}
+                    disabled={!isNullish(loading)}
                 >
                     {loading === "check" ? (
                         <>
@@ -82,7 +83,7 @@ export const MainActionButtons: React.FC<MainActionButtonsProps> = ({
                         isMobileLandscape ? "px-2 py-0.5 text-[10px]" : "px-2 lg:px-4 py-1.5 lg:py-2 text-xs lg:text-sm"
                     }`}
                     onClick={onCall}
-                    disabled={loading !== null}
+                    disabled={!isNullish(loading)}
                 >
                     {loading === "call" ? (
                         <>
@@ -101,7 +102,7 @@ export const MainActionButtons: React.FC<MainActionButtonsProps> = ({
                 <button
                     onClick={onBetOrRaise}
                     // Out-of-range amounts can't be sent, for a BET as well as a RAISE (ui#890).
-                    disabled={loading !== null || isRaiseAmountInvalid}
+                    disabled={!isNullish(loading) || isRaiseAmountInvalid}
                     className={`cursor-pointer hover:scale-105 btn-raise rounded-lg w-full border shadow-md backdrop-blur-sm transition-all duration-200 font-medium disabled:opacity-50 disabled:cursor-not-allowed flex items-center justify-center gap-1 ${
                         isMobileLandscape ? "px-2 py-0.5 text-[10px]" : "px-2 lg:px-4 py-1.5 lg:py-2 text-xs lg:text-sm"
                     }`}
@@ -128,7 +129,7 @@ export const MainActionButtons: React.FC<MainActionButtonsProps> = ({
             {canAllIn && (
                 <button
                     onClick={onAllIn}
-                    disabled={loading !== null}
+                    disabled={!isNullish(loading)}
                     className={`cursor-pointer hover:scale-105 btn-raise rounded-lg w-full border shadow-md backdrop-blur-sm transition-all duration-200 font-medium disabled:opacity-50 disabled:cursor-not-allowed flex items-center justify-center gap-1 ${
                         isMobileLandscape ? "px-2 py-0.5 text-[10px]" : "px-2 lg:px-4 py-1.5 lg:py-2 text-xs lg:text-sm"
                     }`}

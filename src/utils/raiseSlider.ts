@@ -8,14 +8,19 @@
  * pot-limit cap), even when the maximum is not a whole number of units above
  * the minimum (an odd stack). Amounts are display units (dollars or chips), as
  * everywhere else in the action panel.
+
  */
+
+import { formatSliderInputValue } from "./numberUtils";
 
 /** The smallest bet increment: 1¢ for cash, 1 chip for tournaments. */
 export const sliderUnit = (isTournament: boolean): number => (isTournament ? 1 : 0.01);
 
-/** Round a display amount to the unit's precision (kills float noise like 0.30000000000000004). */
-const toUnitPrecision = (amount: number, isTournament: boolean): number =>
-    isTournament ? Math.round(amount) : Math.round(amount * 100) / 100;
+/**
+ * Snap a display amount to the unit's precision (kills float noise like 0.30000000000000004).
+ * Reuses the slider input's own formatter so there's one rounding rule for slider amounts.
+ */
+const toUnitPrecision = (amount: number, isTournament: boolean): number => Number(formatSliderInputValue(amount, isTournament));
 
 /** How many steps the slider has; the last one lands exactly on `max`. 0 when there is no range. */
 export const sliderStepCount = (min: number, max: number, isTournament: boolean): number => {
