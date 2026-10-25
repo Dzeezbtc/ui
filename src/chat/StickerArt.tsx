@@ -7,6 +7,7 @@ import MemeSticker from "./memes/MemeSticker";
 import { MemeFrame } from "./memes/frame";
 import { MOVIE_ART, MOVIE_SPEAKERS } from "./memes/movies";
 import { RAGE_FACES } from "./memes/rageFaces";
+import { LICENSED_ART } from "./licensedArt";
 /**
  * Split a phrase for the ribbon: one line when short, otherwise two lines
  * broken at the space nearest the middle.
@@ -27,8 +28,10 @@ export function ribbonLines(label: string): string[] {
  * with our own art in the middle and the phrase on an ink banner. Designer
  * artwork (`art`) still replaces it when the manifest has some.
  */
-export const StickerArt: React.FC<{ sticker: StickerDef; size?: number }> = ({ sticker, size = 64 }) => {
+export const StickerArt: React.FC<{ sticker: StickerDef; size?: number }> = ({ sticker: def, size = 64 }) => {
     const { stickerStyle } = useChatSettings();
+    // Licensed originals, once cleared, replace our drawing everywhere.
+    const sticker = !def.art && LICENSED_ART[def.id] ? { ...def, art: LICENSED_ART[def.id] } : def;
     const movie = MOVIE_ART[sticker.id];
     // Movie references are always the movie characters, whatever the sticker style.
     if (movie && !sticker.art) {
