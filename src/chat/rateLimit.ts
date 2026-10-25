@@ -53,4 +53,14 @@ export class RateLimiter {
     reset(): void {
         this.sent = [];
     }
+
+    /** The send times, for saving. */
+    snapshot(): number[] {
+        return [...this.sent];
+    }
+
+    /** Restore saved send times (anything outside the window drops off on the next check). */
+    restore(times: unknown): void {
+        this.sent = Array.isArray(times) ? times.filter((t): t is number => typeof t === "number").sort((a, b) => a - b) : [];
+    }
 }

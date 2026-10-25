@@ -100,8 +100,30 @@ export function registerChatSender(fn: ((out: OutgoingChat) => void) | null): vo
 }
 
 /** The host registers the local player's address, so your own messages can bubble above your seat. */
+/** Limits are kept per wallet in this browser too, so a reload shows the true count (the server enforces them per wallet). */
+const limitsKey = (addr: string) => `b52.chat.limits.${addr.toLowerCase()}`;
+
+function saveLimits(): void {
+    if (!localAddress) return;
+    try {
+        localStorage.setItem(limitsKey(localAddress), JSON.stringify({ sticker: stickerLimit.snapshot(), throw: throwLimit.snapshot() }));
+    } catch {
+        /* storage blocked: the server still enforces the limits */
+    }
+}
+
 export function registerLocalAddress(address: string | undefined): void {
     localAddress = address;
+    stickerLimit.reset();
+    throwLimit.reset();
+    if (!address) return;
+    try {
+        const saved = JSON.parse(localStorage.getItem(limitsKey(address)) ?? "null");
+        stickerLimit.restore(saved?.sticker);
+        throwLimit.restore(saved?.throw);
+    } catch {
+        /* nothing saved */
+    }
 }
 
 export function getLocalAddress(): string | undefined {
@@ -126,6 +148,7 @@ export function sendChat(text: string): void {
 export function sendSticker(id: string, now: number = Date.now()): boolean {
     const sticker = findSticker(id);
     if (!sticker || !stickerLimit.tryTake(now)) return false;
+    saveLimits();
     pushChatMessage({ from: localAddress, text: sticker.label, sticker: id, ts: now, mine: true });
     sender?.({ text: sticker.label, sticker: id });
     return true;
@@ -139,6 +162,7 @@ export function sendSticker(id: string, now: number = Date.now()): boolean {
 export function sendThrow(id: string, to: string, now: number = Date.now()): boolean {
     const t = findThrowable(id);
     if (!t || !to || to.toLowerCase() === localAddress?.toLowerCase() || !throwLimit.tryTake(now)) return false;
+    saveLimits();
     pushChatMessage({ from: localAddress, text: t.label, throwId: id, to, ts: now, mine: true });
     sender?.({ text: t.label, throwId: id, to });
     return true;
@@ -152,6 +176,13 @@ export function clearChat(): void {
 
 /** Test helper: reset module state. */
 export function __resetChatForTests(): void {
+    try {
+        Object.keys(localStorage)
+            .filter(k => k.startsWith("b52.chat.limits."))
+            .forEach(k => localStorage.removeItem(k));
+    } catch {
+        /* no storage in this environment */
+    }
     messages = [];
     sender = null;
     localAddress = undefined;

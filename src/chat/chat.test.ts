@@ -289,3 +289,20 @@ describe("movie references pack", () => {
         for (const s of movies) expect([s.id, !!MOVIE_ART[s.id], !!MOVIE_SPEAKERS[s.id]]).toEqual([s.id, true, true]);
     });
 });
+
+describe("limits survive a reload (per wallet)", () => {
+    it("restores the throw count for the same wallet after a reload", () => {
+        localStorage.clear();
+        __resetChatForTests();
+        registerLocalAddress("b521me");
+        expect(sendThrow("fish", "b521a", 1000)).toBe(true);
+        expect(sendThrow("fish", "b521a", 2000)).toBe(true);
+        // "reload": in-memory state is gone (localStorage survives), the wallet registers again
+        registerLocalAddress(undefined);
+        registerLocalAddress("b521me");
+        expect(throwStatus(3000).remaining).toBe(1);
+        // a different wallet starts fresh
+        registerLocalAddress("b521other");
+        expect(throwStatus(3000).remaining).toBe(3);
+    });
+});
