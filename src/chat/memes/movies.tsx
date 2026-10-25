@@ -763,7 +763,11 @@ MOVIE_ART["your-father"] = () => (
     <>
         <rect x={-5} y={-5} width={110} height={90} fill="#2a2f45" />
         <VaderBody />
-        <path d="M74 60 L86 44" stroke="#1d1d1d" strokeWidth={6} strokeLinecap="round" />
-        <ellipse cx={87} cy={42} rx={3.6} ry={3.2} fill="#141414" stroke="#555" strokeWidth={0.8} />
+        <path d="M74 60 L84 48" stroke="#1d1d1d" strokeWidth={6} strokeLinecap="round" />
+        <g transform="translate(85 46) rotate(25)">
+            <rect x={-1.6} y={-2} width={3.2} height={9} rx={1} fill="#8a8a8a" stroke="#1d1d1d" strokeWidth={0.6} />
+            <path d="M0 -2 V-40" stroke="#ff3030" strokeWidth={5} strokeLinecap="round" opacity={0.5} />
+            <path d="M0 -2 V-40" stroke="#fff" strokeWidth={1.8} strokeLinecap="round" />
+        </g>
     </>
 );

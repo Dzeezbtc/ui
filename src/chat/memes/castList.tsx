@@ -81,6 +81,61 @@ export const VaderBody = () => (
     </g>
 );
 
+
+const Saber: React.FC<{ color: string }> = ({ color }) => (
+    <g transform="rotate(-25)">
+        <rect x={-1.4} y={-2} width={2.8} height={8} rx={1} fill="#8a8a8a" stroke={K} strokeWidth={0.6} />
+        <path d="M0 -2 V-34" stroke={color} strokeWidth={4.4} strokeLinecap="round" opacity={0.45} />
+        <path d="M0 -2 V-34" stroke="#ffffff" strokeWidth={1.6} strokeLinecap="round" />
+    </g>
+);
+const GolfClub = () => (
+    <g transform="rotate(-20)">
+        <path d="M0 0 V-34" stroke="#9a9a9a" strokeWidth={1.4} />
+        <path d="M0 -34 l7 -2 v3 l-7 1z" fill="#c8c8c8" stroke={K} strokeWidth={0.6} />
+        <rect x={-1.6} y={-2} width={3.2} height={8} rx={1} fill="#151515" />
+    </g>
+);
+const Revolver = () => (
+    <g transform="rotate(-15)" stroke={K} strokeWidth={0.6}>
+        <rect x={2} y={-3} width={22} height={3.4} rx={0.8} fill="#9aa0a8" />
+        <rect x={-2} y={-5} width={8} height={7} rx={1.4} fill="#7a8088" />
+        <path d="M-2 0 l-3 7 h4 l2 -5z" fill="#5a3a22" />
+    </g>
+);
+const HeldOreo = (
+    <g transform="translate(0 -4)">
+        <circle r={4.6} fill="#2b1d16" stroke={K} strokeWidth={0.8} />
+        <circle r={3.4} fill="#f2ede4" />
+    </g>
+);
+const Martini = () => (
+    <g transform="translate(0 -6)" stroke={K} strokeWidth={0.6}>
+        <path d="M-6 -8 h12 l-6 7z" fill="#cfe9f7" fillOpacity={0.7} />
+        <path d="M0 -1 v7 M-3 6 h6" fill="none" />
+        <circle cx={1.6} cy={-5.4} r={1.2} fill="#7a9a3a" />
+    </g>
+);
+const MilkCarton = () => (
+    <g transform="translate(0 -8)" stroke={K} strokeWidth={0.6}>
+        <path d="M-4 -6 l4 -4 l4 4 v12 h-8z" fill="#ffffff" />
+        <path d="M-4 -2 h8 v4 h-8z" fill="#3d7fd6" />
+    </g>
+);
+const Book = () => (
+    <g transform="translate(-2 -4) rotate(-10)" stroke={K} strokeWidth={0.6}>
+        <rect x={-5} y={-7} width={10} height={13} rx={1} fill="#8a2f2f" />
+        <path d="M-3 -5 h6 M-3 -3 h6" stroke="#e8d8a8" strokeWidth={0.6} />
+    </g>
+);
+const Gauntlet = () => (
+    <g stroke={K} strokeWidth={0.7}>
+        <path d="M-6 3 C-7 -3 -6 -9 -3 -9 C-3 -12 0 -12 0.5 -10 C1.5 -12.5 4.5 -11.5 4 -8.5 C6.5 -8 7 -3 5 3z" fill="#d6a531" />
+        {["#e8566f", "#3d7fd6", "#5fae5a", "#f2b632", "#8a5fb3"].map((c, i) => <circle key={c} cx={-4 + i * 2} cy={-4} r={0.9} fill={c} stroke="none" />)}
+        <circle cx={0} cy={0} r={1.6} fill="#e8566f" stroke="none" />
+    </g>
+);
+
 const Oreo = (
     <g transform="translate(74 50)">
         <circle r={5} fill="#2b1d16" stroke="#1d1d1d" strokeWidth={1} />
@@ -118,6 +173,7 @@ export const CAST: Record<string, CastSpec> = {
         costume: { kind: "suit", color: "#5a6070", shirt: "#cfd8e6" },
         hold: "cards-fan",
         nose: "button",
+        holdNode: HeldOreo,
         bg: "#1f4f3a"
     },
     // ── Jerry Maguire ──
@@ -246,9 +302,9 @@ export const CAST: Record<string, CastSpec> = {
         who: "The Joker",
         skin: "#f1ede4",
         face: "narrow",
-        hair: { color: H.greenHair, line: "middle", volume: 2, length: "chin", texture: "wavy" },
+        hair: { color: H.greenHair, line: "middle", volume: 3, length: "ears", texture: "wavy" },
         brows: "none",
-        eyes: "crazy",
+        eyes: "narrow",
         mouth: "flat",
         costume: { kind: "suit", color: "#5a2f7a", shirt: "#5fae5a", tie: "#2f6a3a" },
         over: (
@@ -311,8 +367,9 @@ export const CAST: Record<string, CastSpec> = {
         eyes: "closed",
         mouth: "smile",
         costume: { kind: "armor", color: "#3e4a8a", accent: "#d6a531" },
-        hold: "scales",
         over: <path d="M44 50 v4 M48 51 v5 M52 51 v5 M56 50 v4 M34 18 q16 -6 32 0" stroke="#4f2f6e" strokeWidth={1} fill="none" />,
+        glove: <Gauntlet />,
+        hands: "snap",
         bg: "#1d1638"
     },
     // ── Pretty Woman ──
@@ -428,25 +485,28 @@ export const CAST: Record<string, CastSpec> = {
         who: "Happy Gilmore",
         skin: SKIN.light,
         face: "square",
-        hair: { color: H.brown, line: "low", volume: 1 },
+        hair: { color: H.brown, line: "mid", volume: 1 },
         brows: "raised",
         eyes: "wide",
         mouth: "o",
         costume: { kind: "jersey", color: "#151515", accent: "#e8b84a", text: "B" },
         nose: "upturned",
+        holdNode: <GolfClub />,
+        hands: "hold",
         bg: "#7fae6a"
     },
     "price-is-wrong": {
         who: "Happy Gilmore",
         skin: SKIN.light,
         face: "square",
-        hair: { color: H.brown, line: "low", volume: 1 },
+        hair: { color: H.brown, line: "mid", volume: 1 },
         brows: "angry",
         eyes: "angry",
         mouth: "shout",
         costume: { kind: "jersey", color: "#151515", accent: "#e8b84a", text: "B" },
         hands: "fists",
         nose: "upturned",
+        holdNode: <GolfClub />,
         bg: "#e8b84a"
     },
     // ── A Few Good Men ──
@@ -485,8 +545,9 @@ export const CAST: Record<string, CastSpec> = {
         eyes: "sad",
         mouth: "shout",
         costume: { kind: "uniform", color: "#b8ab93" },
-        hands: "up",
+        hands: "hold",
         nose: "upturned",
+        holdNode: <Saber color="#3d9bff" />,
         bg: "#2a2f45"
     },
     "the-odds": {
@@ -563,13 +624,13 @@ export const CAST: Record<string, CastSpec> = {
         who: "Bryan Mills",
         skin: SKIN.light,
         face: "long",
-        hair: { color: H.saltPepper, line: "low", volume: 1 },
+        hair: { color: H.saltPepper, line: "mid", volume: 1 },
         brows: "bushy",
         eyes: "droopy",
         mouth: "flat",
         nose: "bulb",
         costume: { kind: "leather", color: "#2a2a2e", shirt: "#3a3a40" },
-        hold: "phone",
+        holdNode: <g transform="translate(-3 -14)"><rect x={0} y={0} width={9} height={16} rx={1.6} fill="#151515" stroke="#555" strokeWidth={0.8} /><rect x={1.4} y={2} width={6.2} height={10} fill="#3a5a7a" /></g>,
         bg: "#2c3a40"
     },
     "find-you-reply": {
@@ -652,7 +713,7 @@ export const CAST: Record<string, CastSpec> = {
         eyes: "angry",
         mouth: "shout",
         nose: "flat",
-        facial: ["chops", "mustache"],
+        facial: ["sideburns", "mustache"],
         costume: { kind: "suit", color: "#151515", shirt: "#ffffff", tie: "#151515" },
         hands: "point",
         bg: "#c79a3a"
@@ -672,13 +733,13 @@ export const CAST: Record<string, CastSpec> = {
     "best-friends": {
         who: "Brennan",
         skin: SKIN.light,
-        face: "round",
-        hair: { color: H.brown, line: "fringe", volume: 5, length: "ears", texture: "wavy" },
+        face: "long",
+        hair: { color: H.lightBrown, line: "mid", volume: 4, texture: "curly" },
         brows: "raised",
         eyes: "wide",
-        mouth: "grin",
+        mouth: "bigGrin",
         costume: { kind: "tee", color: "#5f7d9a" },
-        nose: "button",
+        nose: "bulb",
         bg: "#e8c48a"
     },
     "best-friends-reply": {
@@ -726,6 +787,7 @@ export const CAST: Record<string, CastSpec> = {
         nose: "roman",
         costume: { kind: "suit", color: "#8a7350", shirt: "#ffffff", tie: "#5a4a2a" },
         hands: "point",
+        holdNode: <Revolver />,
         bg: "#7a6a5a"
     },
     "talkin-to-me": {
@@ -774,8 +836,8 @@ export const CAST: Record<string, CastSpec> = {
         facial: ["beard"],
         costume: { kind: "armor", color: "#6b4a2f", accent: "#9a7a4a" },
         hands: "hold",
-        over: <Gladius />,
         nose: "roman",
+        holdNode: <g transform="rotate(-30)"><path d="M-1.6 -26 L1.6 -26 L2.4 -4 H-2.4z" fill="#d8dce2" stroke="#1d1d1d" strokeWidth={0.8} /><rect x={-5} y={-4} width={10} height={2.4} rx={1} fill="#b8862f" /></g>,
         bg: "#c79a5a"
     },
     sparta: {
@@ -871,6 +933,7 @@ export const CAST: Record<string, CastSpec> = {
         hands: "pinky",
         over: <path d="M57 18 l8 10 M59 17 l1 3 M62 21 l1 3" stroke="#9b3b3b" strokeWidth={1.2} />,
         nose: "button",
+        handAt: [57, 41],
         bg: "#3a3a5a"
     },
     // ── Home Alone ──
@@ -897,8 +960,9 @@ export const CAST: Record<string, CastSpec> = {
         eyes: "smug",
         mouth: "smirk",
         nose: "roman",
-        glasses: "square",
+        glasses: "round",
         costume: { kind: "leather", color: "#151515", shirt: "#151515" },
+        facial: ["stubble"],
         bg: "#3f6a3a"
     },
     // ── Titanic ──
@@ -906,7 +970,7 @@ export const CAST: Record<string, CastSpec> = {
         who: "Jack Dawson",
         skin: SKIN.light,
         face: "heart",
-        hair: { color: H.sandy, line: "middle", volume: 3, length: "ears", texture: "smooth" },
+        hair: { color: H.sandy, line: "middle", volume: 4, texture: "smooth" },
         brows: "straight",
         eyes: "wide",
         mouth: "grin",
@@ -921,8 +985,8 @@ export const CAST: Record<string, CastSpec> = {
         skin: SKIN.tan,
         face: "heart",
         hair: { color: H.brown, line: "sideR", volume: 4, texture: "spiky", shine: true },
-        brows: "angry",
-        eyes: "angry",
+        brows: "arched",
+        eyes: "narrow",
         mouth: "pout",
         costume: { kind: "leather", color: "#c8c8d0", shirt: "#ffffff" },
         nose: "pointy",
@@ -961,7 +1025,7 @@ export const CAST: Record<string, CastSpec> = {
         who: "Will Hunting",
         skin: SKIN.light,
         face: "square",
-        hair: { color: H.brown, line: "low", volume: 1 },
+        hair: { color: H.brown, line: "mid", volume: 1 },
         brows: "straight",
         eyes: "smug",
         mouth: "grin",
@@ -998,7 +1062,8 @@ export const COMEBACK_CAST: Record<string, CastSpec> = {
             </>
         ),
         over: <path d="M46 14 l2 -5 l2 4 l2 -5 l1 6" fill="#8a6a3a" stroke="#1d1d1d" strokeWidth={0.8} />,
-        bg: "#f2c94c"
+        ears: true,
+        bg: "#7ab8e8",
     },
     "fly-you-fools": { ...CAST["shall-not-pass"], eyes: "wide", mouth: "shout", hands: "up", bg: "#1a1210" },
     yippee: {
@@ -1061,14 +1126,15 @@ export const COMEBACK_CAST: Record<string, CastSpec> = {
         who: "Jenny",
         skin: SKIN.light,
         face: "heart",
-        hair: { color: H.brown, line: "middle", volume: 2, length: "long", texture: "smooth" },
+        hair: { color: H.blond, line: "middle", volume: 2, length: "long", texture: "smooth" },
         brows: "arched",
         eyes: "wide",
         mouth: "shout",
         lashes: true,
-        costume: { kind: "dress", color: "#e8d8a8" },
-        hands: "up",
+        costume: { kind: "dress", color: "#e8e0f0", accent: "#5a6aa8" },
+        hands: "hold",
         nose: "upturned",
+        holdNode: <Book />,
         bg: "#8ab06a"
     },
     "had-me-at-hello": {
@@ -1143,14 +1209,15 @@ export const COMEBACK_CAST: Record<string, CastSpec> = {
         hands: "spread",
         bg: "#e8b84a"
     },
-    shaken: { ...CAST["nearly-killed-me"], mouth: "smirk", hold: "beer" },
+    shaken: { ...CAST["nearly-killed-me"], mouth: "smirk", holdNode: <Martini />, hands: "hold" },
     "lack-of-faith": {
         who: "Darth Vader",
         skin: "#141414",
         hair: { color: "#141414", line: "bald", volume: 0 },
         costume: { kind: "robe", color: "#141414" },
-        hands: "circle",
+        hands: "hold",
         over: <VaderBody />,
+        holdNode: <Saber color="#ff3030" />,
         bg: "#2a2f45"
     },
     "not-a-lot": {
@@ -1212,7 +1279,7 @@ export const COMEBACK_CAST: Record<string, CastSpec> = {
         who: "Cal Naughton Jr.",
         skin: SKIN.light,
         face: "wide",
-        hair: { color: H.darkBrown, line: "low", volume: 3, texture: "curly" },
+        hair: { color: H.darkBrown, line: "mid", volume: 3, texture: "curly" },
         brows: "thick",
         eyes: "wide",
         mouth: "grin",
@@ -1221,7 +1288,7 @@ export const COMEBACK_CAST: Record<string, CastSpec> = {
         nose: "bulb",
         bg: "#e85c2a"
     },
-    regret: { ...CAST["bad-choice"], mouth: "teeth" },
+    regret: { ...CAST["bad-choice"], mouth: "teeth", holdNode: <MilkCarton />, hands: "hold" },
     "no-points": { ...CAST.dumber, eyes: "angry", mouth: "frown", hands: "point" },
     "tap-it-in": {
         who: "Chubbs",
@@ -1325,7 +1392,7 @@ export const COMEBACK_CAST: Record<string, CastSpec> = {
         who: "Westley",
         skin: SKIN.light,
         face: "square",
-        hair: { color: H.sandy, line: "middle", volume: 3, length: "collar", texture: "wavy" },
+        hair: { color: H.sandy, line: "middle", volume: 4, texture: "wavy" },
         brows: "straight",
         eyes: "smug",
         mouth: "smile",

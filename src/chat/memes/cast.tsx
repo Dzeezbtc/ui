@@ -76,60 +76,35 @@ export interface HairSpec {
 }
 
 /** The forehead edge of the hair: the region above it, clipped to the head, is hair. */
+// Hairlines stay ABOVE the eyes (eyes span x 37–63 from y ≈ 21) and the temple
+// hair stops at y 30 — lower, and the hair frames the eyes like glasses.
+const HAIRLINES: Record<Exclude<Hairline, "bald">, string> = {
+    low: "L72 30 L70 22 Q64 15.5 50 15.5 Q36 15.5 30 22 L28 30",
+    mid: "L71 29 L69 21 Q50 9 31 21 L29 29",
+    high: "L70 26 L69 18 Q50 6 31 18 L30 26",
+    receding: "L70 28 L68 18 L61 11 Q50 15 39 11 L32 18 L30 28",
+    widow: "L71 28 L69 20 Q60 10 50 18 Q40 10 31 20 L29 28",
+    sideL: "L71 28 L70 21 Q66 12 40 12 L38 18 Q32 18 30 23 L29 28",
+    sideR: "L71 28 L70 23 Q68 18 62 18 L60 12 Q34 12 30 21 L29 28",
+    middle: "L71 30 L69 20 Q62 11 50 12 Q38 11 31 20 L29 30",
+    fringe: "L72 30 L71 19 L66 17 L60 19 L54 16 L48 19 L42 16 L36 19 L30 17 L28 20 L28 30",
+    flat: "L71 26 L70 16 H30 L29 26"
+};
+
+/** The region above the hairline (clipped to the head) is hair. */
 function hairlineRegion(line: Hairline): string {
-    const top = "M0 -20 H100 V36";
-    switch (line) {
-        case "low":
-            return `${top} L73 36 L72 27 Q50 20 28 27 L27 36 L0 36Z`;
-        case "mid":
-            return `${top} L72 33 L71 25 Q50 15 29 25 L28 33 L0 36Z`;
-        case "high":
-            return `${top} L71 30 L70 21 Q50 9 30 21 L29 30 L0 36Z`;
-        case "receding":
-            return `${top} L71 32 L70 22 L62 13 Q50 17 38 13 L30 22 L29 32 L0 36Z`;
-        case "widow":
-            return `${top} L72 32 L71 24 Q60 12 50 21 Q40 12 29 24 L28 32 L0 36Z`;
-        case "sideL": // part on the left, sweep to the right
-            return `${top} L72 32 L71 25 Q66 14 40 14 L38 20 Q32 20 29 27 L28 32 L0 36Z`;
-        case "sideR":
-            return `${top} L72 32 L71 27 Q68 20 62 20 L60 14 Q34 14 29 25 L28 32 L0 36Z`;
-        case "middle": // centre part, curtains
-            return `${top} L72 34 L70 24 Q62 14 50 15 Q38 14 30 24 L28 34 L0 36Z`;
-        case "fringe": // bangs to the brows
-            return `${top} L73 36 L72 23 L66 21 L60 23 L54 20 L48 23 L42 20 L36 23 L30 21 L28 24 L27 36 L0 36Z`;
-        case "flat": // flat-top / crew cut: hair stops in a straight line
-            return `${top} L72 30 L71 19 H29 L28 30 L0 36Z`;
-        default:
-            return "";
-    }
+    if (line === "bald") return "";
+    return `M0 -20 H100 V30 ${HAIRLINES[line]} L0 30Z`;
 }
 
 /** The hairline as a line to ink (just the forehead edge, never the skull edge). */
 function hairlineStroke(line: Hairline): string {
-    switch (line) {
-        case "low":
-            return "M72 27 Q50 20 28 27";
-        case "mid":
-            return "M71 25 Q50 15 29 25";
-        case "high":
-            return "M70 21 Q50 9 30 21";
-        case "receding":
-            return "M70 22 L62 13 Q50 17 38 13 L30 22";
-        case "widow":
-            return "M71 24 Q60 12 50 21 Q40 12 29 24";
-        case "sideL":
-            return "M71 25 Q66 14 40 14 L38 20 Q32 20 29 27";
-        case "sideR":
-            return "M71 27 Q68 20 62 20 L60 14 Q34 14 29 25";
-        case "middle":
-            return "M70 24 Q62 14 50 15 Q38 14 30 24 M50 15 v-8";
-        case "fringe":
-            return "M72 23 L66 21 L60 23 L54 20 L48 23 L42 20 L36 23 L30 21 L28 24";
-        case "flat":
-            return "M71 19 H29";
-        default:
-            return "";
-    }
+    if (line === "bald") return "";
+    const segs = HAIRLINES[line].trim().split(/\s(?=L)/);
+    // drop the first and last legs (they run down the temples into the clip edge)
+    const inner = segs.slice(1, -1).join(" ");
+    const start = segs[1]?.replace(/^L/, "M") ?? "";
+    return `${start} ${segs.slice(2, -1).join(" ")}`.trim() || inner;
 }
 
 /** Bumpy silhouette (curls) around an ellipse's top: circles along the arc. */
@@ -428,11 +403,12 @@ const HAND_POS: Record<Hands, [[number, number], [number, number]]> = {
     spread: [[14, 50], [86, 50]]
 };
 
-const Torso: React.FC<{ c: Costume; skin: string; hands: Hands; hold?: React.ReactNode }> = ({ c, skin, hands, hold }) => {
+const Torso: React.FC<{ c: Costume; skin: string; hands: Hands; hold?: React.ReactNode; glove?: React.ReactNode; handAt?: [number, number] }> = ({ c, skin, hands, hold, glove, handAt }) => {
     const st = { stroke: INK, strokeWidth: L, strokeLinejoin: "round" as const };
     const torso = "M28 82 C28 62 36 52 50 52 C64 52 72 62 72 82Z";
     const sleeve = c.kind === "bare" || c.kind === "tank" ? skin : c.color;
-    const [l, r] = HAND_POS[hands];
+    const [l, r0] = HAND_POS[hands];
+    const r: [number, number] = handAt ?? r0;
     const arm = (sx: number, h: [number, number]) => (
         <>
             <path d={`M${sx} 60 Q${(sx + h[0]) / 2 + (h[0] > 50 ? 4 : -4)} ${(60 + h[1]) / 2} ${h[0]} ${h[1]}`} fill="none" stroke={INK} strokeWidth={8.4} strokeLinecap="round" />
@@ -683,6 +659,7 @@ const Torso: React.FC<{ c: Costume; skin: string; hands: Hands; hold?: React.Rea
             {hold && <g transform={`translate(${r[0]} ${r[1]})`}>{hold}</g>}
             {mitten(l)}
             {mitten(r)}
+            {glove && <g transform={`translate(${r[0]} ${r[1]})`}>{glove}</g>}
             {hands === "thumb" && <rect x={r[0] - 1.4} y={r[1] - 8} width={2.8} height={6} rx={1.4} fill={skin} stroke={INK} strokeWidth={L} />}
             {hands === "point" && <rect x={r[0] + 2} y={r[1] - 1.4} width={6} height={2.8} rx={1.4} fill={skin} stroke={INK} strokeWidth={L} />}
             {hands === "pinky" && <rect x={r[0] - 0.8} y={r[1] - 7} width={1.8} height={5} rx={0.9} fill={skin} stroke={INK} strokeWidth={L * 0.8} />}
@@ -714,6 +691,12 @@ export interface CastSpec {
     hold?: string;
     /** a hat or helmet art spec on the head */
     hat?: string;
+    /** a drawing held in the right hand (drawn under the fingers), in hand-local coords */
+    holdNode?: React.ReactNode;
+    /** a drawing worn over the right hand (a gauntlet, a glove), in hand-local coords */
+    glove?: React.ReactNode;
+    /** move the right hand (e.g. a pinky to the lips) */
+    handAt?: [number, number];
     bg: string;
     /** extra drawing over everything (scars, props, effects) */
     over?: React.ReactNode;
@@ -740,7 +723,12 @@ export const Character: React.FC<{ c: CastSpec }> = ({ c }) => {
             </defs>
             <rect x={-5} y={-5} width={110} height={90} fill={c.bg} />
             {c.scene}
-            <Torso c={c.costume} skin={c.skin} hands={c.hands ?? (c.hold ? "hold" : "down")} hold={c.hold ? <Obj spec={c.hold} x={0} y={-6} s={0.3} /> : undefined} />
+            <Torso
+                c={c.costume}
+                skin={c.skin}
+                hands={c.hands ?? (c.hold || c.holdNode ? "hold" : "down")}
+                handAt={c.handAt}
+            />
             <HairBack h={c.hair} topClip={`${id}t`} hw={hw} />
             {showEars && (
                 <g fill={c.skin} stroke={INK} strokeWidth={L}>
@@ -774,6 +762,18 @@ export const Character: React.FC<{ c: CastSpec }> = ({ c }) => {
             {c.lips && <path d="M45 43 q5 3 10 0 q-5 -2 -10 0z" fill="#d0556a" stroke={INK} strokeWidth={0.6} />}
             {c.hat && <Obj spec={c.hat} x={50} y={6} s={0.44} />}
             {c.over}
+            {/* held props sit in FRONT of the head (a raised sword or saber would hide behind it); the hand is redrawn over the grip */}
+            {(c.holdNode || c.hold || c.glove) && (() => {
+                const hands = c.hands ?? "hold";
+                const [hx, hy] = c.handAt ?? HAND_POS[hands][1];
+                return (
+                    <g transform={`translate(${hx} ${hy})`}>
+                        {c.holdNode ?? (c.hold ? <Obj spec={c.hold} x={0} y={-6} s={0.3} /> : null)}
+                        <ellipse cx={0} cy={0} rx={4} ry={3.6} fill={c.skin} stroke={INK} strokeWidth={L} />
+                        {c.glove}
+                    </g>
+                );
+            })()}
         </g>
     );
 };
