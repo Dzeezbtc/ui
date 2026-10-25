@@ -28,7 +28,7 @@ export const MemeSticker: React.FC<{ sticker: StickerDef; style: MemeStyleId; si
     const kit = KITS[style];
     const spec = MEME_SPECS[sticker.id];
     return (
-        <MemeFrame style={style === "hose" ? "hose" : style === "rage" ? "rage" : "wojak"} label={sticker.label} size={size}>
+        <MemeFrame style={style === "hose" ? "hose" : style === "rage" ? "rage" : "wojak"} variant={style} label={sticker.label} size={size}>
             {hand ? hand() : spec ? <MemeScene kit={kit} spec={spec} uid={uid} /> : null}
         </MemeFrame>
     );

@@ -343,3 +343,34 @@ describe("rage faces pack", () => {
         }
     });
 });
+
+describe("Texas Hodl brand", () => {
+    // eslint-disable-next-line @typescript-eslint/no-var-requires
+    const React = require("react");
+    // eslint-disable-next-line @typescript-eslint/no-var-requires
+    const { renderToStaticMarkup } = require("react-dom/server");
+    // eslint-disable-next-line @typescript-eslint/no-var-requires
+    const { configureChatBrand } = require("./brand");
+    // eslint-disable-next-line @typescript-eslint/no-var-requires
+    const { MemeSticker } = require("./memes/MemeSticker");
+    // eslint-disable-next-line @typescript-eslint/no-var-requires
+    const { StickerArt, CartoonSticker } = require("./StickerArt");
+    // eslint-disable-next-line @typescript-eslint/no-var-requires
+    const { STICKERS, findSticker } = require("./stickers");
+    afterAll(() => configureChatBrand("block52"));
+
+    it("gives every style its own Texas Hodl treatment", () => {
+        configureChatBrand("texashodl");
+        const s = findSticker("rivered-again");
+        const marks: Record<string, string> = { wojak: "<pattern", rage: "stroke:url(#g", hose: "<feFuncR type=\"table\"", sticks: "type=\"discrete\"" };
+        for (const [style, mark] of Object.entries(marks)) {
+            const html = renderToStaticMarkup(React.createElement(MemeSticker, { sticker: s, style, size: 76 }));
+            expect([style, html.includes(mark)]).toEqual([style, true]);
+        }
+        const chip = renderToStaticMarkup(React.createElement(CartoonSticker, { sticker: s, size: 76 }));
+        expect(chip).toContain("M18 2 H90");
+        for (const m of STICKERS.filter((x: { pack: string }) => x.pack === "movies").slice(0, 5)) {
+            expect(renderToStaticMarkup(React.createElement(StickerArt, { sticker: m, size: 76 }))).toContain("stroke:url(#g");
+        }
+    });
+});

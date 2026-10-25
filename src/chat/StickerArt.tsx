@@ -8,6 +8,7 @@ import { MemeFrame } from "./memes/frame";
 import { MOVIE_ART, MOVIE_SPEAKERS } from "./memes/movies";
 import { RAGE_FACES } from "./memes/rageFaces";
 import { LICENSED_ART } from "./licensedArt";
+import { getChatBrand, TEXAS_HODL as TH } from "./brand";
 /**
  * Split a phrase for the ribbon: one line when short, otherwise two lines
  * broken at the space nearest the middle.
@@ -36,7 +37,7 @@ export const StickerArt: React.FC<{ sticker: StickerDef; size?: number }> = ({ s
     // Movie references are always the movie characters, whatever the sticker style.
     if (movie && !sticker.art) {
         return (
-            <MemeFrame style="wojak" label={`\u201c${sticker.label}\u201d`} size={size}>
+            <MemeFrame style="wojak" variant="movies" label={`\u201c${sticker.label}\u201d`} size={size}>
                 <title>{`${sticker.label} — ${MOVIE_SPEAKERS[sticker.id]}`}</title>
                 {movie()}
             </MemeFrame>
@@ -61,6 +62,7 @@ export const CartoonSticker: React.FC<{ sticker: StickerDef; size?: number }> = 
     if (sticker.art) {
         return <img src={sticker.art} alt={sticker.label} width={size} height={size} draggable={false} />;
     }
+    if (getChatBrand() === "texashodl") return <ChipTag sticker={sticker} size={size} />;
     const gid = `b52s-${sticker.id}`;
     const lines = ribbonLines(sticker.label.toUpperCase());
     const fontSize = lines[0].length > 10 ? 10.5 : 12;
@@ -104,6 +106,42 @@ export const CartoonSticker: React.FC<{ sticker: StickerDef; size?: number }> = 
                     ))}
                 </>
             )}
+        </svg>
+    );
+};
+
+/**
+ * Chip Crew in Texas Hodl's look: the art on a dark chamfered tag (their
+ * button shape) with a gradient edge, a soft brand glow behind it, and the
+ * phrase in their spaced Geist caps.
+ */
+const ChipTag: React.FC<{ sticker: StickerDef; size: number }> = ({ sticker, size }) => {
+    const id = `th-${sticker.id}`;
+    const lines = ribbonLines(sticker.label.toUpperCase());
+    return (
+        <svg viewBox="0 0 100 100" width={size} height={size} role="img" aria-label={sticker.label} overflow="visible">
+            <defs>
+                <linearGradient id={`${id}g`} x1="0" y1="0" x2="1" y2="1">
+                    <stop offset="0" stopColor={TH.orange} />
+                    <stop offset="0.5" stopColor={TH.red} />
+                    <stop offset="1" stopColor={TH.pink} />
+                </linearGradient>
+                <radialGradient id={`${id}r`} cx="50%" cy="40%" r="50%">
+                    <stop offset="0" stopColor={TH.violet} stopOpacity="0.55" />
+                    <stop offset="1" stopColor={TH.violet} stopOpacity="0" />
+                </radialGradient>
+            </defs>
+            <path d="M18 2 H90 L98 10 V66 L90 74 H10 L2 66 V18 Z" fill={TH.panel} stroke={`url(#${id}g)`} strokeWidth="1.6" />
+            <circle cx="50" cy="38" r="32" fill={`url(#${id}r)`} />
+            <path d="M2 18 L18 2" stroke={TH.pink} strokeWidth="2.4" />
+            <g transform="translate(22 8) scale(0.88)">
+                <ArtLayers spec={sticker.icon} />
+            </g>
+            {lines.map((l, i) => (
+                <text key={i} x="50" y={lines.length === 1 ? 86 : 83 + i * 9} textAnchor="middle" dominantBaseline="central" fontFamily={TH.font} fontWeight={700} fontSize={lines.length === 1 ? 7.6 : 7} letterSpacing="0.9" fill="#fff" {...(l.length * 5.4 > 92 ? { textLength: 92, lengthAdjust: "spacingAndGlyphs" as const } : {})}>
+                    {l}
+                </text>
+            ))}
         </svg>
     );
 };
