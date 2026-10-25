@@ -374,3 +374,37 @@ describe("Texas Hodl brand", () => {
         }
     });
 });
+
+describe("switching the chat brand from the header logos", () => {
+    // eslint-disable-next-line @typescript-eslint/no-var-requires
+    const { setChatBrand, getChatBrand, configureChatBrand, brandClass } = require("./brand");
+    // eslint-disable-next-line @typescript-eslint/no-var-requires
+    const React = require("react");
+    // eslint-disable-next-line @typescript-eslint/no-var-requires
+    const { render, act } = require("@testing-library/react");
+    // eslint-disable-next-line @typescript-eslint/no-var-requires
+    const { CartoonSticker } = require("./StickerArt");
+    // eslint-disable-next-line @typescript-eslint/no-var-requires
+    const { findSticker } = require("./stickers");
+    afterEach(() => {
+        configureChatBrand("block52");
+        localStorage.removeItem("b52.chat.brand");
+    });
+
+    it("switches the look straight away and remembers the pick", () => {
+        setChatBrand("texashodl");
+        expect(getChatBrand()).toBe("texashodl");
+        expect(brandClass()).toBe(" b52-th");
+        expect(localStorage.getItem("b52.chat.brand")).toBe("texashodl");
+        setChatBrand("block52");
+        expect(brandClass()).toBe("");
+        expect(localStorage.getItem("b52.chat.brand")).toBe("block52");
+    });
+
+    it("re-renders sticker art when the brand changes", () => {
+        const { container } = render(React.createElement(CartoonSticker, { sticker: findSticker("rivered-again"), size: 76 }));
+        expect(container.innerHTML).not.toContain("M18 2 H90");
+        act(() => setChatBrand("texashodl"));
+        expect(container.innerHTML).toContain("M18 2 H90");
+    });
+});

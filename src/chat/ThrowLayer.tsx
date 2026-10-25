@@ -1,5 +1,5 @@
 import React, { useEffect, useRef, useState } from "react";
-import { brandClass } from "./brand";
+import { brandClass, useChatBrand } from "./brand";
 import { createPortal } from "react-dom";
 import "./ThrowLayer.css";
 import { ChatMessage, subscribeChatMessages } from "./chatBus";
@@ -28,6 +28,7 @@ interface Flight {
  * Respects the throwables setting, blocked players and reduced motion.
  */
 export const ThrowLayer: React.FC<{ seatedAddresses?: readonly string[] }> = ({ seatedAddresses }) => {
+    useChatBrand();
     const settings = useChatSettings();
     const [flights, setFlights] = useState<Flight[]>([]);
     const seen = useRef(new Set<string>());

@@ -1,5 +1,5 @@
 import React from "react";
-import { getChatBrand, TEXAS_HODL as TH } from "../brand";
+import { getChatBrand, TEXAS_HODL as TH, useChatBrand } from "../brand";
 
 /**
  * Sticker frames for the meme styles (block52-chat#2): the drawing on top, the
@@ -25,6 +25,7 @@ export type ThVariant = "movies" | "wojak" | "rage" | "hose" | "sticks";
 
 export const MemeFrame: React.FC<{ style: MemeStyle; label: string; size?: number; variant?: ThVariant; children: React.ReactNode }> = ({ style, label, size = 76, variant, children }) => {
     const uid = React.useId().replace(/[^a-zA-Z0-9_-]/g, "");
+    useChatBrand();
     const lines = splitCaption(style === "hose" ? label.toUpperCase() : label);
     const one = lines.length === 1;
     const fs = one ? (lines[0].length > 12 ? 10.5 : 12.5) : 9.6;

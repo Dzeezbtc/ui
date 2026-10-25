@@ -1,5 +1,5 @@
 import React, { useLayoutEffect, useRef, useState } from "react";
-import { brandClass } from "./brand";
+import { brandClass, useChatBrand } from "./brand";
 import { createPortal } from "react-dom";
 import "./SeatChatBubble.css";
 import { useSeatChat } from "./useSeatChat";
@@ -19,6 +19,7 @@ import RichText from "./RichText";
  * seats; that's accepted. Never blocks clicks underneath.
  */
 export const SeatChatBubble: React.FC<{ address: string | undefined }> = ({ address }) => {
+    useChatBrand();
     const msg = useSeatChat(address);
     const anchorRef = useRef<HTMLSpanElement>(null);
     const [pos, setPos] = useState<{ x: number; y: number } | null>(null);

@@ -1,5 +1,5 @@
 import React, { useCallback, useEffect, useRef, useState } from "react";
-import { brandClass } from "./brand";
+import { brandClass, ChatBrand, setChatBrand, useChatBrand } from "./brand";
 import { createPortal } from "react-dom";
 import "./TableChatBox.css";
 import "./brandTexasHodl.css";
@@ -20,6 +20,13 @@ import ArtIcon from "./art/Art";
 import RichText from "./RichText";
 import { EMOTES } from "./emotes";
 import { REPLIES } from "./memes/castList";
+import b52Logo from "./art/b52-logo.svg";
+
+/** The looks the player can switch between from the chat header. */
+const BRAND_PICKS: { brand: ChatBrand; label: string }[] = [
+    { brand: "block52", label: "Block52 style" },
+    { brand: "texashodl", label: "Texas Hodl style" }
+];
 
 const LS_OPEN = "b52.chat.open";
 const LS_DRAFT = "b52.chat.draft";
@@ -89,6 +96,7 @@ export interface TableChatBoxProps {
  * own messages echo locally so it works for a demo before the relay (#6).
  */
 const TableChatBox: React.FC<TableChatBoxProps> = ({ seatedAddresses: seatedProp, players }) => {
+    const brand = useChatBrand();
     useEffect(() => {
         if (players) registerTablePlayers(players);
     }, [players]);
@@ -292,6 +300,22 @@ const TableChatBox: React.FC<TableChatBoxProps> = ({ seatedAddresses: seatedProp
                     <div className="b52-chat__header" onPointerDown={e => startGrip(e, "move")} title="Drag to move · drag the edges to resize">
                         <div className="b52-chat__title-row">
                             <span className="b52-chat__title">Table chat</span>
+                            <div className="b52-chat__brands" role="radiogroup" aria-label="Chat style">
+                                {BRAND_PICKS.map(p => (
+                                    <button
+                                        key={p.brand}
+                                        type="button"
+                                        role="radio"
+                                        aria-checked={brand === p.brand}
+                                        aria-label={p.label}
+                                        title={p.label}
+                                        className={`b52-chat__brand b52-chat__brand--${p.brand}${brand === p.brand ? " is-active" : ""}`}
+                                        onClick={() => setChatBrand(p.brand)}
+                                    >
+                                        {p.brand === "block52" ? <img src={b52Logo} alt="" draggable={false} /> : <span>HODL</span>}
+                                    </button>
+                                ))}
+                            </div>
                             {box && (
                                 <button type="button" className="b52-chat__dock" aria-label="Put chat back in its place" title="Put chat back in its place" onClick={dock}>
                                     ⤓

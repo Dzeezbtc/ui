@@ -911,3 +911,49 @@
     padding: 2px 10px;
     cursor: pointer;
 }
+
+/* Brand logos beside the title: B52 = our look, HODL = Texas Hodl's. */
+.b52-chat__brands {
+    display: flex;
+    gap: 4px;
+    margin: 0 auto 0 8px;
+}
+
+.b52-chat__brand {
+    display: inline-flex;
+    align-items: center;
+    justify-content: center;
+    height: 20px;
+    min-width: 28px;
+    padding: 0 5px;
+    border: 1px solid rgba(255, 255, 255, 0.18);
+    border-radius: 5px;
+    background: rgba(255, 255, 255, 0.04);
+    cursor: pointer;
+    opacity: 0.55;
+    transition: opacity 0.15s, border-color 0.15s;
+}
+
+.b52-chat__brand:hover,
+.b52-chat__brand.is-active {
+    opacity: 1;
+}
+
+.b52-chat__brand.is-active {
+    border-color: rgba(255, 255, 255, 0.6);
+}
+
+.b52-chat__brand img {
+    height: 13px;
+    width: auto;
+}
+
+.b52-chat__brand--texashodl span {
+    font-size: 9.5px;
+    font-weight: 900;
+    letter-spacing: 0.08em;
+    background: linear-gradient(100deg, #ff8500, #ff4f3f, #f12cff);
+    -webkit-background-clip: text;
+    background-clip: text;
+    color: transparent;
+}

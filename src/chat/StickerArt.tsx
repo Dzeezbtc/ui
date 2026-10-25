@@ -8,7 +8,7 @@ import { MemeFrame } from "./memes/frame";
 import { MOVIE_ART, MOVIE_SPEAKERS } from "./memes/movies";
 import { RAGE_FACES } from "./memes/rageFaces";
 import { LICENSED_ART } from "./licensedArt";
-import { getChatBrand, TEXAS_HODL as TH } from "./brand";
+import { getChatBrand, TEXAS_HODL as TH, useChatBrand } from "./brand";
 /**
  * Split a phrase for the ribbon: one line when short, otherwise two lines
  * broken at the space nearest the middle.
@@ -30,6 +30,7 @@ export function ribbonLines(label: string): string[] {
  * artwork (`art`) still replaces it when the manifest has some.
  */
 export const StickerArt: React.FC<{ sticker: StickerDef; size?: number }> = ({ sticker: def, size = 64 }) => {
+    useChatBrand();
     const { stickerStyle } = useChatSettings();
     // Licensed originals, once cleared, replace our drawing everywhere.
     const sticker = !def.art && LICENSED_ART[def.id] ? { ...def, art: LICENSED_ART[def.id] } : def;
@@ -59,6 +60,7 @@ export const StickerArt: React.FC<{ sticker: StickerDef; size?: number }> = ({ s
 
 /** The Chip Crew cartoon sticker (the "Chip Crew" style option). */
 export const CartoonSticker: React.FC<{ sticker: StickerDef; size?: number }> = ({ sticker, size = 64 }) => {
+    useChatBrand();
     if (sticker.art) {
         return <img src={sticker.art} alt={sticker.label} width={size} height={size} draggable={false} />;
     }
