@@ -171,6 +171,15 @@ const Body: React.FC<{ jacket: string; shirt?: string; skin?: string; hands?: "d
         <g>
             <path d="M28 82 C28 62 36 52 50 52 C64 52 72 62 72 82Z" fill={jacket} stroke={INK} strokeWidth={L} />
             {shirt && <path d="M44 52 L50 66 L56 52Z" fill={shirt} stroke={INK} strokeWidth={L * 0.8} />}
+            {shirt && (
+                <g>
+                    {/* lapels and buttons */}
+                    <path d="M44 52 L41 60 L46 59 L50 66z M56 52 L59 60 L54 59 L50 66z" fill="#000" fillOpacity={0.18} stroke={INK} strokeWidth={L * 0.6} />
+                    <circle cx={50} cy={71} r={0.9} fill="#000" fillOpacity={0.45} />
+                    <circle cx={50} cy={77} r={0.9} fill="#000" fillOpacity={0.45} />
+                    <path d="M37 64 h6" stroke="#000" strokeOpacity={0.25} strokeWidth={1.2} />
+                </g>
+            )}
             {tie && <path d="M49 55 l-2 3 l3 12 l3 -12 l-2 -3z" fill={tie} stroke={INK} strokeWidth={L * 0.6} />}
             <path d={`M36 60 Q${(36 + l[0]) / 2 - 4} ${(60 + l[1]) / 2} ${l[0]} ${l[1]}`} fill="none" stroke={jacket} strokeWidth={6} strokeLinecap="round" />
             <path d={`M64 60 Q${(64 + r[0]) / 2 + 4} ${(60 + r[1]) / 2} ${r[0]} ${r[1]}`} fill="none" stroke={jacket} strokeWidth={6} strokeLinecap="round" />
@@ -495,7 +504,7 @@ export const MOVIE_SPEAKERS: Record<string, string> = {
 // ── The big movie-line set: quick cut-out characters from a few traits ────────
 
 type Hair = "short" | "long" | "bald" | "slick" | "curly" | "spiky" | "side" | "messy" | "receding" | "afro" | "shaggy" | "girl" | "crop" | "bob";
-type Extra = "shades" | "glasses" | "beard" | "stubble" | "mustache" | "scar" | "visor" | "lashes" | "lips";
+type Extra = "shades" | "glasses" | "beard" | "stubble" | "mustache" | "thinstache" | "scar" | "visor" | "lashes" | "lips" | "jowls" | "rose" | "bowtie";
 interface Who2 {
     skin: string;
     hair: Hair;
@@ -591,6 +600,20 @@ const EXTRA = (e: Extra): React.ReactNode => {
             return <path d="M42 39 q8 -4 16 0 q-8 2 -16 0z" fill="#3a2717" stroke={INK} strokeWidth={L * 0.6} />;
         case "scar":
             return <path d="M30 14 l10 10 M33 13 l1 3 M36 16 l1 3" stroke="#9b3b3b" strokeWidth={1.4} />;
+        case "thinstache":
+            return <path d="M43 39.5 q7 -2.4 14 0" fill="none" stroke="#5a5a5a" strokeWidth={1.4} strokeLinecap="round" />;
+        case "jowls":
+            return <path d="M32 38 q2 8 8 11 M68 38 q-2 8 -8 11 M42 45 q-3 2 -2 5 M58 45 q3 2 2 5" fill="none" stroke={INK} strokeWidth={0.8} strokeLinecap="round" opacity={0.7} />;
+        case "rose":
+            return (
+                <g>
+                    <circle cx={60} cy={60} r={2.6} fill="#c8232c" stroke={INK} strokeWidth={0.6} />
+                    <path d="M59 58.6 q1 1.4 2 0" fill="none" stroke="#7a1218" strokeWidth={0.5} />
+                    <path d="M61.5 62 l2 2" stroke="#3f6a3a" strokeWidth={0.9} />
+                </g>
+            );
+        case "bowtie":
+            return <path d="M45 54 l5 2.4 l5 -2.4 v5 l-5 -2.4 l-5 2.4z" fill="#111" stroke={INK} strokeWidth={0.5} />;
         case "lashes":
             return <path d="M37 21 l-2 -3 M40 20 l-1 -3 M43 20 l0 -3 M57 20 l0 -3 M60 20 l1 -3 M63 21 l2 -3" stroke={INK} strokeWidth={0.9} strokeLinecap="round" />;
         case "lips":
@@ -606,7 +629,7 @@ function quick(w: Who2): () => React.ReactElement {
         <>
             <Bg fill={w.bg} />
             <Body jacket={w.jacket} shirt={w.shirt} tie={w.tie} skin={w.skin} hands={w.hands ?? (w.hold ? "hold" : "down")} hold={w.hold ? <Obj spec={w.hold} x={0} y={-6} s={0.3} /> : undefined} />
-            <Head skin={w.skin} shape={w.shape ?? "round"} ears />
+            <Head skin={w.skin} shape={w.shape ?? "round"} ears={!["afro", "long", "girl", "bob", "shaggy", "curly"].includes(w.hair)} />
             <Nose />
             {HAIR(w.hair, w.hairCol ?? "#3a2717")}
             <CutEyes kind={w.eyes ?? "plain"} />
@@ -662,7 +685,7 @@ export const MOVIE_LINES_2: [string, string, string, Who2][] = [
     ["bigger-boat", "We're gonna need a bigger boat", "Chief Brody", { skin: S2.light, hair: "receding", hairCol: "#8f8a80", jacket: "#c8b78f", eyes: "wide", mouth: "flat", bg: "#3a7fb0", extras: ["glasses"] }],
     ["feel-lucky", "Do you feel lucky, punk?", "Harry Callahan", { skin: S2.tan, hair: "side", hairCol: "#7a5532", jacket: "#5a5a5a", tie: "#2a2a2a", shirt: "#ffffff", eyes: "angry", mouth: "flat", shape: "long", bg: "#7a6a5a", hands: "point" }],
     ["talkin-to-me", "You talkin' to me?", "Travis Bickle", { skin: S2.light, hair: "spiky", hairCol: "#2a1d14", jacket: "#5a4a2f", eyes: "angry", mouth: "smirk", shape: "narrow", bg: "#2f2f3a", hands: "point" }],
-    ["cant-refuse", "An offer he can't refuse", "Vito Corleone", { skin: S2.light, hair: "slick", hairCol: "#a8a39a", jacket: "#151515", shirt: "#ffffff", tie: "#151515", eyes: "smug", mouth: "flat", shape: "jaw", bg: "#3a2a1d" }],
+    ["cant-refuse", "An offer he can't refuse", "Vito Corleone", { skin: S2.light, hair: "slick", hairCol: "#a8a39a", jacket: "#141414", shirt: "#ffffff", extras: ["thinstache", "jowls", "bowtie", "rose"], eyes: "smug", mouth: "frown", shape: "jaw", bg: "#3a2a1d" }],
     ["entertained", "Are you not entertained?!", "Maximus", { skin: S2.tan, hair: "short", hairCol: "#2a1d14", jacket: "#7a5532", eyes: "angry", mouth: "shout", extras: ["beard"], bg: "#c79a5a", hands: "up" }],
     [
         "sparta",
@@ -690,15 +713,14 @@ export const MOVIE_LINES_2: [string, string, string, Who2][] = [
                     {/* arm out with a spear */}
                     <path d="M36 58 L18 40" stroke={INK} strokeWidth={7.4} strokeLinecap="round" />
                     <path d="M36 58 L18 40" stroke={S2.tan} strokeWidth={5} strokeLinecap="round" />
-                    <path d="M14 70 L22 10" stroke="#6b4a2f" strokeWidth={2} />
-                    <path d="M20 4 l4 8 l-6 0z" fill="#b5b5b5" stroke={INK} strokeWidth={0.8} />
-                    {/* head under a bronze Corinthian helmet with a red crest */}
+                    {/* no helmet in the kick: long dark hair, full beard, roaring */}
+                    <path d="M28 34 C22 12 34 4 50 4 C66 4 78 12 72 34 C72 50 70 58 66 58 C66 42 64 30 60 24 C54 18 46 18 40 24 C36 30 34 42 34 58 C30 58 28 50 28 34z" fill="#1d1612" stroke={INK} strokeWidth={L} />
                     <Head skin={S2.tan} shape="square" />
-                    <path d="M28 14 C28 -6 72 -6 72 14 Z" fill="#c4361f" stroke={INK} strokeWidth={L} />
-                    <path d="M30 34 C26 10 40 4 50 4 C60 4 74 10 70 34 L66 44 L60 30 L56 46 H44 L40 30 L34 44z" fill="#c9922f" stroke={INK} strokeWidth={L} />
-                    <path d="M40 26 h8 l-1 4 h-7z M52 26 h8 v4 h-7z" fill="#151515" />
-                    <path d="M44 46 C44 56 48 60 50 60 C52 60 56 56 56 46" fill="#2a1d14" stroke={INK} strokeWidth={L} />
-                    <CutMouth kind="shout" y={44} w={0.7} />
+                    <path d="M30 22 C32 10 44 6 50 6 C58 6 68 10 70 22 C64 16 56 14 50 14 C42 14 36 16 30 22z" fill="#1d1612" stroke={INK} strokeWidth={L} />
+                    <path d="M32 36 C32 54 42 62 50 62 C58 62 68 54 68 36 C62 46 56 48 50 48 C44 48 38 46 32 36z" fill="#2a1d14" stroke={INK} strokeWidth={L} />
+                    <CutEyes kind="angry" />
+                    <Nose />
+                    <CutMouth kind="shout" y={46} w={0.8} />
                 </>
             )
         }
