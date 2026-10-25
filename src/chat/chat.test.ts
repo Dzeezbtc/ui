@@ -277,3 +277,15 @@ describe("who's who (seats and avatars, not addresses)", () => {
         expect(getTablePlayers().map((p: { seat: number }) => p.seat)).toEqual([1, 2]);
     });
 });
+
+describe("movie references pack", () => {
+    // eslint-disable-next-line @typescript-eslint/no-var-requires
+    const { MOVIE_ART, MOVIE_SPEAKERS } = require("./memes/movies");
+    // eslint-disable-next-line @typescript-eslint/no-var-requires
+    const { STICKERS } = require("./stickers");
+    it("gives every movie line a character who says it", () => {
+        const movies = STICKERS.filter((s: { pack: string }) => s.pack === "movies");
+        expect(movies.length).toBe(19);
+        for (const s of movies) expect([s.id, !!MOVIE_ART[s.id], !!MOVIE_SPEAKERS[s.id]]).toEqual([s.id, true, true]);
+    });
+});

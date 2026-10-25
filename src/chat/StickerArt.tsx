@@ -4,6 +4,8 @@ import { ArtLayers } from "./art/Art";
 import { C, FONT } from "./art/ink";
 import { useChatSettings } from "./chatSettings";
 import MemeSticker from "./memes/MemeSticker";
+import { MemeFrame } from "./memes/frame";
+import { MOVIE_ART, MOVIE_SPEAKERS } from "./memes/movies";
 /**
  * Split a phrase for the ribbon: one line when short, otherwise two lines
  * broken at the space nearest the middle.
@@ -25,7 +27,16 @@ export function ribbonLines(label: string): string[] {
  * artwork (`art`) still replaces it when the manifest has some.
  */
 export const StickerArt: React.FC<{ sticker: StickerDef; size?: number }> = ({ sticker, size = 64 }) => {
-    const { stickerStyle } = useChatSettings();
+    const { stickerStyle, movieCharacters } = useChatSettings();
+    const movie = MOVIE_ART[sticker.id];
+    if (movie && movieCharacters && !sticker.art) {
+        return (
+            <MemeFrame style="wojak" label={`\u201c${sticker.label}\u201d`} size={size}>
+                <title>{`${sticker.label} — ${MOVIE_SPEAKERS[sticker.id]}`}</title>
+                {movie()}
+            </MemeFrame>
+        );
+    }
     if (stickerStyle !== "cartoon" && !sticker.art) return <MemeSticker sticker={sticker} style={stickerStyle} size={size} />;
     return <CartoonSticker sticker={sticker} size={size} />;
 };

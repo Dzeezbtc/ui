@@ -18,6 +18,8 @@ export interface ChatSettings {
     throwables: boolean;
     /** Sticker art style (block52-chat#2): four meme styles, or the Chip Crew cartoons. */
     stickerStyle: StickerStyle;
+    /** Movie lines said by cut-out caricatures of who said them (block52-chat#2). */
+    movieCharacters: boolean;
     /** Blocked players' lower-cased wallet addresses (#13). */
     muted: string[];
 }
@@ -33,7 +35,7 @@ export const STICKER_STYLES: readonly { id: StickerStyle; label: string }[] = [
     { id: "cartoon", label: "Chip Crew" }
 ];
 
-const DEFAULTS: ChatSettings = { enabled: true, seatBubbles: true, muteSpectators: false, throwables: true, stickerStyle: "wojak", muted: [] };
+const DEFAULTS: ChatSettings = { enabled: true, seatBubbles: true, muteSpectators: false, throwables: true, stickerStyle: "wojak", movieCharacters: true, muted: [] };
 
 function load(): ChatSettings {
     try {
@@ -45,6 +47,7 @@ function load(): ChatSettings {
             seatBubbles: typeof p.seatBubbles === "boolean" ? p.seatBubbles : DEFAULTS.seatBubbles,
             muteSpectators: typeof p.muteSpectators === "boolean" ? p.muteSpectators : DEFAULTS.muteSpectators,
             throwables: typeof p.throwables === "boolean" ? p.throwables : DEFAULTS.throwables,
+            movieCharacters: typeof p.movieCharacters === "boolean" ? p.movieCharacters : DEFAULTS.movieCharacters,
             stickerStyle: STICKER_STYLES.some(s => s.id === p.stickerStyle) ? p.stickerStyle : DEFAULTS.stickerStyle,
             muted: Array.isArray(p.muted) ? p.muted.filter((a: unknown) => typeof a === "string").map((a: string) => a.toLowerCase()) : []
         };

@@ -386,6 +386,10 @@ const TableChatBox: React.FC<TableChatBoxProps> = ({ seatedAddresses: seatedProp
                                 </select>
                             </label>
                             <label className="b52-chat__setting">
+                                <span>Movie characters</span>
+                                <input type="checkbox" role="switch" checked={settings.movieCharacters} disabled={!settings.enabled} onChange={e => updateChatSettings({ movieCharacters: e.target.checked })} />
+                            </label>
+                            <label className="b52-chat__setting">
                                 <span>Show throwables</span>
                                 <input type="checkbox" role="switch" checked={settings.throwables} disabled={!settings.enabled} onChange={e => updateChatSettings({ throwables: e.target.checked })} />
                             </label>
