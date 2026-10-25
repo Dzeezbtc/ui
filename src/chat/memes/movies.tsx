@@ -15,11 +15,65 @@ const L = 1.1;
 
 type Eyes = "plain" | "angry" | "wide" | "smug" | "sad" | "closed" | "crazy";
 
-/** The cut-out head: a wide, slightly squashed circle. */
-const Head: React.FC<{ x?: number; y?: number; skin: string; w?: number; h?: number; chin?: boolean }> = ({ x = 50, y = 32, skin, w = 21, h = 19, chin }) => (
+/**
+ * The cut-out head. Head SHAPE carries most of a likeness at this size, so each
+ * character picks one: a block for the action hero, a tall egg dome, a long
+ * wizard's face, a narrow face, a square jaw, the titan's huge chin.
+ */
+type Shape = "round" | "egg" | "block" | "long" | "narrow" | "square" | "jaw" | "wide";
+function headPath(shape: Shape, x: number, y: number): string {
+    switch (shape) {
+        case "egg":
+            return `M${x - 18} ${y + 4} C${x - 20} ${y - 30} ${x + 20} ${y - 30} ${x + 18} ${y + 4} C${x + 16} ${y + 19} ${x - 16} ${y + 19} ${x - 18} ${y + 4}Z`;
+        case "block":
+            return `M${x - 20} ${y - 15} Q${x - 21} ${y - 20} ${x - 14} ${y - 20} H${x + 14} Q${x + 21} ${y - 20} ${x + 20} ${y - 15} L${x + 22} ${y + 12} Q${x + 22} ${y + 21} ${x + 12} ${y + 21} H${x - 12} Q${x - 22} ${y + 21} ${x - 22} ${y + 12}Z`;
+        case "long":
+            return `M${x - 16} ${y - 4} C${x - 17} ${y - 26} ${x + 17} ${y - 26} ${x + 16} ${y - 4} C${x + 16} ${y + 14} ${x + 10} ${y + 23} ${x} ${y + 23} C${x - 10} ${y + 23} ${x - 16} ${y + 14} ${x - 16} ${y - 4}Z`;
+        case "narrow":
+            return `M${x - 16} ${y - 2} C${x - 17} ${y - 24} ${x + 17} ${y - 24} ${x + 16} ${y - 2} C${x + 15} ${y + 14} ${x + 8} ${y + 21} ${x} ${y + 21} C${x - 8} ${y + 21} ${x - 15} ${y + 14} ${x - 16} ${y - 2}Z`;
+        case "square":
+            return `M${x - 19} ${y - 8} C${x - 20} ${y - 24} ${x + 20} ${y - 24} ${x + 19} ${y - 8} L${x + 18} ${y + 10} Q${x + 16} ${y + 21} ${x + 6} ${y + 21} H${x - 6} Q${x - 16} ${y + 21} ${x - 18} ${y + 10}Z`;
+        case "jaw":
+            return `M${x - 16} ${y - 13} C${x - 13} ${y - 25} ${x + 13} ${y - 25} ${x + 16} ${y - 13} L${x + 23} ${y + 13} Q${x + 22} ${y + 25} ${x + 10} ${y + 26} H${x - 10} Q${x - 22} ${y + 25} ${x - 23} ${y + 13}Z`;
+        case "wide":
+            return `M${x - 23} ${y} C${x - 23} ${y - 22} ${x + 23} ${y - 22} ${x + 23} ${y} C${x + 23} ${y + 16} ${x + 14} ${y + 21} ${x} ${y + 21} C${x - 14} ${y + 21} ${x - 23} ${y + 16} ${x - 23} ${y}Z`;
+        default:
+            return "";
+    }
+}
+
+const Head: React.FC<{ x?: number; y?: number; skin: string; w?: number; h?: number; chin?: boolean; shape?: Shape; ears?: boolean }> = ({ x = 50, y = 32, skin, w = 21, h = 19, chin, shape = "round", ears }) => (
     <g>
-        <ellipse cx={x} cy={y} rx={w} ry={h} fill={skin} stroke={INK} strokeWidth={L} />
+        {ears && (
+            <g fill={skin} stroke={INK} strokeWidth={L}>
+                <ellipse cx={x - (shape === "narrow" || shape === "long" ? 17 : 21)} cy={y + 2} rx={3} ry={4.4} />
+                <ellipse cx={x + (shape === "narrow" || shape === "long" ? 17 : 21)} cy={y + 2} rx={3} ry={4.4} />
+            </g>
+        )}
+        {shape === "round" ? <ellipse cx={x} cy={y} rx={w} ry={h} fill={skin} stroke={INK} strokeWidth={L} /> : <path d={headPath(shape, x, y)} fill={skin} stroke={INK} strokeWidth={L} />}
         {chin && <path d={`M${x - 14} ${y + 12} q14 14 28 0`} fill={skin} stroke={INK} strokeWidth={L} />}
+    </g>
+);
+
+/** A small nose; `big` for the characterful ones. */
+const Nose: React.FC<{ x?: number; y?: number; big?: boolean; hook?: boolean }> = ({ x = 50, y = 36, big, hook }) => (
+    <path
+        d={hook ? `M${x - 1} ${y - 3} q5 4 1 7 q-2 1 -3 0` : big ? `M${x - 1} ${y - 2} q5 3 1 6 q-3 1 -5 -1` : `M${x - 0.6} ${y - 1} q3 2 0.6 3.6`}
+        fill="none"
+        stroke={INK}
+        strokeWidth={L}
+        strokeLinecap="round"
+    />
+);
+
+/** Extra lines that sell a face: brow ridge, cheekbones, frown lines, stubble, dimple. */
+const Lines: React.FC<{ d: string; w?: number; color?: string }> = ({ d, w = L * 0.8, color = INK }) => <path d={d} fill="none" stroke={color} strokeWidth={w} strokeLinecap="round" />;
+
+const Stubble: React.FC<{ x?: number; y?: number; w?: number }> = ({ x = 50, y = 46, w = 12 }) => (
+    <g fill="#3a3a3a" opacity={0.55}>
+        {Array.from({ length: 18 }, (_, i) => (
+            <circle key={i} cx={x - w + ((i * 37) % (w * 2))} cy={y - 4 + ((i * 13) % 8)} r={0.45} />
+        ))}
     </g>
 );
 
@@ -147,7 +201,9 @@ const Kgb: React.FC<{ eyes?: Eyes; mouth?: Mouth; hold?: React.ReactNode; hands?
         </Bg>
         <Body jacket="#3b3f6b" shirt="#f2f2f2" hands={hands} hold={hold} />
         <path d="M30 78 L28 82 M70 78 L72 82" stroke="#fff" strokeWidth={2} />
-        <Head skin={SKIN.light} />
+        <Head skin={SKIN.light} shape="egg" ears />
+        <Nose big />
+        <Lines d="M38 46 q2 2 1 4 M62 46 q-2 2 -1 4 M42 12 q8 -3 16 0" />
         {/* bald on top, slicked dark sides */}
         <path d="M29 30 C28 20 32 16 34 26z M71 30 C72 20 68 16 66 26z" fill="#3a2b22" stroke={INK} strokeWidth={L} />
         <CutEyes kind={eyes} />
@@ -173,7 +229,9 @@ const Thanos: React.FC<{ hold: React.ReactNode; hands: "snap" | "hold" }> = ({ h
         </Bg>
         <Body jacket="#3e4a8a" skin={SKIN.purple} hands={hands} hold={hold} />
         <path d="M30 60 C34 54 42 52 46 54 L40 64z M70 60 C66 54 58 52 54 54 L60 64z" fill="#d6a531" stroke={INK} strokeWidth={L} />
-        <Head skin={SKIN.purple} h={20} chin />
+        <Head skin={SKIN.purple} shape="jaw" />
+        <Lines d="M36 18 q14 -6 28 0 M30 34 q4 2 6 0 M64 34 q4 2 6 0" color="#4f2f6e" />
+        <Nose />
         <path d="M44 48 v4 M48 49 v5 M52 49 v5 M56 48 v4" stroke="#4f2f6e" strokeWidth={L} />
         <CutEyes kind="smug" />
         <CutMouth kind="smirk" y={42} />
@@ -193,7 +251,9 @@ export const MOVIE_ART: Record<string, () => React.ReactElement> = {
         <>
             <Bg fill="#1f4f3a" />
             <Body jacket="#6d7f96" shirt="#f2f2f2" hands="hold" hold={<g transform="rotate(10)"><rect x={-5} y={-12} width={8} height={11} rx={1} fill="#fff" stroke={INK} strokeWidth={L} /><rect x={-1} y={-11} width={8} height={11} rx={1} fill="#fff" stroke={INK} strokeWidth={L} /></g>} />
-            <Head skin={SKIN.light} />
+            <Head skin={SKIN.light} shape="round" ears />
+            <Nose />
+            <Lines d="M49 50 v2" />
             <path d="M29 26 C28 10 44 8 52 12 C60 8 72 12 71 26 C66 18 56 16 50 18 C42 16 34 18 29 26z" fill="#8a5a33" stroke={INK} strokeWidth={L} />
             <CutEyes kind="smug" look={1.4} />
             <CutMouth kind="smirk" />
@@ -211,7 +271,9 @@ export const MOVIE_ART: Record<string, () => React.ReactElement> = {
             </Bg>
             <Body jacket="#2e2f36" shirt="#ffffff" tie="#8a1f2b" hands="hold" hold={<g><rect x={-3} y={-12} width={6} height={13} rx={1.5} fill="#1d1d1d" /></g>} />
             {/* the famous grin: all teeth, eyes too wide */}
-            <Head skin={SKIN.light} />
+            <Head skin={SKIN.light} shape="square" ears />
+            <Nose />
+            <Lines d="M33 40 q2 4 4 5 M67 40 q-2 4 -4 5" />
             <path d="M30 24 C28 8 46 4 56 8 C66 6 74 14 70 26 C66 18 60 14 54 16 C46 12 36 16 30 24z" fill="#3a2717" stroke={INK} strokeWidth={L} />
             <CutEyes kind="crazy" size={1.05} />
             <CutMouth kind="grin" y={44} w={1.15} />
@@ -223,7 +285,9 @@ export const MOVIE_ART: Record<string, () => React.ReactElement> = {
                 <rect x={-5} y={50} width={110} height={40} fill="#5a3a26" />
             </Bg>
             <Body jacket="#1a1a1c" shirt="#2c2c30" hands="thumb" />
-            <Head skin={SKIN.tan} w={22} h={19} chin />
+            <Head skin={SKIN.tan} shape="block" ears />
+            <Nose big />
+            <Lines d="M34 38 q2 5 6 7 M66 38 q-2 5 -6 7 M44 50 h12" />
             {/* flat-top */}
             <path d="M30 22 L30 12 L70 12 L70 22 C62 18 38 18 30 22z" fill="#4a3426" stroke={INK} strokeWidth={L} />
             <path d="M32 24 h36 v4 q-2 7 -9 7 q-6 0 -8 -5 h-2 q-2 5 -8 5 q-7 0 -9 -7z" fill="#111" />
@@ -237,7 +301,9 @@ export const MOVIE_ART: Record<string, () => React.ReactElement> = {
                 <path d="M-5 60 h110 v30 h-110z" fill="#f2f2f2" />
             </Bg>
             <Body jacket="#f4f1ea" shirt="#b3212b" hands="hold" hold={<g transform="translate(0 -4)"><ChipPile x={0} y={6} k={0.9} /></g>} />
-            <Head skin={SKIN.olive} />
+            <Head skin={SKIN.olive} shape="narrow" />
+            <Nose hook />
+            <Stubble y={47} w={11} />
             <path d="M30 24 C28 10 46 6 56 8 C68 8 74 16 70 26 C64 16 50 16 42 18 C36 18 32 22 30 24z" fill="#161616" stroke={INK} strokeWidth={L} />
             <CutEyes kind="crazy" />
             <path d="M34 34 l6 6" stroke="#9b3b3b" strokeWidth={1.4} />
@@ -252,7 +318,8 @@ export const MOVIE_ART: Record<string, () => React.ReactElement> = {
             <Body jacket="#8d8d93" skin={SKIN.light} hands="up" />
             <path d="M24 30 V82" stroke="#7a5230" strokeWidth={3} />
             <circle cx={24} cy={27} r={3.6} fill="#e8f4ff" stroke={INK} strokeWidth={L} />
-            <Head skin={SKIN.light} />
+            <Head skin={SKIN.light} shape="long" />
+            <Nose big y={37} />
             <path d="M32 36 C30 56 44 74 50 80 C56 74 70 56 68 36 C60 44 40 44 32 36z" fill="#e4e4e4" stroke={INK} strokeWidth={L} />
             <path d="M26 18 C36 12 64 12 76 18 C64 16 36 16 26 18z" fill="#8d8d93" stroke={INK} strokeWidth={L} />
             <path d="M36 16 C40 6 48 -6 58 -12 C58 0 62 8 64 16z" fill="#8d8d93" stroke={INK} strokeWidth={L} />
@@ -266,7 +333,9 @@ export const MOVIE_ART: Record<string, () => React.ReactElement> = {
             <Bg fill="#8c8a80" />
             <Body jacket="#6b4a2f" skin={SKIN.light} hands="circle" />
             <path d="M30 58 C36 52 64 52 70 58 C64 56 36 56 30 58z" fill="#cdb48c" stroke={INK} strokeWidth={L} />
-            <Head skin={SKIN.light} />
+            <Head skin={SKIN.light} shape="long" />
+            <Nose y={37} />
+            <Lines d="M38 16 q4 -2 8 0" />
             <path d="M29 30 C24 44 28 56 32 58 L34 30z M71 30 C76 44 72 56 68 58 L66 30z" fill="#6b4a2f" stroke={INK} strokeWidth={L} />
             <path d="M30 24 C30 10 70 10 70 24 C62 16 38 16 30 24z" fill="#6b4a2f" stroke={INK} strokeWidth={L} />
             <path d="M36 40 C38 50 46 52 50 52 C54 52 62 50 64 40 C58 46 42 46 36 40z" fill="#7a5532" stroke={INK} strokeWidth={L} />
@@ -278,7 +347,8 @@ export const MOVIE_ART: Record<string, () => React.ReactElement> = {
         <>
             <Bg fill="#3a3550" />
             <Body jacket="#6b3f8f" shirt="#5fae5a" hands="down" />
-            <Head skin="#f4f1ea" />
+            <Head skin="#f4f1ea" shape="narrow" />
+            <Nose />
             <path d="M28 26 l-6 -6 l7 0 l-3 -8 l7 4 l2 -8 l4 7 l5 -8 l3 8 l5 -7 l1 8 l6 -4 l-2 8 l7 0 l-6 6 C60 18 40 18 28 26z" fill="#5fae5a" stroke={INK} strokeWidth={L} />
             <ellipse cx={43.6} cy={28} rx={8} ry={9} fill="#2a2a3a" opacity={0.75} />
             <ellipse cx={56.4} cy={28} rx={8} ry={9} fill="#2a2a3a" opacity={0.75} />
@@ -314,6 +384,8 @@ export const MOVIE_ART: Record<string, () => React.ReactElement> = {
             {/* big red curls */}
             <path d="M26 40 C18 20 30 4 50 4 C70 4 82 20 74 40 C72 52 66 56 64 46 C60 30 40 30 36 46 C34 56 28 52 26 40z" fill="#a8432b" stroke={INK} strokeWidth={L} />
             <Head skin={SKIN.light} w={18} h={18} />
+            <Nose />
+            <Lines d="M36 40 q1 3 3 4 M64 40 q-1 3 -3 4" />
             <path d="M34 20 C40 10 60 10 66 20 C58 14 42 14 34 20z" fill="#a8432b" stroke={INK} strokeWidth={L} />
             <CutEyes kind="smug" size={0.9} />
             <CutMouth kind="grin" y={42} w={1.2} />
@@ -325,7 +397,10 @@ export const MOVIE_ART: Record<string, () => React.ReactElement> = {
                 <path d="M-5 64 q20 -6 40 0 t40 0 t40 0 v30 h-120z" fill="#24506e" />
             </Bg>
             <Body jacket="#6d8a5a" skin={SKIN.deep} hands="point" />
-            <Head skin={SKIN.deep} w={18} h={21} />
+            <Head skin={SKIN.deep} shape="narrow" ears />
+            <Nose />
+            <Lines d="M37 36 q2 3 4 3 M63 36 q-2 3 -4 3" color="#3d281a" />
+            <path d="M34 18 C36 10 64 10 66 18 C58 14 42 14 34 18z" fill="#1d1d1d" stroke={INK} strokeWidth={L} />
             <CutEyes kind="wide" size={1.05} />
             <CutMouth kind="flat" y={45} />
         </>
@@ -337,7 +412,9 @@ export const MOVIE_ART: Record<string, () => React.ReactElement> = {
                 <text x={17} y={13.5} textAnchor="middle" dominantBaseline="central" fontFamily="'Courier New', monospace" fontWeight={900} fontSize={8} fill="#ffb03a">3.6</text>
             </Bg>
             <Body jacket="#2e3138" shirt="#ffffff" tie="#5a4636" hands="down" />
-            <Head skin={SKIN.light} />
+            <Head skin={SKIN.light} shape="wide" ears />
+            <Nose big />
+            <Lines d="M30 42 q3 4 7 5 M70 42 q-3 4 -7 5" />
             <path d="M30 24 C30 14 70 14 70 24 C64 20 36 20 30 24z" fill="#8f8a80" stroke={INK} strokeWidth={L} />
             <CutEyes kind="smug" />
             <CutMouth kind="flat" y={43} />
@@ -348,7 +425,8 @@ export const MOVIE_ART: Record<string, () => React.ReactElement> = {
             <Bg fill="#4d7bb8" />
             <Body jacket="#2a3f8a" skin={SKIN.light} hands="down" />
             <path d="M30 60 C34 54 42 52 46 54 L40 64z M70 60 C66 54 58 52 54 54 L60 64z" fill="#f2f2f2" stroke={INK} strokeWidth={L} />
-            <Head skin={SKIN.light} />
+            <Head skin={SKIN.light} shape="narrow" />
+            <Nose />
             {/* the tall flame of hair and the widow's peak */}
             <path d="M28 26 L22 -2 L34 10 L36 -12 L44 6 L50 -16 L56 6 L64 -12 L66 10 L78 -2 L72 26 C66 20 56 18 50 24 C44 18 34 20 28 26z" fill="#151515" stroke={INK} strokeWidth={L} />
             <CutEyes kind="angry" />
@@ -362,7 +440,8 @@ export const MOVIE_ART: Record<string, () => React.ReactElement> = {
                 <path d="M30 -5 L10 90 H90 L70 -5z" fill="#fff6c2" opacity={0.18} />
             </Bg>
             <Body jacket="#2a2a2e" shirt="#ffffff" skin={SKIN.light} hands="frame" />
-            <Head skin={SKIN.light} />
+            <Head skin={SKIN.light} shape="round" ears />
+            <Nose big y={37} />
             <path d="M30 24 C30 12 70 12 70 24 C64 18 36 18 30 24z" fill="#cfcac0" stroke={INK} strokeWidth={L} />
             <CutEyes kind="closed" />
             <path d="M34 18 q8 -5 14 0 M52 18 q8 -5 14 0" stroke="#2a2a2a" strokeWidth={3} strokeLinecap="round" fill="none" />
@@ -381,7 +460,8 @@ export const MOVIE_ART: Record<string, () => React.ReactElement> = {
                 ))}
             </Bg>
             <Body jacket="#151515" shirt="#ffffff" tie="#151515" hands="hold" hold={<Obj spec="drumstick" x={0} y={-6} s={0.32} />} />
-            <Head skin={SKIN.light} />
+            <Head skin={SKIN.light} shape="round" ears />
+            <Nose />
             <path d="M30 24 C28 10 70 8 70 24 C62 16 40 16 30 24z" fill="#3a2717" stroke={INK} strokeWidth={L} />
             <CutEyes kind="smug" />
             <CutMouth kind="grin" y={43} />

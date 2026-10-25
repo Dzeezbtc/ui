@@ -27,9 +27,10 @@ export function ribbonLines(label: string): string[] {
  * artwork (`art`) still replaces it when the manifest has some.
  */
 export const StickerArt: React.FC<{ sticker: StickerDef; size?: number }> = ({ sticker, size = 64 }) => {
-    const { stickerStyle, movieCharacters } = useChatSettings();
+    const { stickerStyle } = useChatSettings();
     const movie = MOVIE_ART[sticker.id];
-    if (movie && movieCharacters && !sticker.art) {
+    // Movie references are always the movie characters, whatever the sticker style.
+    if (movie && !sticker.art) {
         return (
             <MemeFrame style="wojak" label={`\u201c${sticker.label}\u201d`} size={size}>
                 <title>{`${sticker.label} — ${MOVIE_SPEAKERS[sticker.id]}`}</title>

@@ -1,4 +1,5 @@
 import React, { useCallback, useEffect, useRef, useState } from "react";
+import { createPortal } from "react-dom";
 import "./TableChatBox.css";
 import { useTableChat } from "./useTableChat";
 import { senderLabel, relativeTime } from "./chatFormat";
@@ -19,6 +20,37 @@ import { EMOTES } from "./emotes";
 
 const LS_OPEN = "b52.chat.open";
 const LS_DRAFT = "b52.chat.draft";
+const LS_BOX = "b52.chat.box";
+
+/** Where the panel floats and how big it is, once the player has moved or resized it. */
+interface Box {
+    x: number;
+    y: number;
+    w: number;
+    h: number;
+}
+const MIN_W = 240;
+const MIN_H = 220;
+type Grip = "move" | "n" | "s" | "e" | "w" | "ne" | "nw" | "se" | "sw";
+const GRIPS: Exclude<Grip, "move">[] = ["n", "s", "e", "w", "ne", "nw", "se", "sw"];
+
+function readBox(): Box | null {
+    try {
+        const b = JSON.parse(localStorage.getItem(LS_BOX) ?? "null");
+        return b && [b.x, b.y, b.w, b.h].every((n: unknown) => typeof n === "number") ? b : null;
+    } catch {
+        return null;
+    }
+}
+
+/** Keep the panel on screen and within sensible sizes. */
+function clampBox(b: Box): Box {
+    const vw = window.innerWidth;
+    const vh = window.innerHeight;
+    const w = Math.min(Math.max(b.w, MIN_W), vw - 8);
+    const h = Math.min(Math.max(b.h, MIN_H), vh - 8);
+    return { w, h, x: Math.min(Math.max(b.x, 4), vw - w - 4), y: Math.min(Math.max(b.y, 4), vh - h - 4) };
+}
 
 function readLS(key: string, fallback: string): string {
     try {
@@ -77,6 +109,75 @@ const TableChatBox: React.FC<TableChatBoxProps> = ({ seatedAddresses: seatedProp
     const [showEmoji, setShowEmoji] = useState(false);
     const [unread, setUnread] = useState(0);
     const listRef = useRef<HTMLDivElement>(null);
+    const panelRef = useRef<HTMLDivElement>(null);
+    const [box, setBox] = useState<Box | null>(() => readBox());
+
+    // Drag the header to move the panel; drag an edge or corner to resize it.
+    // The first move/resize lifts it off its dock into a floating panel.
+    const startGrip = useCallback(
+        (e: React.PointerEvent, grip: Grip) => {
+            if (e.button !== 0) return;
+            if (grip === "move" && (e.target as HTMLElement).closest("button, input, select, textarea, a")) return;
+            const el = panelRef.current;
+            if (!el) return;
+            e.preventDefault();
+            const r = el.getBoundingClientRect();
+            const start: Box = box ?? { x: r.left, y: r.top, w: r.width, h: r.height };
+            const px = e.clientX;
+            const py = e.clientY;
+            let latest = start;
+            const onMove = (ev: PointerEvent) => {
+                const dx = ev.clientX - px;
+                const dy = ev.clientY - py;
+                const b = { ...start };
+                if (grip === "move") {
+                    b.x += dx;
+                    b.y += dy;
+                } else {
+                    if (grip.includes("e")) b.w = start.w + dx;
+                    if (grip.includes("s")) b.h = start.h + dy;
+                    if (grip.includes("w")) {
+                        b.w = Math.max(MIN_W, start.w - dx);
+                        b.x = start.x + (start.w - b.w);
+                    }
+                    if (grip.includes("n")) {
+                        b.h = Math.max(MIN_H, start.h - dy);
+                        b.y = start.y + (start.h - b.h);
+                    }
+                }
+                latest = clampBox(b);
+                setBox(latest);
+            };
+            const onUp = () => {
+                window.removeEventListener("pointermove", onMove);
+                window.removeEventListener("pointerup", onUp);
+                writeLS(LS_BOX, JSON.stringify(latest));
+            };
+            window.addEventListener("pointermove", onMove);
+            window.addEventListener("pointerup", onUp);
+        },
+        [box]
+    );
+
+    const dock = useCallback(() => {
+        setBox(null);
+        try {
+            localStorage.removeItem(LS_BOX);
+        } catch {
+            /* ignore */
+        }
+    }, []);
+
+    // Keep a floating panel on screen when the window shrinks.
+    useEffect(() => {
+        if (!box) return;
+        const onResize = () => setBox(b => (b ? clampBox(b) : b));
+        window.addEventListener("resize", onResize);
+        return () => window.removeEventListener("resize", onResize);
+    }, [box]);
+
+    const float = (node: React.ReactNode) =>
+        box ? createPortal(<div className="b52-chat b52-chat--float" style={{ left: box.x, top: box.y }}>{node}</div>, document.body) : node;
     const seenRef = useRef(messages.length);
 
     // Track unread while closed; clear on open.
@@ -180,11 +281,19 @@ const TableChatBox: React.FC<TableChatBoxProps> = ({ seatedAddresses: seatedProp
     return (
         <div className="b52-chat">
             {settings.enabled && <ThrowLayer seatedAddresses={seatedAddresses} />}
-            {open && (
-                <div className="b52-chat__panel" role="log" aria-label="Table chat">
-                    <div className="b52-chat__header">
+            {open && float(
+                <div ref={panelRef} className={`b52-chat__panel${box ? " is-floating" : ""}`} role="log" aria-label="Table chat" style={box ? { width: box.w, height: box.h } : undefined}>
+                    {GRIPS.map(g => (
+                        <div key={g} className={`b52-chat__grip b52-chat__grip--${g}`} onPointerDown={e => startGrip(e, g)} aria-hidden="true" />
+                    ))}
+                    <div className="b52-chat__header" onPointerDown={e => startGrip(e, "move")} title="Drag to move · drag the edges to resize">
                         <div className="b52-chat__title-row">
                             <span className="b52-chat__title">Table chat</span>
+                            {box && (
+                                <button type="button" className="b52-chat__dock" aria-label="Put chat back in its place" title="Put chat back in its place" onClick={dock}>
+                                    ⤓
+                                </button>
+                            )}
                             <button type="button" className="b52-chat__close" aria-label="Close chat" onClick={toggle}>
                                 ✕
                             </button>
@@ -384,10 +493,6 @@ const TableChatBox: React.FC<TableChatBoxProps> = ({ seatedAddresses: seatedProp
                                         </option>
                                     ))}
                                 </select>
-                            </label>
-                            <label className="b52-chat__setting">
-                                <span>Movie characters</span>
-                                <input type="checkbox" role="switch" checked={settings.movieCharacters} disabled={!settings.enabled} onChange={e => updateChatSettings({ movieCharacters: e.target.checked })} />
                             </label>
                             <label className="b52-chat__setting">
                                 <span>Show throwables</span>
