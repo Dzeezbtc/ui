@@ -1,6 +1,8 @@
 import React, { useCallback, useEffect, useRef, useState } from "react";
+import { brandClass } from "./brand";
 import { createPortal } from "react-dom";
 import "./TableChatBox.css";
+import "./brandTexasHodl.css";
 import { useTableChat } from "./useTableChat";
 import { senderLabel, relativeTime } from "./chatFormat";
 import { getTablePlayer, playerLabel, registerTablePlayers, TablePlayer, useTablePlayers } from "./players";
@@ -178,7 +180,7 @@ const TableChatBox: React.FC<TableChatBoxProps> = ({ seatedAddresses: seatedProp
     }, [box]);
 
     const float = (node: React.ReactNode) =>
-        box ? createPortal(<div className="b52-chat b52-chat--float" style={{ left: box.x, top: box.y }}>{node}</div>, document.body) : node;
+        box ? createPortal(<div className={`b52-chat b52-chat--float${brandClass()}`} style={{ left: box.x, top: box.y }}>{node}</div>, document.body) : node;
     const seenRef = useRef(messages.length);
 
     // Track unread while closed; clear on open.
@@ -280,7 +282,7 @@ const TableChatBox: React.FC<TableChatBoxProps> = ({ seatedAddresses: seatedProp
     };
 
     return (
-        <div className="b52-chat">
+        <div className={`b52-chat${brandClass()}`}>
             {settings.enabled && <ThrowLayer seatedAddresses={seatedAddresses} />}
             {open && float(
                 <div ref={panelRef} className={`b52-chat__panel${box ? " is-floating" : ""}`} role="log" aria-label="Table chat" style={box ? { width: box.w, height: box.h } : undefined}>

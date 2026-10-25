@@ -1,4 +1,5 @@
 import React, { useEffect, useRef, useState } from "react";
+import { brandClass } from "./brand";
 import { createPortal } from "react-dom";
 import "./ThrowLayer.css";
 import { ChatMessage, subscribeChatMessages } from "./chatBus";
@@ -58,7 +59,7 @@ export const ThrowLayer: React.FC<{ seatedAddresses?: readonly string[] }> = ({ 
 
     if (flights.length === 0) return null;
     return createPortal(
-        <div className="b52-throw-layer" aria-hidden="true">
+        <div className={`b52-throw-layer${brandClass()}`} aria-hidden="true">
             {flights.map(f => (
                 <ThrowItem key={f.id} flight={f} />
             ))}

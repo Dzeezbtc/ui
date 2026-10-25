@@ -1,4 +1,5 @@
 import React, { useLayoutEffect, useRef, useState } from "react";
+import { brandClass } from "./brand";
 import { createPortal } from "react-dom";
 import "./SeatChatBubble.css";
 import { useSeatChat } from "./useSeatChat";
@@ -52,7 +53,7 @@ export const SeatChatBubble: React.FC<{ address: string | undefined }> = ({ addr
             {msg &&
                 pos &&
                 createPortal(
-                    <div className="b52-seat-bubble-layer" style={{ left: pos.x, top: pos.y }}>
+                    <div className={`b52-seat-bubble-layer${brandClass()}`} style={{ left: pos.x, top: pos.y }}>
                         <div
                             key={msg.id}
                             className={`b52-seat-bubble ${sticker ? "b52-seat-bubble--sticker" : "b52-seat-bubble--text"}`}
