@@ -10,7 +10,7 @@ import { ETH_CHAIN_ID } from "../config/constants";
 import { useConnection as useWagmiAccount, useSwitchChain } from "wagmi";
 
 import { calculateBuyIn } from "../utils/buyInUtils";
-import { BLIND_LEVELS, DEFAULT_BLIND_LEVEL_INDEX, SNG_BLINDS } from "../constants/blindLevels";
+import { BLIND_LEVELS, DEFAULT_BLIND_LEVEL_INDEX, DEFAULT_SNG_BLIND_LEVEL_MINUTES, SNG_BLINDS } from "../constants/blindLevels";
 import { usdcToMicroBigInt, formatMicroAsUsdc, microToUsdc } from "../constants/currency";
 
 import { WithdrawalModal, USDCDepositModal, UpcomingSngModal } from "../components/modals";
@@ -34,15 +34,17 @@ import { bettingLimitLabel, creatableBettingLimits, defaultBettingLimitFor, isTo
 import { CREATE_GAME_TYPES, createGameTypeFormat, createGameTypeLabel, isScheduledCreateType, toCreateGameType, type CreateGameType } from "../utils/createGameType";
 import { computeTableCreationFeeMicro, CREATION_FEE_BIG_BLINDS } from "../utils/tableCreationFee";
 import {
-    BLIND_STRUCTURE_CHOICES,
+    choiceUsesFormBlinds,
+    DEFAULT_BLIND_STRUCTURE_CHOICE,
     DEFAULT_CUSTOM_BLIND_STRUCTURE_TEXT,
-    isBlindStructureChoice,
     openingBlindsOf,
     previewBlindLevels,
     resolveBlindStructureChoice,
+    sngBlindFields,
     type BlindStructureChoice
 } from "../utils/blindStructureChoice";
 import { SNG_PREVIEW_LEVEL_COUNT } from "../utils/sngAdvancedParams";
+import { BlindPreviewTable, BlindStructureSelect, CustomBlindStructureInput } from "../components/BlindStructureFields";
 
 // Password protection utils
 import {
@@ -114,16 +116,17 @@ const Dashboard: React.FC = () => {
     // Sit & Go settings — the chain requires them (ui#690: without them the SDK throws
     // "sit-and-go games require an sngConfig"). Same presets as /admin/tables.
     const [modalStartingStack, setModalStartingStack] = useState(1500);
-    const [modalBlindLevelDuration, setModalBlindLevelDuration] = useState(10);
+    const [modalBlindLevelDuration, setModalBlindLevelDuration] = useState(DEFAULT_SNG_BLIND_LEVEL_MINUTES);
     // Tournament start (poker-vm#2680): starts at the start time with at least
     // modalSngMinPlayers registered, or earlier when full.
     const [modalScheduledStart, setModalScheduledStart] = useState(""); // datetime-local value
     const [modalSngMinPlayers, setModalSngMinPlayers] = useState(2);
     const [modalLateRegLevels, setModalLateRegLevels] = useState(0); // poker-vm#2731; 0 = off
-    const [modalSngBlindsIndex, setModalSngBlindsIndex] = useState(1); // 25 / 50
-    // Blind structure (ui#860, poker-vm#1734): doubling (the two selects above
-    // and below), an engine preset, or a custom structure in the SDK's text form.
-    const [modalBlindStructureChoice, setModalBlindStructureChoice] = useState<BlindStructureChoice>("doubling");
+    const [modalSngBlindsIndex, setModalSngBlindsIndex] = useState(0); // 10 / 20
+    // Blind structure (ui#860, poker-vm#1734): the ladder (default, ui#905) or
+    // doubling (both from the two selects above and below), an engine preset, or
+    // a custom structure in the SDK's text form.
+    const [modalBlindStructureChoice, setModalBlindStructureChoice] = useState<BlindStructureChoice>(DEFAULT_BLIND_STRUCTURE_CHOICE);
     const [modalCustomBlindText, setModalCustomBlindText] = useState(DEFAULT_CUSTOM_BLIND_STRUCTURE_TEXT);
 
     // Cash blinds are dollars (BLIND_LEVELS); Sit & Go blinds are chips (SNG_BLINDS).
@@ -262,8 +265,7 @@ const Dashboard: React.FC = () => {
                     sng: {
                         startingStack: modalStartingStack,
                         // A structure carries its own level times; the opening level's is sent for the lobby.
-                        blindLevelDuration: sngOpeningBlinds?.durationMinutes ?? modalBlindLevelDuration,
-                        ...(blindPlan.structure && { blindStructure: blindPlan.structure }),
+                        ...sngBlindFields(blindPlan, modalBlindLevelDuration),
                         ...(scheduled && { startTime }),
                         ...(scheduled && modalLateRegLevels > 0 && { lateRegistrationLevels: modalLateRegLevels })
                     }
@@ -1034,22 +1036,8 @@ const Dashboard: React.FC = () => {
                                                 <option value={1500}>Standard (1,500)</option>
                                                 <option value={3000}>Deep Stack (3,000)</option>
                                             </select>
-                                            <label className="block text-white text-sm mb-1 mt-3">Blind Structure</label>
-                                            <select
-                                                data-testid="blind-structure"
-                                                value={modalBlindStructureChoice}
-                                                onChange={e => {
-                                                    if (isBlindStructureChoice(e.target.value)) setModalBlindStructureChoice(e.target.value);
-                                                }}
-                                                className="w-full p-2 rounded bg-gray-700 text-white border border-gray-600 focus:border-blue-500 focus:outline-none focus:ring-2 focus:ring-blue-500/50 transition-all duration-200"
-                                            >
-                                                {BLIND_STRUCTURE_CHOICES.map(c => (
-                                                    <option key={c.value} value={c.value}>
-                                                        {c.label}
-                                                    </option>
-                                                ))}
-                                            </select>
-                                            {modalBlindStructureChoice === "doubling" && (
+                                            <BlindStructureSelect value={modalBlindStructureChoice} onChange={setModalBlindStructureChoice} />
+                                            {choiceUsesFormBlinds(modalBlindStructureChoice) && (
                                                 <>
                                                     <label className="block text-white text-sm mb-1 mt-3">Starting Blinds (chips)</label>
                                                     <select
@@ -1079,53 +1067,9 @@ const Dashboard: React.FC = () => {
                                                 </>
                                             )}
                                             {modalBlindStructureChoice === "custom" && (
-                                                <>
-                                                    <label className="block text-white text-sm mb-1 mt-3">Custom structure</label>
-                                                    <textarea
-                                                        data-testid="blind-custom"
-                                                        value={modalCustomBlindText}
-                                                        onChange={e => setModalCustomBlindText(e.target.value)}
-                                                        rows={8}
-                                                        spellCheck={false}
-                                                        className="w-full p-2 rounded bg-gray-700 text-white font-mono text-xs border border-gray-600 focus:border-blue-500 focus:outline-none focus:ring-2 focus:ring-blue-500/50 transition-all duration-200"
-                                                    />
-                                                    <p className="text-xs text-gray-400 mt-1">
-                                                        start: sb/bb · duration: 5m · progression: double | linear 25 | percentage 1.5 (+ round: 25) · ante: bb | bb * 0.1 |
-                                                        level &gt;= 4 ? bb * 0.1 : 0 · cap: 15 — or levels {"{"} 0: 100/200 … {"}"} (levels count from 0)
-                                                    </p>
-                                                    {blindPlan.error && (
-                                                        <p className="text-xs text-red-400 mt-1" data-testid="blind-structure-error">
-                                                            {blindPlan.error}
-                                                        </p>
-                                                    )}
-                                                </>
+                                                <CustomBlindStructureInput value={modalCustomBlindText} onChange={setModalCustomBlindText} error={blindPlan.error} />
                                             )}
-                                            {blindPreviewRows.length > 0 && (
-                                                <div className="mt-3 max-h-40 overflow-y-auto rounded border border-gray-700" data-testid="blind-preview">
-                                                    <table className="w-full text-xs text-gray-300">
-                                                        <thead className="text-gray-400 sticky top-0 bg-gray-800">
-                                                            <tr>
-                                                                <th className="text-left px-2 py-1">Level</th>
-                                                                <th className="text-left px-2 py-1">Blinds</th>
-                                                                <th className="text-left px-2 py-1">Ante</th>
-                                                                <th className="text-left px-2 py-1">Minutes</th>
-                                                            </tr>
-                                                        </thead>
-                                                        <tbody>
-                                                            {blindPreviewRows.map(r => (
-                                                                <tr key={r.number} className="border-t border-gray-700">
-                                                                    <td className="px-2 py-1">{r.number}</td>
-                                                                    <td className="px-2 py-1">
-                                                                        {r.isBreak ? "Break" : `${Number(r.smallBlind).toLocaleString()} / ${Number(r.bigBlind).toLocaleString()}`}
-                                                                    </td>
-                                                                    <td className="px-2 py-1">{r.isBreak || r.ante === "0" ? "—" : Number(r.ante).toLocaleString()}</td>
-                                                                    <td className="px-2 py-1">{r.durationMinutes}</td>
-                                                                </tr>
-                                                            ))}
-                                                        </tbody>
-                                                    </table>
-                                                </div>
-                                            )}
+                                            <BlindPreviewTable rows={blindPreviewRows} />
                                         </div>
                                     ) : (
                                         // For Cash games: Blind level and buy-in in Big Blinds (BB)

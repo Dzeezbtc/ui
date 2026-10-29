@@ -6,7 +6,7 @@ import { useGameData } from "./gameState/GameDataContext";
 import { useGameUI } from "./gameState/GameUIContext";
 import { useGameActions } from "./gameState/GameActionsContext";
 import { useLogicalTrack } from "./gameState/LogicalTrackContext";
-import { getLatestGameState, type LogicalTrack } from "../hooks/playerActions/transportAction";
+import type { LogicalTrack } from "../hooks/playerActions/transportAction";
 import { STORAGE_KEYS } from "../constants/storageKeys";
 import { TexasHoldemStateDTO, GameOptionsDTO } from "@block52/poker-vm-sdk";
 
@@ -483,6 +483,52 @@ describe("GameStateProvider reconnect (ui#613)", () => {
         await waitFor(() => expect(conn()).toBe("live:0"));
         onLine.mockRestore();
     });
+
+    it("recovers when the browser blips offline and back while the socket stays open (ui#867)", async () => {
+        renderProvider();
+        const first = currentSocket();
+        act(() => {
+            first.readyState = MockWebSocket.OPEN;
+            first.emit(stateFrame(3));
+        });
+        await waitFor(() => expect(conn()).toBe("live:0"));
+
+        // A network handover: offline fires, but the socket never closes.
+        act(() => {
+            window.dispatchEvent(new Event("offline"));
+        });
+        expect(conn()).toBe("offline:0");
+
+        // Back online: the socket is still OPEN, but its view may be stale, so
+        // it must re-subscribe for a fresh snapshot rather than stay offline.
+        act(() => {
+            window.dispatchEvent(new Event("online"));
+        });
+        expect(MockWebSocket.instances).toHaveLength(2);
+        act(() => {
+            currentSocket().emit(stateFrame(4));
+        });
+        await waitFor(() => expect(conn()).toBe("live:0"));
+    });
+
+    it("a frame on the current socket clears an offline status (ui#867)", async () => {
+        renderProvider();
+        act(() => {
+            currentSocket().emit(stateFrame(3));
+        });
+        await waitFor(() => expect(conn()).toBe("live:0"));
+
+        act(() => {
+            window.dispatchEvent(new Event("offline"));
+        });
+        expect(conn()).toBe("offline:0");
+
+        // The socket is delivering, so the table is current again.
+        act(() => {
+            currentSocket().emit(stateFrame(4));
+        });
+        await waitFor(() => expect(conn()).toBe("live:0"));
+    });
 });
 
 // ui#834: with several tables mounted (multi-tabling, ui#55), each
@@ -562,9 +608,6 @@ describe("GameStateProvider per-table logical track (ui#834)", () => {
         });
         await waitFor(() => expect(tracks[TABLE_A].get()?.handNumber).toBe(6));
         expect(tracks[TABLE_B].get()?.handNumber).toBe(9);
-
-        // Nothing writes to the old shared (default) track any more.
-        expect(getLatestGameState()).toBeUndefined();
     });
 
     it("notifies a table's track subscribers only for that table's frames", async () => {

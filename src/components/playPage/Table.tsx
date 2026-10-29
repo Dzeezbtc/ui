@@ -73,13 +73,12 @@ import { HexagonPattern } from "../common/Modal";
 // Use environment variable for club logo with fallback to default
 const clubLogo = import.meta.env.VITE_CLUB_LOGO || defaultLogo;
 
-import { useParams } from "react-router-dom";
 import React from "react";
 import { formatUSDCToSimpleDollars } from "../../utils/numberUtils";
 import { toast } from "react-toastify";
 
 import { isValidPlayerAddress } from "../../utils/addressUtils";
-import { CardBackStyle, getDealerImageUrl } from "../../utils/cardImages";
+import { CardBackStyle } from "../../utils/cardImages";
 import { cssVars } from "../../utils/cssVars";
 import { ANIMATION_CSS_VARS } from "../../bus/timing";
 
@@ -124,6 +123,7 @@ import { ReplayTransport } from "./ReplayTransport";
 import { getCosmosBalance, getCosmosAddressSync, getFormattedCosmosAddress } from "../../utils/cosmosAccountUtils";
 import { useGameStateContext } from "../../context/GameStateContext";
 import { useLogicalTrack } from "../../context/gameState/LogicalTrackContext";
+import { useTableId } from "../../context/TableIdContext";
 import { useGameSettings } from "../../context/GameSettingsContext";
 import { useNetwork } from "../../context/NetworkContext";
 import { PlayerDTO, PlayerStatus } from "@block52/poker-vm-sdk";
@@ -706,15 +706,15 @@ const GeometryToggleButton: React.FC = () => {
 interface TableProps {
     /**
      * The table to show. In the multi-table workspace (ui#55) each live instance is
-     * given its id explicitly; left undefined the table falls back to the route's
-     * :id, preserving the original single-table behaviour.
+     * given its id explicitly; left undefined the table takes its id from
+     * TableIdContext (which falls back to the route's :id).
      */
     tableId?: string;
 }
 
 const Table = React.memo(({ tableId }: TableProps = {}) => {
-    const { id: routeId } = useParams<{ id: string }>();
-    const id = tableId ?? routeId;
+    const contextId = useTableId();
+    const id = tableId ?? contextId;
     // This table's logical track (ui#834) — read by submission decisions.
     const logicalTrack = useLogicalTrack();
     // Game state context and subscription
@@ -1565,6 +1565,9 @@ const Table = React.memo(({ tableId }: TableProps = {}) => {
                                             seatIndex={seatNumber}
                                             left={position.left}
                                             bottom={position.bottom}
+                                            top={position.top}
+                                            side={position.side}
+                                            isDealer={dealerSeat === seatNumber}
                                             isTournament={isTournamentFormat(gameFormat)}
                                         />
                                     );
@@ -1573,18 +1576,6 @@ const Table = React.memo(({ tableId }: TableProps = {}) => {
 
                         {/* Last-pot winner banner (ui#848) */}
                         <WinnerBanner />
-
-                        {/* Dealer Button — convert seat number to rotated screen position */}
-                        {(() => {
-                            const dIdx = dealerSeat != null && dealerSeat > 0 ? (dealerSeat - 1 + startIndex) % tableSize : -1;
-                            const dPos = dIdx >= 0 ? tableLayout.positions.dealers[dIdx] : null;
-                            if (!dPos) return null;
-                            return (
-                                <div className="absolute w-12 h-12 z-[25]" style={{ left: dPos.left, top: dPos.top, transform: "translate(-50%, -50%)" }}>
-                                    <img src={getDealerImageUrl()} alt="Dealer Button" className="w-full h-full" />
-                                </div>
-                            );
-                        })()}
 
                         {/* Player seats */}
                         <PlayerSeating

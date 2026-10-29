@@ -69,24 +69,6 @@ export function createLogicalTrack(): LogicalTrack {
 }
 
 /**
- * The default track: what a reader gets with no GameStateProvider above it
- * (LogicalTrackContext's default), and what the module-level helpers below use.
- * Every GameStateProvider creates its OWN track, so nothing in a live table
- * reads or writes this one.
- */
-export const defaultLogicalTrack: LogicalTrack = createLogicalTrack();
-
-/** Publish to the default track. Live tables publish to their own track instead. */
-export function setLatestGameState(gameState: TexasHoldemStateDTO | undefined, meta: LatestGameStateMeta): void {
-    defaultLogicalTrack.set(gameState, meta);
-}
-
-/** Subscribe to the default track. Live tables subscribe to their own track instead. */
-export function subscribeLatestGameState(listener: LatestGameStateListener): () => void {
-    return defaultLogicalTrack.subscribe(listener);
-}
-
-/**
  * Next action index for a player not yet seated (join).
  *
  * The engine validates `index === actionCount + previousActions.length + 1`
@@ -111,11 +93,6 @@ export function nextActionIndex(gameState: TexasHoldemStateDTO | undefined): num
     // prior empty-table default while staying correct for a seeded table whose
     // count is already non-zero.
     return (gameState?.actionCount ?? 0) + 1;
-}
-
-/** Latest snapshot on the default track. Live tables read their own track (useLogicalTrack). */
-export function getLatestGameState(): TexasHoldemStateDTO | undefined {
-    return defaultLogicalTrack.get();
 }
 
 /**
