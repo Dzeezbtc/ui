@@ -33,7 +33,7 @@ import { useAutoPostBlinds } from "../../hooks/playerActions/useAutoPostBlinds";
 import { useAutoNewHand } from "../../hooks/playerActions/useAutoNewHand";
 import { useAutoFold } from "../../hooks/playerActions/useAutoFold";
 import { useCallClock } from "../../hooks/playerActions/useCallClock";
-import { clockCallOpportunity } from "../../utils/turnClock";
+import { clockCallOpportunity, nextTimeBankMs } from "../../utils/turnClock";
 import { getLatestGameState } from "../../hooks/playerActions/transportAction";
 import { useGameEventsContext } from "../../context/gameState/GameEventsContext";
 import { toast } from "react-toastify";
@@ -509,8 +509,9 @@ export const PokerActionPanel: React.FC<PokerActionPanelProps> = ({ tableId, net
 
     // Time bank (ui#19): straight to the controller, not through submitAction —
     // it isn't the player's move, so Fold / Call / Raise must stay on screen
-    // while it confirms. The engine only offers it while it can be used.
-    const timeBankSeconds = timeBankButtonSeconds({ hasTimeBankAction, isUsersTurn, timeBankMs: gameState?.gameOptions?.timeBankMs });
+    // while it confirms. The engine only offers it while it can be used, and
+    // the label shows what this use grants (45s, then 30s, then the refill).
+    const timeBankSeconds = timeBankButtonSeconds({ hasTimeBankAction, isUsersTurn, timeBankMs: nextTimeBankMs(userPlayer) });
     const handleTimeBankAction = () => submit({ actionName: NonPlayerActionType.TIME_BANK, run: () => timeBank(tableId, network) });
 
     // Calculate button visibility flags

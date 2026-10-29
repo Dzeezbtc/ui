@@ -154,11 +154,13 @@ describe("usePlayerTimer", () => {
         const withTimeBank = (actionAgoMs: number, timeBankAgoMs: number | null) => {
             const now = Date.now();
             const snapshot = state();
-            const previousActions: { action?: string; timestamp: number }[] = [{ action: "call", timestamp: now - actionAgoMs }];
+            const previousActions: { action?: string; playerId?: string; timestamp: number }[] = [{ action: "call", playerId: "b521them", timestamp: now - actionAgoMs }];
             if (timeBankAgoMs !== null) {
-                previousActions.push({ action: NonPlayerActionType.TIME_BANK, timestamp: now - timeBankAgoMs });
+                previousActions.push({ action: NonPlayerActionType.TIME_BANK, playerId: ME, timestamp: now - timeBankAgoMs });
             }
-            return { ...snapshot, previousActions, gameOptions: { ...snapshot.gameOptions, timeBankMs: 30_000 } };
+            // our latest use granted 30s (the engine's per-player field)
+            const players = snapshot.players.map(p => (p.seat === 1 ? { ...p, timeBankLastGrantMs: 30_000 } : p));
+            return { ...snapshot, players, previousActions, gameOptions: { ...snapshot.gameOptions, timeBankMs: 45_000 } };
         };
 
         it("adds the granted time to the countdown", () => {

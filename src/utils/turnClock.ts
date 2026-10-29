@@ -14,7 +14,7 @@
  * Everything here is a pure function of a state snapshot, so it can be tested
  * without React and so every observer at the table computes the same answer.
  */
-import { NonPlayerActionType, TexasHoldemRound, type ActionDTO, type TexasHoldemStateDTO } from "@block52/poker-vm-sdk";
+import { NonPlayerActionType, TexasHoldemRound, type ActionDTO, type PlayerDTO, type TexasHoldemStateDTO } from "@block52/poker-vm-sdk";
 import { makeTurnId, normalizeTimestamp } from "./timerUtils";
 import { hasElements, isNullish } from "./guards";
 import { hasTournamentStarted } from "./scheduledSng";
@@ -105,21 +105,43 @@ export const turnClockAnchorMs = (previousActions: readonly ActionDTO[] | null |
 };
 
 /**
- * Extra time the time bank has granted the current turn (ui#19): one
- * `gameOptions.timeBankMs` per `time-bank` recorded at or after the clock's
- * anchor. 0 when the table has no time bank or nobody used it this turn.
+ * The engine's per-player time-bank state (poker-vm feat/20-time-bank-tiers):
+ * what the next use grants and what the latest use granted. Newer than the
+ * SDK's PlayerDTO type (1.15.0), so it is read here, in one place, until the
+ * SDK release carries `timeBankRemainingMs` / `timeBankLastGrantMs`; then this
+ * accessor goes and callers read the fields directly.
+ */
+type PlayerTimeBank = { timeBankRemainingMs?: number; timeBankLastGrantMs?: number };
+const playerTimeBank = (player: PlayerDTO | null | undefined): PlayerTimeBank => (player ?? {}) as PlayerTimeBank;
+
+/**
+ * What one use of the time bank grants this player next (ui#19/#20): 45s the
+ * first time, 30s the second, then whatever has refilled. The engine sends it
+ * on every table with a time bank; null when the player has none.
+ */
+export const nextTimeBankMs = (player: PlayerDTO | null | undefined): number | null => {
+    return playerTimeBank(player).timeBankRemainingMs ?? null;
+};
+
+/**
+ * Extra time the time bank has granted the current turn (ui#19/#20): for each
+ * `time-bank` recorded at or after the clock's anchor, what that player's use
+ * granted (`timeBankLastGrantMs`), mirroring the engine's TurnDeadlineMs. 0
+ * when nobody used it this turn.
  */
 export const timeBankGrantedMs = (gameState: TexasHoldemStateDTO | null | undefined): number => {
-    const timeBankMs = gameState?.gameOptions?.timeBankMs ?? 0;
     const previousActions = gameState?.previousActions ?? [];
     const anchor = turnClockAnchorMs(previousActions);
-    if (timeBankMs <= 0 || anchor === null) {
+    if (anchor === null) {
         return 0;
     }
-    const grants = previousActions.filter(
-        action => action.action === NonPlayerActionType.TIME_BANK && normalizeTimestamp(action.timestamp) >= anchor
-    ).length;
-    return grants * timeBankMs;
+    const grantOf = (address: string): number => {
+        const player = gameState?.players?.find(p => p.address?.toLowerCase() === address.toLowerCase());
+        return playerTimeBank(player).timeBankLastGrantMs ?? 0;
+    };
+    return previousActions
+        .filter(action => action.action === NonPlayerActionType.TIME_BANK && normalizeTimestamp(action.timestamp) >= anchor)
+        .reduce((total, action) => total + grantOf(action.playerId), 0);
 };
 
 /**
