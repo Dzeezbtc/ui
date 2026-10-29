@@ -13,3 +13,15 @@ import { PlayerStatus } from "@block52/poker-vm-sdk";
 export function hasFoldedOrMucked(status: PlayerStatus | string | null | undefined): boolean {
     return status === PlayerStatus.FOLDED || status === PlayerStatus.MUCKED;
 }
+
+/**
+ * Has this player been knocked out of a Sit & Go or tournament?
+ *
+ * Their seat is cleared from the table: no avatar, no "out" or finishing-place
+ * badge, no vacant seat to join. Players still in don't need to see who went
+ * out. Cash games are unaffected, because a busted cash player can top up and
+ * keeps their seat.
+ */
+export function isEliminatedFromTournament(status: PlayerStatus | string | null | undefined, isTournament: boolean): boolean {
+    return isTournament && status === PlayerStatus.BUSTED;
+}

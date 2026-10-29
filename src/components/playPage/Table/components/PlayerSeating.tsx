@@ -7,6 +7,7 @@
  * Key Features:
  * - Dynamic player positioning based on table rotation
  * - Renders Player (current user), OppositePlayer, or VacantPlayer components
+ * - Leaves a knocked-out Sit & Go / tournament player's seat empty
  * - Turn indicator animations
  * - Winner ripple animations
  * - Manages card visibility state
@@ -23,6 +24,9 @@ import TurnAnimation from "../../Animations/TurnAnimation";
 import WinAnimation from "../../Animations/WinAnimation";
 import { CardBackStyle } from "../../../../utils/cardImages";
 import { useGameSettings } from "../../../../context/GameSettingsContext";
+import { useGameStateContext } from "../../../../context/GameStateContext";
+import { isTournamentFormat } from "../../../../utils/gameFormatUtils";
+import { isEliminatedFromTournament } from "../../../../utils/playerStatus";
 
 // Memoize TurnAnimation
 const MemoizedTurnAnimation = React.memo(TurnAnimation);
@@ -82,6 +86,8 @@ export const PlayerSeating: React.FC<PlayerSeatingProps> = ({
     }, [tableDataPlayers]);
 
     const { winCelebration } = useGameSettings();
+    const { gameFormat } = useGameStateContext();
+    const isTournament = isTournamentFormat(gameFormat);
 
     const winnerSeats = React.useMemo(() => {
         const seats = new Set<number>();
@@ -134,6 +140,13 @@ export const PlayerSeating: React.FC<PlayerSeatingProps> = ({
             // Find if a player is seated at this position
             const playerAtThisSeat = activePlayerBySeat.get(seatNumber);
 
+            // A player knocked out of a Sit & Go or tournament is gone: nothing
+            // renders in their place (no avatar, no "out" or place badge, and
+            // no vacant seat, since nobody can join a started tournament).
+            if (playerAtThisSeat && isEliminatedFromTournament(playerAtThisSeat.status, isTournament)) {
+                return null;
+            }
+
             // Check if this seat belongs to the current user
             const isCurrentUser = playerAtThisSeat && playerAtThisSeat.address?.toLowerCase() === userWalletAddress?.toLowerCase();
 
@@ -171,7 +184,7 @@ export const PlayerSeating: React.FC<PlayerSeatingProps> = ({
                 <OppositePlayer {...playerProps} uiPosition={positionIndex} cardBackStyle={cardBackStyle} />
             );
         },
-        [activePlayerBySeat, userWalletAddress, currentIndex, dataPlayerBySeat, tableSize, startIndex, updateBalanceOnPlayerJoin, tableLayout, cardBackStyle, seatColorByNumber]
+        [activePlayerBySeat, userWalletAddress, currentIndex, dataPlayerBySeat, tableSize, startIndex, updateBalanceOnPlayerJoin, tableLayout, cardBackStyle, seatColorByNumber, isTournament]
     );
 
     // Render all player positions
