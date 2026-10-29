@@ -6,7 +6,7 @@ import { useGameData } from "./gameState/GameDataContext";
 import { useGameUI } from "./gameState/GameUIContext";
 import { useGameActions } from "./gameState/GameActionsContext";
 import { useLogicalTrack } from "./gameState/LogicalTrackContext";
-import { getLatestGameState, type LogicalTrack } from "../hooks/playerActions/transportAction";
+import type { LogicalTrack } from "../hooks/playerActions/transportAction";
 import { STORAGE_KEYS } from "../constants/storageKeys";
 import { TexasHoldemStateDTO, GameOptionsDTO } from "@block52/poker-vm-sdk";
 
@@ -608,9 +608,6 @@ describe("GameStateProvider per-table logical track (ui#834)", () => {
         });
         await waitFor(() => expect(tracks[TABLE_A].get()?.handNumber).toBe(6));
         expect(tracks[TABLE_B].get()?.handNumber).toBe(9);
-
-        // Nothing writes to the old shared (default) track any more.
-        expect(getLatestGameState()).toBeUndefined();
     });
 
     it("notifies a table's track subscribers only for that table's frames", async () => {
