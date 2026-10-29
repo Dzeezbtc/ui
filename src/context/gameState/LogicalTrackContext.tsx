@@ -1,5 +1,5 @@
 import { createContext, useContext } from "react";
-import { defaultLogicalTrack, type LogicalTrack } from "../../hooks/playerActions/transportAction";
+import type { LogicalTrack } from "../../hooks/playerActions/transportAction";
 
 /**
  * The table's LOGICAL track (ui#834): the freshest ingested snapshot, which
@@ -8,10 +8,19 @@ import { defaultLogicalTrack, type LogicalTrack } from "../../hooks/playerAction
  * each table's submit controller and auto-action hooks read only their own
  * table's state.
  *
- * Outside any GameStateProvider this falls back to the default track.
+ * There is no default track (Commandment 7): a reader mounted outside a
+ * GameStateProvider would see a track nothing ever writes to, so its actions
+ * would stall silently. useLogicalTrack throws instead. Tests that need a
+ * track wrap in `<LogicalTrackProvider value={createLogicalTrack()}>`.
  */
-const LogicalTrackContext = createContext<LogicalTrack>(defaultLogicalTrack);
+const LogicalTrackContext = createContext<LogicalTrack | null>(null);
 
 export const LogicalTrackProvider = LogicalTrackContext.Provider;
 
-export const useLogicalTrack = (): LogicalTrack => useContext(LogicalTrackContext);
+export const useLogicalTrack = (): LogicalTrack => {
+    const track = useContext(LogicalTrackContext);
+    if (track === null) {
+        throw new Error("useLogicalTrack must be used inside a GameStateProvider (or a LogicalTrackProvider).");
+    }
+    return track;
+};
