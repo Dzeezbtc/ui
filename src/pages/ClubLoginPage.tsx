@@ -2,6 +2,8 @@ import React, { useMemo, useState } from "react";
 import { Link, useLocation } from "react-router-dom";
 import { getCosmosAddress, getCosmosMnemonic } from "../utils/cosmos/storage";
 import { handoffUrl, parseAllowList, readClubLoginRequest, signChallenge } from "../utils/clubLogin";
+import { ClubApi } from "../apis/Api";
+import { httpErrorMessage } from "../apis/HTTPClient";
 
 /**
  * /club-login: signs a club staff member into the club console with the
@@ -24,14 +26,14 @@ const ClubLoginPage: React.FC = () => {
         setBusy(true);
         setError(null);
         try {
-            const res = await fetch(`${parsed.request.api}/auth/challenge`, { method: "POST", headers: { "content-type": "application/json" }, body: JSON.stringify({ address, club: parsed.request.club }) });
-            const body = await res.json();
-            if (!res.ok) throw new Error(body.error ?? "The club service didn't answer.");
+            // The console named the club service (checked against the allow-list above).
+            const body = await new ClubApi({ baseUrl: parsed.request.api, secure: false, timeout: 10_000 }).getSignInChallenge(address, parsed.request.club);
             const signed = await signChallenge(getCosmosMnemonic()!, body.text);
             if (signed.address !== address) throw new Error("Your stored wallet doesn't match its address. Re-import it on the Wallet page.");
             window.location.href = handoffUrl(parsed.request.returnTo, { club: parsed.request.club, address, nonce: body.nonce, signature: signed.signature, pubkey: signed.pubkey });
         } catch (e) {
-            setError(e instanceof Error ? e.message : String(e));
+            console.error("Club login failed:", e);
+            setError(httpErrorMessage(e, "The club service didn't answer."));
             setBusy(false);
         }
     };

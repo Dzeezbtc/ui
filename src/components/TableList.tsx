@@ -2,6 +2,7 @@ import React, { useCallback, useEffect, useState } from "react";
 import { formatLateRegistration, formatStartsAt, scheduledSngPhase, type ScheduledSngPhase } from "../utils/scheduledSng";
 import { truncateMiddle } from "../utils/stringUtils";
 import { useFindGames, GameWithFormat, treasuryAddress } from "../hooks/game/useFindGames";
+import { useTableClubs } from "../hooks/club/useTableClubs";
 import { useDeleteGame } from "../hooks/game/useDeleteGame";
 import { useForceCloseGame } from "../hooks/game/useForceCloseGame";
 import useCosmosWallet from "../hooks/wallet/useCosmosWallet";
@@ -70,6 +71,7 @@ const scheduledLabel = (game: GameWithFormat): string => {
 };
 
 const TableList: React.FC<TableListProps> = ({ onCreateTable }) => {
+    const tableClubs = useTableClubs();
     const { games: rawGames, isLoading, error, refetch } = useFindGames();
     const { deleteGame, isDeleting } = useDeleteGame();
     const { forceCloseGame, isClosing } = useForceCloseGame();
@@ -397,8 +399,17 @@ const TableList: React.FC<TableListProps> = ({ onCreateTable }) => {
                                     <tr key={game.gameId} className="hover:bg-gray-700/50 transition-colors">
                                         <td className="hidden sm:table-cell px-2 sm:px-4 py-4">
                                             <div className="flex items-center justify-center gap-2">
-                                                <img src={clubLogo} alt={clubName} className="w-6 h-6 object-contain" />
-                                                <span className="text-white">{clubName}</span>
+                                                {/* A table a club's staff opened shows that club, linked to its page. */}
+                                                {tableClubs[game.gameId] ? (
+                                                    <a href={`/club/${tableClubs[game.gameId].handle}`} className="inline-flex items-center gap-1.5 whitespace-nowrap rounded-full border border-violet-500/50 bg-violet-600/15 px-2.5 py-0.5 text-sm text-violet-100 hover:bg-violet-600/30" title={`Hosted by the ${tableClubs[game.gameId].name} club`}>
+                                                        ♣ {tableClubs[game.gameId].name}
+                                                    </a>
+                                                ) : (
+                                                    <>
+                                                        <img src={clubLogo} alt={clubName} className="w-6 h-6 object-contain" />
+                                                        <span className="text-white">{clubName}</span>
+                                                    </>
+                                                )}
                                             </div>
                                         </td>
                                         <td className="px-2 sm:px-4 py-4">

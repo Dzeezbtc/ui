@@ -44,6 +44,8 @@ import { useEffect, useState, lazy, Suspense } from "react";
 import FaviconSetter from "./components/FaviconSetter";
 import { ErrorBoundary } from "./components/common/ErrorBoundary";
 import ClubLoginPage from "./pages/ClubLoginPage";
+import ClubPage from "./pages/ClubPage";
+import { ClubApiProvider } from "./context/ClubApiContext";
 import { GlobalHeader } from "./components/GlobalHeader";
 import { ProfileAvatarProvider } from "./context/profile/ProfileAvatarContext";
 import { ProfileAvatarModal } from "./components/profile";
@@ -126,6 +128,7 @@ function AppContent() {
                 <Route path="/table/admin" element={<TableAdminPage />} /> {/* Legacy - keep for backwards compat */}
                 <Route path="/wallet" element={<CosmosWalletPage />} />
                 <Route path="/club-login" element={<ClubLoginPage />} />
+                <Route path="/club/:handle" element={<ClubPage />} />
                 {/* User-facing routes */}
                 <Route path="/withdrawals" element={<WithdrawalDashboard />} />
                 <Route path="/bridge/withdrawals" element={<WithdrawalDashboard />} />
@@ -194,9 +197,11 @@ function App() {
                             <PaymentApiProvider>
                                 <CosmosApiProvider>
                                     <IndexerApiProvider>
-                                        <ActionSubmitProvider>
-                                            <AppContent />
-                                        </ActionSubmitProvider>
+                                        <ClubApiProvider>
+                                            <ActionSubmitProvider>
+                                                <AppContent />
+                                            </ActionSubmitProvider>
+                                        </ClubApiProvider>
                                     </IndexerApiProvider>
                                 </CosmosApiProvider>
                             </PaymentApiProvider>
