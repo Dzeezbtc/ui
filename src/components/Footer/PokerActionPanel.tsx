@@ -1,6 +1,6 @@
 import React, { useState, useEffect, useMemo, useCallback } from "react";
 import { NonPlayerActionType, PlayerActionType, PlayerStatus, TexasHoldemRound } from "@block52/poker-vm-sdk";
-import { hasContent, hasElements, isNullish } from "../../utils/guards";
+import { hasContent, hasElements, hasValue, isNullish } from "../../utils/guards";
 import { parseMicroToBigInt, microBigIntToUsdc, usdcToMicroBigInt } from "../../constants/currency";
 import { STORAGE_KEYS } from "../../constants/storageKeys";
 import { isTournamentFormat } from "../../utils/gameFormatUtils";
@@ -684,7 +684,7 @@ export const PokerActionPanel: React.FC<PokerActionPanelProps> = ({ tableId, net
                         {/* Main Action Buttons */}
                         {showActionButtons && !showSmallBlindButton && !showBigBlindButton && (
                             <>
-                                {timeBankSeconds !== null && (
+                                {hasValue(timeBankSeconds) && (
                                     <div className="flex justify-center">
                                         <ActionButton
                                             action={NonPlayerActionType.TIME_BANK}

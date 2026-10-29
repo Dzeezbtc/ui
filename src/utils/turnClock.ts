@@ -132,7 +132,7 @@ export const nextTimeBankMs = (player: PlayerDTO | null | undefined): number | n
 export const timeBankGrantedMs = (gameState: TexasHoldemStateDTO | null | undefined): number => {
     const previousActions = gameState?.previousActions ?? [];
     const anchor = turnClockAnchorMs(previousActions);
-    if (anchor === null) {
+    if (isNullish(anchor)) {
         return 0;
     }
     const grantOf = (address: string): number => {
