@@ -14,7 +14,7 @@
  * Everything here is a pure function of a state snapshot, so it can be tested
  * without React and so every observer at the table computes the same answer.
  */
-import { NonPlayerActionType, TexasHoldemRound, type TexasHoldemStateDTO } from "@block52/poker-vm-sdk";
+import { NonPlayerActionType, TexasHoldemRound, type ActionDTO, type TexasHoldemStateDTO } from "@block52/poker-vm-sdk";
 import { makeTurnId, normalizeTimestamp } from "./timerUtils";
 import { hasElements, isNullish } from "./guards";
 import { hasTournamentStarted } from "./scheduledSng";
@@ -76,8 +76,23 @@ export const turnDeadlineMs = (gameState: TexasHoldemStateDTO | null | undefined
         return null;
     }
 
+    const anchor = turnClockAnchorMs(gameState.previousActions);
+    if (anchor === null) {
+        return null;
+    }
+
+    return anchor + timeoutSeconds * 1000 + timeBankGrantedMs(gameState);
+};
+
+/**
+ * The turn clock's anchor (epoch ms): the latest recorded action that advanced
+ * the turn. A `time-bank` extends the current turn without advancing it, so it
+ * never moves the anchor (engine `turnClockAnchor`). `null` when nothing
+ * anchors the clock yet.
+ */
+export const turnClockAnchorMs = (previousActions: readonly ActionDTO[] | null | undefined): number | null => {
     let anchor: number | null = null;
-    for (const action of gameState.previousActions) {
+    for (const action of previousActions ?? []) {
         if (action.action === NonPlayerActionType.TIME_BANK) {
             continue;
         }
@@ -86,19 +101,25 @@ export const turnDeadlineMs = (gameState: TexasHoldemStateDTO | null | undefined
             anchor = at;
         }
     }
-    if (anchor === null) {
-        return null;
-    }
+    return anchor;
+};
 
-    const timeBankMs = gameState.gameOptions.timeBankMs ?? 0;
-    let grants = 0;
-    for (const action of gameState.previousActions) {
-        if (action.action === NonPlayerActionType.TIME_BANK && normalizeTimestamp(action.timestamp) >= anchor) {
-            grants += 1;
-        }
+/**
+ * Extra time the time bank has granted the current turn (ui#19): one
+ * `gameOptions.timeBankMs` per `time-bank` recorded at or after the clock's
+ * anchor. 0 when the table has no time bank or nobody used it this turn.
+ */
+export const timeBankGrantedMs = (gameState: TexasHoldemStateDTO | null | undefined): number => {
+    const timeBankMs = gameState?.gameOptions?.timeBankMs ?? 0;
+    const previousActions = gameState?.previousActions ?? [];
+    const anchor = turnClockAnchorMs(previousActions);
+    if (timeBankMs <= 0 || anchor === null) {
+        return 0;
     }
-
-    return anchor + timeoutSeconds * 1000 + grants * timeBankMs;
+    const grants = previousActions.filter(
+        action => action.action === NonPlayerActionType.TIME_BANK && normalizeTimestamp(action.timestamp) >= anchor
+    ).length;
+    return grants * timeBankMs;
 };
 
 /**

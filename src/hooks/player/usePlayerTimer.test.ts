@@ -7,10 +7,11 @@
  * test to hold that, so here it is.
  *
  * The point of these tests is the boundary, not the arithmetic: this hook
- * REPORTS time and owns the one-per-turn extension. It must never act.
+ * REPORTS time (including any time bank the chain granted, ui#19). It must
+ * never act.
  */
 import { renderHook, act } from "@testing-library/react";
-import { PlayerStatus } from "@block52/poker-vm-sdk";
+import { NonPlayerActionType, PlayerStatus } from "@block52/poker-vm-sdk";
 import { usePlayerTimer } from "./usePlayerTimer";
 import { STORAGE_KEYS } from "../../constants/storageKeys";
 
@@ -85,9 +86,7 @@ describe("usePlayerTimer", () => {
                     progress: expect.any(Number),
                     timeRemaining: expect.any(Number),
                     isActive: expect.any(Boolean),
-                    extendTime: expect.any(Function),
                     hasUsedExtension: expect.any(Boolean),
-                    canExtend: expect.any(Boolean),
                     isCurrentUser: expect.any(Boolean),
                     isCurrentUserTurn: expect.any(Boolean)
                 })
@@ -112,15 +111,10 @@ describe("usePlayerTimer", () => {
             expect(result.current.timeRemaining).toBe(0);
         });
 
-        it("spends the time extension once per turn", () => {
+        it("has no extension until the chain records a time bank", () => {
             const { result } = renderHook(() => usePlayerTimer(TABLE, 1));
             expect(result.current.hasUsedExtension).toBe(false);
-
-            act(() => result.current.extendTime?.());
-
-            const after = renderHook(() => usePlayerTimer(TABLE, 1));
-            expect(after.result.current.hasUsedExtension).toBe(true);
-            expect(after.result.current.canExtend).toBe(false);
+            expect(result.current.timeoutValue).toBe(30);
         });
     });
 
@@ -151,6 +145,42 @@ describe("usePlayerTimer", () => {
             expect(seats).toHaveLength(2);
             expect(mockFold).not.toHaveBeenCalled();
             expect(mockCheck).not.toHaveBeenCalled();
+        });
+    });
+
+    // ui#19: the time bank is a chain action. The countdown grows only once
+    // the engine has recorded it, and the grant doesn't restart the turn.
+    describe("time bank from the chain (ui#19)", () => {
+        const withTimeBank = (actionAgoMs: number, timeBankAgoMs: number | null) => {
+            const now = Date.now();
+            const snapshot = state();
+            const previousActions: { action?: string; timestamp: number }[] = [{ action: "call", timestamp: now - actionAgoMs }];
+            if (timeBankAgoMs !== null) {
+                previousActions.push({ action: NonPlayerActionType.TIME_BANK, timestamp: now - timeBankAgoMs });
+            }
+            return { ...snapshot, previousActions, gameOptions: { ...snapshot.gameOptions, timeBankMs: 30_000 } };
+        };
+
+        it("adds the granted time to the countdown", () => {
+            setState(withTimeBank(25_000, 1_000));
+            const { result } = renderHook(() => usePlayerTimer(TABLE, 1));
+            // 30s turn + 30s bank, 25s gone since the turn began
+            expect(result.current.timeRemaining).toBe(35);
+            expect(result.current.timeoutValue).toBe(60);
+            expect(result.current.hasUsedExtension).toBe(true);
+        });
+
+        it("counts from the turn's start, not from the time-bank action", () => {
+            setState(withTimeBank(50_000, 30_000));
+            const { result } = renderHook(() => usePlayerTimer(TABLE, 1));
+            expect(result.current.timeRemaining).toBe(10);
+        });
+
+        it("ignores a table time bank nobody has used this turn", () => {
+            setState(withTimeBank(25_000, null));
+            const { result } = renderHook(() => usePlayerTimer(TABLE, 1));
+            expect(result.current.timeRemaining).toBe(5);
+            expect(result.current.hasUsedExtension).toBe(false);
         });
     });
 

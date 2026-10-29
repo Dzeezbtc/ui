@@ -14,6 +14,7 @@ import {
     isMaxAllIn,
     isShortShoveRaise,
     shouldShowShowdownBar,
+    timeBankButtonSeconds,
     validRaiseAmount
 } from "../../utils/pockerActionUtils";
 import { formatDisplayAmount } from "../../utils/numberUtils";
@@ -54,6 +55,7 @@ import { raiseHand } from "../../hooks/playerActions/raiseHand";
 import { postSmallBlind } from "../../hooks/playerActions/postSmallBlind";
 import { postBigBlind } from "../../hooks/playerActions/postBigBlind";
 import { startNewHand } from "../../hooks/playerActions/startNewHand";
+import { timeBank } from "../../hooks/playerActions/timeBank";
 import type { PlayerActionResult } from "../../types";
 
 // Import utils
@@ -182,7 +184,8 @@ export const PokerActionPanel: React.FC<PokerActionPanelProps> = ({ tableId, net
         hasRaiseAction,
         hasMuckAction,
         hasShowAction,
-        hasDealAction
+        hasDealAction,
+        hasTimeBankAction
     } = getActionFlags(legalActions);
 
     // Blind amounts - single source of truth from gameState.gameOptions (per Commandment 7)
@@ -504,6 +507,12 @@ export const PokerActionPanel: React.FC<PokerActionPanelProps> = ({ tableId, net
     const handleShowAction = () => submitAction("show", () => showCards(tableId, network));
     const handleNewHandAction = () => submitAction("new-hand", () => startNewHand(tableId, network));
 
+    // Time bank (ui#19): straight to the controller, not through submitAction —
+    // it isn't the player's move, so Fold / Call / Raise must stay on screen
+    // while it confirms. The engine only offers it while it can be used.
+    const timeBankSeconds = timeBankButtonSeconds({ hasTimeBankAction, isUsersTurn, timeBankMs: gameState?.gameOptions?.timeBankMs });
+    const handleTimeBankAction = () => submit({ actionName: NonPlayerActionType.TIME_BANK, run: () => timeBank(tableId, network) });
+
     // Calculate button visibility flags
     const { canFoldAnytime, showActionButtons, showSmallBlindButton, showBigBlindButton } = useMemo(() => {
         const showButtons = !!userPlayer;
@@ -674,6 +683,18 @@ export const PokerActionPanel: React.FC<PokerActionPanelProps> = ({ tableId, net
                         {/* Main Action Buttons */}
                         {showActionButtons && !showSmallBlindButton && !showBigBlindButton && (
                             <>
+                                {timeBankSeconds !== null && (
+                                    <div className="flex justify-center">
+                                        <ActionButton
+                                            action={NonPlayerActionType.TIME_BANK}
+                                            label={`TIME BANK +${timeBankSeconds}s`}
+                                            loading={loadingAction === NonPlayerActionType.TIME_BANK}
+                                            onClick={handleTimeBankAction}
+                                            variant="secondary"
+                                            className="px-4 py-1.5 text-xs lg:text-sm font-bold"
+                                        />
+                                    </div>
+                                )}
                                 <MainActionButtons
                                     canFold={canFoldAnytime}
                                     canCheck={hasCheckAction}
