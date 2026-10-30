@@ -141,6 +141,10 @@ export const GameStateProvider: React.FC<GameStateProviderProps> = ({ children }
         busRef.current?.ackAnimation(ackId);
     }, []);
 
+    // Stable bridge to the bus's run-out state (ui#873): useAutoNewHand defers
+    // the next hand's deal while a protected tournament run-out is still showing.
+    const isPlayingSuspense = useCallback((): boolean => busRef.current?.isPlayingSuspense() ?? false, []);
+
     // Apply a classified message to the RENDER track (React state). Contains no
     // logical-track writes — the logical track is updated by the bus at
     // ingest. setState dispatchers are stable, so this callback never changes
@@ -764,7 +768,7 @@ export const GameStateProvider: React.FC<GameStateProviderProps> = ({ children }
                             pendingAction={pendingAction}
                             connection={connection}
                         >
-                            <GameEventsProvider latestItem={latestStreamItem} ackAnimation={ackAnimation}>
+                            <GameEventsProvider latestItem={latestStreamItem} ackAnimation={ackAnimation} isPlayingSuspense={isPlayingSuspense}>
                                 <GameDataProvider gameState={gameState} isOptimistic={isOptimistic}>
                                     {children}
                                 </GameDataProvider>
