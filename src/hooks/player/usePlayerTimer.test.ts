@@ -14,6 +14,7 @@ import { renderHook, act } from "@testing-library/react";
 import { NonPlayerActionType, PlayerStatus } from "@block52/poker-vm-sdk";
 import { usePlayerTimer } from "./usePlayerTimer";
 import { STORAGE_KEYS } from "../../constants/storageKeys";
+import { hasValue } from "../../utils/guards";
 
 const mockUseGameData = jest.fn();
 const mockUseGameUI = jest.fn();
@@ -155,7 +156,7 @@ describe("usePlayerTimer", () => {
             const now = Date.now();
             const snapshot = state();
             const previousActions: { action?: string; playerId?: string; timestamp: number }[] = [{ action: "call", playerId: "b521them", timestamp: now - actionAgoMs }];
-            if (timeBankAgoMs !== null) {
+            if (hasValue(timeBankAgoMs)) {
                 previousActions.push({ action: NonPlayerActionType.TIME_BANK, playerId: ME, timestamp: now - timeBankAgoMs });
             }
             // our latest use granted 30s (the engine's per-player field)

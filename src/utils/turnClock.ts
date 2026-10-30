@@ -77,7 +77,7 @@ export const turnDeadlineMs = (gameState: TexasHoldemStateDTO | null | undefined
     }
 
     const anchor = turnClockAnchorMs(gameState.previousActions);
-    if (anchor === null) {
+    if (isNullish(anchor)) {
         return null;
     }
 
