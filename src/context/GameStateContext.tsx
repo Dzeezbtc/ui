@@ -9,7 +9,7 @@ import { GameMessageBus } from "../bus/GameMessageBus";
 import { type GameStreamItem } from "../bus/types";
 import { viteEnv } from "../utils/viteEnv";
 import { toGameFormat, toGameVariant } from "../utils/gameFormatUtils";
-import { hasElements } from "../utils/guards";
+import { hasElements, isNullish } from "../utils/guards";
 import type { ValidationError } from "../components/playPage/TableErrorPage";
 import { CosmosApi } from "../apis/Api";
 import { useCometRpcApiFactory } from "./CosmosApiContext";
@@ -120,7 +120,7 @@ export const GameStateProvider: React.FC<GameStateProviderProps> = ({ children }
     // This table's LOGICAL track (ui#834) — one per provider, so with several
     // tables mounted each table's submissions read only its own state.
     const trackRef = useRef<LogicalTrack | null>(null);
-    if (trackRef.current === null) {
+    if (isNullish(trackRef.current)) {
         trackRef.current = createLogicalTrack();
     }
     const track = trackRef.current;
