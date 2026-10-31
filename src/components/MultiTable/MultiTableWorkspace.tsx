@@ -11,6 +11,7 @@ import { TableSessionsProvider, useTableSessions } from "../../context/tableSess
 import type { OpenTable } from "../../context/tableSessions/sessionsModel";
 import { TableHeaderSlotProvider } from "../../context/TableHeaderSlotContext";
 import { TableIdProvider } from "../../context/TableIdContext";
+import { isEmpty } from "../../utils/guards";
 
 /**
  * Multi-tabling workspace (block52/ui#55, PR 2).
@@ -87,7 +88,7 @@ export const MultiTableWorkspace: React.FC = () => {
     );
     const effectiveActiveId = activeId ?? routeId ?? null;
 
-    if (effectiveTables.length === 0) {
+    if (isEmpty(effectiveTables)) {
         return null;
     }
 

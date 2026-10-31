@@ -1,5 +1,6 @@
 import { createContext, useContext } from "react";
 import type { LogicalTrack } from "../../hooks/playerActions/transportAction";
+import { isNullish } from "../../utils/guards";
 
 /**
  * The table's LOGICAL track (ui#834): the freshest ingested snapshot, which
@@ -19,7 +20,7 @@ export const LogicalTrackProvider = LogicalTrackContext.Provider;
 
 export const useLogicalTrack = (): LogicalTrack => {
     const track = useContext(LogicalTrackContext);
-    if (track === null) {
+    if (isNullish(track)) {
         throw new Error("useLogicalTrack must be used inside a GameStateProvider (or a LogicalTrackProvider).");
     }
     return track;

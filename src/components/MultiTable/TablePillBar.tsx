@@ -2,6 +2,7 @@ import React, { useCallback, useEffect, useRef, useState } from "react";
 import "./MultiTable.css";
 import { TablePill } from "./TablePill";
 import { MAX_OPEN_TABLES, OpenTable, TableStatus } from "../../context/tableSessions/sessionsModel";
+import { isEmpty } from "../../utils/guards";
 
 /**
  * The multi-tabling pill bar (block52/ui#55). A horizontal strip of table pills with
@@ -204,7 +205,7 @@ export const TablePillBar: React.FC<TablePillBarProps> = ({
         [onSelect]
     );
 
-    if (openTables.length === 0) return null;
+    if (isEmpty(openTables)) return null;
 
     return (
         <div role="tablist" aria-label="Open tables" className="b52-pill-bar flex items-center gap-1.5 overflow-x-auto">
