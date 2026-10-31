@@ -1,6 +1,7 @@
 import { useEffect, useMemo, useState } from "react";
 import { useNetwork } from "../../context/NetworkContext";
 import { fetchTableNameAvailable, normalizeTableName, tableNameTakenMessage, validateTableName } from "../../utils/tableName";
+import { hasContent, isBlank } from "../../utils/guards";
 
 /** How long typing must pause before the name is checked against the chain. */
 export const NAME_CHECK_DEBOUNCE_MS = 400;
@@ -22,7 +23,7 @@ export function useTableNameError(rawName: string): string | null {
     const [takenName, setTakenName] = useState<string | null>(null);
 
     useEffect(() => {
-        if (formatError || name.length === 0) return;
+        if (formatError || isBlank(name)) return;
         const controller = new AbortController();
         const timer = setTimeout(() => {
             void fetchTableNameAvailable(currentNetwork.rest, name, controller.signal).then(available => {
@@ -37,5 +38,5 @@ export function useTableNameError(rawName: string): string | null {
     }, [name, formatError, currentNetwork.rest]);
 
     if (formatError) return formatError;
-    return name.length > 0 && takenName === name ? tableNameTakenMessage(name) : null;
+    return hasContent(name) && takenName === name ? tableNameTakenMessage(name) : null;
 }
