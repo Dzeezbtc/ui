@@ -12,6 +12,7 @@ import { TableSessionsProvider, useTableSessions } from "../../context/tableSess
 import { dockedTables, floatingTables, type OpenTable } from "../../context/tableSessions/sessionsModel";
 import { TableHeaderSlotProvider } from "../../context/TableHeaderSlotContext";
 import { TableIdProvider } from "../../context/TableIdContext";
+import { isEmpty, isNullish } from "../../utils/guards";
 
 /**
  * Multi-tabling workspace (block52/ui#55, PR 2).
@@ -91,7 +92,7 @@ export const MultiTableWorkspace: React.FC = () => {
     const handleBubbleDrop = useCallback(
         (id: string, clientX: number, clientY: number) => {
             const index = dockIndexAt(clientX, clientY);
-            if (index === null) floatAt(id, clientX, clientY);
+            if (isNullish(index)) floatAt(id, clientX, clientY);
             else dockTable(id, index);
         },
         [floatAt, dockTable]
@@ -114,7 +115,7 @@ export const MultiTableWorkspace: React.FC = () => {
     );
     const effectiveActiveId = activeId ?? routeId ?? null;
 
-    if (effectiveTables.length === 0) {
+    if (isEmpty(effectiveTables)) {
         return null;
     }
 

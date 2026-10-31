@@ -4,6 +4,7 @@ import "./MultiTable.css";
 import { TablePill } from "./TablePill";
 import { TableBubble } from "./TableBubble";
 import { MAX_OPEN_TABLES, OpenTable, TableStatus } from "../../context/tableSessions/sessionsModel";
+import { isEmpty } from "../../utils/guards";
 
 /**
  * The multi-tabling pill bar (block52/ui#55). A horizontal strip of table pills with
@@ -280,7 +281,7 @@ export const TablePillBar: React.FC<TablePillBarProps> = ({
         [onSelect]
     );
 
-    if (openTables.length === 0 && !showWhenEmpty) return null;
+    if (isEmpty(openTables) && !showWhenEmpty) return null;
 
     return (
         <div
