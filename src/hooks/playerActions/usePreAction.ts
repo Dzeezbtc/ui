@@ -5,6 +5,7 @@ import { callHand } from "./callHand";
 import { useLatchedDelay } from "./useLatchedDelay";
 import { resolvePreAction, PreAction, PreActionCallGuard, PreActionLegal, ResolvedPreAction } from "../../utils/preActions";
 import type { SubmitActionRequest } from "../../submit/types";
+import { hasValue } from "../../utils/guards";
 
 /**
  * The pre-action bar's firing hook (ui#388), CoinPoker-style. When the player has
@@ -49,7 +50,7 @@ export function usePreAction(
         }
         if (!isBusy && action != null) {
             const resolved = resolvePreAction(action, legal, callGuard);
-            if (resolved !== null) {
+            if (hasValue(resolved)) {
                 onFired?.(resolved);
             }
             if (resolved === "check") {
