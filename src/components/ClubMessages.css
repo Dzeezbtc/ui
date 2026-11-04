@@ -42,7 +42,7 @@
 
 .b52-club-dropdown {
     position: fixed;
-    top: 72px;
+    top: 112px;
     left: 50%;
     transform: translateX(-50%);
     z-index: 900;
