@@ -1,0 +1,79 @@
+.b52-club-banner {
+    position: relative;
+    z-index: 30;
+    height: 32px;
+    overflow: hidden;
+    display: flex;
+    align-items: center;
+    background: rgba(124, 58, 237, 0.9);
+    color: #fff;
+    font-size: 14px;
+}
+
+.b52-club-banner__text {
+    position: absolute;
+    white-space: nowrap;
+    left: 0;
+    animation-name: b52-club-banner-scroll;
+    animation-timing-function: linear;
+}
+
+.b52-club-banner__text a,
+.b52-club-dropdown__text a {
+    text-decoration: underline;
+}
+
+.b52-club-banner__close {
+    position: absolute;
+    right: 0;
+    height: 100%;
+    padding: 0 10px;
+    background: rgb(109, 40, 217);
+}
+
+@keyframes b52-club-banner-scroll {
+    from {
+        transform: translateX(100vw);
+    }
+    to {
+        transform: translateX(-100%);
+    }
+}
+
+.b52-club-dropdown {
+    position: fixed;
+    top: 72px;
+    left: 50%;
+    transform: translateX(-50%);
+    z-index: 900;
+    width: min(92vw, 480px);
+    display: flex;
+    align-items: flex-start;
+    gap: 12px;
+    padding: 12px 16px;
+    border: 1px solid rgba(167, 139, 250, 0.5);
+    border-radius: 12px;
+    background: rgba(17, 24, 39, 0.96);
+    color: #fff;
+    font-size: 14px;
+    box-shadow: 0 12px 32px rgba(0, 0, 0, 0.5);
+}
+
+.b52-club-dropdown__text {
+    flex: 1;
+}
+
+.b52-club-dropdown__close {
+    color: #9ca3af;
+    padding-top: 3px;
+}
+
+@media (prefers-reduced-motion: reduce) {
+    .b52-club-banner__text {
+        animation-name: none;
+        position: static;
+        padding: 0 36px 0 12px;
+        overflow: hidden;
+        text-overflow: ellipsis;
+    }
+}
