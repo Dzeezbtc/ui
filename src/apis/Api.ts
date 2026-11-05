@@ -135,6 +135,10 @@ export class ClubApi extends HTTPClient {
     public getClub = (handle: string) => this.get(`/public/clubs/${encodeURIComponent(handle)}`);
     public getMembership = (handle: string, address: string) => this.get(`/public/clubs/${encodeURIComponent(handle)}/members/${encodeURIComponent(address)}`);
     public getJoinChallenge = (address: string, club: string) => this.post<{ nonce: string; text: string }>("/public/join/challenge", { address, club });
-    public join = (body: { address: string; club: string; nonce: string; signature: string; pubkey: string; nickname?: string }) => this.post("/public/join", body);
+    public getClubTerms = (handle: string) => this.get(`/public/clubs/${encodeURIComponent(handle)}/terms`);
+    public canSit = (handle: string, address: string, gameId: string) => this.get<{ allowed: boolean; reason?: string }>(`/public/clubs/${encodeURIComponent(handle)}/can-sit/${encodeURIComponent(address)}?gameId=${encodeURIComponent(gameId)}`);
+    public join = (body: { address: string; club: string; nonce: string; signature: string; pubkey: string; nickname?: string; inviteCode?: string; country?: string; acceptTerms?: number; acceptHouseRules?: boolean }) => this.post("/public/join", body);
+    public getKycChallenge = (address: string, club: string) => this.post<{ nonce: string; text: string }>("/public/kyc/challenge", { address, club });
+    public submitKyc = (body: { address: string; club: string; nonce: string; signature: string; pubkey: string; fullName: string; birthDate: string; country: string }) => this.post("/public/kyc", body);
     public getSignInChallenge = (address: string, club: string) => this.post<{ nonce: string; text: string }>("/auth/challenge", { address, club });
 }
