@@ -2,6 +2,7 @@ import React, { useState } from "react";
 import { Link, useParams } from "react-router-dom";
 import { useClubPage } from "../hooks/club/useClubPage";
 import { canSubmitJoin, clubAsksForKyc, joinButtonLabel, joiningText, membershipText, offerText, tableSummary, type ClubTerms } from "../utils/clubService";
+import { safeLook, socialLabel } from "../utils/clubLook";
 
 const box = "rounded-xl border border-gray-700 bg-gray-900/70";
 const field = "w-full rounded-lg border border-gray-600 bg-gray-950 px-3 py-2 text-sm text-white";
@@ -50,7 +51,7 @@ const Agreements: React.FC<{ info: ClubTerms; terms: boolean; rules: boolean; se
  */
 const ClubPage: React.FC = () => {
     const { handle = "" } = useParams();
-    const { offers, claimed, claim, club, info, status, termsOutdated, welcome, seatRules, kycSent, hasWallet, busy, error, join, acceptNewTerms, sendKyc } = useClubPage(handle);
+    const { offers, races, claimed, claim, club, info, status, termsOutdated, welcome, seatRules, kycSent, hasWallet, busy, error, join, acceptNewTerms, sendKyc } = useClubPage(handle);
     const [inviteCode, setInviteCode] = useState("");
     const [acceptedTerms, setAcceptedTerms] = useState(false);
     const [acceptedHouseRules, setAcceptedHouseRules] = useState(false);
@@ -59,18 +60,31 @@ const ClubPage: React.FC = () => {
     if (!club)
         return <div className="min-h-[60vh] flex items-center justify-center px-4 text-gray-300">{error ? <p className="text-red-300">{error}</p> : <p>Loading the club…</p>}</div>;
 
+    const look = safeLook(club.look);
     const button = joinButtonLabel(club.joining, inviteCode);
     const ready = canSubmitJoin(info, { acceptedTerms, acceptedHouseRules });
     return (
         <div className="max-w-3xl mx-auto px-4 py-10 space-y-6 text-gray-200">
             <div>
-                <div className="text-xs uppercase tracking-[0.2em] text-violet-300/80 font-semibold">♣ Club</div>
+                {look?.logo && <img src={look.logo} alt="" className="w-16 h-16 rounded-xl object-contain mb-3" />}
+                <div className="text-xs uppercase tracking-[0.2em] font-semibold" style={{ color: look?.primaryColor ?? undefined }}>
+                    ♣ Club
+                </div>
                 <h1 className="text-3xl font-bold text-white mt-1">{club.name}</h1>
                 <div className="text-sm text-gray-400">
                     @{club.handle}
                     {club.union && <> · part of {club.union}</>}
                 </div>
                 {club.tagline && <p className="mt-3 text-gray-300">{club.tagline}</p>}
+                {look && look.socials.length > 0 && (
+                    <div className="mt-2 flex flex-wrap gap-3 text-sm">
+                        {look.socials.map(url => (
+                            <a key={url} href={url} target="_blank" rel="noreferrer" className="underline" style={{ color: look.accentColor ?? undefined }}>
+                                {socialLabel(url)}
+                            </a>
+                        ))}
+                    </div>
+                )}
             </div>
 
             <div className="grid sm:grid-cols-3 gap-3">
@@ -123,6 +137,26 @@ const ClubPage: React.FC = () => {
                 <p className="text-xs text-gray-500">Joining signs a one-time message with your wallet. It never moves funds and costs nothing. Your money stays in your own wallet.</p>
                 {error && <p className="text-sm text-red-300">{error}</p>}
             </div>
+
+            {races.map(r => (
+                <div key={r.race} className={`${box} p-5 space-y-2`}>
+                    <div className="font-semibold text-white">
+                        {r.race === "leaderboard" ? "Leaderboard" : "Rake race"}: ${r.pool.toLocaleString()} to win
+                    </div>
+                    <div className="text-xs text-gray-400">Ends {r.ends}</div>
+                    {r.top.length === 0 ? (
+                        <p className="text-sm text-gray-400">Nobody has played yet.</p>
+                    ) : (
+                        <ol className="text-sm text-gray-200 space-y-0.5">
+                            {r.top.map(p => (
+                                <li key={`${p.rank}-${p.nickname}`}>
+                                    {p.rank}. {p.nickname}
+                                </li>
+                            ))}
+                        </ol>
+                    )}
+                </div>
+            ))}
 
             {status === "active" && hasWallet && offers.length > 0 && (
                 <div className={`${box} p-5 space-y-3`}>
