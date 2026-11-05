@@ -196,3 +196,28 @@ export async function claimBonus(api: ClaimApi, handle: string, mnemonic: string
     if (signed.address !== address) throw new Error("Your stored wallet doesn't match its address. Re-import it on the Wallet page.");
     await api.claimBonus({ address, club: handle, offerId, nonce: ch.nonce, signature: signed.signature, pubkey: signed.pubkey });
 }
+
+/** Something a club is telling a player who opted in. */
+export interface ClubNotification {
+    key: string;
+    title: string;
+    body: string;
+    created_at: string;
+}
+
+/** The ones not shown yet, oldest first, so the lobby never repeats one. */
+export const newNotifications = (all: ClubNotification[], shown: ReadonlySet<string>): ClubNotification[] => all.filter(n => !shown.has(n.key)).reverse();
+
+/** The calls saveNotifications needs from the club API. */
+export interface NotificationApi {
+    getNotificationChallenge: (address: string, club: string) => Promise<{ nonce: string; text: string }>;
+    saveNotifications: (body: { address: string; club: string; nonce: string; signature: string; pubkey: string; tournaments: boolean; telegramChat?: string }) => Promise<unknown>;
+}
+
+/** Saves what a player wants to hear about, signed by their wallet so nobody can sign them up. */
+export async function saveNotifications(api: NotificationApi, handle: string, mnemonic: string, address: string, choice: { tournaments: boolean; telegramChat?: string }): Promise<void> {
+    const ch = await api.getNotificationChallenge(address, handle);
+    const signed = await signChallenge(mnemonic, ch.text);
+    if (signed.address !== address) throw new Error("Your stored wallet doesn't match its address. Re-import it on the Wallet page.");
+    await api.saveNotifications({ address, club: handle, nonce: ch.nonce, signature: signed.signature, pubkey: signed.pubkey, ...choice });
+}

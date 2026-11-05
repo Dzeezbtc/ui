@@ -2,7 +2,7 @@ import { Secp256k1HdWallet } from "@cosmjs/amino";
 import { Secp256k1, Secp256k1Signature, sha256 } from "@cosmjs/crypto";
 import { fromBase64 } from "@cosmjs/encoding";
 import { signedBytes } from "./clubLogin";
-import { canSubmitJoin, claimBonus, clubAsksForKyc, offerText, type ClaimApi, joinButtonLabel, joinClub, joiningText, membershipText, seatRefusal, submitKyc, tableSummary, type ClubTerms, type JoinApi, type KycApi, type PublicClubTable, type SeatApi } from "./clubService";
+import { newNotifications, saveNotifications, type NotificationApi, canSubmitJoin, claimBonus, clubAsksForKyc, offerText, type ClaimApi, joinButtonLabel, joinClub, joiningText, membershipText, seatRefusal, submitKyc, tableSummary, type ClubTerms, type JoinApi, type KycApi, type PublicClubTable, type SeatApi } from "./clubService";
 
 // The standard BIP-39 test phrase: a throwaway wallet, never funded.
 const MNEMONIC = "abandon abandon abandon abandon abandon abandon abandon abandon abandon abandon abandon about";
@@ -165,5 +165,24 @@ describe("bonuses", () => {
         expect(sent[0].offerId).toBe("o");
         expect(sent[0].signature).toBeTruthy();
         await expect(claimBonus(api, "block52", MNEMONIC, "b521someoneelse", "o")).rejects.toThrow(/doesn't match/);
+    });
+});
+
+describe("notifications", () => {
+    const n = (key: string) => ({ key, title: key, body: "", created_at: "" });
+
+    it("shows only what's new, oldest first", () => {
+        expect(newNotifications([n("c"), n("b"), n("a")], new Set(["b"])).map(x => x.key)).toEqual(["a", "c"]);
+        expect(newNotifications([n("a")], new Set(["a"]))).toEqual([]);
+    });
+
+    it("signs the player's choice", async () => {
+        const sent: { tournaments: boolean; signature: string }[] = [];
+        const api: NotificationApi = { getNotificationChallenge: async () => ({ nonce: "n", text: "Choose notifications from a Block52 club" }), saveNotifications: async b => sent.push(b) };
+        const real = await Secp256k1HdWallet.fromMnemonic(MNEMONIC, { prefix: "b52" });
+        const [{ address }] = await real.getAccounts();
+        await saveNotifications(api, "block52", MNEMONIC, address, { tournaments: true });
+        expect(sent[0].tournaments).toBe(true);
+        expect(sent[0].signature).toBeTruthy();
     });
 });
