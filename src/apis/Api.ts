@@ -2,7 +2,7 @@ import HTTPClient from "./HTTPClient";
 import { hasContent, hasValue } from "../utils/guards";
 import type { PlayerSearchParams, PlayersListResponse, PlayerProfile, PlayerSessionsResponse, PlayerHandsResponse } from "../types/players";
 import type { WithdrawalSignatureResponse } from "../utils/withdrawalSignature";
-import type { ClubNotification, ClubOffer, ClubRace } from "../utils/clubService";
+import type { ClubMission, ClubNotification, ClubOffer, ClubRace } from "../utils/clubService";
 import type { ClubLook } from "../utils/clubLook";
 import type { ClubMessage } from "../utils/clubMessages";
 
@@ -140,7 +140,7 @@ export class ClubApi extends HTTPClient {
     public getJoinChallenge = (address: string, club: string) => this.post<{ nonce: string; text: string }>("/public/join/challenge", { address, club });
     public getClubTerms = (handle: string) => this.get(`/public/clubs/${encodeURIComponent(handle)}/terms`);
     public canSit = (handle: string, address: string, gameId: string) => this.get<{ allowed: boolean; reason?: string }>(`/public/clubs/${encodeURIComponent(handle)}/can-sit/${encodeURIComponent(address)}?gameId=${encodeURIComponent(gameId)}`);
-    public join = (body: { address: string; club: string; nonce: string; signature: string; pubkey: string; nickname?: string; inviteCode?: string; country?: string; acceptTerms?: number; acceptHouseRules?: boolean }) => this.post("/public/join", body);
+    public join = (body: { address: string; club: string; nonce: string; signature: string; pubkey: string; nickname?: string; inviteCode?: string; country?: string; acceptTerms?: number; acceptHouseRules?: boolean; referredBy?: string }) => this.post("/public/join", body);
     public getTableLook = (gameId: string) => this.get<{ club: { handle: string; name: string } | null; look: Partial<ClubLook> | null }>(`/public/tables/${encodeURIComponent(gameId)}/look`);
     public getClubRaces = (handle: string) => this.get<{ races: ClubRace[] }>(`/public/clubs/${encodeURIComponent(handle)}/races`);
     public getNotificationChallenge = (address: string, club: string) => this.post<{ nonce: string; text: string }>("/public/notifications/challenge", { address, club });
@@ -148,6 +148,7 @@ export class ClubApi extends HTTPClient {
     public getNotifications = (address: string) => this.get<{ notifications: ClubNotification[] }>(`/public/players/${encodeURIComponent(address)}/notifications`);
     public getSeatChallenge = (address: string, club: string) => this.post<{ nonce: string; text: string }>("/public/seat-check/challenge", { address, club });
     public checkSeat = (body: { address: string; club: string; gameId: string; nonce: string; signature: string; pubkey: string; lat?: number; lon?: number }) => this.post<{ allowed: boolean; reason?: string; locationNeeded?: boolean }>("/public/seat-check", body);
+    public getClubMissions = (handle: string) => this.get<{ missions: ClubMission[]; referralBonus: number }>(`/public/clubs/${encodeURIComponent(handle)}/missions`);
     public getClubOffers = (handle: string) => this.get<{ offers: ClubOffer[] }>(`/public/clubs/${encodeURIComponent(handle)}/offers`);
     public getClaimChallenge = (address: string, club: string, offerId: string) => this.post<{ nonce: string; text: string }>("/public/bonus-claims/challenge", { address, club, offerId });
     public claimBonus = (body: { address: string; club: string; offerId: string; nonce: string; signature: string; pubkey: string }) => this.post("/public/bonus-claims", body);

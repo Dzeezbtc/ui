@@ -2,7 +2,7 @@ import { Secp256k1HdWallet } from "@cosmjs/amino";
 import { Secp256k1, Secp256k1Signature, sha256 } from "@cosmjs/crypto";
 import { fromBase64 } from "@cosmjs/encoding";
 import { signedBytes } from "./clubLogin";
-import { newNotifications, saveNotifications, type NotificationApi, canSubmitJoin, claimBonus, clubAsksForKyc, offerText, type ClaimApi, joinButtonLabel, joinClub, joiningText, membershipText, seatRefusal, submitKyc, tableSummary, type ClubTerms, type JoinApi, type KycApi, type PublicClubTable, type SeatApi } from "./clubService";
+import { referralLink, newNotifications, saveNotifications, type NotificationApi, canSubmitJoin, claimBonus, clubAsksForKyc, offerText, type ClaimApi, joinButtonLabel, joinClub, joiningText, membershipText, seatRefusal, submitKyc, tableSummary, type ClubTerms, type JoinApi, type KycApi, type PublicClubTable, type SeatApi } from "./clubService";
 
 // The standard BIP-39 test phrase: a throwaway wallet, never funded.
 const MNEMONIC = "abandon abandon abandon abandon abandon abandon abandon abandon abandon abandon abandon about";
@@ -75,6 +75,12 @@ describe("joining with the club's rules", () => {
         const { body, result } = await send({ acceptedTerms: true, acceptedHouseRules: true, termsVersion: 3, inviteCode: " ABC1 " });
         expect(body).toMatchObject({ acceptTerms: 3, acceptHouseRules: true, inviteCode: "ABC1" });
         expect(result.welcome).toBe("Hi");
+    });
+
+    it("passes on who referred them", async () => {
+        const { body } = await send({ acceptedTerms: false, acceptedHouseRules: false, referredBy: "b521friend" });
+        expect(body).toMatchObject({ referredBy: "b521friend" });
+        expect(referralLink("https://x.test", "my club", "b521a")).toBe("https://x.test/club/my%20club?ref=b521a");
     });
 
     it("doesn't claim acceptance that wasn't given", async () => {
