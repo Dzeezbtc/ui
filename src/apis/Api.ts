@@ -2,6 +2,7 @@ import HTTPClient from "./HTTPClient";
 import { hasContent, hasValue } from "../utils/guards";
 import type { PlayerSearchParams, PlayersListResponse, PlayerProfile, PlayerSessionsResponse, PlayerHandsResponse } from "../types/players";
 import type { WithdrawalSignatureResponse } from "../utils/withdrawalSignature";
+import type { ClubOffer } from "../utils/clubService";
 import type { ClubMessage } from "../utils/clubMessages";
 
 export class PaymentApi extends HTTPClient {
@@ -139,6 +140,9 @@ export class ClubApi extends HTTPClient {
     public getClubTerms = (handle: string) => this.get(`/public/clubs/${encodeURIComponent(handle)}/terms`);
     public canSit = (handle: string, address: string, gameId: string) => this.get<{ allowed: boolean; reason?: string }>(`/public/clubs/${encodeURIComponent(handle)}/can-sit/${encodeURIComponent(address)}?gameId=${encodeURIComponent(gameId)}`);
     public join = (body: { address: string; club: string; nonce: string; signature: string; pubkey: string; nickname?: string; inviteCode?: string; country?: string; acceptTerms?: number; acceptHouseRules?: boolean }) => this.post("/public/join", body);
+    public getClubOffers = (handle: string) => this.get<{ offers: ClubOffer[] }>(`/public/clubs/${encodeURIComponent(handle)}/offers`);
+    public getClaimChallenge = (address: string, club: string, offerId: string) => this.post<{ nonce: string; text: string }>("/public/bonus-claims/challenge", { address, club, offerId });
+    public claimBonus = (body: { address: string; club: string; offerId: string; nonce: string; signature: string; pubkey: string }) => this.post("/public/bonus-claims", body);
     public getKycChallenge = (address: string, club: string) => this.post<{ nonce: string; text: string }>("/public/kyc/challenge", { address, club });
     public submitKyc = (body: { address: string; club: string; nonce: string; signature: string; pubkey: string; fullName: string; birthDate: string; country: string }) => this.post("/public/kyc", body);
     public getPlayerMessages = (address: string, lang: string) => this.get<{ messages: ClubMessage[] }>(`/public/players/${encodeURIComponent(address)}/messages?lang=${encodeURIComponent(lang)}`);
