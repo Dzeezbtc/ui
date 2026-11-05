@@ -144,7 +144,7 @@ export class ClubApi extends HTTPClient {
     public getTableLook = (gameId: string) => this.get<{ club: { handle: string; name: string } | null; look: Partial<ClubLook> | null }>(`/public/tables/${encodeURIComponent(gameId)}/look`);
     public getClubRaces = (handle: string) => this.get<{ races: ClubRace[] }>(`/public/clubs/${encodeURIComponent(handle)}/races`);
     public getNotificationChallenge = (address: string, club: string) => this.post<{ nonce: string; text: string }>("/public/notifications/challenge", { address, club });
-    public saveNotifications = (body: { address: string; club: string; nonce: string; signature: string; pubkey: string; tournaments: boolean; telegramChat?: string }) => this.post("/public/notifications", body);
+    public saveNotifications = (body: { address: string; club: string; nonce: string; signature: string; pubkey: string; tournaments: boolean; tables?: boolean; messages?: boolean; telegramChat?: string }) => this.post("/public/notifications", body);
     public getNotifications = (address: string) => this.get<{ notifications: ClubNotification[] }>(`/public/players/${encodeURIComponent(address)}/notifications`);
     public getSeatChallenge = (address: string, club: string) => this.post<{ nonce: string; text: string }>("/public/seat-check/challenge", { address, club });
     public checkSeat = (body: { address: string; club: string; gameId: string; nonce: string; signature: string; pubkey: string; lat?: number; lon?: number }) => this.post<{ allowed: boolean; reason?: string; locationNeeded?: boolean }>("/public/seat-check", body);
