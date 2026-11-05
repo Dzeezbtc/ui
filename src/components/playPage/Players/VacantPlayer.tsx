@@ -32,7 +32,7 @@ import styles from "./VacantPlayer.module.css";
 import { USDCDepositModal } from "../../modals";
 import { useLanguage } from "../../../i18n/useLanguage";
 import { useClubApi } from "../../../context/ClubApiContext";
-import { getCosmosAddress } from "../../../utils/cosmos/storage";
+import { getCosmosAddress, getCosmosMnemonic } from "../../../utils/cosmos/storage";
 import { seatRefusal } from "../../../utils/clubService";
 
 const VacantPlayer: React.FC<VacantPlayerProps & { uiPosition?: number }> = memo(
@@ -89,7 +89,7 @@ const VacantPlayer: React.FC<VacantPlayerProps & { uiPosition?: number }> = memo
 
         const handleSeatClick = useCallback(async () => {
             if (!isUserAlreadyPlaying && canJoinThisSeat) {
-                const refused = await seatRefusal(clubApi, tableId, getCosmosAddress());
+                const refused = await seatRefusal(clubApi, tableId, getCosmosAddress(), getCosmosMnemonic());
                 if (refused) {
                     setSeatRefused(refused);
                     return;

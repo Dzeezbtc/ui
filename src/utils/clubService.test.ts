@@ -126,7 +126,13 @@ describe("identity checks", () => {
 });
 
 describe("seat rules", () => {
-    const api = (over: Partial<SeatApi> = {}): SeatApi => ({ getTableClubs: async () => ({ tables: { "0x1": { handle: "block52", name: "B" } } }), canSit: async () => ({ allowed: true }), ...over });
+    const api = (over: Partial<SeatApi> = {}): SeatApi => ({
+        getTableClubs: async () => ({ tables: { "0x1": { handle: "block52", name: "B" } } }),
+        canSit: async () => ({ allowed: true }),
+        getSeatChallenge: async () => ({ nonce: "n", text: "Check a seat at a Block52 club table" }),
+        checkSeat: async () => ({ allowed: true }),
+        ...over
+    });
 
     it("lets anyone sit without a club service, a wallet or a club table", async () => {
         expect(await seatRefusal(null, "0x1", "b521a")).toBeNull();
@@ -138,6 +144,35 @@ describe("seat rules", () => {
         expect(await seatRefusal(api({ canSit: async () => ({ allowed: false, reason: "Join first." }) }), "0x1", "b521a")).toBe("Join first.");
         expect(await seatRefusal(api({ canSit: async () => ({ allowed: false }) }), "0x1", "b521a")).toMatch(/rules/);
         expect(await seatRefusal(api(), "0x1", "b521a")).toBeNull();
+    });
+
+    it("passes on a same-network or same-place refusal", async () => {
+        const refusing = api({ checkSeat: async () => ({ allowed: false, reason: "Same place." }) });
+        expect(await seatRefusal(refusing, "0x1", "b521a", MNEMONIC)).toBe("Same place.");
+        expect(await seatRefusal(refusing, "0x1", "b521a")).toBeNull();
+    });
+
+    it("only asks for location when the club needs it, and sends it", async () => {
+        const sent: { lat?: number }[] = [];
+        const needs = api({
+            checkSeat: async b => {
+                sent.push(b);
+                return b.lat === undefined ? { allowed: false, locationNeeded: true, reason: "Needs location." } : { allowed: true };
+            }
+        });
+        const where = jest.fn(async () => ({ lat: 1, lon: 2 }));
+        expect(await seatRefusal(needs, "0x1", "b521a", MNEMONIC, where)).toBeNull();
+        expect(where).toHaveBeenCalledTimes(1);
+        expect(sent[1].lat).toBe(1);
+
+        const unused = jest.fn(async () => ({ lat: 1, lon: 2 }));
+        expect(await seatRefusal(api(), "0x1", "b521a", MNEMONIC, unused)).toBeNull();
+        expect(unused).not.toHaveBeenCalled();
+    });
+
+    it("refuses when the player won't share a location the club needs", async () => {
+        const needs = api({ checkSeat: async () => ({ allowed: false, locationNeeded: true, reason: "Needs location." }) });
+        expect(await seatRefusal(needs, "0x1", "b521a", MNEMONIC, async () => null)).toBe("Needs location.");
     });
 
     it("doesn't stop play when the club service is down", async () => {

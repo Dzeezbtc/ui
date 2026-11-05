@@ -146,6 +146,8 @@ export class ClubApi extends HTTPClient {
     public getNotificationChallenge = (address: string, club: string) => this.post<{ nonce: string; text: string }>("/public/notifications/challenge", { address, club });
     public saveNotifications = (body: { address: string; club: string; nonce: string; signature: string; pubkey: string; tournaments: boolean; telegramChat?: string }) => this.post("/public/notifications", body);
     public getNotifications = (address: string) => this.get<{ notifications: ClubNotification[] }>(`/public/players/${encodeURIComponent(address)}/notifications`);
+    public getSeatChallenge = (address: string, club: string) => this.post<{ nonce: string; text: string }>("/public/seat-check/challenge", { address, club });
+    public checkSeat = (body: { address: string; club: string; gameId: string; nonce: string; signature: string; pubkey: string; lat?: number; lon?: number }) => this.post<{ allowed: boolean; reason?: string; locationNeeded?: boolean }>("/public/seat-check", body);
     public getClubOffers = (handle: string) => this.get<{ offers: ClubOffer[] }>(`/public/clubs/${encodeURIComponent(handle)}/offers`);
     public getClaimChallenge = (address: string, club: string, offerId: string) => this.post<{ nonce: string; text: string }>("/public/bonus-claims/challenge", { address, club, offerId });
     public claimBonus = (body: { address: string; club: string; offerId: string; nonce: string; signature: string; pubkey: string }) => this.post("/public/bonus-claims", body);

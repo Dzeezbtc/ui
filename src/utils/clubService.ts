@@ -137,7 +137,22 @@ export async function submitKyc(api: KycApi, handle: string, mnemonic: string, a
 export interface SeatApi {
     getTableClubs: () => Promise<{ tables: Record<string, { handle: string; name: string }> }>;
     canSit: (handle: string, address: string, gameId: string) => Promise<{ allowed: boolean; reason?: string }>;
+    getSeatChallenge: (address: string, club: string) => Promise<{ nonce: string; text: string }>;
+    checkSeat: (body: { address: string; club: string; gameId: string; nonce: string; signature: string; pubkey: string; lat?: number; lon?: number }) => Promise<{ allowed: boolean; reason?: string; locationNeeded?: boolean }>;
 }
+
+/** How the lobby asks for a player's location. Null if they say no or it can't be found. */
+export type GetLocation = () => Promise<{ lat: number; lon: number } | null>;
+
+export const browserLocation: GetLocation = () =>
+    new Promise(resolve => {
+        if (!navigator.geolocation) return resolve(null);
+        navigator.geolocation.getCurrentPosition(
+            p => resolve({ lat: p.coords.latitude, lon: p.coords.longitude }),
+            () => resolve(null),
+            { timeout: 10_000, maximumAge: 300_000 }
+        );
+    });
 
 /**
  * Why this wallet can't sit at this table, or null if it can. Tables outside a
@@ -145,13 +160,27 @@ export interface SeatApi {
  * stop anyone sitting: it's the lobby being helpful, and the chain has the
  * final say once x/club is live.
  */
-export async function seatRefusal(api: SeatApi | null, gameId: string | undefined, address: string | null | undefined): Promise<string | null> {
+export async function seatRefusal(api: SeatApi | null, gameId: string | undefined, address: string | null | undefined, mnemonic?: string | null, getLocation: GetLocation = browserLocation): Promise<string | null> {
     if (!api || !gameId || !address) return null;
     try {
         const club = (await api.getTableClubs()).tables[gameId];
         if (!club) return null;
         const answer = await api.canSit(club.handle, address, gameId);
-        return answer.allowed ? null : (answer.reason ?? "This club's rules don't let you sit here.");
+        if (!answer.allowed) return answer.reason ?? "This club's rules don't let you sit here.";
+        if (!mnemonic) return null;
+        // Same network or place at this table. Location is only asked for if the club needs it.
+        const ask = async (where?: { lat: number; lon: number }) => {
+            const ch = await api.getSeatChallenge(address, club.handle);
+            const signed = await signChallenge(mnemonic, ch.text);
+            return api.checkSeat({ address, club: club.handle, gameId, nonce: ch.nonce, signature: signed.signature, pubkey: signed.pubkey, ...where });
+        };
+        let seat = await ask();
+        if (!seat.allowed && seat.locationNeeded) {
+            const where = await getLocation();
+            if (!where) return seat.reason ?? "This club needs your location to seat you.";
+            seat = await ask(where);
+        }
+        return seat.allowed ? null : (seat.reason ?? "This club's rules don't let you sit here.");
     } catch (err) {
         console.error("Couldn't check the club's seat rules:", err);
         return null;
