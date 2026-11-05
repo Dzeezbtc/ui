@@ -2,7 +2,7 @@ import { useCallback, useEffect, useState } from "react";
 import { useClubApi } from "../../context/ClubApiContext";
 import { httpErrorMessage } from "../../apis/HTTPClient";
 import { getCosmosAddress, getCosmosMnemonic } from "../../utils/cosmos/storage";
-import { claimBonus, joinClub, submitKyc, type ClubOffer, type ClubTerms, type JoinChoices, type JoinResult, type KycDetails, type MembershipStatus, type PublicClub } from "../../utils/clubService";
+import { claimBonus, joinClub, submitKyc, type ClubOffer, type ClubRace, type ClubTerms, type JoinChoices, type JoinResult, type KycDetails, type MembershipStatus, type PublicClub } from "../../utils/clubService";
 
 export interface ClubPageState {
     club: PublicClub | null;
@@ -14,6 +14,7 @@ export interface ClubPageState {
     seatRules: Record<string, string>;
     kycSent: boolean;
     offers: ClubOffer[];
+    races: ClubRace[];
     claimed: string[];
     claim: (offerId: string) => Promise<void>;
     hasWallet: boolean;
@@ -37,6 +38,7 @@ export const useClubPage = (handle: string): ClubPageState => {
     const [seatRules, setSeatRules] = useState<Record<string, string>>({});
     const [kycSent, setKycSent] = useState(false);
     const [offers, setOffers] = useState<ClubOffer[]>([]);
+    const [races, setRaces] = useState<ClubRace[]>([]);
     const [claimed, setClaimed] = useState<string[]>([]);
     const [busy, setBusy] = useState(false);
     const [error, setError] = useState<string | null>(null);
@@ -52,6 +54,7 @@ export const useClubPage = (handle: string): ClubPageState => {
                 setClub(loaded);
                 setInfo((await api.getClubTerms(handle)) as ClubTerms);
                 setOffers((await api.getClubOffers(handle)).offers);
+                setRaces((await api.getClubRaces(handle)).races);
                 if (address) {
                     const member = (await api.getMembership(handle, address)) as { status: MembershipStatus; termsOutdated?: boolean };
                     setStatus(member.status);
@@ -122,5 +125,5 @@ export const useClubPage = (handle: string): ClubPageState => {
         [api, handle, mnemonic, address, attempt]
     );
 
-    return { offers, claimed, claim, club, info, status, termsOutdated, welcome, seatRules, kycSent, hasWallet: !!mnemonic && !!address, busy, error, join, acceptNewTerms, sendKyc };
+    return { offers, races, claimed, claim, club, info, status, termsOutdated, welcome, seatRules, kycSent, hasWallet: !!mnemonic && !!address, busy, error, join, acceptNewTerms, sendKyc };
 };

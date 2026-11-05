@@ -1,4 +1,5 @@
 import { signChallenge } from "./clubLogin";
+import type { ClubLook } from "./clubLook";
 
 /** A club as the lobby sees it (the club service's /public/clubs/:handle). */
 export interface PublicClub {
@@ -11,6 +12,7 @@ export interface PublicClub {
     members: number;
     union: string | null;
     tables: PublicClubTable[];
+    look?: Partial<ClubLook>;
 }
 
 export interface PublicClubTable {
@@ -154,6 +156,14 @@ export async function seatRefusal(api: SeatApi | null, gameId: string | undefine
         console.error("Couldn't check the club's seat rules:", err);
         return null;
     }
+}
+
+/** A leaderboard or rake race now, for the club page: names and places only. */
+export interface ClubRace {
+    race: "leaderboard" | "rake-race";
+    pool: number;
+    ends: string;
+    top: { rank: number; nickname: string }[];
 }
 
 /** A bonus a club offers: /public/clubs/:handle/offers. */
