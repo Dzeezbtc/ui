@@ -155,3 +155,34 @@ export async function seatRefusal(api: SeatApi | null, gameId: string | undefine
         return null;
     }
 }
+
+/** A bonus a club offers: /public/clubs/:handle/offers. */
+export interface ClubOffer {
+    id: string;
+    name: string;
+    matchPct: number;
+    maxBonus: number;
+    minDeposit: number;
+    rakePerDollar: number;
+    expiryDays: number;
+}
+
+/** A bonus in a sentence, for the club page. */
+export const offerText = (o: ClubOffer): string => {
+    const amount = o.matchPct > 0 ? `${o.matchPct}% of your deposit, up to $${o.maxBonus}${o.minDeposit > 0 ? `, from a $${o.minDeposit} deposit` : ""}` : `$${o.maxBonus}`;
+    return `${amount}. Unlocks at $${o.rakePerDollar} of rake per $1, within ${o.expiryDays} days.`;
+};
+
+/** The calls claimBonus needs from the club API. */
+export interface ClaimApi {
+    getClaimChallenge: (address: string, club: string, offerId: string) => Promise<{ nonce: string; text: string }>;
+    claimBonus: (body: { address: string; club: string; offerId: string; nonce: string; signature: string; pubkey: string }) => Promise<unknown>;
+}
+
+/** Asks the club for a bonus, signed by the player's wallet. Staff decide. */
+export async function claimBonus(api: ClaimApi, handle: string, mnemonic: string, address: string, offerId: string): Promise<void> {
+    const ch = await api.getClaimChallenge(address, handle, offerId);
+    const signed = await signChallenge(mnemonic, ch.text);
+    if (signed.address !== address) throw new Error("Your stored wallet doesn't match its address. Re-import it on the Wallet page.");
+    await api.claimBonus({ address, club: handle, offerId, nonce: ch.nonce, signature: signed.signature, pubkey: signed.pubkey });
+}

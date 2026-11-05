@@ -2,7 +2,7 @@ import { useCallback, useEffect, useState } from "react";
 import { useClubApi } from "../../context/ClubApiContext";
 import { httpErrorMessage } from "../../apis/HTTPClient";
 import { getCosmosAddress, getCosmosMnemonic } from "../../utils/cosmos/storage";
-import { joinClub, submitKyc, type ClubTerms, type JoinChoices, type JoinResult, type KycDetails, type MembershipStatus, type PublicClub } from "../../utils/clubService";
+import { claimBonus, joinClub, submitKyc, type ClubOffer, type ClubTerms, type JoinChoices, type JoinResult, type KycDetails, type MembershipStatus, type PublicClub } from "../../utils/clubService";
 
 export interface ClubPageState {
     club: PublicClub | null;
@@ -13,6 +13,9 @@ export interface ClubPageState {
     /** Why this wallet can't sit at each of the club's tables. */
     seatRules: Record<string, string>;
     kycSent: boolean;
+    offers: ClubOffer[];
+    claimed: string[];
+    claim: (offerId: string) => Promise<void>;
     hasWallet: boolean;
     busy: boolean;
     error: string | null;
@@ -33,6 +36,8 @@ export const useClubPage = (handle: string): ClubPageState => {
     const [welcome, setWelcome] = useState<string | null>(null);
     const [seatRules, setSeatRules] = useState<Record<string, string>>({});
     const [kycSent, setKycSent] = useState(false);
+    const [offers, setOffers] = useState<ClubOffer[]>([]);
+    const [claimed, setClaimed] = useState<string[]>([]);
     const [busy, setBusy] = useState(false);
     const [error, setError] = useState<string | null>(null);
 
@@ -46,6 +51,7 @@ export const useClubPage = (handle: string): ClubPageState => {
                 const loaded = (await api.getClub(handle)) as PublicClub;
                 setClub(loaded);
                 setInfo((await api.getClubTerms(handle)) as ClubTerms);
+                setOffers((await api.getClubOffers(handle)).offers);
                 if (address) {
                     const member = (await api.getMembership(handle, address)) as { status: MembershipStatus; termsOutdated?: boolean };
                     setStatus(member.status);
@@ -106,5 +112,15 @@ export const useClubPage = (handle: string): ClubPageState => {
         [api, handle, mnemonic, address, attempt]
     );
 
-    return { club, info, status, termsOutdated, welcome, seatRules, kycSent, hasWallet: !!mnemonic && !!address, busy, error, join, acceptNewTerms, sendKyc };
+    const claim = useCallback(
+        (offerId: string) =>
+            attempt("Couldn't ask for the bonus.", async () => {
+                if (!api || !mnemonic || !address) return;
+                await claimBonus(api, handle, mnemonic, address, offerId);
+                setClaimed(c => [...c, offerId]);
+            }),
+        [api, handle, mnemonic, address, attempt]
+    );
+
+    return { offers, claimed, claim, club, info, status, termsOutdated, welcome, seatRules, kycSent, hasWallet: !!mnemonic && !!address, busy, error, join, acceptNewTerms, sendKyc };
 };

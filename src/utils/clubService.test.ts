@@ -2,7 +2,7 @@ import { Secp256k1HdWallet } from "@cosmjs/amino";
 import { Secp256k1, Secp256k1Signature, sha256 } from "@cosmjs/crypto";
 import { fromBase64 } from "@cosmjs/encoding";
 import { signedBytes } from "./clubLogin";
-import { canSubmitJoin, clubAsksForKyc, joinButtonLabel, joinClub, joiningText, membershipText, seatRefusal, submitKyc, tableSummary, type ClubTerms, type JoinApi, type KycApi, type PublicClubTable, type SeatApi } from "./clubService";
+import { canSubmitJoin, claimBonus, clubAsksForKyc, offerText, type ClaimApi, joinButtonLabel, joinClub, joiningText, membershipText, seatRefusal, submitKyc, tableSummary, type ClubTerms, type JoinApi, type KycApi, type PublicClubTable, type SeatApi } from "./clubService";
 
 // The standard BIP-39 test phrase: a throwaway wallet, never funded.
 const MNEMONIC = "abandon abandon abandon abandon abandon abandon abandon abandon abandon abandon abandon about";
@@ -145,5 +145,25 @@ describe("seat rules", () => {
         expect(await seatRefusal(api({ getTableClubs: async () => { throw new Error("down"); } }), "0x1", "b521a")).toBeNull();
         expect(await seatRefusal(api({ canSit: async () => { throw new Error("down"); } }), "0x1", "b521a")).toBeNull();
         quiet.mockRestore();
+    });
+});
+
+describe("bonuses", () => {
+    const offer = { id: "o", name: "Welcome", matchPct: 100, maxBonus: 50, minDeposit: 10, rakePerDollar: 3, expiryDays: 60 };
+
+    it("describes an offer", () => {
+        expect(offerText(offer)).toBe("100% of your deposit, up to $50, from a $10 deposit. Unlocks at $3 of rake per $1, within 60 days.");
+        expect(offerText({ ...offer, matchPct: 0, maxBonus: 20 })).toMatch(/^\$20\. /);
+    });
+
+    it("signs the request with the player's wallet", async () => {
+        const sent: { offerId: string; signature: string }[] = [];
+        const api: ClaimApi = { getClaimChallenge: async () => ({ nonce: "n", text: "Ask for a bonus from a Block52 club" }), claimBonus: async b => sent.push(b) };
+        const real = await Secp256k1HdWallet.fromMnemonic(MNEMONIC, { prefix: "b52" });
+        const [{ address }] = await real.getAccounts();
+        await claimBonus(api, "block52", MNEMONIC, address, "o");
+        expect(sent[0].offerId).toBe("o");
+        expect(sent[0].signature).toBeTruthy();
+        await expect(claimBonus(api, "block52", MNEMONIC, "b521someoneelse", "o")).rejects.toThrow(/doesn't match/);
     });
 });

@@ -1,7 +1,7 @@
 import React, { useState } from "react";
 import { Link, useParams } from "react-router-dom";
 import { useClubPage } from "../hooks/club/useClubPage";
-import { canSubmitJoin, clubAsksForKyc, joinButtonLabel, joiningText, membershipText, tableSummary, type ClubTerms } from "../utils/clubService";
+import { canSubmitJoin, clubAsksForKyc, joinButtonLabel, joiningText, membershipText, offerText, tableSummary, type ClubTerms } from "../utils/clubService";
 
 const box = "rounded-xl border border-gray-700 bg-gray-900/70";
 const field = "w-full rounded-lg border border-gray-600 bg-gray-950 px-3 py-2 text-sm text-white";
@@ -50,7 +50,7 @@ const Agreements: React.FC<{ info: ClubTerms; terms: boolean; rules: boolean; se
  */
 const ClubPage: React.FC = () => {
     const { handle = "" } = useParams();
-    const { club, info, status, termsOutdated, welcome, seatRules, kycSent, hasWallet, busy, error, join, acceptNewTerms, sendKyc } = useClubPage(handle);
+    const { offers, claimed, claim, club, info, status, termsOutdated, welcome, seatRules, kycSent, hasWallet, busy, error, join, acceptNewTerms, sendKyc } = useClubPage(handle);
     const [inviteCode, setInviteCode] = useState("");
     const [acceptedTerms, setAcceptedTerms] = useState(false);
     const [acceptedHouseRules, setAcceptedHouseRules] = useState(false);
@@ -123,6 +123,29 @@ const ClubPage: React.FC = () => {
                 <p className="text-xs text-gray-500">Joining signs a one-time message with your wallet. It never moves funds and costs nothing. Your money stays in your own wallet.</p>
                 {error && <p className="text-sm text-red-300">{error}</p>}
             </div>
+
+            {status === "active" && hasWallet && offers.length > 0 && (
+                <div className={`${box} p-5 space-y-3`}>
+                    <div className="font-semibold text-white">Bonuses</div>
+                    <ul className="divide-y divide-gray-800">
+                        {offers.map(o => (
+                            <li key={o.id} className="py-2 flex flex-wrap items-center gap-3">
+                                <div className="flex-1 min-w-0">
+                                    <div className="text-white">{o.name}</div>
+                                    <div className="text-xs text-gray-400">{offerText(o)}</div>
+                                </div>
+                                {claimed.includes(o.id) ? (
+                                    <span className="text-sm text-emerald-200">Sent to the club</span>
+                                ) : (
+                                    <button type="button" onClick={() => claim(o.id)} disabled={busy} className="rounded-lg border border-gray-600 px-3 py-1.5 text-sm text-white hover:bg-gray-800 disabled:opacity-50">
+                                        Ask for this
+                                    </button>
+                                )}
+                            </li>
+                        ))}
+                    </ul>
+                </div>
+            )}
 
             {status === "active" && clubAsksForKyc(club) && hasWallet && (
                 <div className={`${box} p-5 space-y-3`}>
