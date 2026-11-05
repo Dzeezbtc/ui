@@ -1,7 +1,8 @@
 import React, { useState } from "react";
-import { Link, useParams } from "react-router-dom";
+import { Link, useParams, useSearchParams } from "react-router-dom";
 import { useClubPage } from "../hooks/club/useClubPage";
-import { canSubmitJoin, clubAsksForKyc, joinButtonLabel, joiningText, membershipText, offerText, tableSummary, type ClubTerms } from "../utils/clubService";
+import { getCosmosAddress } from "../utils/cosmos/storage";
+import { referralLink, canSubmitJoin, clubAsksForKyc, joinButtonLabel, joiningText, membershipText, offerText, tableSummary, type ClubTerms } from "../utils/clubService";
 import { safeLook, socialLabel } from "../utils/clubLook";
 
 const box = "rounded-xl border border-gray-700 bg-gray-900/70";
@@ -51,10 +52,13 @@ const Agreements: React.FC<{ info: ClubTerms; terms: boolean; rules: boolean; se
  */
 const ClubPage: React.FC = () => {
     const { handle = "" } = useParams();
-    const { notificationsSaved, saveReminders, offers, races, claimed, claim, club, info, status, termsOutdated, welcome, seatRules, kycSent, hasWallet, busy, error, join, acceptNewTerms, sendKyc } = useClubPage(handle);
+    const { missions, referralBonus, notificationsSaved, saveReminders, offers, races, claimed, claim, club, info, status, termsOutdated, welcome, seatRules, kycSent, hasWallet, busy, error, join, acceptNewTerms, sendKyc } = useClubPage(handle);
     const [inviteCode, setInviteCode] = useState("");
     const [acceptedTerms, setAcceptedTerms] = useState(false);
     const [acceptedHouseRules, setAcceptedHouseRules] = useState(false);
+    const [searchParams] = useSearchParams();
+    const referredBy = searchParams.get("ref") ?? undefined;
+    const myAddress = getCosmosAddress();
     const [reminders, setReminders] = useState(false);
     const [telegramChat, setTelegramChat] = useState("");
     const [kyc, setKyc] = useState({ fullName: "", birthDate: "", country: "" });
@@ -121,7 +125,7 @@ const ClubPage: React.FC = () => {
                         </label>
                         {info && <Agreements info={info} terms={acceptedTerms} rules={acceptedHouseRules} setTerms={setAcceptedTerms} setRules={setAcceptedHouseRules} />}
                         {button && (
-                            <button type="button" onClick={() => join({ inviteCode, acceptedTerms, acceptedHouseRules })} disabled={busy || !ready} className="rounded-lg bg-violet-600 px-5 py-2.5 font-semibold text-white hover:bg-violet-500 disabled:opacity-50">
+                            <button type="button" onClick={() => join({ inviteCode, acceptedTerms, acceptedHouseRules, referredBy })} disabled={busy || !ready} className="rounded-lg bg-violet-600 px-5 py-2.5 font-semibold text-white hover:bg-violet-500 disabled:opacity-50">
                                 {busy ? "Joining…" : button}
                             </button>
                         )}
@@ -139,6 +143,27 @@ const ClubPage: React.FC = () => {
                 <p className="text-xs text-gray-500">Joining signs a one-time message with your wallet. It never moves funds and costs nothing. Your money stays in your own wallet.</p>
                 {error && <p className="text-sm text-red-300">{error}</p>}
             </div>
+
+            {missions.length > 0 && (
+                <div className={`${box} p-5 space-y-2`}>
+                    <div className="font-semibold text-white">Missions</div>
+                    <ul className="text-sm text-gray-200 space-y-1">
+                        {missions.map(m => (
+                            <li key={m.id}>
+                                {m.name}: ${m.reward} ({m.length})
+                            </li>
+                        ))}
+                    </ul>
+                </div>
+            )}
+
+            {status === "active" && myAddress && referralBonus > 0 && (
+                <div className={`${box} p-5 space-y-2`}>
+                    <div className="font-semibold text-white">Refer a friend: ${referralBonus} each</div>
+                    <p className="text-sm text-gray-300">Send them this link. You both get the bonus once they've played enough. It includes your wallet address.</p>
+                    <code className="block break-all text-xs text-gray-200">{referralLink(window.location.origin, club.handle, myAddress)}</code>
+                </div>
+            )}
 
             {races.map(r => (
                 <div key={r.race} className={`${box} p-5 space-y-2`}>

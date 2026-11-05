@@ -41,6 +41,7 @@ export interface ClubTerms {
 }
 
 export interface JoinChoices {
+    referredBy?: string;
     inviteCode?: string;
     country?: string;
     acceptedTerms: boolean;
@@ -77,7 +78,7 @@ export const tableSummary = (t: PublicClubTable): string => {
 /** The calls joinClub needs from the club API (ClubApi), so it can be tested with a fake. */
 export interface JoinApi {
     getJoinChallenge: (address: string, club: string) => Promise<{ nonce: string; text: string }>;
-    join: (body: { address: string; club: string; nonce: string; signature: string; pubkey: string; nickname?: string; inviteCode?: string; country?: string; acceptTerms?: number; acceptHouseRules?: boolean }) => Promise<unknown>;
+    join: (body: { address: string; club: string; nonce: string; signature: string; pubkey: string; nickname?: string; inviteCode?: string; country?: string; acceptTerms?: number; acceptHouseRules?: boolean; referredBy?: string }) => Promise<unknown>;
 }
 
 export interface JoinResult {
@@ -106,7 +107,8 @@ export async function joinClub(api: JoinApi, handle: string, mnemonic: string, a
         ...(code ? { inviteCode: code } : {}),
         ...(country ? { country } : {}),
         ...(choices?.acceptedTerms && choices.termsVersion !== undefined ? { acceptTerms: choices.termsVersion } : {}),
-        ...(choices?.acceptedHouseRules ? { acceptHouseRules: true } : {})
+        ...(choices?.acceptedHouseRules ? { acceptHouseRules: true } : {}),
+        ...(choices?.referredBy ? { referredBy: choices.referredBy } : {})
     })) as JoinResult;
 }
 
@@ -194,6 +196,17 @@ export interface ClubRace {
     ends: string;
     top: { rank: number; nickname: string }[];
 }
+
+/** A goal a club pays for. */
+export interface ClubMission {
+    id: string;
+    name: string;
+    reward: number;
+    length: string;
+}
+
+/** A link to send a friend, so both get the club's referral bonus. */
+export const referralLink = (origin: string, handle: string, address: string): string => `${origin}/club/${encodeURIComponent(handle)}?ref=${encodeURIComponent(address)}`;
 
 /** A bonus a club offers: /public/clubs/:handle/offers. */
 export interface ClubOffer {

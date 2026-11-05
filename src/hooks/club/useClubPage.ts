@@ -2,7 +2,7 @@ import { useCallback, useEffect, useState } from "react";
 import { useClubApi } from "../../context/ClubApiContext";
 import { httpErrorMessage } from "../../apis/HTTPClient";
 import { getCosmosAddress, getCosmosMnemonic } from "../../utils/cosmos/storage";
-import { claimBonus, joinClub, saveNotifications, submitKyc, type ClubOffer, type ClubRace, type ClubTerms, type JoinChoices, type JoinResult, type KycDetails, type MembershipStatus, type PublicClub } from "../../utils/clubService";
+import { claimBonus, joinClub, saveNotifications, submitKyc, type ClubMission, type ClubOffer, type ClubRace, type ClubTerms, type JoinChoices, type JoinResult, type KycDetails, type MembershipStatus, type PublicClub } from "../../utils/clubService";
 
 export interface ClubPageState {
     club: PublicClub | null;
@@ -15,6 +15,8 @@ export interface ClubPageState {
     kycSent: boolean;
     offers: ClubOffer[];
     races: ClubRace[];
+    missions: ClubMission[];
+    referralBonus: number;
     claimed: string[];
     claim: (offerId: string) => Promise<void>;
     notificationsSaved: boolean;
@@ -41,6 +43,8 @@ export const useClubPage = (handle: string): ClubPageState => {
     const [kycSent, setKycSent] = useState(false);
     const [offers, setOffers] = useState<ClubOffer[]>([]);
     const [races, setRaces] = useState<ClubRace[]>([]);
+    const [missions, setMissions] = useState<ClubMission[]>([]);
+    const [referralBonus, setReferralBonus] = useState(0);
     const [notificationsSaved, setNotificationsSaved] = useState(false);
     const [claimed, setClaimed] = useState<string[]>([]);
     const [busy, setBusy] = useState(false);
@@ -58,6 +62,9 @@ export const useClubPage = (handle: string): ClubPageState => {
                 setInfo((await api.getClubTerms(handle)) as ClubTerms);
                 setOffers((await api.getClubOffers(handle)).offers);
                 setRaces((await api.getClubRaces(handle)).races);
+                const goals = await api.getClubMissions(handle);
+                setMissions(goals.missions);
+                setReferralBonus(goals.referralBonus);
                 if (address) {
                     const member = (await api.getMembership(handle, address)) as { status: MembershipStatus; termsOutdated?: boolean };
                     setStatus(member.status);
@@ -140,5 +147,5 @@ export const useClubPage = (handle: string): ClubPageState => {
         [api, handle, mnemonic, address, attempt]
     );
 
-    return { notificationsSaved, saveReminders, offers, races, claimed, claim, club, info, status, termsOutdated, welcome, seatRules, kycSent, hasWallet: !!mnemonic && !!address, busy, error, join, acceptNewTerms, sendKyc };
+    return { missions, referralBonus, notificationsSaved, saveReminders, offers, races, claimed, claim, club, info, status, termsOutdated, welcome, seatRules, kycSent, hasWallet: !!mnemonic && !!address, busy, error, join, acceptNewTerms, sendKyc };
 };
