@@ -20,8 +20,9 @@ import { microToUsdc } from "../../constants/currency";
 import { STORAGE_KEYS } from "../../constants/storageKeys";
 import { useGameStateContext } from "../../context/GameStateContext";
 import { getGameTypeMnemonic } from "../../utils/gameFormatUtils";
+import { sitAndGoJoinTitle } from "../../utils/createGameType";
 import { isEmpty, hasElements, isBlank, hasValue } from "../../utils/guards";
-import { formatStartsAt, lateRegistrationEndsAt, lateRegistrationPhase, scheduledSngPhase } from "../../utils/scheduledSng";
+import { formatStartsAt, lateRegistrationEndsAt, lateRegistrationPhase, scheduledSngPhase, tournamentStartRule, waitsForStartTime } from "../../utils/scheduledSng";
 
 import type { SitAndGoAutoJoinModalProps } from "./types";
 
@@ -273,6 +274,7 @@ const SitAndGoAutoJoinModal: React.FC<SitAndGoAutoJoinModalProps> = ({ tableId, 
     }
 
     const playerCountLabel = getGameTypeMnemonic(gameOptions?.maxPlayers);
+    const joinTitle = sitAndGoJoinTitle(gameOptions?.scheduledStartTime);
 
     // Compact mode for mobile landscape (short viewport)
     const isCompact = typeof window !== "undefined" && window.innerHeight <= 500;
@@ -282,7 +284,7 @@ const SitAndGoAutoJoinModal: React.FC<SitAndGoAutoJoinModalProps> = ({ tableId, 
             className="fixed inset-0 bg-black bg-opacity-50 flex items-center justify-center z-50 backdrop-blur-sm"
             role="dialog"
             aria-modal="true"
-            aria-label="Sit & Go Tournament"
+            aria-label={joinTitle}
         >
             <div className={`bg-gray-800/90 backdrop-blur-md rounded-xl shadow-2xl border border-blue-400/20 relative max-h-[90dvh] overflow-y-auto ${isCompact ? "p-3 w-80" : "p-8 w-96"}`}>
                 {/* Web3 styled background */}
@@ -312,7 +314,7 @@ const SitAndGoAutoJoinModal: React.FC<SitAndGoAutoJoinModalProps> = ({ tableId, 
                         </>
                     )}
 
-                    <h2 className={`font-bold text-white text-center text-shadow ${isCompact ? "text-base mb-1" : "text-2xl mb-2"}`}>Sit & Go Tournament</h2>
+                    <h2 className={`font-bold text-white text-center text-shadow ${isCompact ? "text-base mb-1" : "text-2xl mb-2"}`}>{joinTitle}</h2>
                     {!isCompact && <p className="text-gray-300 text-center mb-6 text-sm">Join this exciting {playerCountLabel} tournament!</p>}
                     {isCancelled ? (
                         <p className="text-red-300 text-center mb-4 text-sm" data-testid="scheduled-cancelled">
@@ -330,7 +332,7 @@ const SitAndGoAutoJoinModal: React.FC<SitAndGoAutoJoinModalProps> = ({ tableId, 
                         scheduledPhase !== "unscheduled" &&
                         hasValue(gameOptions?.scheduledStartTime) && (
                             <p className="text-blue-300 text-center mb-4 text-sm" data-testid="scheduled-start-info">
-                                Starts {formatStartsAt(gameOptions.scheduledStartTime)} with at least {gameOptions.minPlayers} players, or earlier when full
+                                Starts {formatStartsAt(gameOptions.scheduledStartTime)} with at least {gameOptions.minPlayers} players{waitsForStartTime(gameOptions) ? "" : ", or earlier when full"}
                             </p>
                         )
                     )}
@@ -527,7 +529,7 @@ const SitAndGoAutoJoinModal: React.FC<SitAndGoAutoJoinModalProps> = ({ tableId, 
 
                     {!isCompact && (
                         <div className="mt-6 text-center">
-                            <p className="text-xs text-gray-400">Tournament starts when all players are seated</p>
+                            <p className="text-xs text-gray-400">{tournamentStartRule(gameOptions)}</p>
                             <div className="flex items-center justify-center gap-1 mt-2">
                                 <div className="w-2 h-2 rounded-full bg-blue-400 animate-pulse"></div>
                                 <span className="text-xs text-gray-400">Powered by Block52</span>

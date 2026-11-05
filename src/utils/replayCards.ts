@@ -2,7 +2,8 @@
  * Hole cards a replay viewer is entitled to see (ui#816 follow-up).
  *
  * The chain's public state masks every hole card ("X") except those of players
- * whose status is `showing`, so a hand's steps only ever carry real cards at the
+ * whose hand is tabled (status `showing`, or `cardsShown` for a player who busted
+ * on the showdown — poker-vm#2758), so a hand's steps only ever carry real cards at the
  * showdown itself. A replay knows more than any single step:
  *   - cards shown at showdown (read once from the hand's final state), and
  *   - the viewer's own cards, from the authenticated GameState query signed
@@ -12,7 +13,7 @@
  */
 import type { PlayerDTO, TexasHoldemStateDTO } from "@block52/poker-vm-sdk";
 import { isMaskedHand, isRevealedHand } from "../bus/deriveEvents";
-import { hasElements } from "../utils/guards";
+import { hasElements, isString } from "../utils/guards";
 
 /** gRPC method path of the authenticated (per-player masking) game state query. */
 export const GAME_STATE_PATH = "/pokerchain.poker.v1.Query/GameState";
@@ -86,7 +87,7 @@ interface BlockResponse {
  */
 export function parseBlockTime(response: unknown): number {
     const time = (response as BlockResponse)?.result?.block?.header?.time;
-    if (typeof time !== "string") throw new Error("Block response has no header time");
+    if (!isString(time)) throw new Error("Block response has no header time");
     const match = /^(\d{4}-\d{2}-\d{2}T\d{2}:\d{2}:\d{2})(\.\d+)?(Z|[+-]\d{2}:\d{2})$/.exec(time);
     if (!match) throw new Error(`Unrecognised block time: ${time}`);
     const [, base, fraction, zone] = match;

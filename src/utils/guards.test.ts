@@ -1,4 +1,4 @@
-import { hasValue, isNullish, isEmpty, hasElements, safeLength, isBlank, hasContent } from "./guards";
+import { hasValue, isNullish, isEmpty, hasElements, safeLength, isBlank, hasContent, isRecord, isString, isNumber, isBoolean } from "./guards";
 
 describe("hasValue / isNullish", () => {
     it.each([null, undefined])("treats %s as nullish", value => {
@@ -52,5 +52,47 @@ describe("isBlank / hasContent", () => {
     it("treats a non-empty string as having content", () => {
         expect(isBlank("x")).toBe(false);
         expect(hasContent("x")).toBe(true);
+    });
+});
+
+describe("isRecord", () => {
+    it.each([null, undefined, "x", 0, true, []])("rejects %p", value => {
+        expect(isRecord(value)).toBe(false);
+    });
+
+    it("accepts a plain object, so its fields can be read", () => {
+        const body: unknown = JSON.parse('{"available":false}');
+        expect(isRecord(body)).toBe(true);
+        expect(isRecord(body) && body.available).toBe(false);
+    });
+});
+
+describe("isString", () => {
+    it.each(["", "x"])("accepts %p", value => {
+        expect(isString(value)).toBe(true);
+    });
+
+    it.each([null, undefined, 0, 1n, true, [], {}])("rejects %p", value => {
+        expect(isString(value)).toBe(false);
+    });
+});
+
+describe("isNumber", () => {
+    it.each([0, -1.5, Number.NaN, Number.POSITIVE_INFINITY])("accepts %p, as typeof does", value => {
+        expect(isNumber(value)).toBe(true);
+    });
+
+    it.each([null, undefined, "1", 1n, true, [], {}])("rejects %p", value => {
+        expect(isNumber(value)).toBe(false);
+    });
+});
+
+describe("isBoolean", () => {
+    it.each([true, false])("accepts %p", value => {
+        expect(isBoolean(value)).toBe(true);
+    });
+
+    it.each([null, undefined, 0, 1, "", "true", [], {}])("rejects %p", value => {
+        expect(isBoolean(value)).toBe(false);
     });
 });

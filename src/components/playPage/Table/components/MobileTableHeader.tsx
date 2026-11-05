@@ -21,7 +21,7 @@ import { Modal } from "../../../common/Modal";
 import { NetworkSelector } from "../../../NetworkSelector";
 import { ProfileAvatarButton } from "../../../profile";
 import { TopUpModal } from "../../../modals";
-import { formatGameFormatDisplay, isSitAndGoFormat } from "../../../../utils/gameFormatUtils";
+import { formatGameFormatDisplay, isTournamentFormat } from "../../../../utils/gameFormatUtils";
 import { displayGameFormat } from "../../../../utils/createGameType";
 import { buildHandShareUrl, buildShareOnXUrl } from "../../../../utils/handReplay";
 import { GameFormat, GameOptionsDTO, LegalActionDTO, NonPlayerActionType, PlayerDTO } from "@block52/poker-vm-sdk";
@@ -33,6 +33,7 @@ import type { NetworkEndpoints } from "../../../../context/NetworkContext";
 import { formatBlindCountdown } from "./TableHeader";
 import type { TablePanelTab } from "./TablePanel";
 import styles from "./TableHeader.module.css";
+import { hasValue, isNullish } from "../../../../utils/guards";
 
 export type TableStyleOption = "modern" | "classic" | "nouns";
 
@@ -138,7 +139,7 @@ export const MobileTableHeader: React.FC<MobileTableHeaderProps> = ({
     const [showTopUp, setShowTopUp] = useState(false);
     const tableUrl = `${window.location.origin}/table/${tableId}`;
 
-    const isSNG = gameFormat !== null && isSitAndGoFormat(gameFormat);
+    const isSNG = hasValue(gameFormat) && isTournamentFormat(gameFormat);
     const canTopUp = legalActions.some(a => a.action === NonPlayerActionType.TOP_UP);
     const showTopUpEntry = isCurrentUserSeated && !isSNG;
     const { topUp } = useTableTopUp(tableId, currentNetwork);
@@ -214,7 +215,7 @@ export const MobileTableHeader: React.FC<MobileTableHeaderProps> = ({
                 <span className={`text-[11px] font-semibold whitespace-nowrap ${styles.secondaryText}`}>
                     {blindLevel.isActive ? (
                         <>
-                            {blindLevel.level !== undefined && `L${blindLevel.level + 1} `}
+                            {hasValue(blindLevel.level) && `L${blindLevel.level + 1} `}
                             {blindLevel.currentBlindsFormatted}
                             {blindLevel.hasTimer && (
                                 <>
@@ -298,9 +299,9 @@ export const MobileTableHeader: React.FC<MobileTableHeaderProps> = ({
                             <span>Share via QR Code</span>
                         </button>
                         {handleOpenReplay && (
-                            <button className={menuRowClass} onClick={closeMenuAnd(handleOpenReplay)} disabled={replayHand === null} data-testid="open-replay">
+                            <button className={menuRowClass} onClick={closeMenuAnd(handleOpenReplay)} disabled={isNullish(replayHand)} data-testid="open-replay">
                                 <FaRedo size={14} />
-                                <span>{replayHand === null ? "Replay (no completed hand yet)" : `Replay hand #${replayHand}`}</span>
+                                <span>{isNullish(replayHand) ? "Replay (no completed hand yet)" : `Replay hand #${replayHand}`}</span>
                             </button>
                         )}
                         <button className={menuRowClass} onClick={closeMenuAnd(handleShareHand)}>

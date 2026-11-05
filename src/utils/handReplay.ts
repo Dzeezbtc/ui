@@ -14,6 +14,7 @@
 import type { TexasHoldemStateDTO } from "@block52/poker-vm-sdk";
 import type { NetworkEndpoints } from "../context/NetworkContext";
 import { withWinnerDescriptions } from "./winnerDescriptions";
+import { isEmpty, isNumber, isString } from "./guards";
 
 /** gRPC method path of the public (masked) game state query, as abci_query expects it. */
 export const GAME_STATE_PUBLIC_PATH = "/pokerchain.poker.v1.Query/GameStatePublic";
@@ -45,7 +46,7 @@ interface TxSearchResponse {
 /** Height of the first tx in a tx_search result, or null when there is none. */
 export function parseTxSearchHeight(response: unknown): number | null {
     const txs = (response as TxSearchResponse)?.result?.txs;
-    if (!Array.isArray(txs) || txs.length === 0) return null;
+    if (!Array.isArray(txs) || isEmpty(txs)) return null;
     const height = Number(txs[0].height);
     return Number.isInteger(height) && height > 0 ? height : null;
 }
@@ -69,10 +70,10 @@ export interface ParsedGameState {
 export function parseGameStateJson(json: string): ParsedGameState {
     const parsed = JSON.parse(json);
     const state = (parsed.gameState ?? parsed) as TexasHoldemStateDTO;
-    if (typeof state?.handNumber !== "number") {
+    if (!isNumber(state?.handNumber)) {
         throw new Error("Game state has no handNumber");
     }
-    const str = (v: unknown): string | undefined => (typeof v === "string" ? v : undefined);
+    const str = (v: unknown): string | undefined => (isString(v) ? v : undefined);
     const variant = str(parsed.variant);
     return { state: withWinnerDescriptions(state, variant), format: str(parsed.format), variant, name: str(parsed.name) };
 }
@@ -80,7 +81,7 @@ export function parseGameStateJson(json: string): ParsedGameState {
 /** Parses the chain's `Game` query response (`{ game: "<GameStateResponseDTO JSON>" }`). */
 export function parseGameRecordResponse(response: unknown): ParsedGameState {
     const game = (response as { game?: unknown } | null)?.game;
-    if (typeof game !== "string") throw new Error("Game record has no `game` JSON");
+    if (!isString(game)) throw new Error("Game record has no `game` JSON");
     return parseGameStateJson(game);
 }
 

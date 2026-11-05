@@ -70,3 +70,44 @@ export function isBlank(value: string | null | undefined): boolean {
 export function hasContent(value: string | null | undefined): value is string {
     return value !== null && value !== undefined && value !== "";
 }
+
+/**
+ * Check that an `unknown` value (a parsed JSON reply, a caught error) is a
+ * non-null object whose fields can be read. Narrows it to a record of unknowns,
+ * so each field still needs its own check. Use it instead of casting a reply.
+ * @example
+ * const body: unknown = await res.json();
+ * if (isRecord(body) && body.available === false) { ... }
+ */
+export function isRecord(value: unknown): value is Record<string, unknown> {
+    return typeof value === "object" && value !== null && !Array.isArray(value);
+}
+
+/**
+ * Check that a value is a string, including "". Use it on an `unknown` reply
+ * field or to split a `string | number` union. Use `hasContent` when "" shouldn't count.
+ * @example
+ * const rawLog = isString(body.raw_log) ? body.raw_log : "";
+ */
+export function isString(value: unknown): value is string {
+    return typeof value === "string";
+}
+
+/**
+ * Check that a value is a number, including NaN and Infinity, as `typeof` does.
+ * Add `Number.isFinite` when those shouldn't count.
+ * @example
+ * if (!isNumber(body.code)) { return null; }
+ */
+export function isNumber(value: unknown): value is number {
+    return typeof value === "number";
+}
+
+/**
+ * Check that a value is a boolean.
+ * @example
+ * if (isBoolean(body.available)) { setAvailable(body.available); }
+ */
+export function isBoolean(value: unknown): value is boolean {
+    return typeof value === "boolean";
+}

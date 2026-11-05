@@ -10,6 +10,7 @@ import { ETH_CHAIN_ID } from "../config/constants";
 import { useConnection as useWagmiAccount, useSwitchChain } from "wagmi";
 
 import { calculateBuyIn } from "../utils/buyInUtils";
+import { hasValue, isNullish, hasContent } from "../utils/guards";
 import { BLIND_LEVELS, DEFAULT_BLIND_LEVEL_INDEX, DEFAULT_SNG_BLIND_LEVEL_MINUTES, SNG_BLINDS } from "../constants/blindLevels";
 import { usdcToMicroBigInt, formatMicroAsUsdc, microToUsdc } from "../constants/currency";
 
@@ -22,7 +23,8 @@ import { AnimatedBackground } from "../components/common";
 // Game wallet and SDK imports
 // ...existing code...
 import { BettingLimit, GameFormat, GameVariant, generateWallet as generateWalletSDK, computeGameNameFee } from "@block52/poker-vm-sdk";
-import { validateTableName, tableNameCharCount, normalizeTableName } from "../utils/tableName";
+import { tableNameCharCount, normalizeTableName } from "../utils/tableName";
+import { useTableNameError } from "../hooks/game/useTableNameError";
 
 // Hook imports from barrel file
 import { useUserWalletConnect, useNewTable, useCosmosWallet } from "../hooks";
@@ -118,7 +120,7 @@ const Dashboard: React.FC = () => {
     const [modalStartingStack, setModalStartingStack] = useState(1500);
     const [modalBlindLevelDuration, setModalBlindLevelDuration] = useState(DEFAULT_SNG_BLIND_LEVEL_MINUTES);
     // Tournament start (poker-vm#2680): starts at the start time with at least
-    // modalSngMinPlayers registered, or earlier when full.
+    // modalSngMinPlayers registered, never earlier.
     const [modalScheduledStart, setModalScheduledStart] = useState(""); // datetime-local value
     const [modalSngMinPlayers, setModalSngMinPlayers] = useState(2);
     const [modalLateRegLevels, setModalLateRegLevels] = useState(0); // poker-vm#2731; 0 = off
@@ -212,7 +214,8 @@ const Dashboard: React.FC = () => {
     // to the chain's canonical form (trim + lowercase, ENS-style) so the preview,
     // fee, and submitted value all match what the chain validates/charges/stores.
     const normalizedTableName = useMemo(() => normalizeTableName(modalTableName), [modalTableName]);
-    const tableNameError = useMemo(() => validateTableName(modalTableName), [modalTableName]);
+    // Format rules plus "already taken" on chain, checked as you type (ui#878).
+    const tableNameError = useTableNameError(modalTableName);
     const tableNameFeeUsd = useMemo(() => microToUsdc(computeGameNameFee(normalizedTableName)), [normalizedTableName]);
 
     const handleCreateNewGame = async () => {
@@ -430,9 +433,9 @@ const Dashboard: React.FC = () => {
             ),
         [modalGameFormat, modalSmallBlind, modalBigBlind, isModalTournament, modalSitAndGoBuyIn, calculatedMinBuyIn, modalStartingStack]
     );
-    const creationTotalMicro = creationFeeMicro === null ? null : creationFeeMicro + computeGameNameFee(normalizedTableName);
+    const creationTotalMicro = isNullish(creationFeeMicro) ? null : creationFeeMicro + computeGameNameFee(normalizedTableName);
     const insufficientForCreation =
-        creationTotalMicro === null || creationTotalMicro > usdcToMicroBigInt(numericUsdcBalance);
+        isNullish(creationTotalMicro) || creationTotalMicro > usdcToMicroBigInt(numericUsdcBalance);
     const createDisabled =
         isCreatingTable || !!tableNameError || insufficientForName || insufficientForCreation || (isModalTournament && !!blindPlan.error);
 
@@ -905,7 +908,7 @@ const Dashboard: React.FC = () => {
                                         />
                                         {tableNameError ? (
                                             <p className="text-xs text-red-400 mt-1">{tableNameError}</p>
-                                        ) : normalizedTableName.length > 0 ? (
+                                        ) : hasContent(normalizedTableName) ? (
                                             <p className="text-xs text-gray-400 mt-1">
                                                 {tableNameCharCount(normalizedTableName)} characters × $0.10 ={" "}
                                                 <span className="text-white font-semibold">${tableNameFeeUsd.toFixed(2)}</span>
@@ -1004,7 +1007,7 @@ const Dashboard: React.FC = () => {
                                                         </select>
                                                     </div>
                                                     <p className="col-span-2 text-gray-400 text-xs">
-                                                        Starts when the table fills, or at the start time with at least the minimum. Cancelled with refunds if fewer have registered 15 minutes after the start time.
+                                                        Starts at the start time with at least the minimum. Cancelled with refunds if fewer have registered 15 minutes after the start time.
                                                         {modalLateRegLevels > 0 && " Late entrants take an empty seat with a full starting stack until the window closes or someone finishes in the money."}
                                                     </p>
                                                 </div>
@@ -1182,13 +1185,13 @@ const Dashboard: React.FC = () => {
                                     <div className="flex items-center justify-between rounded bg-gray-900 border border-gray-700 p-2 text-sm">
                                         <span className="text-gray-400">Table Creation Fee ({CREATION_FEE_BIG_BLINDS.toString()} big blinds)</span>
                                         <span className="text-white font-mono">
-                                            {creationFeeMicro === null ? "—" : `$${formatMicroAsUsdc(creationFeeMicro.toString(), 6)}`}
+                                            {isNullish(creationFeeMicro) ? "—" : `$${formatMicroAsUsdc(creationFeeMicro.toString(), 6)}`}
                                         </span>
                                     </div>
-                                    {insufficientForCreation && creationTotalMicro !== null && (
+                                    {insufficientForCreation && hasValue(creationTotalMicro) && (
                                         <p className="text-red-400 text-sm">
                                             You need ${formatMicroAsUsdc(creationTotalMicro.toString(), 6)} to create this table (fee
-                                            {normalizedTableName.length > 0 ? " + name" : ""}); your balance is ${numericUsdcBalance.toFixed(6)}.
+                                            {hasContent(normalizedTableName) ? " + name" : ""}); your balance is ${numericUsdcBalance.toFixed(6)}.
                                         </p>
                                     )}
 

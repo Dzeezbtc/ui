@@ -2,6 +2,7 @@ import { useState, useCallback } from "react";
 import { BettingLimit, GameFormat, GameVariant, COSMOS_CONSTANTS, BlindStructureDTO } from "@block52/poker-vm-sdk";
 import { getSigningClient, getCosmosClient } from "../../utils/cosmos/client";
 import { useNetwork } from "../../context/NetworkContext";
+import { friendlyCreateTableError } from "../../utils/tableName";
 import {  convertBlindsForBlockchain } from "../../utils/gameFormatUtils";
 import { DEFAULT_TIMEOUT_SECONDS } from "../../utils/timerUtils";
 import { usdcToMicroBigInt } from "../../constants/currency";
@@ -21,7 +22,7 @@ export interface SNGOptions {
     blindLevelDuration?: number; // Minutes per blind level (default: 10)
     blindStructure?: BlindStructureDTO; // Blind structure (poker-vm#1734, ui#860): a preset or a custom structure; omitted = the blinds double every blindLevelDuration minutes
     entryFee?: number;           // Flat entry fee in USDC dollars (2dp), skimmed to the creator; omitted/0 = no fee (poker-vm#2118)
-    startTime?: number;          // Scheduled start, unix seconds (poker-vm#2680): starts when full OR then with >= minPlayers; omitted = starts only when full
+    startTime?: number;          // Scheduled start, unix seconds (poker-vm#2680): a tournament starts then with >= minPlayers, never earlier; a sit-and-go has none
     lateRegistrationLevels?: number; // Late registration (poker-vm#2731): joins stay open after the start for this many blind levels; needs startTime; omitted = the field is fixed at the start
 }
 
@@ -157,6 +158,7 @@ export const useNewTable = (): UseNewTableReturn => {
                 const cosmosClient = getCosmosClient(currentNetwork);
 
                 if (!cosmosClient) {
+                    setError(new Error("Table creation failed - no blockchain client for this network."));
                     return null;
                 }
 
@@ -193,11 +195,13 @@ export const useNewTable = (): UseNewTableReturn => {
 
                 return { txHash, gameId };
             } else {
+                setError(new Error("Table creation failed - no transaction hash returned."));
                 return null;
             }
         } catch (err) {
             const errorMessage = err instanceof Error ? err.message : "Failed to create game on blockchain";
-            setError(new Error(errorMessage));
+            // One readable sentence, not the chain's wrapped tx error (ui#878).
+            setError(new Error(friendlyCreateTableError(errorMessage)));
             return null;
         } finally {
             setIsCreating(false);

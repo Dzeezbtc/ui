@@ -1,5 +1,5 @@
 import { GameFormat, formatGameFormatDisplay } from "@block52/poker-vm-sdk";
-import { CREATE_GAME_TYPES, createGameTypeFormat, createGameTypeLabel, displayGameFormat, isScheduledCreateType, toCreateGameType } from "./createGameType";
+import { CREATE_GAME_TYPES, createGameTypeFormat, createGameTypeLabel, displayGameFormat, isScheduledCreateType, sitAndGoJoinTitle, sitAndGoTypeLabel, toCreateGameType } from "./createGameType";
 
 describe("createGameType (ui#823)", () => {
     it("offers the three types a player can create", () => {
@@ -15,8 +15,8 @@ describe("createGameType (ui#823)", () => {
         expect(toCreateGameType(undefined)).toBeUndefined();
     });
 
-    it("creates a Tournament as a sit-and-go on chain — the only format the chain accepts for it today", () => {
-        expect(createGameTypeFormat("tournament")).toBe(GameFormat.SIT_AND_GO);
+    it("creates each type as its own format on chain (poker-vm#2776)", () => {
+        expect(createGameTypeFormat("tournament")).toBe(GameFormat.TOURNAMENT);
         expect(createGameTypeFormat("sit-and-go")).toBe(GameFormat.SIT_AND_GO);
         expect(createGameTypeFormat("cash")).toBe(GameFormat.CASH);
     });
@@ -34,6 +34,7 @@ describe("createGameType (ui#823)", () => {
 
         it("leaves an unscheduled sit-and-go, a cash game and a legacy tournament to the SDK label", () => {
             expect(displayGameFormat(GameFormat.SIT_AND_GO, undefined, formatGameFormatDisplay)).toBe(formatGameFormatDisplay(GameFormat.SIT_AND_GO));
+            expect(displayGameFormat(GameFormat.TOURNAMENT, 1_700_000_000_000, formatGameFormatDisplay)).toBe("Tournament");
             expect(displayGameFormat(GameFormat.SIT_AND_GO, 0, formatGameFormatDisplay)).toBe(formatGameFormatDisplay(GameFormat.SIT_AND_GO));
             expect(displayGameFormat(GameFormat.CASH, 1_700_000_000_000, formatGameFormatDisplay)).toBe(formatGameFormatDisplay(GameFormat.CASH));
             expect(displayGameFormat(GameFormat.TOURNAMENT, undefined, formatGameFormatDisplay)).toBe(formatGameFormatDisplay(GameFormat.TOURNAMENT));
@@ -42,6 +43,20 @@ describe("createGameType (ui#823)", () => {
         it("is empty with no format", () => {
             expect(displayGameFormat(null, 1, formatGameFormatDisplay)).toBe("");
             expect(displayGameFormat(undefined, 1, formatGameFormatDisplay)).toBe("");
+        });
+    });
+
+    describe("modal labels (ui#934)", () => {
+        it("calls a scheduled sit-and-go a Tournament", () => {
+            expect(sitAndGoTypeLabel(1_700_000_000_000)).toBe("Tournament");
+            expect(sitAndGoJoinTitle(1_700_000_000_000)).toBe("Tournament");
+        });
+
+        it("keeps Sit & Go for a table that starts when full", () => {
+            expect(sitAndGoTypeLabel(undefined)).toBe("Sit & Go");
+            expect(sitAndGoTypeLabel(0)).toBe("Sit & Go");
+            expect(sitAndGoJoinTitle(undefined)).toBe("Sit & Go Tournament");
+            expect(sitAndGoJoinTitle(0)).toBe("Sit & Go Tournament");
         });
     });
 });
