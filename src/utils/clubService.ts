@@ -250,14 +250,21 @@ export interface ClubNotification {
 /** The ones not shown yet, oldest first, so the lobby never repeats one. */
 export const newNotifications = (all: ClubNotification[], shown: ReadonlySet<string>): ClubNotification[] => all.filter(n => !shown.has(n.key)).reverse();
 
+export interface ReminderChoice {
+    tournaments: boolean;
+    tables?: boolean;
+    messages?: boolean;
+    telegramChat?: string;
+}
+
 /** The calls saveNotifications needs from the club API. */
 export interface NotificationApi {
     getNotificationChallenge: (address: string, club: string) => Promise<{ nonce: string; text: string }>;
-    saveNotifications: (body: { address: string; club: string; nonce: string; signature: string; pubkey: string; tournaments: boolean; telegramChat?: string }) => Promise<unknown>;
+    saveNotifications: (body: { address: string; club: string; nonce: string; signature: string; pubkey: string; tournaments: boolean; tables?: boolean; messages?: boolean; telegramChat?: string }) => Promise<unknown>;
 }
 
 /** Saves what a player wants to hear about, signed by their wallet so nobody can sign them up. */
-export async function saveNotifications(api: NotificationApi, handle: string, mnemonic: string, address: string, choice: { tournaments: boolean; telegramChat?: string }): Promise<void> {
+export async function saveNotifications(api: NotificationApi, handle: string, mnemonic: string, address: string, choice: ReminderChoice): Promise<void> {
     const ch = await api.getNotificationChallenge(address, handle);
     const signed = await signChallenge(mnemonic, ch.text);
     if (signed.address !== address) throw new Error("Your stored wallet doesn't match its address. Re-import it on the Wallet page.");

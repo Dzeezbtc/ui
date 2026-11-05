@@ -60,6 +60,8 @@ const ClubPage: React.FC = () => {
     const referredBy = searchParams.get("ref") ?? undefined;
     const myAddress = getCosmosAddress();
     const [reminders, setReminders] = useState(false);
+    const [tableAlerts, setTableAlerts] = useState(false);
+    const [messageAlerts, setMessageAlerts] = useState(false);
     const [telegramChat, setTelegramChat] = useState("");
     const [kyc, setKyc] = useState({ fullName: "", birthDate: "", country: "" });
 
@@ -192,12 +194,20 @@ const ClubPage: React.FC = () => {
                         <input type="checkbox" className="mt-0.5" checked={reminders} onChange={e => setReminders(e.target.checked)} />
                         Tell me when one of this club's tournaments is about to start
                     </label>
+                    <label className="flex items-start gap-2 text-sm text-gray-200">
+                        <input type="checkbox" className="mt-0.5" checked={tableAlerts} onChange={e => setTableAlerts(e.target.checked)} />
+                        Tell me when the club opens a new table
+                    </label>
+                    <label className="flex items-start gap-2 text-sm text-gray-200">
+                        <input type="checkbox" className="mt-0.5" checked={messageAlerts} onChange={e => setMessageAlerts(e.target.checked)} />
+                        Tell me when the club sends a message
+                    </label>
                     <label className="block text-sm text-gray-300">
                         Telegram chat id <span className="text-gray-500">(optional)</span>
                         <input className={`${field} mt-1 max-w-xs`} maxLength={40} placeholder="@yourname" value={telegramChat} onChange={e => setTelegramChat(e.target.value)} />
                     </label>
                     <div className="flex items-center gap-3">
-                        <button type="button" onClick={() => saveReminders({ tournaments: reminders, telegramChat })} disabled={busy} className="rounded-lg border border-gray-600 px-3 py-1.5 text-sm text-white hover:bg-gray-800 disabled:opacity-50">
+                        <button type="button" onClick={() => saveReminders({ tournaments: reminders, tables: tableAlerts, messages: messageAlerts, telegramChat })} disabled={busy} className="rounded-lg border border-gray-600 px-3 py-1.5 text-sm text-white hover:bg-gray-800 disabled:opacity-50">
                             Save
                         </button>
                         {notificationsSaved && <span className="text-sm text-emerald-200">Saved</span>}

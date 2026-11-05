@@ -2,7 +2,7 @@ import { useCallback, useEffect, useState } from "react";
 import { useClubApi } from "../../context/ClubApiContext";
 import { httpErrorMessage } from "../../apis/HTTPClient";
 import { getCosmosAddress, getCosmosMnemonic } from "../../utils/cosmos/storage";
-import { claimBonus, joinClub, saveNotifications, submitKyc, type ClubMission, type ClubOffer, type ClubRace, type ClubTerms, type JoinChoices, type JoinResult, type KycDetails, type MembershipStatus, type PublicClub } from "../../utils/clubService";
+import { claimBonus, joinClub, saveNotifications, submitKyc, type ClubMission, type ReminderChoice, type ClubOffer, type ClubRace, type ClubTerms, type JoinChoices, type JoinResult, type KycDetails, type MembershipStatus, type PublicClub } from "../../utils/clubService";
 
 export interface ClubPageState {
     club: PublicClub | null;
@@ -20,7 +20,7 @@ export interface ClubPageState {
     claimed: string[];
     claim: (offerId: string) => Promise<void>;
     notificationsSaved: boolean;
-    saveReminders: (choice: { tournaments: boolean; telegramChat?: string }) => Promise<void>;
+    saveReminders: (choice: ReminderChoice) => Promise<void>;
     hasWallet: boolean;
     busy: boolean;
     error: string | null;
@@ -136,13 +136,13 @@ export const useClubPage = (handle: string): ClubPageState => {
     );
 
     const saveReminders = useCallback(
-        (choice: { tournaments: boolean; telegramChat?: string }) =>
+        (choice: ReminderChoice) =>
             attempt("Couldn't save your choice.", async () => {
                 if (!api || !mnemonic || !address) return;
                 await saveNotifications(api, handle, mnemonic, address, choice);
                 setNotificationsSaved(true);
                 // The browser asks once, and it's fine if they say no: Telegram still works.
-                if (choice.tournaments && "Notification" in window && Notification.permission === "default") await Notification.requestPermission();
+                if ((choice.tournaments || choice.tables || choice.messages) && "Notification" in window && Notification.permission === "default") await Notification.requestPermission();
             }),
         [api, handle, mnemonic, address, attempt]
     );
