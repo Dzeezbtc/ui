@@ -2,7 +2,7 @@ import { useCallback, useEffect, useState } from "react";
 import { useClubApi } from "../../context/ClubApiContext";
 import { httpErrorMessage } from "../../apis/HTTPClient";
 import { getCosmosAddress, getCosmosMnemonic } from "../../utils/cosmos/storage";
-import { claimBonus, joinClub, submitKyc, type ClubOffer, type ClubRace, type ClubTerms, type JoinChoices, type JoinResult, type KycDetails, type MembershipStatus, type PublicClub } from "../../utils/clubService";
+import { claimBonus, joinClub, saveNotifications, submitKyc, type ClubOffer, type ClubRace, type ClubTerms, type JoinChoices, type JoinResult, type KycDetails, type MembershipStatus, type PublicClub } from "../../utils/clubService";
 
 export interface ClubPageState {
     club: PublicClub | null;
@@ -17,6 +17,8 @@ export interface ClubPageState {
     races: ClubRace[];
     claimed: string[];
     claim: (offerId: string) => Promise<void>;
+    notificationsSaved: boolean;
+    saveReminders: (choice: { tournaments: boolean; telegramChat?: string }) => Promise<void>;
     hasWallet: boolean;
     busy: boolean;
     error: string | null;
@@ -39,6 +41,7 @@ export const useClubPage = (handle: string): ClubPageState => {
     const [kycSent, setKycSent] = useState(false);
     const [offers, setOffers] = useState<ClubOffer[]>([]);
     const [races, setRaces] = useState<ClubRace[]>([]);
+    const [notificationsSaved, setNotificationsSaved] = useState(false);
     const [claimed, setClaimed] = useState<string[]>([]);
     const [busy, setBusy] = useState(false);
     const [error, setError] = useState<string | null>(null);
@@ -125,5 +128,17 @@ export const useClubPage = (handle: string): ClubPageState => {
         [api, handle, mnemonic, address, attempt]
     );
 
-    return { offers, races, claimed, claim, club, info, status, termsOutdated, welcome, seatRules, kycSent, hasWallet: !!mnemonic && !!address, busy, error, join, acceptNewTerms, sendKyc };
+    const saveReminders = useCallback(
+        (choice: { tournaments: boolean; telegramChat?: string }) =>
+            attempt("Couldn't save your choice.", async () => {
+                if (!api || !mnemonic || !address) return;
+                await saveNotifications(api, handle, mnemonic, address, choice);
+                setNotificationsSaved(true);
+                // The browser asks once, and it's fine if they say no: Telegram still works.
+                if (choice.tournaments && "Notification" in window && Notification.permission === "default") await Notification.requestPermission();
+            }),
+        [api, handle, mnemonic, address, attempt]
+    );
+
+    return { notificationsSaved, saveReminders, offers, races, claimed, claim, club, info, status, termsOutdated, welcome, seatRules, kycSent, hasWallet: !!mnemonic && !!address, busy, error, join, acceptNewTerms, sendKyc };
 };

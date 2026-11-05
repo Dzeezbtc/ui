@@ -52,10 +52,12 @@ const Agreements: React.FC<{ info: ClubTerms; terms: boolean; rules: boolean; se
  */
 const ClubPage: React.FC = () => {
     const { handle = "" } = useParams();
-    const { offers, races, claimed, claim, club, info, status, termsOutdated, welcome, seatRules, kycSent, hasWallet, busy, error, join, acceptNewTerms, sendKyc } = useClubPage(handle);
+    const { notificationsSaved, saveReminders, offers, races, claimed, claim, club, info, status, termsOutdated, welcome, seatRules, kycSent, hasWallet, busy, error, join, acceptNewTerms, sendKyc } = useClubPage(handle);
     const [inviteCode, setInviteCode] = useState("");
     const [acceptedTerms, setAcceptedTerms] = useState(false);
     const [acceptedHouseRules, setAcceptedHouseRules] = useState(false);
+    const [reminders, setReminders] = useState(false);
+    const [telegramChat, setTelegramChat] = useState("");
     const [kyc, setKyc] = useState({ fullName: "", birthDate: "", country: "" });
 
     if (!club)
@@ -158,6 +160,26 @@ const ClubPage: React.FC = () => {
                     )}
                 </div>
             ))}
+
+            {status === "active" && hasWallet && (
+                <div className={`${box} p-5 space-y-3`}>
+                    <div className="font-semibold text-white">Reminders</div>
+                    <label className="flex items-start gap-2 text-sm text-gray-200">
+                        <input type="checkbox" className="mt-0.5" checked={reminders} onChange={e => setReminders(e.target.checked)} />
+                        Tell me when one of this club's tournaments is about to start
+                    </label>
+                    <label className="block text-sm text-gray-300">
+                        Telegram chat id <span className="text-gray-500">(optional)</span>
+                        <input className={`${field} mt-1 max-w-xs`} maxLength={40} placeholder="@yourname" value={telegramChat} onChange={e => setTelegramChat(e.target.value)} />
+                    </label>
+                    <div className="flex items-center gap-3">
+                        <button type="button" onClick={() => saveReminders({ tournaments: reminders, telegramChat })} disabled={busy} className="rounded-lg border border-gray-600 px-3 py-1.5 text-sm text-white hover:bg-gray-800 disabled:opacity-50">
+                            Save
+                        </button>
+                        {notificationsSaved && <span className="text-sm text-emerald-200">Saved</span>}
+                    </div>
+                </div>
+            )}
 
             {status === "active" && hasWallet && offers.length > 0 && (
                 <div className={`${box} p-5 space-y-3`}>

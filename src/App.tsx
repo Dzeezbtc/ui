@@ -46,6 +46,7 @@ import FaviconSetter from "./components/FaviconSetter";
 import { ErrorBoundary } from "./components/common/ErrorBoundary";
 import ClubLoginPage from "./pages/ClubLoginPage";
 import ClubPage from "./pages/ClubPage";
+import { ClubNotifier } from "./components/ClubNotifier";
 import { ClubApiProvider } from "./context/ClubApiContext";
 import { GlobalHeader } from "./components/GlobalHeader";
 import { ClubMessages } from "./components/ClubMessages";
@@ -125,6 +126,7 @@ function AppContent() {
             <ErrorBoundary key={location.pathname} showDetails={import.meta.env.DEV}>
             {/* ui#779: lazy routes need a Suspense boundary for their load state. */}
             <Suspense fallback={<RouteFallback />}>
+            <ClubNotifier />
             <Routes>
                 <Route path="/test-sdk" element={<TestSdk />} />
                 <Route path="/table/:id" element={<Table />} />
