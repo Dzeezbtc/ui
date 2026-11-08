@@ -23,7 +23,14 @@ const LOADERS: Record<Exclude<LanguageCode, "en">, () => Promise<{ default: Tran
     ko: () => import("./locales/ko"),
     vi: () => import("./locales/vi"),
     th: () => import("./locales/th"),
-    id: () => import("./locales/id")
+    id: () => import("./locales/id"),
+    fil: () => import("./locales/fil"),
+    el: () => import("./locales/el"),
+    sv: () => import("./locales/sv"),
+    da: () => import("./locales/da"),
+    nb: () => import("./locales/nb"),
+    fi: () => import("./locales/fi"),
+    is: () => import("./locales/is")
 };
 
 let language: LanguageCode = DEFAULT_LANGUAGE;
