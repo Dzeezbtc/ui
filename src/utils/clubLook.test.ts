@@ -2,7 +2,7 @@ import { safeLook, socialLabel, tableStyleFor } from "./clubLook";
 
 describe("safeLook", () => {
     it("keeps what's safe", () => {
-        expect(safeLook({ logo: "https://x.test/l.png", primaryColor: "#112233", accentColor: "#445566", felt: "dark", cardBack: "https://x.test/b.png", language: "es", socials: ["https://t.me/c"] })).toEqual({ logo: "https://x.test/l.png", primaryColor: "#112233", accentColor: "#445566", felt: "dark", cardBack: "https://x.test/b.png", language: "es", socials: ["https://t.me/c"] });
+        expect(safeLook({ logo: "https://x.test/l.png", primaryColor: "#112233", accentColor: "#445566", felt: "dark", cardBack: "https://x.test/b.png", language: "es", socials: ["https://t.me/c"] })).toEqual({ logo: "https://x.test/l.png", primaryColor: "#112233", accentColor: "#445566", felt: "dark", cardBack: "https://x.test/b.png", language: "es", socials: ["https://t.me/c"], radio: [] });
     });
 
     it("drops anything else", () => {
@@ -26,4 +26,13 @@ it("names social links", () => {
     expect(socialLabel("https://x.com/club")).toBe("X");
     expect(socialLabel("https://discord.gg/abc")).toBe("Discord");
     expect(socialLabel("https://www.myclub.com/")).toBe("myclub.com");
+});
+
+describe("table radio stations", () => {
+    it("keeps named https stations only, up to six", () => {
+        const look = safeLook({ radio: [{ name: "Lofi", url: "https://r.test/a" }, { name: "Bad", url: "http://r.test/b" }, { name: "", url: "https://r.test/c" }, ...Array.from({ length: 8 }, (_, i) => ({ name: `S${i}`, url: `https://r.test/${i}` }))] });
+        expect(look?.radio[0]).toEqual({ name: "Lofi", url: "https://r.test/a" });
+        expect(look?.radio).toHaveLength(6);
+        expect(safeLook({})?.radio).toEqual([]);
+    });
 });

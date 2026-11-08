@@ -81,6 +81,7 @@ import { toast } from "react-toastify";
 import { isValidPlayerAddress } from "../../utils/addressUtils";
 import { CardBackStyle } from "../../utils/cardImages";
 import { useClubLook } from "../../hooks/club/useClubLook";
+import { TableRadio } from "./TableRadio";
 import { tableStyleFor } from "../../utils/clubLook";
 import { cssVars } from "../../utils/cssVars";
 import { ANIMATION_CSS_VARS } from "../../bus/timing";
@@ -1538,6 +1539,7 @@ const Table = React.memo(() => {
                                           : "rgba(255, 255, 255, 0.08)"
                             }}
                         >
+                            {clubLook && clubLook.radio.length > 0 && <TableRadio stations={clubLook.radio} />}
                             <TableBoard
                                 clubLogo={clubLook?.logo ?? clubLogo}
                                 potDisplayValues={potDisplayValues}

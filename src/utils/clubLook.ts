@@ -7,6 +7,8 @@ export interface ClubLook {
     cardBack: string;
     language: string;
     socials: string[];
+    /** Table radio stations the club chose (block52-club#46). */
+    radio: { name: string; url: string }[];
 }
 
 /**
@@ -26,7 +28,8 @@ export function safeLook(raw: Partial<ClubLook> | null | undefined): ClubLook | 
         felt: raw.felt === "dark" || raw.felt === "logo" ? raw.felt : "classic",
         cardBack: named || isHttps(raw.cardBack) ? (raw.cardBack as string) : "default",
         language: typeof raw.language === "string" ? raw.language : "en",
-        socials: Array.isArray(raw.socials) ? raw.socials.filter(isHttps) : []
+        socials: Array.isArray(raw.socials) ? raw.socials.filter(isHttps) : [],
+        radio: Array.isArray(raw.radio) ? raw.radio.filter(s => s && typeof s.name === "string" && s.name.trim() && isHttps(s.url)).slice(0, 6).map(s => ({ name: s.name.slice(0, 40), url: s.url })) : []
     };
 }
 
