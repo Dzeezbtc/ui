@@ -29,10 +29,10 @@ it("names social links", () => {
 });
 
 describe("table radio stations", () => {
-    it("keeps named https stations only, up to six", () => {
-        const look = safeLook({ radio: [{ name: "Lofi", url: "https://r.test/a" }, { name: "Bad", url: "http://r.test/b" }, { name: "", url: "https://r.test/c" }, ...Array.from({ length: 8 }, (_, i) => ({ name: `S${i}`, url: `https://r.test/${i}` }))] });
+    it("keeps named https stations only, up to ten", () => {
+        const look = safeLook({ radio: [{ name: "Lofi", url: "https://r.test/a" }, { name: "Bad", url: "http://r.test/b" }, { name: "", url: "https://r.test/c" }, ...Array.from({ length: 12 }, (_, i) => ({ name: `S${i}`, url: `https://r.test/${i}` }))] });
         expect(look?.radio[0]).toEqual({ name: "Lofi", url: "https://r.test/a" });
-        expect(look?.radio).toHaveLength(6);
+        expect(look?.radio).toHaveLength(10);
         expect(safeLook({})?.radio).toEqual([]);
     });
 });

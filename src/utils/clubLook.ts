@@ -29,7 +29,7 @@ export function safeLook(raw: Partial<ClubLook> | null | undefined): ClubLook | 
         cardBack: named || isHttps(raw.cardBack) ? (raw.cardBack as string) : "default",
         language: typeof raw.language === "string" ? raw.language : "en",
         socials: Array.isArray(raw.socials) ? raw.socials.filter(isHttps) : [],
-        radio: Array.isArray(raw.radio) ? raw.radio.filter(s => s && typeof s.name === "string" && s.name.trim() && isHttps(s.url)).slice(0, 6).map(s => ({ name: s.name.slice(0, 40), url: s.url })) : []
+        radio: Array.isArray(raw.radio) ? raw.radio.filter(s => s && typeof s.name === "string" && s.name.trim() && isHttps(s.url)).slice(0, 10).map(s => ({ name: s.name.slice(0, 40), url: s.url })) : []
     };
 }
 
