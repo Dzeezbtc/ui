@@ -2,7 +2,7 @@ import { Secp256k1HdWallet } from "@cosmjs/amino";
 import { Secp256k1, Secp256k1Signature, sha256 } from "@cosmjs/crypto";
 import { fromBase64 } from "@cosmjs/encoding";
 import { signedBytes } from "./clubLogin";
-import { payoutLabel, referralLink, newNotifications, saveNotifications, type NotificationApi, canSubmitJoin, claimBonus, clubAsksForKyc, offerText, type ClaimApi, joinButtonLabel, joinClub, joiningText, membershipText, seatRefusal, submitKyc, tableSummary, type ClubTerms, type JoinApi, type KycApi, type PublicClubTable, type SeatApi } from "./clubService";
+import { chatRefusal, protect, protectionText, payoutLabel, referralLink, newNotifications, saveNotifications, type NotificationApi, canSubmitJoin, claimBonus, clubAsksForKyc, offerText, type ClaimApi, joinButtonLabel, joinClub, joiningText, membershipText, seatRefusal, submitKyc, tableSummary, type ClubTerms, type JoinApi, type KycApi, type PublicClubTable, type SeatApi } from "./clubService";
 
 // The standard BIP-39 test phrase: a throwaway wallet, never funded.
 const MNEMONIC = "abandon abandon abandon abandon abandon abandon abandon abandon abandon abandon abandon about";
@@ -233,5 +233,38 @@ describe("proof page labels", () => {
         expect(payoutLabel("rakeback")).toBe("Rakeback");
         expect(payoutLabel("agent-payout")).toBe("Agent payout");
         expect(payoutLabel("something-new")).toBe("something-new");
+    });
+});
+
+describe("player protection", () => {
+    it("signs exactly the request and sends it with the signature", async () => {
+        const wallet = await Secp256k1HdWallet.generate(12, { prefix: "b52" });
+        const [{ address }] = await wallet.getAccounts();
+        const sent: Record<string, unknown>[] = [];
+        const api = {
+            getProtectionChallenge: async (_a: string, _c: string, request: object) => ({ nonce: "n1", text: `Block52 club: my own protection\n${JSON.stringify(request)}` }),
+            protect: async (body: Record<string, unknown>) => {
+                sent.push(body);
+                return { status: "cool-off", until: "2026-11-15T00:00:00Z", chosenByYou: true, depositLimit: { club: null, yours: null, counts: null, waiting: null } };
+            }
+        };
+        const r = await protect(api as never, "block52", wallet.mnemonic, address, { action: "cool-off", days: 7 });
+        expect(r.status).toBe("cool-off");
+        expect(sent[0]).toMatchObject({ address, club: "block52", nonce: "n1", action: "cool-off", days: 7 });
+        expect(typeof sent[0].signature).toBe("string");
+    });
+    it("says what a break or exclusion means", () => {
+        const base = { chosenByYou: true, depositLimit: { club: null, yours: null, counts: null, waiting: null } };
+        expect(protectionText({ ...base, status: "cool-off", until: "2026-11-15T00:00:00Z" })).toContain("until 2026-11-15");
+        expect(protectionText({ ...base, status: "self-excluded", until: null })).toContain("permanently");
+        expect(protectionText({ ...base, status: "active", until: null })).toBe("You can play at this club.");
+    });
+});
+
+describe("chat check", () => {
+    it("gives the club's reason, and doesn't block when the service is down", async () => {
+        expect(await chatRefusal({ canChat: async () => ({ allowed: false, reason: "Muted." }) }, "c", "a")).toBe("Muted.");
+        expect(await chatRefusal({ canChat: async () => ({ allowed: true }) }, "c", "a")).toBeNull();
+        expect(await chatRefusal({ canChat: async () => Promise.reject(new Error("down")) }, "c", "a")).toBeNull();
     });
 });

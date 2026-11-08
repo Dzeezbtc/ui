@@ -5,6 +5,7 @@ import { isEmpty } from "../utils/guards";
 import { getCosmosAddress } from "../utils/cosmos/storage";
 import { referralLink, canSubmitJoin, clubAsksForKyc, joinButtonLabel, joiningText, membershipText, offerText, tableSummary, type ClubTerms } from "../utils/clubService";
 import { safeLook, socialLabel } from "../utils/clubLook";
+import { ClubProtection } from "../components/ClubProtection";
 
 const box = "rounded-xl border border-gray-700 bg-gray-900/70";
 const field = "w-full rounded-lg border border-gray-600 bg-gray-950 px-3 py-2 text-sm text-white";
@@ -164,6 +165,8 @@ const ClubPage: React.FC = () => {
                     </ul>
                 </div>
             )}
+
+            {status && status !== "pending" && hasWallet && <ClubProtection handle={club.handle} clubName={club.name} />}
 
             {status === "active" && myAddress && referralBonus > 0 && (
                 <div className={`${box} p-5 space-y-2`}>

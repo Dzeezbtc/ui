@@ -281,3 +281,46 @@ export interface ClubProof {
 }
 
 export const payoutLabel = (kind: string): string => ({ rakeback: "Rakeback", "agent-payout": "Agent payout", bonus: "Bonus or prize", "union-settlement": "Union settlement" })[kind] ?? kind;
+
+/** What a player can ask for to protect themselves (block52-club#13). */
+export type ProtectionRequest = { action: "view" } | { action: "limit"; depositPerDay: number | null } | { action: "cool-off"; days: 1 | 7 | 30 } | { action: "exclude"; months: 6 | 12 | 60 | "permanent" };
+
+export interface ProtectionState {
+    status: string;
+    until: string | null;
+    chosenByYou: boolean;
+    depositLimit: { club: number | null; yours: number | null; counts: number | null; waiting: { depositPerDay: number | null; from: string } | null };
+}
+
+export interface ProtectionApi {
+    getProtectionChallenge: (address: string, club: string, request: ProtectionRequest) => Promise<{ nonce: string; text: string }>;
+    protect: (body: { address: string; club: string; nonce: string; signature: string; pubkey: string } & ProtectionRequest) => Promise<ProtectionState>;
+}
+
+/** Signs exactly this request with the player's wallet and sends it. */
+export async function protect(api: ProtectionApi, handle: string, mnemonic: string, address: string, request: ProtectionRequest): Promise<ProtectionState> {
+    const ch = await api.getProtectionChallenge(address, handle, request);
+    const signed = await signChallenge(mnemonic, ch.text);
+    if (signed.address !== address) throw new Error("Your stored wallet doesn't match its address. Re-import it on the Wallet page.");
+    return api.protect({ address, club: handle, nonce: ch.nonce, signature: signed.signature, pubkey: signed.pubkey, ...request });
+}
+
+/** The player's protection in a sentence. */
+export function protectionText(p: ProtectionState): string {
+    const until = p.until ? `until ${p.until.slice(0, 10)}` : "permanently";
+    if (p.status === "cool-off") return `You're taking a break ${until}. It can't be ended early.`;
+    if (p.status === "self-excluded") return `You've excluded yourself from this club ${until}. It can't be ended early.`;
+    return "You can play at this club.";
+}
+
+/** Whether chat should show for this player at a club's table (mutes, bans and suspensions turn it off). */
+export type ChatApi = { canChat: (handle: string, address: string) => Promise<{ allowed: boolean; reason?: string }> };
+export async function chatRefusal(api: ChatApi, handle: string, address: string): Promise<string | null> {
+    try {
+        const r = await api.canChat(handle, address);
+        return r.allowed ? null : (r.reason ?? "Chat is off for you at this club.");
+    } catch {
+        // If the club service can't be reached, chat isn't blocked by it.
+        return null;
+    }
+}
