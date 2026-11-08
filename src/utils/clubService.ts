@@ -1,5 +1,6 @@
 import { signChallenge } from "./clubLogin";
 import type { ClubLook } from "./clubLook";
+import { hasValue } from "./guards";
 
 /** A club as the lobby sees it (the club service's /public/clubs/:handle). */
 export interface PublicClub {
@@ -106,7 +107,7 @@ export async function joinClub(api: JoinApi, handle: string, mnemonic: string, a
         pubkey: signed.pubkey,
         ...(code ? { inviteCode: code } : {}),
         ...(country ? { country } : {}),
-        ...(choices?.acceptedTerms && choices.termsVersion !== undefined ? { acceptTerms: choices.termsVersion } : {}),
+        ...(choices?.acceptedTerms && hasValue(choices.termsVersion) ? { acceptTerms: choices.termsVersion } : {}),
         ...(choices?.acceptedHouseRules ? { acceptHouseRules: true } : {}),
         ...(choices?.referredBy ? { referredBy: choices.referredBy } : {})
     })) as JoinResult;
@@ -138,7 +139,7 @@ export async function submitKyc(api: KycApi, handle: string, mnemonic: string, a
 /** The calls seatRefusal needs from the club API. */
 export interface SeatApi {
     getTableClubs: () => Promise<{ tables: Record<string, { handle: string; name: string }> }>;
-    canSit: (handle: string, address: string, gameId: string) => Promise<{ allowed: boolean; reason?: string }>;
+    canSit: (handle: string, address: string, gameId: string, amount?: number) => Promise<{ allowed: boolean; reason?: string; depositLeft?: number }>;
     getSeatChallenge: (address: string, club: string) => Promise<{ nonce: string; text: string }>;
     checkSeat: (body: { address: string; club: string; gameId: string; nonce: string; signature: string; pubkey: string; lat?: number; lon?: number }) => Promise<{ allowed: boolean; reason?: string; locationNeeded?: boolean }>;
 }
@@ -185,6 +186,25 @@ export async function seatRefusal(api: SeatApi | null, gameId: string | undefine
         return seat.allowed ? null : (seat.reason ?? "This club's rules don't let you sit here.");
     } catch (err) {
         console.error("Couldn't check the club's seat rules:", err);
+        return null;
+    }
+}
+
+/**
+ * Why this buy-in or top-up would break the player's daily deposit limit at
+ * the table's club (block52-club#13), or null if it wouldn't. The club service
+ * adds up what they put on its tables in the last 24 hours, from the chain.
+ * Like seatRefusal, a club service that can't be reached doesn't stop play.
+ */
+export async function depositRefusal(api: Pick<SeatApi, "getTableClubs" | "canSit"> | null, gameId: string | undefined, address: string | null | undefined, dollars: number): Promise<string | null> {
+    if (!api || !gameId || !address) return null;
+    try {
+        const club = (await api.getTableClubs()).tables[gameId];
+        if (!club) return null;
+        const answer = await api.canSit(club.handle, address, gameId, dollars);
+        return answer.allowed ? null : (answer.reason ?? "This would go over your daily deposit limit at this club.");
+    } catch (err) {
+        console.error("Couldn't check the club's deposit limit:", err);
         return null;
     }
 }

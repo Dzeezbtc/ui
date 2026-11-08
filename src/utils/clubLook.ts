@@ -1,3 +1,4 @@
+import { isString } from "./guards";
 /** How a club looks to players (block52-club#39), as the club service sends it. */
 export interface ClubLook {
     logo: string | null;
@@ -17,8 +18,8 @@ export interface ClubLook {
  * The service only passes https links and real colours, but these go straight
  * into the page, so the lobby checks again rather than trust another server.
  */
-const isHttps = (v: unknown): v is string => typeof v === "string" && /^https:\/\/[^\s"'<>]+$/.test(v);
-const isColor = (v: unknown): v is string => typeof v === "string" && /^#[0-9a-fA-F]{6}$/.test(v);
+const isHttps = (v: unknown): v is string => isString(v) && /^https:\/\/[^\s"'<>]+$/.test(v);
+const isColor = (v: unknown): v is string => isString(v) && /^#[0-9a-fA-F]{6}$/.test(v);
 
 export function safeLook(raw: Partial<ClubLook> | null | undefined): ClubLook | null {
     if (!raw) return null;
@@ -30,9 +31,9 @@ export function safeLook(raw: Partial<ClubLook> | null | undefined): ClubLook | 
         accentColor: isColor(raw.accentColor) ? raw.accentColor : null,
         felt: raw.felt === "dark" || raw.felt === "logo" ? raw.felt : "classic",
         cardBack: named || isHttps(raw.cardBack) ? (raw.cardBack as string) : "default",
-        language: typeof raw.language === "string" ? raw.language : "en",
+        language: isString(raw.language) ? raw.language : "en",
         socials: Array.isArray(raw.socials) ? raw.socials.filter(isHttps) : [],
-        radio: Array.isArray(raw.radio) ? raw.radio.filter(s => s && typeof s.name === "string" && s.name.trim() && isHttps(s.url)).slice(0, 10).map(s => ({ name: s.name.slice(0, 40), url: s.url })) : []
+        radio: Array.isArray(raw.radio) ? raw.radio.filter(s => s && isString(s.name) && s.name.trim() && isHttps(s.url)).slice(0, 10).map(s => ({ name: s.name.slice(0, 40), url: s.url })) : []
     };
 }
 

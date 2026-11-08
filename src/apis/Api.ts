@@ -1,5 +1,5 @@
 import HTTPClient from "./HTTPClient";
-import { hasContent, hasValue } from "../utils/guards";
+import { hasContent, hasValue, isNullish } from "../utils/guards";
 import type { PlayerSearchParams, PlayersListResponse, PlayerProfile, PlayerSessionsResponse, PlayerHandsResponse } from "../types/players";
 import type { WithdrawalSignatureResponse } from "../utils/withdrawalSignature";
 import type { ClubMission, ClubNotification, ClubOffer, ClubProof, ClubRace, ProtectionRequest, ProtectionState } from "../utils/clubService";
@@ -139,7 +139,8 @@ export class ClubApi extends HTTPClient {
     public getMembership = (handle: string, address: string) => this.get(`/public/clubs/${encodeURIComponent(handle)}/members/${encodeURIComponent(address)}`);
     public getJoinChallenge = (address: string, club: string) => this.post<{ nonce: string; text: string }>("/public/join/challenge", { address, club });
     public getClubTerms = (handle: string) => this.get(`/public/clubs/${encodeURIComponent(handle)}/terms`);
-    public canSit = (handle: string, address: string, gameId: string) => this.get<{ allowed: boolean; reason?: string }>(`/public/clubs/${encodeURIComponent(handle)}/can-sit/${encodeURIComponent(address)}?gameId=${encodeURIComponent(gameId)}`);
+    public canSit = (handle: string, address: string, gameId: string, amount?: number) =>
+        this.get<{ allowed: boolean; reason?: string; depositLeft?: number }>(`/public/clubs/${encodeURIComponent(handle)}/can-sit/${encodeURIComponent(address)}?gameId=${encodeURIComponent(gameId)}${isNullish(amount) ? "" : `&amount=${amount}`}`);
     public join = (body: { address: string; club: string; nonce: string; signature: string; pubkey: string; nickname?: string; inviteCode?: string; country?: string; acceptTerms?: number; acceptHouseRules?: boolean; referredBy?: string }) => this.post("/public/join", body);
     public getTableLook = (gameId: string) => this.get<{ club: { handle: string; name: string } | null; look: Partial<ClubLook> | null }>(`/public/tables/${encodeURIComponent(gameId)}/look`);
     public getPushKey = () => this.get<{ publicKey: string }>("/public/push/key");

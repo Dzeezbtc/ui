@@ -2,7 +2,7 @@ import { Secp256k1HdWallet } from "@cosmjs/amino";
 import { Secp256k1, Secp256k1Signature, sha256 } from "@cosmjs/crypto";
 import { fromBase64 } from "@cosmjs/encoding";
 import { signedBytes } from "./clubLogin";
-import { keyBytes, chatRefusal, protect, protectionText, payoutLabel, referralLink, newNotifications, saveNotifications, type NotificationApi, canSubmitJoin, claimBonus, clubAsksForKyc, offerText, type ClaimApi, joinButtonLabel, joinClub, joiningText, membershipText, seatRefusal, submitKyc, tableSummary, type ClubTerms, type JoinApi, type KycApi, type PublicClubTable, type SeatApi } from "./clubService";
+import { keyBytes, chatRefusal, protect, protectionText, payoutLabel, referralLink, newNotifications, saveNotifications, type NotificationApi, canSubmitJoin, claimBonus, clubAsksForKyc, offerText, type ClaimApi, joinButtonLabel, joinClub, joiningText, membershipText, seatRefusal, depositRefusal, submitKyc, tableSummary, type ClubTerms, type JoinApi, type KycApi, type PublicClubTable, type SeatApi } from "./clubService";
 
 // The standard BIP-39 test phrase: a throwaway wallet, never funded.
 const MNEMONIC = "abandon abandon abandon abandon abandon abandon abandon abandon abandon abandon abandon about";
@@ -272,5 +272,29 @@ describe("chat check", () => {
 describe("browser push key", () => {
     it("turns a base64url key into bytes", () => {
         expect(Array.from(keyBytes("AQID_-8"))).toEqual([1, 2, 3, 255, 239]);
+    });
+});
+
+describe("deposit limits (block52-club#13)", () => {
+    const tables = async () => ({ tables: { "0x1": { handle: "block52", name: "B" } } });
+
+    it("asks the club with the amount, and passes on its reason", async () => {
+        const canSit = jest.fn(async () => ({ allowed: false, reason: "That's over your daily deposit limit.", depositLeft: 5 }));
+        expect(await depositRefusal({ getTableClubs: tables, canSit }, "0x1", "b521a", 12.5)).toBe("That's over your daily deposit limit.");
+        expect(canSit).toHaveBeenCalledWith("block52", "b521a", "0x1", 12.5);
+    });
+
+    it("lets the buy-in through within the limit, at other tables, or without a service", async () => {
+        const ok = { getTableClubs: tables, canSit: async () => ({ allowed: true, depositLeft: 50 }) };
+        expect(await depositRefusal(ok, "0x1", "b521a", 10)).toBeNull();
+        expect(await depositRefusal(ok, "0xother", "b521a", 10)).toBeNull();
+        expect(await depositRefusal(null, "0x1", "b521a", 10)).toBeNull();
+        expect(await depositRefusal(ok, "0x1", null, 10)).toBeNull();
+    });
+
+    it("doesn't stop play when the club service fails", async () => {
+        const spy = jest.spyOn(console, "error").mockImplementation(() => {});
+        expect(await depositRefusal({ getTableClubs: tables, canSit: async () => Promise.reject(new Error("down")) }, "0x1", "b521a", 10)).toBeNull();
+        spy.mockRestore();
     });
 });

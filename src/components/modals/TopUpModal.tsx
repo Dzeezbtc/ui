@@ -7,8 +7,11 @@ import { Modal, LoadingSpinner } from "../common";
 import styles from "./TopUpModal.module.css";
 import type { TopUpModalProps } from "./types";
 import { hasValue } from "../../utils/guards";
+import { useClubApi } from "../../context/ClubApiContext";
+import { depositRefusal } from "../../utils/clubService";
+import { getCosmosAddress } from "../../utils/cosmos/storage";
 
-const TopUpModal: React.FC<TopUpModalProps> = ({ currentStack, minBuyIn, maxBuyIn, walletBalance, onClose, onTopUp }) => {
+const TopUpModal: React.FC<TopUpModalProps> = ({ tableId, currentStack, minBuyIn, maxBuyIn, walletBalance, onClose, onTopUp }) => {
     const [topUpError, setTopUpError] = useState("");
     const [isProcessing, setIsProcessing] = useState(false);
     const [successMessage, setSuccessMessage] = useState<string | null>(null);
@@ -17,6 +20,7 @@ const TopUpModal: React.FC<TopUpModalProps> = ({ currentStack, minBuyIn, maxBuyI
     // the PVM queues the top-up and only credits it at the next reInit. Surface that
     // to the player so they don't expect chips to land mid-hand.
     const { gameState } = useGameStateContext();
+    const clubApi = useClubApi();
     const handInProgress =
         hasValue(gameState?.round) &&
         gameState.round !== TexasHoldemRound.ANTE &&
@@ -90,6 +94,13 @@ const TopUpModal: React.FC<TopUpModalProps> = ({ currentStack, minBuyIn, maxBuyI
                 return;
             }
 
+            // A club's daily deposit limit (block52-club#13).
+            const refused = await depositRefusal(clubApi, tableId, getCosmosAddress(), microToUsdc(topUpMicrounits.toString()));
+            if (refused) {
+                setTopUpError(refused);
+                return;
+            }
+
             await onTopUp(topUpMicrounits.toString());
             setSuccessMessage(
                 handInProgress
@@ -102,7 +113,7 @@ const TopUpModal: React.FC<TopUpModalProps> = ({ currentStack, minBuyIn, maxBuyI
         } finally {
             setIsProcessing(false);
         }
-    }, [topUpAmount, minTopUpMicro, maxTopUpMicro, minTopUpFormatted, maxTopUpFormatted, onTopUp, handInProgress]);
+    }, [topUpAmount, minTopUpMicro, maxTopUpMicro, minTopUpFormatted, maxTopUpFormatted, onTopUp, handInProgress, clubApi, tableId]);
 
     if (successMessage) {
         return (

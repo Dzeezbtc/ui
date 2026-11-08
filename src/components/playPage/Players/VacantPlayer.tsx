@@ -33,7 +33,7 @@ import { USDCDepositModal } from "../../modals";
 import { useLanguage } from "../../../i18n/useLanguage";
 import { useClubApi } from "../../../context/ClubApiContext";
 import { getCosmosAddress, getCosmosMnemonic } from "../../../utils/cosmos/storage";
-import { seatRefusal } from "../../../utils/clubService";
+import { depositRefusal, seatRefusal } from "../../../utils/clubService";
 
 const VacantPlayer: React.FC<VacantPlayerProps & { uiPosition?: number }> = memo(
     ({ left, top, index, onJoin, uiPosition }) => {
@@ -186,6 +186,14 @@ const VacantPlayer: React.FC<VacantPlayerProps & { uiPosition?: number }> = memo
             setJoinError(null);
             setJoinSuccess(false);
 
+            // A club's daily deposit limit (block52-club#13).
+            const overLimit = await depositRefusal(clubApi, tableId, getCosmosAddress(), parseFloat(buyInDollars));
+            if (overLimit) {
+                setJoinError(overLimit);
+                setIsJoining(false);
+                return;
+            }
+
             try {
                 // joinTable expects amount in USDC dollar format (e.g., "5.00")
                 // The hook will convert it to microunits internally
@@ -216,7 +224,7 @@ const VacantPlayer: React.FC<VacantPlayerProps & { uiPosition?: number }> = memo
                 setJoinError(err instanceof Error ? err.message : "Unknown error joining table");
                 setIsJoining(false);
             }
-        }, [tableId, index, onJoin, gameOptions?.minBuyIn, gameOptions?.maxBuyIn, buyInAmount, isSitAndGo, currentNetwork]);
+        }, [tableId, index, onJoin, gameOptions?.minBuyIn, gameOptions?.maxBuyIn, buyInAmount, isSitAndGo, currentNetwork, clubApi]);
 
         // Memoize container styles
         const containerStyle = useMemo(
