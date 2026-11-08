@@ -4,6 +4,7 @@ import { FaChevronLeft, FaChevronRight, FaTimes } from "react-icons/fa";
 import type { ClubMessage } from "../utils/clubMessages";
 import { messageLink } from "../utils/clubMessages";
 import { t } from "../i18n";
+import { hasElements, isEmpty } from "../utils/guards";
 
 /**
  * A club's posters, 1 to 3, when the player opens the lobby (block52-club#4).
@@ -18,7 +19,7 @@ export const ClubPosters: React.FC<{ posters: ClubMessage[]; dismiss: (id: strin
     const ids = posters.map(p => p.id).join(",");
 
     useEffect(() => {
-        if (shown.length === 0 && posters.length > 0) {
+        if (isEmpty(shown) && hasElements(posters)) {
             setShown(posters);
             setIndex(0);
         }
@@ -32,7 +33,7 @@ export const ClubPosters: React.FC<{ posters: ClubMessage[]; dismiss: (id: strin
     };
 
     useEffect(() => {
-        if (shown.length === 0) return;
+        if (isEmpty(shown)) return;
         const onKey = (e: KeyboardEvent) => {
             if (e.key === "Escape") close();
             if (e.key === "ArrowRight") setIndex(i => Math.min(i + 1, shown.length - 1));
@@ -43,7 +44,7 @@ export const ClubPosters: React.FC<{ posters: ClubMessage[]; dismiss: (id: strin
         // eslint-disable-next-line react-hooks/exhaustive-deps
     }, [shown]);
 
-    if (shown.length === 0 || onTable) return null;
+    if (isEmpty(shown) || onTable) return null;
     const poster = shown[Math.min(index, shown.length - 1)];
     const link = messageLink(poster);
     const body = (
@@ -63,9 +64,20 @@ export const ClubPosters: React.FC<{ posters: ClubMessage[]; dismiss: (id: strin
     );
 
     return (
-        <div className="fixed inset-0 z-50 flex items-center justify-center bg-black/70 px-4" role="dialog" aria-modal="true" aria-label={poster.headline ?? poster.text} data-testid="club-posters">
+        <div
+            className="fixed inset-0 z-50 flex items-center justify-center bg-black/70 px-4"
+            role="dialog"
+            aria-modal="true"
+            aria-label={poster.headline ?? poster.text}
+            data-testid="club-posters"
+        >
             <div className="relative w-full max-w-lg rounded-xl border border-gray-700 bg-gray-900 shadow-2xl">
-                <button type="button" onClick={close} className="absolute right-2 top-2 z-10 rounded-full bg-black/60 p-2 text-white hover:bg-black/80" aria-label={t("table.close")}>
+                <button
+                    type="button"
+                    onClick={close}
+                    className="absolute right-2 top-2 z-10 rounded-full bg-black/60 p-2 text-white hover:bg-black/80"
+                    aria-label={t("table.close")}
+                >
                     <FaTimes size={14} />
                 </button>
                 {link ? (
@@ -76,21 +88,33 @@ export const ClubPosters: React.FC<{ posters: ClubMessage[]; dismiss: (id: strin
                     body
                 )}
                 <div className="flex items-center justify-between border-t border-gray-800 px-4 py-3">
-                    <button type="button" disabled={index === 0} onClick={() => setIndex(i => i - 1)} className="p-2 text-gray-300 disabled:opacity-30" aria-label="Previous">
+                    <button
+                        type="button"
+                        disabled={index === 0}
+                        onClick={() => setIndex(i => i - 1)}
+                        className="p-2 text-gray-300 disabled:opacity-30"
+                        aria-label={t("club.previous")}
+                    >
                         <FaChevronLeft />
                     </button>
                     <div className="flex gap-2">
                         {shown.map((p, i) => (
-                            <button key={p.id} type="button" onClick={() => setIndex(i)} className={`h-2 w-2 rounded-full ${i === index ? "bg-white" : "bg-gray-600"}`} aria-label={`${i + 1} of ${shown.length}`} />
+                            <button
+                                key={p.id}
+                                type="button"
+                                onClick={() => setIndex(i)}
+                                className={`h-2 w-2 rounded-full ${i === index ? "bg-white" : "bg-gray-600"}`}
+                                aria-label={t("club.posterOf", { n: i + 1, total: shown.length })}
+                            />
                         ))}
                     </div>
                     {index < shown.length - 1 ? (
-                        <button type="button" onClick={() => setIndex(i => i + 1)} className="p-2 text-gray-300" aria-label="Next">
+                        <button type="button" onClick={() => setIndex(i => i + 1)} className="p-2 text-gray-300" aria-label={t("club.next")}>
                             <FaChevronRight />
                         </button>
                     ) : (
                         <button type="button" onClick={close} className="rounded-lg bg-white/10 px-3 py-1 text-sm text-white hover:bg-white/20">
-                            {link ? "Close" : "Done"}
+                            {link ? t("club.close") : t("club.done")}
                         </button>
                     )}
                 </div>

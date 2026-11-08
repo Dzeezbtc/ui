@@ -1,6 +1,7 @@
 import { signChallenge } from "./clubLogin";
 import type { ClubLook } from "./clubLook";
 import { hasValue } from "./guards";
+import { t } from "../i18n";
 
 /** A club as the lobby sees it (the club service's /public/clubs/:handle). */
 export interface PublicClub {
@@ -55,25 +56,25 @@ export const canSubmitJoin = (info: ClubTerms | null, choices: Pick<JoinChoices,
 
 /** How a club takes new members, in a sentence. */
 export const joiningText = (joining: PublicClub["joining"]): string =>
-    ({ open: "Anyone can join.", approval: "Ask to join; the club approves new members. An invite code lets you skip the wait.", invite: "Invite only: enter a code from the club or one of its agents." })[joining];
+    ({ open: t("club.joinOpen"), approval: t("club.joinApproval"), invite: t("club.joinInvite") })[joining];
 
 /** The join button's label; invite-only clubs have no button until there's a code. */
-export const joinButtonLabel = (joining: PublicClub["joining"], inviteCode = ""): string | null => (inviteCode.trim() ? "Join with this code" : joining === "open" ? "Join club" : joining === "approval" ? "Ask to join" : null);
+export const joinButtonLabel = (joining: PublicClub["joining"], inviteCode = ""): string | null => (inviteCode.trim() ? t("club.joinWithCode") : joining === "open" ? t("club.joinClub") : joining === "approval" ? t("club.askToJoin") : null);
 
 /** What a player's membership means, for the club page. */
 export const membershipText = (status: Exclude<MembershipStatus, null>): string =>
     ({
-        active: "You're a member",
-        pending: "Waiting for the club to approve you",
-        restricted: "Your membership doesn't allow you to play right now. Ask the club if you're not sure why."
+        active: t("club.statusActive"),
+        pending: t("club.statusPending"),
+        restricted: t("club.statusRestricted")
     })[status];
 
 /** "$0.01/$0.02" for cash (dollars), "100/200" chips otherwise; plus the variant and format. */
-export const tableSummary = (t: PublicClubTable): string => {
-    const blinds = t.format === "cash" ? `$${t.smallBlind}/$${t.bigBlind}` : `${t.smallBlind}/${t.bigBlind}`;
-    const variant = t.variant === "omaha" ? "Omaha" : "Hold'em";
-    const format = t.format === "cash" ? "Cash" : t.format === "sit-and-go" ? "Sit & Go" : "Tournament";
-    return `${variant} · ${format} · ${blinds} · ${t.players}/${t.maxPlayers} seated`;
+export const tableSummary = (table: PublicClubTable): string => {
+    const blinds = table.format === "cash" ? `$${table.smallBlind}/$${table.bigBlind}` : `${table.smallBlind}/${table.bigBlind}`;
+    const variant = table.variant === "omaha" ? t("club.omaha") : t("club.holdem");
+    const format = table.format === "cash" ? t("club.cash") : table.format === "sit-and-go" ? t("club.sitAndGo") : t("club.tournament");
+    return `${variant} · ${format} · ${blinds} · ${t("club.seated", { players: table.players, max: table.maxPlayers })}`;
 };
 
 /** The calls joinClub needs from the club API (ClubApi), so it can be tested with a fake. */
@@ -96,7 +97,7 @@ export interface JoinResult {
 export async function joinClub(api: JoinApi, handle: string, mnemonic: string, address: string, choices?: Partial<JoinChoices> & { termsVersion?: number }): Promise<JoinResult> {
     const ch = await api.getJoinChallenge(address, handle);
     const signed = await signChallenge(mnemonic, ch.text);
-    if (signed.address !== address) throw new Error("Your stored wallet doesn't match its address. Re-import it on the Wallet page.");
+    if (signed.address !== address) throw new Error(t("club.walletMismatch"));
     const code = choices?.inviteCode?.trim();
     const country = choices?.country?.trim();
     return (await api.join({
@@ -132,7 +133,7 @@ export const clubAsksForKyc = (club: Pick<PublicClub, "kyc" | "mainTablesKyc">):
 export async function submitKyc(api: KycApi, handle: string, mnemonic: string, address: string, details: KycDetails): Promise<void> {
     const ch = await api.getKycChallenge(address, handle);
     const signed = await signChallenge(mnemonic, ch.text);
-    if (signed.address !== address) throw new Error("Your stored wallet doesn't match its address. Re-import it on the Wallet page.");
+    if (signed.address !== address) throw new Error(t("club.walletMismatch"));
     await api.submitKyc({ ...details, address, club: handle, nonce: ch.nonce, signature: signed.signature, pubkey: signed.pubkey });
 }
 
@@ -169,7 +170,7 @@ export async function seatRefusal(api: SeatApi | null, gameId: string | undefine
         const club = (await api.getTableClubs()).tables[gameId];
         if (!club) return null;
         const answer = await api.canSit(club.handle, address, gameId);
-        if (!answer.allowed) return answer.reason ?? "This club's rules don't let you sit here.";
+        if (!answer.allowed) return answer.reason ?? t("club.seatRefused");
         if (!mnemonic) return null;
         // Same network or place at this table. Location is only asked for if the club needs it.
         const ask = async (where?: { lat: number; lon: number }) => {
@@ -180,10 +181,10 @@ export async function seatRefusal(api: SeatApi | null, gameId: string | undefine
         let seat = await ask();
         if (!seat.allowed && seat.locationNeeded) {
             const where = await getLocation();
-            if (!where) return seat.reason ?? "This club needs your location to seat you.";
+            if (!where) return seat.reason ?? t("club.locationNeeded");
             seat = await ask(where);
         }
-        return seat.allowed ? null : (seat.reason ?? "This club's rules don't let you sit here.");
+        return seat.allowed ? null : (seat.reason ?? t("club.seatRefused"));
     } catch (err) {
         console.error("Couldn't check the club's seat rules:", err);
         return null;
@@ -202,7 +203,7 @@ export async function depositRefusal(api: Pick<SeatApi, "getTableClubs" | "canSi
         const club = (await api.getTableClubs()).tables[gameId];
         if (!club) return null;
         const answer = await api.canSit(club.handle, address, gameId, dollars);
-        return answer.allowed ? null : (answer.reason ?? "This would go over your daily deposit limit at this club.");
+        return answer.allowed ? null : (answer.reason ?? t("club.depositRefused"));
     } catch (err) {
         console.error("Couldn't check the club's deposit limit:", err);
         return null;
@@ -241,8 +242,8 @@ export interface ClubOffer {
 
 /** A bonus in a sentence, for the club page. */
 export const offerText = (o: ClubOffer): string => {
-    const amount = o.matchPct > 0 ? `${o.matchPct}% of your deposit, up to $${o.maxBonus}${o.minDeposit > 0 ? `, from a $${o.minDeposit} deposit` : ""}` : `$${o.maxBonus}`;
-    return `${amount}. Unlocks at $${o.rakePerDollar} of rake per $1, within ${o.expiryDays} days.`;
+    const amount = o.matchPct > 0 ? `${t("club.offerMatch", { pct: o.matchPct, max: o.maxBonus })}${o.minDeposit > 0 ? t("club.offerFrom", { min: o.minDeposit }) : ""}` : `$${o.maxBonus}`;
+    return t("club.offerUnlock", { amount, rake: o.rakePerDollar, days: o.expiryDays });
 };
 
 /** The calls claimBonus needs from the club API. */
@@ -255,7 +256,7 @@ export interface ClaimApi {
 export async function claimBonus(api: ClaimApi, handle: string, mnemonic: string, address: string, offerId: string): Promise<void> {
     const ch = await api.getClaimChallenge(address, handle, offerId);
     const signed = await signChallenge(mnemonic, ch.text);
-    if (signed.address !== address) throw new Error("Your stored wallet doesn't match its address. Re-import it on the Wallet page.");
+    if (signed.address !== address) throw new Error(t("club.walletMismatch"));
     await api.claimBonus({ address, club: handle, offerId, nonce: ch.nonce, signature: signed.signature, pubkey: signed.pubkey });
 }
 
@@ -287,7 +288,7 @@ export interface NotificationApi {
 export async function saveNotifications(api: NotificationApi, handle: string, mnemonic: string, address: string, choice: ReminderChoice): Promise<void> {
     const ch = await api.getNotificationChallenge(address, handle);
     const signed = await signChallenge(mnemonic, ch.text);
-    if (signed.address !== address) throw new Error("Your stored wallet doesn't match its address. Re-import it on the Wallet page.");
+    if (signed.address !== address) throw new Error(t("club.walletMismatch"));
     await api.saveNotifications({ address, club: handle, nonce: ch.nonce, signature: signed.signature, pubkey: signed.pubkey, ...choice });
 }
 
@@ -300,7 +301,7 @@ export interface ClubProof {
     totals: { hands: number; rake: number; paidOut: number; paidOutPct: number };
 }
 
-export const payoutLabel = (kind: string): string => ({ rakeback: "Rakeback", "agent-payout": "Agent payout", bonus: "Bonus or prize", "union-settlement": "Union settlement" })[kind] ?? kind;
+export const payoutLabel = (kind: string): string => ({ rakeback: t("club.payoutRakeback"), "agent-payout": t("club.payoutAgent"), bonus: t("club.payoutBonus"), "union-settlement": t("club.payoutUnion") })[kind] ?? kind;
 
 /** What a player can ask for to protect themselves (block52-club#13). */
 export type ProtectionRequest = { action: "view" } | { action: "limit"; depositPerDay: number | null } | { action: "cool-off"; days: 1 | 7 | 30 } | { action: "exclude"; months: 6 | 12 | 60 | "permanent" };
@@ -321,16 +322,16 @@ export interface ProtectionApi {
 export async function protect(api: ProtectionApi, handle: string, mnemonic: string, address: string, request: ProtectionRequest): Promise<ProtectionState> {
     const ch = await api.getProtectionChallenge(address, handle, request);
     const signed = await signChallenge(mnemonic, ch.text);
-    if (signed.address !== address) throw new Error("Your stored wallet doesn't match its address. Re-import it on the Wallet page.");
+    if (signed.address !== address) throw new Error(t("club.walletMismatch"));
     return api.protect({ address, club: handle, nonce: ch.nonce, signature: signed.signature, pubkey: signed.pubkey, ...request });
 }
 
 /** The player's protection in a sentence. */
 export function protectionText(p: ProtectionState): string {
-    const until = p.until ? `until ${p.until.slice(0, 10)}` : "permanently";
-    if (p.status === "cool-off") return `You're taking a break ${until}. It can't be ended early.`;
-    if (p.status === "self-excluded") return `You've excluded yourself from this club ${until}. It can't be ended early.`;
-    return "You can play at this club.";
+    const date = p.until?.slice(0, 10);
+    if (p.status === "cool-off") return t("club.protectBreak", { date: date ?? "" });
+    if (p.status === "self-excluded") return date ? t("club.protectExcludedUntil", { date }) : t("club.protectExcludedForever");
+    return t("club.protectOk");
 }
 
 /** Whether chat should show for this player at a club's table (mutes, bans and suspensions turn it off). */
@@ -338,7 +339,7 @@ export type ChatApi = { canChat: (handle: string, address: string) => Promise<{ 
 export async function chatRefusal(api: ChatApi, handle: string, address: string): Promise<string | null> {
     try {
         const r = await api.canChat(handle, address);
-        return r.allowed ? null : (r.reason ?? "Chat is off for you at this club.");
+        return r.allowed ? null : (r.reason ?? t("club.chatOff"));
     } catch {
         // If the club service can't be reached, chat isn't blocked by it.
         return null;
@@ -372,7 +373,7 @@ export async function enablePush(api: PushApi, handle: string, mnemonic: string,
     const sub = (await reg.pushManager.getSubscription()) ?? (await reg.pushManager.subscribe({ userVisibleOnly: true, applicationServerKey: keyBytes(publicKey) }));
     const ch = await api.getPushChallenge(address, handle);
     const signed = await signChallenge(mnemonic, ch.text);
-    if (signed.address !== address) throw new Error("Your stored wallet doesn't match its address. Re-import it on the Wallet page.");
+    if (signed.address !== address) throw new Error(t("club.walletMismatch"));
     await api.savePush({ address, club: handle, nonce: ch.nonce, signature: signed.signature, pubkey: signed.pubkey, subscription: sub.toJSON() });
     return "on";
 }

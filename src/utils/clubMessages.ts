@@ -1,4 +1,4 @@
-import { hasElements } from "./guards";
+import { hasElements, isString } from "./guards";
 
 /** A club's message, in the player's language (the club service's player feed). */
 export interface ClubMessage {
@@ -22,7 +22,7 @@ const SEEN_LIMIT = 300;
 export function readSeenMessages(): string[] {
     try {
         const parsed: unknown = JSON.parse(localStorage.getItem(SEEN_KEY) ?? "[]");
-        return Array.isArray(parsed) ? parsed.filter((id): id is string => typeof id === "string") : [];
+        return Array.isArray(parsed) ? parsed.filter((id): id is string => isString(id)) : [];
     } catch {
         return [];
     }

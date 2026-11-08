@@ -1539,7 +1539,7 @@ const Table = React.memo(() => {
                                           : "rgba(255, 255, 255, 0.08)"
                             }}
                         >
-                            {clubLook && clubLook.radio.length > 0 && <TableRadio stations={clubLook.radio} />}
+                            {clubLook && hasElements(clubLook.radio) && <TableRadio stations={clubLook.radio} />}
                             <TableBoard
                                 clubLogo={clubLook?.logo ?? clubLogo}
                                 potDisplayValues={potDisplayValues}
