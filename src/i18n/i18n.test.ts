@@ -1,6 +1,6 @@
 import { en } from "./en";
 import { LANGUAGES, matchBrowserLanguage, isLanguageCode } from "./languages";
-import { getLanguage, readSavedLanguage, setLanguage, showClubLanguage, subscribeToLanguage, t } from "./index";
+import { getLanguage, readSavedLanguage, setLanguage, subscribeToLanguage, t } from "./index";
 
 const placeholders = (text: string) => (text.match(/\{\w+\}/g) ?? []).sort();
 
@@ -98,46 +98,5 @@ describe("pot names", () => {
         expect(potLabelText("Side Pot")).toBe("Sidepot");
         expect(potLabelText("Side Pot 2")).toBe("Sidepot 2");
         expect(potLabelText("Pot")).toBe("Pot");
-    });
-});
-
-describe("a club's default language (block52-club#39)", () => {
-    const settle = () => new Promise(r => setTimeout(r, 20));
-    beforeEach(async () => {
-        await setLanguage("en");
-        localStorage.clear();
-    });
-    afterAll(() => setLanguage("en"));
-
-    it("shows for a player who hasn't picked one, isn't saved, and goes back after", async () => {
-        const back = showClubLanguage("es");
-        await settle();
-        expect(getLanguage()).toBe("es");
-        expect(localStorage.getItem("b52.language")).toBeNull();
-        back();
-        await settle();
-        expect(getLanguage()).toBe("en");
-    });
-
-    it("never beats the player's own choice", async () => {
-        await setLanguage("de");
-        showClubLanguage("es")();
-        await settle();
-        expect(getLanguage()).toBe("de");
-    });
-
-    it("keeps a choice made at the club when leaving", async () => {
-        const back = showClubLanguage("es");
-        await settle();
-        await setLanguage("fr");
-        back();
-        await settle();
-        expect(getLanguage()).toBe("fr");
-    });
-
-    it("ignores languages we don't have", async () => {
-        showClubLanguage("klingon");
-        await settle();
-        expect(getLanguage()).toBe("en");
     });
 });

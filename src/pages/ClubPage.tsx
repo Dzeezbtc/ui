@@ -5,7 +5,6 @@ import { isEmpty } from "../utils/guards";
 import { getCosmosAddress } from "../utils/cosmos/storage";
 import { referralLink, canSubmitJoin, clubAsksForKyc, joinButtonLabel, joiningText, membershipText, offerText, tableSummary, type ClubTerms } from "../utils/clubService";
 import { safeLook, socialLabel } from "../utils/clubLook";
-import { useClubBranding } from "../hooks/club/useClubLook";
 import { ClubProtection } from "../components/ClubProtection";
 import { BrowserPush } from "../components/BrowserPush";
 
@@ -68,12 +67,11 @@ const ClubPage: React.FC = () => {
     const [messageAlerts, setMessageAlerts] = useState(false);
     const [telegramChat, setTelegramChat] = useState("");
     const [kyc, setKyc] = useState({ fullName: "", birthDate: "", country: "" });
-    const look = club ? safeLook(club.look) : null;
-    useClubBranding(look);
 
     if (!club)
         return <div className="min-h-[60vh] flex items-center justify-center px-4 text-gray-300">{error ? <p className="text-red-300">{error}</p> : <p>Loading the club…</p>}</div>;
 
+    const look = safeLook(club.look);
     const button = joinButtonLabel(club.joining, inviteCode);
     const ready = canSubmitJoin(info, { acceptedTerms, acceptedHouseRules });
     return (

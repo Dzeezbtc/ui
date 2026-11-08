@@ -2,8 +2,6 @@ import { isString } from "./guards";
 /** How a club looks to players (block52-club#39), as the club service sends it. */
 export interface ClubLook {
     logo: string | null;
-    /** "block52" keeps the lobby's colours; a preset or "custom" sends its own. */
-    theme: string;
     primaryColor: string | null;
     accentColor: string | null;
     felt: string;
@@ -26,7 +24,6 @@ export function safeLook(raw: Partial<ClubLook> | null | undefined): ClubLook | 
     const named = raw.cardBack === "default" || raw.cardBack === "block52" || raw.cardBack === "custom" || raw.cardBack === "legacy";
     return {
         logo: isHttps(raw.logo) ? raw.logo : null,
-        theme: raw.theme === "custom" || raw.theme === "texashodl" ? raw.theme : "block52",
         primaryColor: isColor(raw.primaryColor) ? raw.primaryColor : null,
         accentColor: isColor(raw.accentColor) ? raw.accentColor : null,
         felt: raw.felt === "dark" || raw.felt === "logo" ? raw.felt : "classic",

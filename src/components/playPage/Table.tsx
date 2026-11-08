@@ -80,7 +80,7 @@ import { toast } from "react-toastify";
 
 import { isValidPlayerAddress } from "../../utils/addressUtils";
 import { CardBackStyle } from "../../utils/cardImages";
-import { useClubBranding, useClubLook } from "../../hooks/club/useClubLook";
+import { useClubLook } from "../../hooks/club/useClubLook";
 import { TableRadio } from "./TableRadio";
 import { tableStyleFor } from "../../utils/clubLook";
 import { cssVars } from "../../utils/cssVars";
@@ -755,7 +755,6 @@ const Table = React.memo(() => {
     // Card back style configuration - driven by VITE_CARD_BACK_URL env var
     // Options: "default", "block52", "custom", "legacy", or a full URL to a custom SVG
     const clubLook = useClubLook(id);
-    useClubBranding(clubLook);
     const cardBackStyle: CardBackStyle = clubLook?.cardBack ?? (import.meta.env.VITE_CARD_BACK_URL || "default");
 
     // Game Start Countdown

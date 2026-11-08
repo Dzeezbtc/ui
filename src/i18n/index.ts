@@ -70,29 +70,6 @@ export async function setLanguage(next: LanguageCode): Promise<void> {
     await show(next);
 }
 
-/** Whether the player has picked a language themselves. */
-export function hasChosenLanguage(): boolean {
-    try {
-        return isLanguageCode(localStorage.getItem(STORAGE_KEY));
-    } catch {
-        return false;
-    }
-}
-
-/**
- * A club's default language at its page and tables (block52-club#39), for a
- * player who hasn't picked one: it beats the browser's guess but never a
- * choice, and isn't saved. The returned function goes back to what was showing.
- */
-export function showClubLanguage(code: string): () => void {
-    if (!isLanguageCode(code) || hasChosenLanguage() || code === language) return () => {};
-    const before = language;
-    show(code).catch(err => console.error("Could not load the club's language:", err));
-    return () => {
-        if (!hasChosenLanguage()) show(before).catch(err => console.error("Could not load the language:", err));
-    };
-}
-
 /** Shows the saved language at startup. English stays up if its file can't load. */
 export function initLanguage(): void {
     const saved = readSavedLanguage();
