@@ -2,7 +2,7 @@ import { Secp256k1HdWallet } from "@cosmjs/amino";
 import { Secp256k1, Secp256k1Signature, sha256 } from "@cosmjs/crypto";
 import { fromBase64 } from "@cosmjs/encoding";
 import { signedBytes } from "./clubLogin";
-import { chatRefusal, protect, protectionText, payoutLabel, referralLink, newNotifications, saveNotifications, type NotificationApi, canSubmitJoin, claimBonus, clubAsksForKyc, offerText, type ClaimApi, joinButtonLabel, joinClub, joiningText, membershipText, seatRefusal, submitKyc, tableSummary, type ClubTerms, type JoinApi, type KycApi, type PublicClubTable, type SeatApi } from "./clubService";
+import { keyBytes, chatRefusal, protect, protectionText, payoutLabel, referralLink, newNotifications, saveNotifications, type NotificationApi, canSubmitJoin, claimBonus, clubAsksForKyc, offerText, type ClaimApi, joinButtonLabel, joinClub, joiningText, membershipText, seatRefusal, submitKyc, tableSummary, type ClubTerms, type JoinApi, type KycApi, type PublicClubTable, type SeatApi } from "./clubService";
 
 // The standard BIP-39 test phrase: a throwaway wallet, never funded.
 const MNEMONIC = "abandon abandon abandon abandon abandon abandon abandon abandon abandon abandon abandon about";
@@ -266,5 +266,11 @@ describe("chat check", () => {
         expect(await chatRefusal({ canChat: async () => ({ allowed: false, reason: "Muted." }) }, "c", "a")).toBe("Muted.");
         expect(await chatRefusal({ canChat: async () => ({ allowed: true }) }, "c", "a")).toBeNull();
         expect(await chatRefusal({ canChat: async () => Promise.reject(new Error("down")) }, "c", "a")).toBeNull();
+    });
+});
+
+describe("browser push key", () => {
+    it("turns a base64url key into bytes", () => {
+        expect(Array.from(keyBytes("AQID_-8"))).toEqual([1, 2, 3, 255, 239]);
     });
 });

@@ -324,3 +324,35 @@ export async function chatRefusal(api: ChatApi, handle: string, address: string)
         return null;
     }
 }
+
+/** Background push (block52-club#26): this browser shows the club's notifications even when the lobby is closed. */
+export interface PushApi {
+    getPushKey: () => Promise<{ publicKey: string }>;
+    getPushChallenge: (address: string, club: string) => Promise<{ nonce: string; text: string }>;
+    savePush: (body: { address: string; club: string; nonce: string; signature: string; pubkey: string; subscription: PushSubscriptionJSON }) => Promise<unknown>;
+}
+
+export const pushSupported = (): boolean => typeof window !== "undefined" && "serviceWorker" in navigator && "PushManager" in window && "Notification" in window;
+
+/** VAPID keys come as base64url; the browser wants bytes. */
+export function keyBytes(base64url: string): Uint8Array<ArrayBuffer> {
+    const b64 = (base64url + "=".repeat((4 - (base64url.length % 4)) % 4)).replace(/-/g, "+").replace(/_/g, "/");
+    const raw = atob(b64);
+    const bytes = new Uint8Array(new ArrayBuffer(raw.length));
+    for (let i = 0; i < raw.length; i++) bytes[i] = raw.charCodeAt(i);
+    return bytes;
+}
+
+/** Asks the browser, subscribes it, and tells the club service, signed by the wallet. */
+export async function enablePush(api: PushApi, handle: string, mnemonic: string, address: string): Promise<"on" | "blocked"> {
+    if ((await Notification.requestPermission()) !== "granted") return "blocked";
+    const reg = await navigator.serviceWorker.register("/club-push-sw.js");
+    await navigator.serviceWorker.ready;
+    const { publicKey } = await api.getPushKey();
+    const sub = (await reg.pushManager.getSubscription()) ?? (await reg.pushManager.subscribe({ userVisibleOnly: true, applicationServerKey: keyBytes(publicKey) }));
+    const ch = await api.getPushChallenge(address, handle);
+    const signed = await signChallenge(mnemonic, ch.text);
+    if (signed.address !== address) throw new Error("Your stored wallet doesn't match its address. Re-import it on the Wallet page.");
+    await api.savePush({ address, club: handle, nonce: ch.nonce, signature: signed.signature, pubkey: signed.pubkey, subscription: sub.toJSON() });
+    return "on";
+}

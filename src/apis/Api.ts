@@ -142,6 +142,9 @@ export class ClubApi extends HTTPClient {
     public canSit = (handle: string, address: string, gameId: string) => this.get<{ allowed: boolean; reason?: string }>(`/public/clubs/${encodeURIComponent(handle)}/can-sit/${encodeURIComponent(address)}?gameId=${encodeURIComponent(gameId)}`);
     public join = (body: { address: string; club: string; nonce: string; signature: string; pubkey: string; nickname?: string; inviteCode?: string; country?: string; acceptTerms?: number; acceptHouseRules?: boolean; referredBy?: string }) => this.post("/public/join", body);
     public getTableLook = (gameId: string) => this.get<{ club: { handle: string; name: string } | null; look: Partial<ClubLook> | null }>(`/public/tables/${encodeURIComponent(gameId)}/look`);
+    public getPushKey = () => this.get<{ publicKey: string }>("/public/push/key");
+    public getPushChallenge = (address: string, club: string) => this.post<{ nonce: string; text: string }>("/public/push/challenge", { address, club });
+    public savePush = (body: { address: string; club: string; nonce: string; signature: string; pubkey: string; subscription: PushSubscriptionJSON }) => this.post("/public/push", body);
     public canChat = (handle: string, address: string) => this.get<{ allowed: boolean; reason?: string }>(`/public/clubs/${encodeURIComponent(handle)}/can-chat/${encodeURIComponent(address)}`);
     public getProtectionChallenge = (address: string, club: string, request: ProtectionRequest) => this.post<{ nonce: string; text: string }>("/public/protection/challenge", { address, club, ...request });
     public protect = (body: { address: string; club: string; nonce: string; signature: string; pubkey: string } & ProtectionRequest) => this.post<ProtectionState>("/public/protection", body);
