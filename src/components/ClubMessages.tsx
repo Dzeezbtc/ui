@@ -3,6 +3,7 @@ import { Link, useLocation } from "react-router-dom";
 import { FaTimes } from "react-icons/fa";
 import { useClubMessages } from "../hooks/club/useClubMessages";
 import { messageLink } from "../utils/clubMessages";
+import { ClubPosters } from "./ClubPosters";
 import { t } from "../i18n";
 import "./ClubMessages.css";
 
@@ -11,9 +12,9 @@ const BANNER_PASS_MS = 15_000;
 const BANNER_PASSES = 4;
 const DROPDOWN_MS = 60_000;
 
-/** Banners from the player's clubs along the top of the lobby, and drop-downs on any page. */
+/** Banners from the player's clubs along the top of the lobby, drop-downs on any page, and posters when the lobby opens. */
 export const ClubMessages: React.FC = () => {
-    const { banner, dropdown, dismiss } = useClubMessages();
+    const { banner, dropdown, posters, dismiss } = useClubMessages();
     const { pathname } = useLocation();
     const onTable = pathname.startsWith("/table/") && pathname !== "/table/admin";
     const bannerLink = banner ? messageLink(banner) : null;
@@ -28,6 +29,7 @@ export const ClubMessages: React.FC = () => {
 
     return (
         <>
+            <ClubPosters posters={posters} dismiss={dismiss} />
             {banner && !onTable && (
                 <div className="b52-club-banner" data-testid="club-banner">
                     <div

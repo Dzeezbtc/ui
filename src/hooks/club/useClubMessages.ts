@@ -2,7 +2,7 @@ import { useCallback, useEffect, useState } from "react";
 import { useClubApi } from "../../context/ClubApiContext";
 import { useLanguage } from "../../i18n/useLanguage";
 import { getCosmosAddress } from "../../utils/cosmos/storage";
-import { ClubMessage, markMessageSeen, nextMessage, readSeenMessages } from "../../utils/clubMessages";
+import { ClubMessage, markMessageSeen, nextMessage, nextPosters, readSeenMessages } from "../../utils/clubMessages";
 
 const POLL_MS = 60_000;
 
@@ -37,5 +37,5 @@ export function useClubMessages() {
         setSeen(readSeenMessages());
     }, []);
 
-    return { banner: nextMessage(messages, "banner", seen), dropdown: nextMessage(messages, "dropdown", seen), dismiss };
+    return { banner: nextMessage(messages, "banner", seen), dropdown: nextMessage(messages, "dropdown", seen), posters: nextPosters(messages, seen), dismiss };
 }

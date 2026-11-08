@@ -7,6 +7,10 @@ export interface ClubMessage {
     club: string;
     text: string;
     headline: string | null;
+    /** A poster's picture (block52-club#4); the service only sends web or inline images. */
+    image?: string | null;
+    /** A poster's place in the carousel, first is 1. */
+    order?: number | null;
     jump: { type: "none" } | { type: "club" } | { type: "table"; gameId: string; name: string };
     sentAt: string;
 }
@@ -44,4 +48,12 @@ export function messageLink(message: ClubMessage): string | null {
     if (message.jump.type === "club") return `/club/${encodeURIComponent(message.club)}`;
     if (message.jump.type === "table") return `/table/${message.jump.gameId}`;
     return null;
+}
+
+/** The posters to show when the lobby opens: up to 3 unseen, in the club's order (block52-club#4). */
+export function nextPosters(messages: ClubMessage[], seen: string[], max = 3): ClubMessage[] {
+    return messages
+        .filter(m => m.kind === "poster" && !seen.includes(m.id))
+        .sort((a, b) => (a.order ?? 99) - (b.order ?? 99) || a.sentAt.localeCompare(b.sentAt))
+        .slice(0, max);
 }

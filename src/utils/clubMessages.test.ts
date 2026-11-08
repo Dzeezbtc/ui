@@ -1,4 +1,4 @@
-import { ClubMessage, markMessageSeen, messageLink, nextMessage, readSeenMessages } from "./clubMessages";
+import { ClubMessage, markMessageSeen, messageLink, nextMessage, nextPosters, readSeenMessages } from "./clubMessages";
 
 const message = (over: Partial<ClubMessage>): ClubMessage => ({ id: "a", kind: "banner", club: "block52", text: "Hallo", headline: null, jump: { type: "none" }, sentAt: "2026-11-04T01:00:00Z", ...over });
 
@@ -51,5 +51,17 @@ describe("messageLink", () => {
         expect(messageLink(message({ jump: { type: "club" } }))).toBe("/club/block52");
         expect(messageLink(message({ jump: { type: "table", gameId: "0xabc", name: "x" } }))).toBe("/table/0xabc");
         expect(messageLink(message({}))).toBeNull();
+    });
+});
+
+describe("nextPosters", () => {
+    const poster = (id: string, order: number | null, sentAt = "2026-11-04T01:00:00Z") => message({ id, kind: "poster", order, sentAt });
+    it("takes up to three unseen posters in the club's order", () => {
+        const all = [poster("c", 3), poster("a", 1), poster("d", 4), poster("b", 2), message({ id: "x" })];
+        expect(nextPosters(all, []).map(p => p.id)).toEqual(["a", "b", "c"]);
+        expect(nextPosters(all, ["a"]).map(p => p.id)).toEqual(["b", "c", "d"]);
+    });
+    it("puts posters without a place last, oldest first", () => {
+        expect(nextPosters([poster("late", null, "2026-11-04T03:00:00Z"), poster("early", null, "2026-11-04T02:00:00Z"), poster("first", 1)], []).map(p => p.id)).toEqual(["first", "early", "late"]);
     });
 });
