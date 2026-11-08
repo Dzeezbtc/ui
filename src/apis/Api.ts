@@ -2,7 +2,7 @@ import HTTPClient from "./HTTPClient";
 import { hasContent, hasValue } from "../utils/guards";
 import type { PlayerSearchParams, PlayersListResponse, PlayerProfile, PlayerSessionsResponse, PlayerHandsResponse } from "../types/players";
 import type { WithdrawalSignatureResponse } from "../utils/withdrawalSignature";
-import type { ClubMission, ClubNotification, ClubOffer, ClubRace } from "../utils/clubService";
+import type { ClubMission, ClubNotification, ClubOffer, ClubProof, ClubRace } from "../utils/clubService";
 import type { ClubLook } from "../utils/clubLook";
 import type { ClubMessage } from "../utils/clubMessages";
 
@@ -142,6 +142,7 @@ export class ClubApi extends HTTPClient {
     public canSit = (handle: string, address: string, gameId: string) => this.get<{ allowed: boolean; reason?: string }>(`/public/clubs/${encodeURIComponent(handle)}/can-sit/${encodeURIComponent(address)}?gameId=${encodeURIComponent(gameId)}`);
     public join = (body: { address: string; club: string; nonce: string; signature: string; pubkey: string; nickname?: string; inviteCode?: string; country?: string; acceptTerms?: number; acceptHouseRules?: boolean; referredBy?: string }) => this.post("/public/join", body);
     public getTableLook = (gameId: string) => this.get<{ club: { handle: string; name: string } | null; look: Partial<ClubLook> | null }>(`/public/tables/${encodeURIComponent(gameId)}/look`);
+    public getClubProof = (handle: string) => this.get<ClubProof>(`/public/clubs/${encodeURIComponent(handle)}/proof`);
     public getClubRaces = (handle: string) => this.get<{ races: ClubRace[] }>(`/public/clubs/${encodeURIComponent(handle)}/races`);
     public getNotificationChallenge = (address: string, club: string) => this.post<{ nonce: string; text: string }>("/public/notifications/challenge", { address, club });
     public saveNotifications = (body: { address: string; club: string; nonce: string; signature: string; pubkey: string; tournaments: boolean; tables?: boolean; messages?: boolean; telegramChat?: string }) => this.post("/public/notifications", body);

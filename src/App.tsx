@@ -46,6 +46,7 @@ import FaviconSetter from "./components/FaviconSetter";
 import { ErrorBoundary } from "./components/common/ErrorBoundary";
 import ClubLoginPage from "./pages/ClubLoginPage";
 import ClubPage from "./pages/ClubPage";
+import ClubProofPage from "./pages/ClubProofPage";
 import { ClubNotifier } from "./components/ClubNotifier";
 import { ClubApiProvider } from "./context/ClubApiContext";
 import { GlobalHeader } from "./components/GlobalHeader";
@@ -134,6 +135,7 @@ function AppContent() {
                 <Route path="/wallet" element={<CosmosWalletPage />} />
                 <Route path="/club-login" element={<ClubLoginPage />} />
                 <Route path="/club/:handle" element={<ClubPage />} />
+                <Route path="/club/:handle/proof" element={<ClubProofPage />} />
                 {/* User-facing routes */}
                 <Route path="/withdrawals" element={<WithdrawalDashboard />} />
                 <Route path="/bridge/withdrawals" element={<WithdrawalDashboard />} />

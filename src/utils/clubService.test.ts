@@ -2,7 +2,7 @@ import { Secp256k1HdWallet } from "@cosmjs/amino";
 import { Secp256k1, Secp256k1Signature, sha256 } from "@cosmjs/crypto";
 import { fromBase64 } from "@cosmjs/encoding";
 import { signedBytes } from "./clubLogin";
-import { referralLink, newNotifications, saveNotifications, type NotificationApi, canSubmitJoin, claimBonus, clubAsksForKyc, offerText, type ClaimApi, joinButtonLabel, joinClub, joiningText, membershipText, seatRefusal, submitKyc, tableSummary, type ClubTerms, type JoinApi, type KycApi, type PublicClubTable, type SeatApi } from "./clubService";
+import { payoutLabel, referralLink, newNotifications, saveNotifications, type NotificationApi, canSubmitJoin, claimBonus, clubAsksForKyc, offerText, type ClaimApi, joinButtonLabel, joinClub, joiningText, membershipText, seatRefusal, submitKyc, tableSummary, type ClubTerms, type JoinApi, type KycApi, type PublicClubTable, type SeatApi } from "./clubService";
 
 // The standard BIP-39 test phrase: a throwaway wallet, never funded.
 const MNEMONIC = "abandon abandon abandon abandon abandon abandon abandon abandon abandon abandon abandon about";
@@ -225,5 +225,13 @@ describe("notifications", () => {
         await saveNotifications(api, "block52", MNEMONIC, address, { tournaments: true });
         expect(sent[0].tournaments).toBe(true);
         expect(sent[0].signature).toBeTruthy();
+    });
+});
+
+describe("proof page labels", () => {
+    it("names each kind of payout, and passes unknown ones through", () => {
+        expect(payoutLabel("rakeback")).toBe("Rakeback");
+        expect(payoutLabel("agent-payout")).toBe("Agent payout");
+        expect(payoutLabel("something-new")).toBe("something-new");
     });
 });

@@ -270,3 +270,14 @@ export async function saveNotifications(api: NotificationApi, handle: string, mn
     if (signed.address !== address) throw new Error("Your stored wallet doesn't match its address. Re-import it on the Wallet page.");
     await api.saveNotifications({ address, club: handle, nonce: ch.nonce, signature: signed.signature, pubkey: signed.pubkey, ...choice });
 }
+
+/** A club's public proof page (/public/clubs/:handle/proof): numbers anyone can check on chain, never a player. */
+export interface ClubProof {
+    club: { handle: string; name: string };
+    demo: boolean;
+    months: { month: string; hands: number; rake: number; paidOut: number; byKind: Record<string, number> }[];
+    payouts: { day: string; kind: string; amount: number; txHash: string }[];
+    totals: { hands: number; rake: number; paidOut: number; paidOutPct: number };
+}
+
+export const payoutLabel = (kind: string): string => ({ rakeback: "Rakeback", "agent-payout": "Agent payout", bonus: "Bonus or prize", "union-settlement": "Union settlement" })[kind] ?? kind;

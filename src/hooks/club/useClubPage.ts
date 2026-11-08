@@ -12,6 +12,8 @@ export interface ClubPageState {
     welcome: string | null;
     /** Why this wallet can't sit at each of the club's tables. */
     seatRules: Record<string, string>;
+    /** The club publishes a proof page anyone can check (block52-club#27). */
+    proofPublished: boolean;
     kycSent: boolean;
     offers: ClubOffer[];
     races: ClubRace[];
@@ -40,6 +42,7 @@ export const useClubPage = (handle: string): ClubPageState => {
     const [termsOutdated, setTermsOutdated] = useState(false);
     const [welcome, setWelcome] = useState<string | null>(null);
     const [seatRules, setSeatRules] = useState<Record<string, string>>({});
+    const [proofPublished, setProofPublished] = useState(false);
     const [kycSent, setKycSent] = useState(false);
     const [offers, setOffers] = useState<ClubOffer[]>([]);
     const [races, setRaces] = useState<ClubRace[]>([]);
@@ -62,6 +65,7 @@ export const useClubPage = (handle: string): ClubPageState => {
                 setInfo((await api.getClubTerms(handle)) as ClubTerms);
                 setOffers((await api.getClubOffers(handle)).offers);
                 setRaces((await api.getClubRaces(handle)).races);
+                setProofPublished(await api.getClubProof(handle).then(() => true, () => false));
                 const goals = await api.getClubMissions(handle);
                 setMissions(goals.missions);
                 setReferralBonus(goals.referralBonus);
@@ -147,5 +151,5 @@ export const useClubPage = (handle: string): ClubPageState => {
         [api, handle, mnemonic, address, attempt]
     );
 
-    return { missions, referralBonus, notificationsSaved, saveReminders, offers, races, claimed, claim, club, info, status, termsOutdated, welcome, seatRules, kycSent, hasWallet: !!mnemonic && !!address, busy, error, join, acceptNewTerms, sendKyc };
+    return { missions, referralBonus, notificationsSaved, saveReminders, offers, races, claimed, claim, club, info, status, termsOutdated, welcome, seatRules, proofPublished, kycSent, hasWallet: !!mnemonic && !!address, busy, error, join, acceptNewTerms, sendKyc };
 };

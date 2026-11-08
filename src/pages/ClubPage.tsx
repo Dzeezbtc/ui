@@ -53,7 +53,7 @@ const Agreements: React.FC<{ info: ClubTerms; terms: boolean; rules: boolean; se
  */
 const ClubPage: React.FC = () => {
     const { handle = "" } = useParams();
-    const { missions, referralBonus, notificationsSaved, saveReminders, offers, races, claimed, claim, club, info, status, termsOutdated, welcome, seatRules, kycSent, hasWallet, busy, error, join, acceptNewTerms, sendKyc } = useClubPage(handle);
+    const { missions, referralBonus, notificationsSaved, saveReminders, offers, races, claimed, claim, club, info, status, termsOutdated, welcome, seatRules, kycSent, hasWallet, busy, error, join, acceptNewTerms, sendKyc, proofPublished } = useClubPage(handle);
     const [inviteCode, setInviteCode] = useState("");
     const [acceptedTerms, setAcceptedTerms] = useState(false);
     const [acceptedHouseRules, setAcceptedHouseRules] = useState(false);
@@ -85,6 +85,11 @@ const ClubPage: React.FC = () => {
                     {club.union && <> · part of {club.union}</>}
                 </div>
                 {club.tagline && <p className="mt-3 text-gray-300">{club.tagline}</p>}
+                {proofPublished && (
+                    <Link to={`/club/${encodeURIComponent(club.handle)}/proof`} className="mt-2 inline-block text-sm underline text-gray-300 hover:text-white">
+                        Check the club's numbers on chain
+                    </Link>
+                )}
                 {look && look.socials.length > 0 && (
                     <div className="mt-2 flex flex-wrap gap-3 text-sm">
                         {look.socials.map(url => (
