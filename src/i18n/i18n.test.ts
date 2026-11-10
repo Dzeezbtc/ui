@@ -5,9 +5,9 @@ import { getLanguage, readSavedLanguage, setLanguage, subscribeToLanguage, t } f
 const placeholders = (text: string) => (text.match(/\{\w+\}/g) ?? []).sort();
 
 describe("language list", () => {
-    it("has 16 languages with unique codes", () => {
-        expect(LANGUAGES).toHaveLength(16);
-        expect(new Set(LANGUAGES.map(l => l.code)).size).toBe(16);
+    it("has 23 languages with unique codes", () => {
+        expect(LANGUAGES).toHaveLength(23);
+        expect(new Set(LANGUAGES.map(l => l.code)).size).toBe(23);
     });
 
     it("recognises only supported codes", () => {
@@ -22,6 +22,13 @@ describe("matchBrowserLanguage", () => {
     it("matches on the base language", () => {
         expect(matchBrowserLanguage(["de-AT"])).toBe("de");
         expect(matchBrowserLanguage(["PT-br"])).toBe("pt");
+    });
+
+    it("knows the other names browsers use for Norwegian and Tagalog", () => {
+        expect(matchBrowserLanguage(["no"])).toBe("nb");
+        expect(matchBrowserLanguage(["nn-NO"])).toBe("nb");
+        expect(matchBrowserLanguage(["tl-PH"])).toBe("fil");
+        expect(matchBrowserLanguage(["sv-SE"])).toBe("sv");
     });
 
     it("takes the first one we support", () => {

@@ -8,6 +8,10 @@ export interface HTTPClientConfig {
     signal?: AbortSignal;
     timeout?: number;
     retries?: number;
+    /** Extra headers for every request, read when each is sent. */
+    headers?: () => Record<string, string>;
+    /** Called with the status of every failed response. */
+    onErrorStatus?: (status: number) => void;
 }
 
 /**
@@ -34,6 +38,7 @@ export const httpStatusText = (err: unknown): string | undefined =>
 export default class HTTPClient {
     private client: AxiosInstance;
     private customOnError!: (e: string) => void | undefined;
+    private onErrorStatus?: (status: number) => void;
 
     constructor(config: HTTPClientConfig) {
         this.client = axios.create({
@@ -42,6 +47,15 @@ export default class HTTPClient {
             signal: config.signal
             // need to add headers here if we want to support secure endpoints in the future, but for now all endpoints are public so we can skip it
         });
+
+        this.onErrorStatus = config.onErrorStatus;
+        const extraHeaders = config.headers;
+        if (extraHeaders) {
+            this.client.interceptors.request.use(request => {
+                for (const [name, value] of Object.entries(extraHeaders())) request.headers.set(name, value);
+                return request;
+            });
+        }
 
         if (config.secure) {
             this.client.interceptors.request.use(
@@ -72,6 +86,7 @@ export default class HTTPClient {
     private onSuccess = (res: AxiosResponse) => res.data;
     private onError = (e: AxiosError) => {
         const error = e.response ? e.response.data : e;
+        if (e.response) this.onErrorStatus?.(e.response.status);
 
         if (this.customOnError) {
             this.customOnError(error as string);
