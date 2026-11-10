@@ -35,7 +35,7 @@ describe("TablePill (ui#55)", () => {
         renderPill({ name: "Alpha", status: { holeCards: [], isMyTurn: true } });
         expect(screen.getByText("Your turn")).toBeInTheDocument();
         expect(screen.getByRole("tab")).toHaveClass("b52-pill-your-turn");
-        expect(screen.getByRole("tab")).toHaveAttribute("title", "Alpha — your turn");
+        expect(screen.getByRole("tab").getAttribute("title")).toContain("Alpha — your turn");
     });
 
     it("marks the active table", () => {

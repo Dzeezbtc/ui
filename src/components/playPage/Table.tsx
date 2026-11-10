@@ -704,8 +704,18 @@ const GeometryToggleButton: React.FC = () => {
     );
 };
 
-const Table = React.memo(() => {
-    const id = useTableId();
+interface TableProps {
+    /**
+     * The table to show. In the multi-table workspace (ui#55) each live instance is
+     * given its id explicitly; left undefined the table takes its id from
+     * TableIdContext (which falls back to the route's :id).
+     */
+    tableId?: string;
+}
+
+const Table = React.memo(({ tableId }: TableProps = {}) => {
+    const contextId = useTableId();
+    const id = tableId ?? contextId;
     // This table's logical track (ui#834) — read by submission decisions.
     const logicalTrack = useLogicalTrack();
     // Game state context and subscription

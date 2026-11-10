@@ -34,6 +34,7 @@ import { formatBlindCountdown } from "./TableHeader";
 import type { TablePanelTab } from "./TablePanel";
 import styles from "./TableHeader.module.css";
 import { hasValue, isNullish } from "../../../../utils/guards";
+import { useTableHeaderSlot } from "../../../../context/TableHeaderSlotContext";
 
 export type TableStyleOption = "modern" | "classic" | "nouns";
 
@@ -135,6 +136,7 @@ export const MobileTableHeader: React.FC<MobileTableHeaderProps> = ({
 }) => {
     const blindLevel = useBlindLevel();
     const [menuOpen, setMenuOpen] = useState(false);
+    const headerSlot = useTableHeaderSlot();
     const [showQR, setShowQR] = useState(false);
     const [showTopUp, setShowTopUp] = useState(false);
     const tableUrl = `${window.location.origin}/table/${tableId}`;
@@ -234,6 +236,17 @@ export const MobileTableHeader: React.FC<MobileTableHeaderProps> = ({
                 <span className={`text-[11px] font-semibold whitespace-nowrap ${styles.secondaryText}`}>Hand #{handNumber}</span>
                 <span className={`text-[11px] font-semibold whitespace-nowrap ${styles.secondaryText}`}>Next: Seat {nextToAct}</span>
             </div>
+
+            {/* Header slot (ui#55): the multi-tabling pill bar gets its own slim
+                row on phones — the status strip above is too short for it. */}
+            {headerSlot && (
+                <div
+                    className={`w-full flex items-center justify-center px-2 py-1 ${styles.subHeaderRoot}`}
+                    style={{ paddingLeft: "env(safe-area-inset-left)", paddingRight: "env(safe-area-inset-right)" }}
+                >
+                    {headerSlot}
+                </div>
+            )}
 
             {/* Hamburger drawer */}
             {menuOpen && (
