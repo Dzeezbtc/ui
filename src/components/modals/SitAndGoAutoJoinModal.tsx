@@ -23,7 +23,7 @@ import { useLogicalTrack } from "../../context/gameState/LogicalTrackContext";
 import { getGameTypeMnemonic } from "../../utils/gameFormatUtils";
 import { sitAndGoJoinTitle } from "../../utils/createGameType";
 import { isEmpty, hasElements, isBlank, hasValue } from "../../utils/guards";
-import { SEAT_DRAW_NOTE } from "../../utils/vacantSeatText";
+import { seatDrawNote } from "../../utils/vacantSeatText";
 import { formatStartsAt, lateRegistrationEndsAt, lateRegistrationPhase, scheduledSngPhase, tournamentStartRule, waitsForStartTime } from "../../utils/scheduledSng";
 
 import type { SitAndGoAutoJoinModalProps } from "./types";
@@ -506,7 +506,7 @@ const SitAndGoAutoJoinModal: React.FC<SitAndGoAutoJoinModalProps> = ({ tableId, 
                         )}
                     </button>
                     <p className={`text-blue-300 text-center text-xs ${isCompact ? "mt-1" : "mt-2"}`} data-testid="seat-draw-note">
-                        {SEAT_DRAW_NOTE}
+                        {seatDrawNote()}
                     </p>
 
                     {/* ui#837: always available so a late or underfunded
