@@ -1,4 +1,5 @@
 import React, { createContext, useContext, useEffect, useMemo, useReducer, useRef } from "react";
+import { isNumber, isString } from "../../utils/guards";
 import {
     sessionsReducer,
     emptySessions,
@@ -31,16 +32,16 @@ function loadPersisted(): Persisted | null {
         const parsed = JSON.parse(raw);
         if (!parsed || !Array.isArray(parsed.openTables)) return null;
         const openTables: OpenTable[] = parsed.openTables
-            .filter((t: unknown): t is OpenTable => !!t && typeof (t as OpenTable).id === "string")
+            .filter((t: unknown): t is OpenTable => !!t && isString((t as OpenTable).id))
             .map((t: OpenTable) => ({
                 id: t.id,
-                name: typeof t.name === "string" ? t.name : undefined,
+                name: isString(t.name) ? t.name : undefined,
                 bubble:
-                    t.bubble && typeof t.bubble.x === "number" && typeof t.bubble.y === "number"
+                    t.bubble && isNumber(t.bubble.x) && isNumber(t.bubble.y)
                         ? clampBubble(t.bubble)
                         : undefined
             }));
-        const activeId = typeof parsed.activeId === "string" ? parsed.activeId : null;
+        const activeId = isString(parsed.activeId) ? parsed.activeId : null;
         return { openTables, activeId };
     } catch {
         return null;

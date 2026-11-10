@@ -7,7 +7,7 @@
  * one record per viewer wallet, keyed by the noted player's address. They follow
  * the player across tables because the key is the address, not the seat.
  */
-import { hasContent, hasElements, isRecord } from "./guards";
+import { hasContent, hasElements, isNumber, isRecord, isString } from "./guards";
 
 export type PlayerNoteTagId =
     | "fish"
@@ -74,7 +74,7 @@ export const normalizeNoteAddress = (address: string): string => address.trim().
 
 export const playerNotesStorageKey = (owner: string): string => `${PLAYER_NOTES_STORAGE_PREFIX}:${normalizeNoteAddress(owner)}`;
 
-export const isPlayerNoteTagId = (value: unknown): value is PlayerNoteTagId => typeof value === "string" && TAG_BY_ID.has(value);
+export const isPlayerNoteTagId = (value: unknown): value is PlayerNoteTagId => isString(value) && TAG_BY_ID.has(value);
 
 export const getPlayerNoteTag = (id: PlayerNoteTagId): PlayerNoteTag => {
     const tag = TAG_BY_ID.get(id);
@@ -103,9 +103,9 @@ export const buildPlayerNote = (text: string, tags: readonly string[], now: numb
 
 const parsePlayerNote = (value: unknown): PlayerNote | null => {
     if (!isRecord(value)) return null;
-    const text = typeof value.text === "string" ? value.text : "";
+    const text = isString(value.text) ? value.text : "";
     const tags = Array.isArray(value.tags) ? value.tags.filter(isPlayerNoteTagId) : [];
-    const updatedAt = typeof value.updatedAt === "number" ? value.updatedAt : 0;
+    const updatedAt = isNumber(value.updatedAt) ? value.updatedAt : 0;
     const note = buildPlayerNote(text, tags, updatedAt);
     return isPlayerNoteEmpty(note) ? null : note;
 };
