@@ -26,6 +26,8 @@ jest.mock("../../context/NetworkContext", () => ({ useNetwork: () => ({ currentN
 jest.mock("../../context/GameStateContext", () => ({
     useGameStateContext: () => ({ subscribeToTable: jest.fn(), gameState: { players: [], gameOptions: {} }, gameFormat: "sit-and-go" })
 }));
+const mockTrackState = { players: [] };
+jest.mock("../../context/gameState/LogicalTrackContext", () => ({ useLogicalTrack: () => ({ get: () => mockTrackState }) }));
 jest.mock("../../utils/scheduledSng", () => ({
     ...jest.requireActual("../../utils/scheduledSng"),
     lateRegistrationPhase: () => mockLatePhase,
@@ -108,6 +110,6 @@ it("takes a drawn seat: joins without naming one and says the seat is random (ui
     await waitFor(() => expect(mockJoin).toHaveBeenCalledTimes(1));
     const [tableId, options] = mockJoin.mock.calls[0];
     expect(tableId).toBe("fixture-table");
-    expect(options).toEqual({ amount: "10", format: "sit-and-go" });
+    expect(options).toEqual({ amount: "10", format: "sit-and-go", gameState: mockTrackState });
     expect(options).not.toHaveProperty("seatNumber");
 });

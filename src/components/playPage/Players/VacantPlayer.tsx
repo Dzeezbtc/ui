@@ -15,11 +15,12 @@
 import * as React from "react";
 import { memo, useState, useMemo, useCallback } from "react";
 import { createPortal } from "react-dom";
-import { useParams } from "react-router-dom";
+import { useTableId } from "../../../context/TableIdContext";
 import PokerProfile from "../../../assets/PokerProfile.svg";
 
 import { useVacantSeatData } from "../../../hooks/game/useVacantSeatData";
 import { useGameStateContext } from "../../../context/GameStateContext";
+import { useLogicalTrack } from "../../../context/gameState/LogicalTrackContext";
 import type { VacantPlayerProps } from "../../../types/index";
 import { useDealerPosition } from "../../../hooks/game/useDealerPosition";
 import { joinTable } from "../../../hooks/playerActions/joinTable";
@@ -37,9 +38,10 @@ import { USDCDepositModal } from "../../modals";
 const VacantPlayer: React.FC<VacantPlayerProps & { uiPosition?: number }> = memo(
     ({ left, top, index, onJoin, uiPosition }) => {
         const { isUserAlreadyPlaying, canJoinSeat: checkCanJoinSeat } = useVacantSeatData();
-        const { id: tableId } = useParams<{ id: string }>();
+        const tableId = useTableId();
         const { gameOptions } = useGameOptions();
         const { gameFormat } = useGameStateContext();
+        const logicalTrack = useLogicalTrack();
         // A Sit & Go seat is drawn at random on join, not the one clicked (ui#969).
         const seatDrawn = useMemo(() => seatsAreDrawn(gameFormat), [gameFormat]);
         const cosmosWallet = useCosmosWallet();
@@ -187,7 +189,8 @@ const VacantPlayer: React.FC<VacantPlayerProps & { uiPosition?: number }> = memo
                         amount: buyInDollars,
                         // Where seats are drawn, joinTable draws one; the clicked seat is not claimed.
                         seatNumber: seatDrawn ? undefined : index,
-                        format: gameFormat
+                        format: gameFormat,
+                        gameState: logicalTrack.get()
                     },
                     currentNetwork
                 );
@@ -210,7 +213,7 @@ const VacantPlayer: React.FC<VacantPlayerProps & { uiPosition?: number }> = memo
                 setJoinError(err instanceof Error ? err.message : "Unknown error joining table");
                 setIsJoining(false);
             }
-        }, [tableId, index, onJoin, gameOptions?.minBuyIn, gameOptions?.maxBuyIn, buyInAmount, isSitAndGo, currentNetwork, seatDrawn, gameFormat]);
+        }, [tableId, index, onJoin, gameOptions?.minBuyIn, gameOptions?.maxBuyIn, buyInAmount, isSitAndGo, currentNetwork, seatDrawn, gameFormat, logicalTrack]);
 
         // Memoize container styles
         const containerStyle = useMemo(

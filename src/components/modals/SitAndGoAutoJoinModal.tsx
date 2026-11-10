@@ -19,6 +19,7 @@ import { colors as _colors, hexToRgba as _hexToRgba } from "../../utils/colorCon
 import { microToUsdc } from "../../constants/currency";
 import { STORAGE_KEYS } from "../../constants/storageKeys";
 import { useGameStateContext } from "../../context/GameStateContext";
+import { useLogicalTrack } from "../../context/gameState/LogicalTrackContext";
 import { getGameTypeMnemonic } from "../../utils/gameFormatUtils";
 import { sitAndGoJoinTitle } from "../../utils/createGameType";
 import { isEmpty, hasElements, isBlank, hasValue } from "../../utils/guards";
@@ -46,6 +47,7 @@ const SitAndGoAutoJoinModal: React.FC<SitAndGoAutoJoinModalProps> = ({ tableId, 
 
     // Get the game state context to force refresh after joining
     const { subscribeToTable, gameState, gameFormat } = useGameStateContext();
+    const logicalTrack = useLogicalTrack();
 
     // Scheduled start (poker-vm#2680): say when it starts, and refuse a seat at
     // a cancelled table (the chain refuses the join too).
@@ -214,7 +216,8 @@ const SitAndGoAutoJoinModal: React.FC<SitAndGoAutoJoinModalProps> = ({ tableId, 
                 tableId,
                 {
                     amount: String(buyInAmountInDollars),
-                    format: gameFormat
+                    format: gameFormat,
+                    gameState: logicalTrack.get()
                 },
                 currentNetwork
             );
@@ -249,7 +252,7 @@ const SitAndGoAutoJoinModal: React.FC<SitAndGoAutoJoinModalProps> = ({ tableId, 
         } finally {
             setIsJoining(false);
         }
-    }, [publicKey, tableId, isUserAlreadyPlaying, hasJoined, emptySeatIndexes, maxBuyInFormatted, balanceFormatted, gameOptions, currentNetwork, subscribeToTable, onJoinSuccess, gameFormat]);
+    }, [publicKey, tableId, isUserAlreadyPlaying, hasJoined, emptySeatIndexes, maxBuyInFormatted, balanceFormatted, gameOptions, currentNetwork, subscribeToTable, onJoinSuccess, gameFormat, logicalTrack]);
 
     // Spectate: close the prompt and keep watching the table underneath.
     const handleSpectate = useCallback(() => {
