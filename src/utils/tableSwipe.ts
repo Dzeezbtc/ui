@@ -3,7 +3,7 @@
  *
  * Pure helpers: whether this device swipes at all, whether a finished touch was
  * a sideways swipe, and which table sits on that side of the active one in the
- * pill order. The hook (hooks/game/useTableSwipe) wires them to touch events.
+ * pill order (wrapping round). The hook (hooks/game/useTableSwipe) wires them to touch events.
  */
 import { isNullish } from "./guards";
 
@@ -43,13 +43,14 @@ export function swipeDirection(dx: number, dy: number, durationMs: number): Swip
 
 /**
  * The table beside the active one for a swipe: swiping left brings in the table
- * to the right of it in the pill order, swiping right the one to its left. No
- * wrap-around, so the first and last tables stop at the edge. Null when there's
- * nothing on that side or the active table isn't in the order.
+ * to the right of it in the pill order, swiping right the one to its left. It
+ * wraps around, so a left swipe on the last table brings back the first, and a
+ * right swipe on the first brings in the last. Null when there's no other table
+ * or the active table isn't in the order.
  */
 export function neighbourTableId(order: readonly string[], activeId: string | null, direction: SwipeDirection): string | null {
-    if (direction === 0 || isNullish(activeId)) return null;
+    if (direction === 0 || isNullish(activeId) || order.length < 2) return null;
     const index = order.indexOf(activeId);
     if (index < 0) return null;
-    return order[index - direction] ?? null;
+    return order[(index - direction + order.length) % order.length];
 }

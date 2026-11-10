@@ -34,9 +34,24 @@ describe("neighbourTableId", () => {
         expect(neighbourTableId(order, "b", 1)).toBe("a");
     });
 
-    it("stops at the ends without wrapping", () => {
-        expect(neighbourTableId(order, "c", -1)).toBeNull();
-        expect(neighbourTableId(order, "a", 1)).toBeNull();
+    it("wraps around: past the last table comes the first, before the first the last", () => {
+        expect(neighbourTableId(order, "c", -1)).toBe("a");
+        expect(neighbourTableId(order, "a", 1)).toBe("c");
+    });
+
+    it("cycles through four tables with left swipes and back to table one", () => {
+        const four = ["t1", "t2", "t3", "t4"];
+        const seen: string[] = [];
+        let active = "t1";
+        for (let i = 0; i < 4; i++) {
+            active = neighbourTableId(four, active, -1)!;
+            seen.push(active);
+        }
+        expect(seen).toEqual(["t2", "t3", "t4", "t1"]);
+    });
+
+    it("does nothing with only one table", () => {
+        expect(neighbourTableId(["a"], "a", -1)).toBeNull();
     });
 
     it("does nothing without a swipe, an active table, or when the active table isn't a pill", () => {
