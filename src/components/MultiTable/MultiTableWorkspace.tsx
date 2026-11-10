@@ -13,6 +13,7 @@ import { dockedTables, floatingTables, type OpenTable } from "../../context/tabl
 import { TableHeaderSlotProvider } from "../../context/TableHeaderSlotContext";
 import { TableIdProvider } from "../../context/TableIdContext";
 import { isEmpty, isNullish } from "../../utils/guards";
+import { useTableSwipe } from "../../hooks/game/useTableSwipe";
 
 /**
  * Multi-tabling workspace (block52/ui#55, PR 2).
@@ -72,6 +73,10 @@ export const MultiTableWorkspace: React.FC = () => {
     const handleSelect = useCallback((id: string) => setActive(id), [setActive]);
     const handleClose = useCallback((id: string) => closeTable(id), [closeTable]);
     const handleReorder = useCallback((id: string, toIndex: number) => moveTable(id, toIndex), [moveTable]);
+
+    // Phones and tablets: swipe left or right to move to the table beside this one in the pill order.
+    const pillOrder = useMemo(() => dockedTables(openTables).map(t => t.id), [openTables]);
+    useTableSwipe(pillOrder, activeId, handleSelect);
 
     // Floating bubbles (ui#887). Positions are stored as viewport fractions, so
     // they are re-projected (and clamped on screen) whenever the window resizes.
