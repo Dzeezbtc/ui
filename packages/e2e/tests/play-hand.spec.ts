@@ -22,7 +22,7 @@ test("play a full hand solo vs. the stub bot, to showdown", async ({ page }) => 
   // behind it). The engine seats the human wherever they click.
   const SEAT = 5;
   await test.step(`sit down at seat ${SEAT} (buy in)`, async () => {
-    await page.getByText(`Seat ${SEAT}`, { exact: true }).click();
+    await page.getByRole("button", { name: `Sit in seat ${SEAT}` }).click();
     // Cash-game buy-in modal — the Confirm button uniquely confirms it opened
     // (the buy-in defaults to max, which our $1000 balance covers).
     const confirm = page.getByRole("button", { name: new RegExp(`Confirm & Join Seat ${SEAT}`, "i") });
