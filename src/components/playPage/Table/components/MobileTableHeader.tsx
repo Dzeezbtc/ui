@@ -33,6 +33,7 @@ import type { NetworkEndpoints } from "../../../../context/NetworkContext";
 import { formatBlindCountdown } from "./TableHeader";
 import type { TablePanelTab } from "./TablePanel";
 import styles from "./TableHeader.module.css";
+import { ProvablyFairBadge } from "../../ProvablyFair/ProvablyFairBadge";
 import { hasValue, isNullish } from "../../../../utils/guards";
 import { useTableHeaderSlot } from "../../../../context/TableHeaderSlotContext";
 import { useLanguage } from "../../../../i18n/useLanguage";
@@ -236,6 +237,7 @@ export const MobileTableHeader: React.FC<MobileTableHeaderProps> = ({
                     )}
                 </span>
                 <span className={`text-[11px] font-semibold whitespace-nowrap ${styles.secondaryText}`}>Hand #{handNumber}</span>
+                <ProvablyFairBadge tableId={tableId} handNumber={handNumber} tableName={tableName} compact />
                 <span className={`text-[11px] font-semibold whitespace-nowrap ${styles.secondaryText}`}>Next: Seat {nextToAct}</span>
             </div>
 

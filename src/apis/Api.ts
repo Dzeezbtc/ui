@@ -46,6 +46,9 @@ export class CosmosApi extends HTTPClient {
         this.get(`/cosmos/staking/v1beta1/validators?status=${status}&pagination.limit=100`, { signal });
     public getAccounts = (limit?: number) => this.get(`/cosmos/auth/v1beta1/accounts${limit ? `?pagination.limit=${limit}` : ""}`);
     public getBalanceByAddress = (address: string) => this.get(`/cosmos/bank/v1beta1/balances/${address}`);
+    /** Decoded txs matching an event query, oldest first (e.g. `hand_started.game_id='0x…'`). */
+    public searchTxs = (eventQuery: string, limit: number) =>
+        this.get(`/cosmos/tx/v1beta1/txs?query=${encodeURIComponent(eventQuery)}&order_by=1&limit=${limit}`);
     /** A committed tx by hash (404 until it is in a block); `tx_response.code` is its execution result. */
     public getTx = (hash: string) => this.get(`/cosmos/tx/v1beta1/txs/${hash}`);
     /** The table record (GameStateResponseDTO JSON in `game`): carries format, variant and name. */

@@ -1,4 +1,4 @@
-import { useEffect, useMemo } from "react";
+import { useEffect, useMemo, useState } from "react";
 import { Link } from "react-router-dom";
 import { AnimatedBackground } from "../components/common/AnimatedBackground";
 import { ExplorerHeader } from "../components/explorer/ExplorerHeader";
@@ -15,6 +15,7 @@ import { getCardImageUrl } from "../utils/cardImages";
 import { hasElements, isEmpty } from "../utils/guards";
 import type { PlayerHand } from "../types/players";
 import styles from "./explorer/AllAccountsPage.module.css";
+import { HandVerificationModal } from "../components/playPage/ProvablyFair/HandVerificationModal";
 
 const PAGE_SIZE = 25;
 
@@ -38,6 +39,7 @@ export default function MyHandsPage() {
         PAGE_SIZE
     );
     const formats = useTableFormats(useMemo(() => hands.map(h => h.game_id), [hands]));
+    const [verifying, setVerifying] = useState<PlayerHand | null>(null);
 
     useEffect(() => {
         document.title = "My Hands - Block52";
@@ -84,7 +86,12 @@ export default function MyHandsPage() {
                     ) : (
                         <ul className="divide-y divide-white/5">
                             {hands.map(hand => (
-                                <HandRow key={handKey(hand)} hand={hand} outcome={describeHandOutcome(hand, formats.get(hand.game_id))} />
+                                <HandRow
+                                    key={handKey(hand)}
+                                    hand={hand}
+                                    outcome={describeHandOutcome(hand, formats.get(hand.game_id))}
+                                    onVerify={() => setVerifying(hand)}
+                                />
                             ))}
                         </ul>
                     )}
@@ -109,11 +116,15 @@ export default function MyHandsPage() {
                     )}
                 </ExplorerPanel>
             </div>
+
+            {verifying && (
+                <HandVerificationModal isOpen onClose={() => setVerifying(null)} tableId={verifying.game_id} handNumber={verifying.hand_number} />
+            )}
         </div>
     );
 }
 
-function HandRow({ hand, outcome }: { hand: PlayerHand; outcome: { label: string; tone: HandOutcomeTone } }) {
+function HandRow({ hand, outcome, onVerify }: { hand: PlayerHand; outcome: { label: string; tone: HandOutcomeTone }; onVerify: () => void }) {
     const replayUrl = `/table/${hand.game_id}?hand=${hand.hand_number}`;
     return (
         <li className="px-3 sm:px-4 py-3 flex flex-col sm:flex-row sm:items-center gap-2 sm:gap-4">
@@ -148,6 +159,9 @@ function HandRow({ hand, outcome }: { hand: PlayerHand; outcome: { label: string
                 <Link to={`/explorer/hand/${hand.game_id}/${hand.hand_number}`} className="text-gray-300 hover:underline">
                     Details
                 </Link>
+                <button type="button" onClick={onVerify} className="text-gray-300 hover:underline" data-testid="verify-hand">
+                    Verify
+                </button>
             </div>
         </li>
     );

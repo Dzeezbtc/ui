@@ -1,0 +1,42 @@
+[
+ {
+  "game_id": "0x6261a011b54e5dac24f1660a560458ce22c33ed62f2a14f3d5ab5af6f543e539",
+  "hand_number": "2",
+  "vrf_output": "91thAtMJ8NKAxavkuTr0DhGUJ8txvgJXlZ37cwlhcERP/i1xZHN157FXx5ZITFJaBiIlr9uCUzT9dqWBrv2oNg==",
+  "vrf_proof": "3txU3OBS7USVlQl3bpTVU6YACfirpCj7XFZCmup12eHUZH29KNV06rZMHp5VrqynDGc1pma5DZPNh+z3otPp83O0y48WWCwGCZzn62BFrwo=",
+  "proposer_pubkey": "XCdKkErz4Tp+xamCSHoMVr1Tg0ekt4EMCG79Khi6r94=",
+  "prev_block_hash": "AAAAAAAPKiQ=",
+  "player_seed": null,
+  "height": "993828"
+ },
+ {
+  "game_id": "0x6261a011b54e5dac24f1660a560458ce22c33ed62f2a14f3d5ab5af6f543e539",
+  "hand_number": "1",
+  "vrf_output": "4bKtznJr3XIi5d4ad2em7tSV2edp8VdADSk15isyrpJQjWbdFxr+XAhL1730OyJ3b7iR77lDNRfy8ePcFBEYLg==",
+  "vrf_proof": "POarc4Vx7H7rSZyVgkSAQBsIokvwViX5zK27mQeunJq3VPJae6BIXd1xxPE1xRCbJfjvADWuArriLGI8tzJxy61AId6tNIHYiMy9EX8JFwE=",
+  "proposer_pubkey": "yms5I2DE89yttv0SOtYilrj5CfR7QeceDJhvqp0N7d0=",
+  "prev_block_hash": "AAAAAAAPKiM=",
+  "player_seed": null,
+  "height": "993827"
+ },
+ {
+  "game_id": "0xd2a5271cbe3114c514a65a3a72e0f3948dec467018a77f9b6d6dc1125cd34ff4",
+  "hand_number": "69",
+  "vrf_output": "11lOSapbMD/sjRLV8IKdnPU4Jb9r5zjZ00i0htA9e+n9IsaNz2qDdnfKS9s6kyD++tO4TkfmmEanJmr9QUylYA==",
+  "vrf_proof": "A7auwcgfdAVp8NoAOl62RwuGi6kPLg97oLpJ2EBw4JTZmXKBFeFgUyPprp1ukUkcfMRhn9apYapvr3nAIenJQgFI863dJSnjXwm7BpeuOgk=",
+  "proposer_pubkey": "XCdKkErz4Tp+xamCSHoMVr1Tg0ekt4EMCG79Khi6r94=",
+  "prev_block_hash": "AAAAAAAO8kA=",
+  "player_seed": null,
+  "height": "979520"
+ },
+ {
+  "game_id": "0xd2a5271cbe3114c514a65a3a72e0f3948dec467018a77f9b6d6dc1125cd34ff4",
+  "hand_number": "68",
+  "vrf_output": "29KTDu1a+jXfgocqlj/7bQJOlZFajmT6K+FrXmI2B0u0JzpAyN3buc1vk4RqjAzfkRCHwjkNXPd7LUa7cp6eww==",
+  "vrf_proof": "V/HYCUTlbLfdgZRZOnFsTqlcnzZVERudB0417SN7vjxkYrI1uISV8mQgSwNAGCMUJzcYdpI3iewCX6qeYKyph6/DT5IADgfGK9xneFnvLwo=",
+  "proposer_pubkey": "bXndSoRw3VvlbpIs4HoprlKhyuZYgAfj6AMKfG9ucC0=",
+  "prev_block_hash": "AAAAAAAO8j8=",
+  "player_seed": "uUaX8HlxN+SOL8oH0X8NFeNfww8BjK3Lr28XRng9K9Q=",
+  "height": "979519"
+ }
+]

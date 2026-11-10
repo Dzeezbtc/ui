@@ -22,6 +22,7 @@ import { GameFormat, GameOptionsDTO, GameVariant, PlayerDTO } from "@block52/pok
 import { useBlindLevel } from "../../../../hooks/game/useBlindLevel";
 import { formatBlindCountdown } from "../../../../utils/blindStructure";
 import styles from "./TableHeader.module.css";
+import { ProvablyFairBadge } from "../../ProvablyFair/ProvablyFairBadge";
 import { hasValue, isNullish } from "../../../../utils/guards";
 import { useTableHeaderSlot } from "../../../../context/TableHeaderSlotContext";
 import { useLanguage } from "../../../../i18n/useLanguage";
@@ -284,6 +285,12 @@ export const TableHeader: React.FC<TableHeaderProps> = ({
                             <span className={`text-[10px] sm:text-[15px] font-semibold ${styles.secondaryText}`}>
                                 {t("table.handNumber", { hand: handNumber })}
                             </span>
+                            <ProvablyFairBadge
+                                tableId={tableId}
+                                handNumber={handNumber}
+                                tableName={tableName}
+                                gameLabel={gameOptions ? formatTableGameDisplay(gameVariant, gameOptions.bettingLimit) : undefined}
+                            />
                             <span className={`hidden sm:inline-block text-[15px] font-semibold ${styles.secondaryText}`}>
                                 <span className="ml-2">{t("felt.actionCount", { count: actionCount })}</span>
                             </span>
