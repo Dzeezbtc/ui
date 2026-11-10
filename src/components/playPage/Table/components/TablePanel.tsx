@@ -97,6 +97,7 @@ const SettingsTab: React.FC = () => {
         sitInOptions,
         preSelectCheck,
         winCelebration,
+        hideBustedPlayers,
         potAsChips,
         chipStyle,
         toggleTurnNotificationSound,
@@ -108,6 +109,7 @@ const SettingsTab: React.FC = () => {
         toggleSitInOptions,
         togglePreSelectCheck,
         toggleWinCelebration,
+        toggleHideBustedPlayers,
         togglePotAsChips,
         setChipStyle
     } = useGameSettings();
@@ -144,6 +146,12 @@ const SettingsTab: React.FC = () => {
                 description={t("settings.celebrationHelp")}
                 checked={winCelebration}
                 onToggle={toggleWinCelebration}
+            />
+            <ToggleRow
+                label={t("settings.hideBusted")}
+                description={t("settings.hideBustedHelp")}
+                checked={hideBustedPlayers}
+                onToggle={toggleHideBustedPlayers}
             />
             <ToggleRow
                 label={t("settings.potChips")}

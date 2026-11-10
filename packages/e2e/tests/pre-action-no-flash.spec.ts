@@ -39,7 +39,7 @@ test("a fired pre-action keeps the betting bar hidden", async ({ page }) => {
 
     await test.step("sit down", async () => {
         await page.goto(`/table/${CASH_GAME_ID}?autonewhand=false`);
-        await expect(page.getByText("Click to Join").first()).toBeVisible({ timeout: 15_000 });
+        await expect(page.getByRole("button", { name: /^Sit in seat \d+$/ }).first()).toBeVisible({ timeout: 15_000 });
         await page.getByText(`Seat ${SEAT}`, { exact: true }).click();
         await page.getByRole("button", { name: new RegExp(`Confirm & Join Seat ${SEAT}`, "i") }).click();
     });

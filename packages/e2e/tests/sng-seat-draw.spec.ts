@@ -39,12 +39,13 @@ test("a spectator sees open seats, and an open seat joins a drawn seat", async (
   await page.goto(`/table/${SNG_GAME_ID}`);
   await page.getByTestId("sng-spectate").click({ timeout: 15_000 });
 
-  // Five open seats (six minus the bot), none offered by number.
-  await expect(page.getByText("Open Seat", { exact: true })).toHaveCount(5);
-  await expect(page.getByText(/^Seat \d$/)).toHaveCount(0);
+  // Five EMPTY seats (six minus the bot), none offered by number (ui#872).
+  await expect(page.getByRole("button", { name: "Open Seat", exact: true })).toHaveCount(5);
+  await expect(page.getByText("EMPTY", { exact: true })).toHaveCount(5);
+  await expect(page.getByRole("button", { name: /^Sit in seat \d$/ })).toHaveCount(0);
   await page.screenshot({ path: `${SHOTS}sng-seat-draw-open-seats.png` });
 
-  await page.getByText("Open Seat", { exact: true }).first().click();
+  await page.getByRole("button", { name: "Open Seat", exact: true }).first().click();
   await expect(page.getByRole("heading", { name: "Sit & Go Buy-In" })).toBeVisible();
   await expect(page.getByRole("button", { name: "Confirm & Join", exact: true })).toBeVisible();
   await expect(page.getByTestId("seat-draw-note")).toHaveText("Your seat is drawn at random");
@@ -58,9 +59,9 @@ test("a spectator sees open seats, and an open seat joins a drawn seat", async (
 
 test("a cash table still names the seat you pick", async ({ page }) => {
   await page.goto(`/table/${CASH_GAME_ID}`);
-  await expect(page.getByText("Seat 2", { exact: true })).toBeVisible({ timeout: 15_000 });
-  await expect(page.getByText("Open Seat", { exact: true })).toHaveCount(0);
-  await page.getByText("Seat 2", { exact: true }).click();
+  await expect(page.getByRole("button", { name: "Sit in seat 2" })).toBeVisible({ timeout: 15_000 });
+  await expect(page.getByRole("button", { name: "Open Seat", exact: true })).toHaveCount(0);
+  await page.getByRole("button", { name: "Sit in seat 2" }).click();
   await expect(page.getByRole("button", { name: "Confirm & Join Seat 2" })).toBeVisible();
   await expect(page.getByTestId("seat-draw-note")).toHaveCount(0);
 });

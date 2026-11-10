@@ -27,6 +27,7 @@ const LS_KEY_STACKS_BB_TOURNAMENT = "setting_stacksbbtournament";
 const LS_KEY_SITIN_OPTIONS = "setting_sitinoptions";
 const LS_KEY_PRE_SELECT_CHECK = "setting_preselectcheck";
 const LS_KEY_WIN_CELEBRATION = "setting_wincelebration";
+const LS_KEY_HIDE_BUSTED = "setting_hidebusted";
 const LS_KEY_POT_AS_CHIPS = "setting_potaschips";
 const LS_KEY_CHIP_STYLE = "setting_chipstyle";
 
@@ -66,6 +67,10 @@ export interface GameSettings {
     // (ui#847). Turn OFF for a calmer table — the pot still awards, just without
     // the animation. Pairs with the winner banner (ui#848).
     winCelebration: boolean;
+    // When ON (default), a player who busts out of a Sit & Go or tournament
+    // disappears from the table: their seat goes completely blank. When OFF they
+    // stay on the table, dimmed.
+    hideBustedPlayers: boolean;
     // When OFF (default), the pot shows as plain "Total Pot: $x" text. When ON, it
     // shows as a chip stack + amount pill with a POT caption, matching the player
     // bets on the table (ui#772).
@@ -92,6 +97,7 @@ export interface GameSettingsContextValue extends GameSettings {
     toggleSitInOptions: () => void;
     togglePreSelectCheck: () => void;
     toggleWinCelebration: () => void;
+    toggleHideBustedPlayers: () => void;
     togglePotAsChips: () => void;
     setChipStyle: (id: string) => void;
 }
@@ -136,6 +142,9 @@ export const GameSettingsProvider: React.FC<{ children: React.ReactNode }> = ({ 
     );
     const [winCelebration, setWinCelebration] = useState<boolean>(() =>
         readBoolSetting(LS_KEY_WIN_CELEBRATION, true)
+    );
+    const [hideBustedPlayers, setHideBustedPlayers] = useState<boolean>(() =>
+        readBoolSetting(LS_KEY_HIDE_BUSTED, true)
     );
     const [potAsChips, setPotAsChips] = useState<boolean>(() =>
         readBoolSetting(LS_KEY_POT_AS_CHIPS, false)
@@ -255,6 +264,14 @@ export const GameSettingsProvider: React.FC<{ children: React.ReactNode }> = ({ 
         });
     }, []);
 
+    const toggleHideBustedPlayers = useCallback(() => {
+        setHideBustedPlayers(prev => {
+            const next = !prev;
+            localStorage.setItem(LS_KEY_HIDE_BUSTED, String(next));
+            return next;
+        });
+    }, []);
+
     const togglePotAsChips = useCallback(() => {
         setPotAsChips(prev => {
             const next = !prev;
@@ -285,6 +302,7 @@ export const GameSettingsProvider: React.FC<{ children: React.ReactNode }> = ({ 
             sitInOptions,
             preSelectCheck,
             winCelebration,
+            hideBustedPlayers,
             potAsChips,
             chipStyle,
             toggleAutoDeal,
@@ -301,6 +319,7 @@ export const GameSettingsProvider: React.FC<{ children: React.ReactNode }> = ({ 
             toggleSitInOptions,
             togglePreSelectCheck,
             toggleWinCelebration,
+            toggleHideBustedPlayers,
             togglePotAsChips,
             setChipStyle
         }),
@@ -319,6 +338,7 @@ export const GameSettingsProvider: React.FC<{ children: React.ReactNode }> = ({ 
             sitInOptions,
             preSelectCheck,
             winCelebration,
+            hideBustedPlayers,
             potAsChips,
             chipStyle,
             toggleAutoDeal,
@@ -334,6 +354,7 @@ export const GameSettingsProvider: React.FC<{ children: React.ReactNode }> = ({ 
             toggleSitInOptions,
             togglePreSelectCheck,
             toggleWinCelebration,
+            toggleHideBustedPlayers,
             togglePotAsChips,
             setChipStyle
         ]

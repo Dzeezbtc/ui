@@ -3,9 +3,13 @@
  *
  * Represents an empty seat at the poker table.
  *
- * Behavior:
- * - For users not yet seated: clicking opens the buy-in modal to join
- * - For users already seated: vacant seats are non-interactive (just visual)
+ * Look (ui#872): a small marker instead of an avatar and "Seat N / Click to Join".
+ * - Cash games: a dark circle with a "+". Clicking it opens the buy-in modal.
+ * - Sit & Go / tournaments: a recessed circle reading "EMPTY". Clicking it joins
+ *   with a seat drawn at random (ui#969) until the tournament starts; after that
+ *   PlayerSeating leaves empty seats blank (utils/seatDisplay).
+ * While the viewer is already seated, or the seat can't be taken, the marker shows
+ * without the "+" or hover ring and does nothing.
  *
  * Props:
  * - left/top: Position on the table
@@ -16,7 +20,6 @@ import * as React from "react";
 import { memo, useState, useMemo, useCallback } from "react";
 import { createPortal } from "react-dom";
 import { useTableId } from "../../../context/TableIdContext";
-import PokerProfile from "../../../assets/PokerProfile.svg";
 
 import { useVacantSeatData } from "../../../hooks/game/useVacantSeatData";
 import { useGameStateContext } from "../../../context/GameStateContext";
@@ -30,7 +33,8 @@ import { useCosmosWallet } from "../../../hooks";
 import { microToUsdc } from "../../../constants/currency";
 import { hasElements, isNullish } from "../../../utils/guards";
 import { seatsAreDrawn } from "../../../utils/seatDraw";
-import { joinSeatButtonLabel, seatDrawNote, vacantSeatText } from "../../../utils/vacantSeatText";
+import { joinSeatButtonLabel, seatDrawNote, vacantSeatMarker } from "../../../utils/vacantSeatText";
+import { viteEnv } from "../../../utils/viteEnv";
 import { useNetwork } from "../../../context/NetworkContext";
 import styles from "./VacantPlayer.module.css";
 import { USDCDepositModal } from "../../modals";
@@ -226,9 +230,9 @@ const VacantPlayer: React.FC<VacantPlayerProps & { uiPosition?: number }> = memo
             [left, top]
         );
 
-        // Memoize seat text
-        const seatText = useMemo(
-            () => vacantSeatText(index, isUserAlreadyPlaying, canJoinThisSeat, seatDrawn),
+        // The seat's marker: + (cash) or EMPTY (drawn seats), and whether it can be taken.
+        const marker = useMemo(
+            () => vacantSeatMarker(index, isUserAlreadyPlaying, canJoinThisSeat, seatDrawn),
             [isUserAlreadyPlaying, canJoinThisSeat, index, seatDrawn, language]
         );
 
@@ -239,9 +243,9 @@ const VacantPlayer: React.FC<VacantPlayerProps & { uiPosition?: number }> = memo
         }, []);
         return (
             <>
-                <div className="absolute cursor-pointer transform -translate-x-1/2 -translate-y-1/2" style={containerStyle} onClick={handleSeatClick}>
+                <div className="absolute transform -translate-x-1/2 -translate-y-1/2" style={containerStyle} data-testid={`vacant-seat-${index}`}>
                     {/* Development Mode Debug Info */}
-                    {import.meta.env.VITE_NODE_ENV === "development" && (
+                    {viteEnv.VITE_NODE_ENV === "development" && (
                         <div className="absolute top-[-50px] left-1/2 transform -translate-x-1/2 bg-gray-600 bg-opacity-80 text-white px-2 py-1 rounded text-[10px] whitespace-nowrap z-50 border border-gray-400">
                             <div className="text-gray-300">UI Pos: {uiPosition ?? "N/A"}</div>
                             <div className="text-yellow-300">Vacant Seat: {index}</div>
@@ -250,13 +254,16 @@ const VacantPlayer: React.FC<VacantPlayerProps & { uiPosition?: number }> = memo
                             </div>
                         </div>
                     )}
-                    <div className="flex justify-center mb-2">
-                        <img src={PokerProfile} className="w-12 h-12" alt="Vacant Seat" />
-                    </div>
-                    <div className={`text-center ${styles.seatText}`}>
-                        <div className="text-lg sm:text-sm mb-1 whitespace-nowrap font-medium">{seatText.title}</div>
-                        {seatText.subtitle && <div className="text-base sm:text-xs whitespace-nowrap">{seatText.subtitle}</div>}
-                    </div>
+                    <button
+                        type="button"
+                        className={`${marker.kind === "empty" ? styles.emptySeat : styles.openSeat} ${marker.joinable ? styles.joinable : ""}`}
+                        aria-label={marker.label}
+                        title={marker.label}
+                        disabled={!marker.joinable}
+                        onClick={handleSeatClick}
+                    >
+                        {marker.kind === "empty" ? t("felt.empty") : marker.joinable && <span className={styles.plus} aria-hidden="true" />}
+                    </button>
 
                     {/* Dealer Button - TODO: Implement framer motion animation in future iteration */}
                     {/* Dealer Button — rendered at table level using geometry positions */}
