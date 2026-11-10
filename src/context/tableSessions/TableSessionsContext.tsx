@@ -3,6 +3,8 @@ import {
     sessionsReducer,
     emptySessions,
     canOpenMore,
+    clampBubble,
+    BubblePosition,
     OpenTable,
     SessionsState,
     TableStatus
@@ -30,7 +32,14 @@ function loadPersisted(): Persisted | null {
         if (!parsed || !Array.isArray(parsed.openTables)) return null;
         const openTables: OpenTable[] = parsed.openTables
             .filter((t: unknown): t is OpenTable => !!t && typeof (t as OpenTable).id === "string")
-            .map((t: OpenTable) => ({ id: t.id, name: typeof t.name === "string" ? t.name : undefined }));
+            .map((t: OpenTable) => ({
+                id: t.id,
+                name: typeof t.name === "string" ? t.name : undefined,
+                bubble:
+                    t.bubble && typeof t.bubble.x === "number" && typeof t.bubble.y === "number"
+                        ? clampBubble(t.bubble)
+                        : undefined
+            }));
         const activeId = typeof parsed.activeId === "string" ? parsed.activeId : null;
         return { openTables, activeId };
     } catch {
@@ -48,6 +57,10 @@ export interface TableSessionsContextValue {
     setActive: (id: string) => void;
     /** Move a table to a new position in the pill bar (drag-to-reorder). */
     moveTable: (id: string, toIndex: number) => void;
+    /** Float a table out of the header as a bubble at `position`, or move its bubble (ui#887). */
+    floatTable: (id: string, position: BubblePosition) => void;
+    /** Dock a bubble back into the header as a pill at `toIndex` (ui#887). */
+    dockTable: (id: string, toIndex: number) => void;
     /** Live tables call this to push their turn/hole-card status up to the pills. */
     reportStatus: (id: string, status: TableStatus) => void;
 }
@@ -97,6 +110,8 @@ export const TableSessionsProvider: React.FC<TableSessionsProviderProps> = ({ ch
             closeTable: id => dispatch({ type: "CLOSE", id }),
             setActive: id => dispatch({ type: "SET_ACTIVE", id }),
             moveTable: (id, toIndex) => dispatch({ type: "MOVE", id, toIndex }),
+            floatTable: (id, position) => dispatch({ type: "FLOAT", id, position }),
+            dockTable: (id, toIndex) => dispatch({ type: "DOCK", id, toIndex }),
             reportStatus: (id, status) => dispatch({ type: "REPORT", id, status })
         }),
         [state]

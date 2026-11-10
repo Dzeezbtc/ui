@@ -1,6 +1,6 @@
 import React from "react";
 import { render, screen, fireEvent } from "@testing-library/react";
-import { TablePillBar, TablePillBarProps, dropIndexFor, shiftFor } from "./TablePillBar";
+import { TablePillBar, TablePillBarProps, dropIndexFor, shiftFor, dockIndexAt, PULL_OUT_PX } from "./TablePillBar";
 import { OpenTable, TableStatus } from "../../context/tableSessions/sessionsModel";
 
 // jsdom has no real image loading; getCardImageUrl just returns a string src, fine here.
@@ -15,6 +15,7 @@ const renderBar = (over: Partial<TablePillBarProps> = {}) => {
     const onClose = jest.fn();
     const onAddTable = jest.fn();
     const onReorder = jest.fn();
+    const onFloat = jest.fn();
     const props: TablePillBarProps = {
         openTables: tables,
         activeId: "0xAAAA1111",
@@ -24,10 +25,11 @@ const renderBar = (over: Partial<TablePillBarProps> = {}) => {
         onClose,
         onAddTable,
         onReorder,
+        onFloat,
         ...over
     };
     const utils = render(<TablePillBar {...props} />);
-    return { ...utils, onSelect, onClose, onAddTable, onReorder };
+    return { ...utils, onSelect, onClose, onAddTable, onReorder, onFloat };
 };
 
 describe("TablePillBar", () => {
@@ -179,6 +181,70 @@ describe("TablePillBar", () => {
             expect([0, 1, 2, 3].map(i => shiftFor(i, 0, 2, 108))).toEqual([0, -108, -108, 0]);
             // Dragging index 3 to index 1: pills 1 and 2 slide right.
             expect([0, 1, 2, 3].map(i => shiftFor(i, 3, 1, 108))).toEqual([0, 108, 108, 0]);
+        });
+    });
+
+    describe("pull out into a bubble (ui#887)", () => {
+        const box = (left: number, top: number, width: number, height: number) =>
+            () => ({ left, top, right: left + width, bottom: top + height, width, height, x: left, y: top, toJSON: () => ({}) }) as DOMRect;
+        const layOut = () => {
+            (document.querySelector(".b52-pill-bar") as HTMLElement).getBoundingClientRect = box(0, 60, 300, 32);
+            screen.getAllByRole("tab").forEach((el, i) => {
+                el.getBoundingClientRect = box(i * 108, 63, 100, 26);
+            });
+        };
+        const pointer = (type: string, clientX: number, clientY: number) => {
+            const ev = new MouseEvent(type, { bubbles: true, clientX, clientY, button: 0 });
+            Object.assign(ev, { pointerId: 1, pointerType: "mouse" });
+            return ev;
+        };
+
+        it("dragging a pill down out of the bar floats it at the drop point", () => {
+            const { onFloat, onReorder, onSelect } = renderBar();
+            layOut();
+            const alpha = screen.getByText("Alpha").closest('[role="tab"]') as HTMLElement;
+
+            fireEvent(alpha, pointer("pointerdown", 50, 76));
+            fireEvent(window, pointer("pointermove", 60, 120));
+            fireEvent(window, pointer("pointermove", 300, 92 + PULL_OUT_PX + 200));
+            // A bubble preview follows the pointer while pulling out.
+            expect(screen.getByTestId("table-bubble-ghost")).toBeInTheDocument();
+            fireEvent(window, pointer("pointerup", 300, 92 + PULL_OUT_PX + 200));
+            fireEvent.click(alpha);
+
+            expect(onFloat).toHaveBeenCalledWith("0xAAAA1111", 300, 92 + PULL_OUT_PX + 200);
+            expect(onReorder).not.toHaveBeenCalled();
+            expect(onSelect).not.toHaveBeenCalled();
+            expect(screen.queryByTestId("table-bubble-ghost")).not.toBeInTheDocument();
+        });
+
+        it("a drag that stays near the bar still reorders instead of floating", () => {
+            const { onFloat, onReorder } = renderBar();
+            layOut();
+            const alpha = screen.getByText("Alpha").closest('[role="tab"]') as HTMLElement;
+
+            fireEvent(alpha, pointer("pointerdown", 50, 76));
+            fireEvent(window, pointer("pointermove", 170, 92 + PULL_OUT_PX - 5));
+            fireEvent(window, pointer("pointerup", 170, 92 + PULL_OUT_PX - 5));
+
+            expect(onFloat).not.toHaveBeenCalled();
+            expect(onReorder).toHaveBeenCalledWith("0xAAAA1111", 1);
+        });
+
+        it("dockIndexAt finds the drop slot over the bar, and null elsewhere", () => {
+            renderBar();
+            layOut();
+            expect(dockIndexAt(10, 76)).toBe(0);
+            // Pill centres are at 50 and 158.
+            expect(dockIndexAt(120, 76)).toBe(1);
+            expect(dockIndexAt(290, 76)).toBe(2);
+            expect(dockIndexAt(160, 400)).toBeNull();
+        });
+
+        it("can stay on screen with no pills, so a bubble can dock back", () => {
+            renderBar({ openTables: [], showWhenEmpty: true });
+            expect(screen.getByRole("tablist")).toBeInTheDocument();
+            expect(screen.getByLabelText("Open another table")).toBeInTheDocument();
         });
     });
 });

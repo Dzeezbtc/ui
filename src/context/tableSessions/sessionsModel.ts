@@ -10,10 +10,24 @@
 /** The most tables a player may have open at once. */
 export const MAX_OPEN_TABLES = 4;
 
-/** One open table in the bar. `name` is best-effort (filled once its state loads). */
+/**
+ * Where a floating table bubble sits (ui#887): its centre as a fraction of the
+ * viewport (0–1 on each axis), so it stays in place proportionally on resize.
+ */
+export interface BubblePosition {
+    x: number;
+    y: number;
+}
+
+/** One open table. `name` is best-effort (filled once its state loads). */
 export interface OpenTable {
     id: string;
     name?: string;
+    /**
+     * Set when the table has been pulled out of the header into a floating
+     * bubble (ui#887); absent while it is a pill in the header bar.
+     */
+    bubble?: BubblePosition;
 }
 
 /** The live, per-table snapshot the pill renders (reported by each live table). */
@@ -38,6 +52,8 @@ export type SessionsAction =
     | { type: "CLOSE"; id: string }
     | { type: "SET_ACTIVE"; id: string }
     | { type: "MOVE"; id: string; toIndex: number }
+    | { type: "FLOAT"; id: string; position: BubblePosition }
+    | { type: "DOCK"; id: string; toIndex: number }
     | { type: "REPORT"; id: string; status: TableStatus }
     | { type: "HYDRATE"; openTables: OpenTable[]; activeId: string | null };
 
@@ -61,7 +77,11 @@ export function sessionsReducer(state: SessionsState, action: SessionsAction): S
         }
         case "CLOSE": {
             if (!has(state.openTables, action.id)) return state;
-            const openTables = state.openTables.filter(t => t.id !== action.id);
+            let openTables = state.openTables.filter(t => t.id !== action.id);
+            // A lone table has no pill bar to dock into, so it can't stay a bubble (ui#887).
+            if (openTables.length === 1 && openTables[0].bubble) {
+                openTables = [{ id: openTables[0].id, name: openTables[0].name }];
+            }
             // Drop the closed table's status so it can't leak into a later reopen.
             const statusById = { ...state.statusById };
             delete statusById[action.id];
@@ -75,14 +95,26 @@ export function sessionsReducer(state: SessionsState, action: SessionsAction): S
             return has(state.openTables, action.id) ? { ...state, activeId: action.id } : state;
         }
         case "MOVE": {
-            // Drag-to-reorder in the pill bar: move a table to a new position.
-            const from = state.openTables.findIndex(t => t.id === action.id);
-            if (from < 0) return state;
-            const to = Math.max(0, Math.min(state.openTables.length - 1, Math.trunc(action.toIndex)));
-            if (to === from) return state;
-            const openTables = [...state.openTables];
-            const [moved] = openTables.splice(from, 1);
-            openTables.splice(to, 0, moved);
+            // Drag-to-reorder in the pill bar. `toIndex` is a position among the
+            // header pills (tables not floated as bubbles).
+            const table = state.openTables.find(t => t.id === action.id);
+            if (!table || table.bubble) return state;
+            const openTables = placeAmongPills(state.openTables, table, action.toIndex);
+            return openTables === state.openTables ? state : { ...state, openTables };
+        }
+        case "FLOAT": {
+            // Pull a table out of the header into a floating bubble, or move a bubble.
+            if (!has(state.openTables, action.id)) return state;
+            const position = clampBubble(action.position);
+            const openTables = state.openTables.map(t => (t.id === action.id ? { ...t, bubble: position } : t));
+            return { ...state, openTables };
+        }
+        case "DOCK": {
+            // Drop a bubble back into the header bar as a pill at `toIndex`.
+            const table = state.openTables.find(t => t.id === action.id);
+            if (!table) return state;
+            const docked: OpenTable = { id: table.id, name: table.name };
+            const openTables = placeAmongPills(state.openTables, docked, action.toIndex, true);
             return { ...state, openTables };
         }
         case "REPORT": {
@@ -108,6 +140,33 @@ export function sessionsReducer(state: SessionsState, action: SessionsAction): S
         default:
             return state;
     }
+}
+
+/** Keep a bubble's centre inside the viewport (as 0–1 fractions). */
+export const clampBubble = (p: BubblePosition): BubblePosition => ({
+    x: Math.min(1, Math.max(0, Number.isFinite(p.x) ? p.x : 0.5)),
+    y: Math.min(1, Math.max(0, Number.isFinite(p.y) ? p.y : 0.5))
+});
+
+/** The tables shown as pills in the header, in order. */
+export const dockedTables = (tables: OpenTable[]): OpenTable[] => tables.filter(t => !t.bubble);
+
+/** The tables floated out as bubbles. */
+export const floatingTables = (tables: OpenTable[]): OpenTable[] => tables.filter(t => !!t.bubble);
+
+/**
+ * Put `table` at position `toIndex` among the header pills; bubbles keep their
+ * relative order after the pills. Returns the same array when nothing changes.
+ * `replace` swaps in the given object even if the order is unchanged (docking).
+ */
+function placeAmongPills(tables: OpenTable[], table: OpenTable, toIndex: number, replace = false): OpenTable[] {
+    const pills = dockedTables(tables).filter(t => t.id !== table.id);
+    const bubbles = floatingTables(tables).filter(t => t.id !== table.id);
+    const to = Math.max(0, Math.min(pills.length, Math.trunc(toIndex)));
+    const nextPills = [...pills.slice(0, to), table, ...pills.slice(to)];
+    const next = [...nextPills, ...bubbles];
+    const unchanged = !replace && next.every((t, i) => t.id === tables[i]?.id) && next.length === tables.length;
+    return unchanged ? tables : next;
 }
 
 /** Whether another table can still be opened. */

@@ -3,6 +3,9 @@ import {
     emptySessions,
     canOpenMore,
     MAX_OPEN_TABLES,
+    clampBubble,
+    dockedTables,
+    floatingTables,
     SessionsState,
     TableStatus
 } from "./sessionsModel";
@@ -142,6 +145,53 @@ describe("sessionsReducer — HYDRATE", () => {
             expect(ids(sessionsReducer(three, { type: "MOVE", id: "a", toIndex: 99 }))).toEqual(["b", "c", "a"]);
             expect(sessionsReducer(three, { type: "MOVE", id: "zzz", toIndex: 0 })).toBe(three);
             expect(sessionsReducer(three, { type: "MOVE", id: "b", toIndex: 1 })).toBe(three);
+        });
+    });
+
+    describe("floating bubbles (ui#887)", () => {
+        const ids = (ts: { id: string }[]) => ts.map(t => t.id);
+        const three = ["a", "b", "c"].reduce((st, id) => sessionsReducer(st, { type: "OPEN", id }), emptySessions);
+
+        it("FLOAT pulls a table out of the pills and remembers where it sits", () => {
+            const st = sessionsReducer(three, { type: "FLOAT", id: "b", position: { x: 0.2, y: 0.8 } });
+            expect(ids(dockedTables(st.openTables))).toEqual(["a", "c"]);
+            expect(floatingTables(st.openTables)).toEqual([{ id: "b", name: undefined, bubble: { x: 0.2, y: 0.8 } }]);
+            // Floating doesn't change which table is active.
+            expect(st.activeId).toBe(three.activeId);
+        });
+
+        it("FLOAT again moves the bubble, clamped to the viewport", () => {
+            let st = sessionsReducer(three, { type: "FLOAT", id: "b", position: { x: 0.2, y: 0.8 } });
+            st = sessionsReducer(st, { type: "FLOAT", id: "b", position: { x: 1.4, y: -0.3 } });
+            expect(st.openTables.find(t => t.id === "b")?.bubble).toEqual({ x: 1, y: 0 });
+        });
+
+        it("DOCK puts a bubble back as a pill at the drop position", () => {
+            let st = sessionsReducer(three, { type: "FLOAT", id: "c", position: { x: 0.5, y: 0.5 } });
+            st = sessionsReducer(st, { type: "DOCK", id: "c", toIndex: 0 });
+            expect(ids(st.openTables)).toEqual(["c", "a", "b"]);
+            expect(floatingTables(st.openTables)).toEqual([]);
+        });
+
+        it("MOVE indexes among the pills only, leaving bubbles alone", () => {
+            let st = sessionsReducer(three, { type: "FLOAT", id: "a", position: { x: 0.5, y: 0.5 } });
+            st = sessionsReducer(st, { type: "MOVE", id: "c", toIndex: 0 });
+            expect(ids(dockedTables(st.openTables))).toEqual(["c", "b"]);
+            expect(ids(floatingTables(st.openTables))).toEqual(["a"]);
+            // A bubble can't be reordered as if it were a pill.
+            expect(sessionsReducer(st, { type: "MOVE", id: "a", toIndex: 0 })).toBe(st);
+        });
+
+        it("closing down to one table docks a lone bubble (no bar to dock it into)", () => {
+            const two = ["a", "b"].reduce((st, id) => sessionsReducer(st, { type: "OPEN", id }), emptySessions);
+            let st = sessionsReducer(two, { type: "FLOAT", id: "b", position: { x: 0.5, y: 0.5 } });
+            st = sessionsReducer(st, { type: "CLOSE", id: "a" });
+            expect(st.openTables).toEqual([{ id: "b", name: undefined }]);
+        });
+
+        it("clampBubble keeps fractions in range and repairs bad numbers", () => {
+            expect(clampBubble({ x: -1, y: 2 })).toEqual({ x: 0, y: 1 });
+            expect(clampBubble({ x: NaN, y: 0.3 })).toEqual({ x: 0.5, y: 0.3 });
         });
     });
 });

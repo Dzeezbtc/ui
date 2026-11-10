@@ -114,4 +114,27 @@ describe("MultiTableWorkspace", () => {
         expect(screen.getByTestId("table-table-two")).toContainElement(screen.getByRole("tablist"));
         expect(screen.getByTestId("table-table-one")).toBeEmptyDOMElement();
     });
+
+    it("restores a floated table as a bubble after a reload (ui#887)", () => {
+        localStorage.setItem(
+            "b52.multitable.v1",
+            JSON.stringify({
+                openTables: [{ id: "table-one" }, { id: "table-two", name: "Two", bubble: { x: 0.25, y: 0.75 } }],
+                activeId: "table-one"
+            })
+        );
+
+        renderAt("table-one");
+
+        const bubble = screen.getByTestId("table-bubble-table-two");
+        expect(bubble).toHaveAttribute("aria-label", "Two");
+        expect(bubble.style.left).toBe(`${0.25 * window.innerWidth}px`);
+        // It is a bubble instead of a pill, never both.
+        expect(screen.queryByRole("tab", { name: "Two" })).not.toBeInTheDocument();
+
+        // Clicking the bubble switches to its table.
+        fireEvent.pointerDown(bubble, { pointerId: 1, pointerType: "mouse", button: 0, clientX: 10, clientY: 10 });
+        fireEvent.pointerUp(window, { pointerId: 1, pointerType: "mouse", clientX: 10, clientY: 10 });
+        expect(screen.getByTestId("location")).toHaveTextContent("/table/table-two");
+    });
 });
