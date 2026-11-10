@@ -1,22 +1,18 @@
-import { joinSeatButtonLabel, vacantSeatText } from "./vacantSeatText";
+import { joinSeatButtonLabel, vacantSeatMarker } from "./vacantSeatText";
 
-describe("vacantSeatText", () => {
-    it("names the seat at a cash table", () => {
-        expect(vacantSeatText(4, false, true, false)).toEqual({ title: "Seat 4", subtitle: "Click to Join" });
+describe("vacantSeatMarker", () => {
+    it("is a + to sit at a cash table, naming the seat", () => {
+        expect(vacantSeatMarker(4, false, true, false)).toEqual({ kind: "plus", joinable: true, label: "Sit in seat 4" });
     });
 
-    it("doesn't name a seat when the seat is drawn", () => {
-        expect(vacantSeatText(4, false, true, true)).toEqual({ title: "Open Seat", subtitle: "Click to Join" });
+    it("is an EMPTY circle where seats are drawn, without naming a seat", () => {
+        expect(vacantSeatMarker(4, false, true, true)).toEqual({ kind: "empty", joinable: true, label: "Open Seat" });
     });
 
-    it("says the seat is taken when it can't be joined", () => {
-        expect(vacantSeatText(2, false, false, false)).toEqual({ title: "Seat 2", subtitle: "Seat Taken" });
-        expect(vacantSeatText(2, false, false, true)).toEqual({ title: "Open Seat", subtitle: "Seat Taken" });
-    });
-
-    it("is a plain vacant seat for a player already at the table", () => {
-        expect(vacantSeatText(3, true, false, false)).toEqual({ title: "Vacant Seat", subtitle: null });
-        expect(vacantSeatText(3, true, false, true)).toEqual({ title: "Vacant Seat", subtitle: null });
+    it("can't be taken when the seat is taken or the viewer is already seated", () => {
+        expect(vacantSeatMarker(2, false, false, false)).toEqual({ kind: "plus", joinable: false, label: "Seat 2, open" });
+        expect(vacantSeatMarker(3, true, true, false)).toEqual({ kind: "plus", joinable: false, label: "Seat 3, open" });
+        expect(vacantSeatMarker(3, true, true, true)).toEqual({ kind: "empty", joinable: false, label: "Seat 3, empty" });
     });
 });
 

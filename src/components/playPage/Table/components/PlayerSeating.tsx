@@ -23,6 +23,9 @@ import TurnAnimation from "../../Animations/TurnAnimation";
 import WinAnimation from "../../Animations/WinAnimation";
 import { CardBackStyle } from "../../../../utils/cardImages";
 import { useGameSettings } from "../../../../context/GameSettingsContext";
+import { useGameStateContext } from "../../../../context/GameStateContext";
+import { hasTournamentStarted } from "../../../../utils/scheduledSng";
+import { playersLeft, seatDisplay } from "../../../../utils/seatDisplay";
 
 // Memoize TurnAnimation
 const MemoizedTurnAnimation = React.memo(TurnAnimation);
@@ -81,7 +84,10 @@ export const PlayerSeating: React.FC<PlayerSeatingProps> = ({
         return bySeat;
     }, [tableDataPlayers]);
 
-    const { winCelebration } = useGameSettings();
+    const { winCelebration, hideBustedPlayers } = useGameSettings();
+    const { gameState, gameFormat } = useGameStateContext();
+    const tournamentStarted = React.useMemo(() => hasTournamentStarted(gameState), [gameState]);
+    const stillIn = React.useMemo(() => playersLeft(tableActivePlayers.map(p => p.status)), [tableActivePlayers]);
 
     const winnerSeats = React.useMemo(() => {
         const seats = new Set<number>();
@@ -150,6 +156,20 @@ export const PlayerSeating: React.FC<PlayerSeatingProps> = ({
                 onJoin: updateBalanceOnPlayerJoin
             };
 
+            // Sit & Go / tournament with "Hide busted players" on: a busted player's
+            // seat (once their last hand is over), and any empty seat once play has
+            // started, shows nothing at all.
+            const display = seatDisplay({
+                hasPlayer: !!playerAtThisSeat,
+                playerStatus: playerAtThisSeat?.status,
+                gameFormat,
+                tournamentStarted,
+                hideBusted: hideBustedPlayers,
+                round: gameState?.round,
+                playersLeft: stillIn
+            });
+            if (display === "blank") return null;
+
             // CASE 1: No player at this seat - render vacant position
             if (!playerAtThisSeat) {
                 return (
@@ -171,7 +191,7 @@ export const PlayerSeating: React.FC<PlayerSeatingProps> = ({
                 <OppositePlayer {...playerProps} uiPosition={positionIndex} cardBackStyle={cardBackStyle} />
             );
         },
-        [activePlayerBySeat, userWalletAddress, currentIndex, dataPlayerBySeat, tableSize, startIndex, updateBalanceOnPlayerJoin, tableLayout, cardBackStyle, seatColorByNumber]
+        [activePlayerBySeat, userWalletAddress, currentIndex, dataPlayerBySeat, tableSize, startIndex, updateBalanceOnPlayerJoin, tableLayout, cardBackStyle, seatColorByNumber, gameFormat, tournamentStarted, hideBustedPlayers, gameState?.round, stillIn]
     );
 
     // Render all player positions

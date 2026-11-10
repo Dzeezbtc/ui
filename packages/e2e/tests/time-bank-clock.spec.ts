@@ -44,8 +44,8 @@ test("the alarm clock arms the bank, the turn clock runs out first, then the ban
 
     await test.step("sit down; pre-flop comes to us", async () => {
         await page.goto(`/table/${CASH_GAME_ID}?autonewhand=false&autofold=false`);
-        await expect(page.getByText("Click to Join").first()).toBeVisible({ timeout: 15_000 });
-        await page.getByText(`Seat ${SEAT}`, { exact: true }).click();
+        await expect(page.getByRole("button", { name: /^Sit in seat \d+$/ }).first()).toBeVisible({ timeout: 15_000 });
+        await page.getByRole("button", { name: `Sit in seat ${SEAT}` }).click();
         await page.getByRole("button", { name: new RegExp(`Confirm & Join Seat ${SEAT}`, "i") }).click();
         await expect(page.locator(".btn-call")).toBeVisible({ timeout: 15_000 });
     });

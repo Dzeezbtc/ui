@@ -34,6 +34,28 @@ describe("GameSettingsContext — win celebration (ui#847)", () => {
     });
 });
 
+describe("GameSettingsContext — hide busted players", () => {
+    beforeEach(() => {
+        localStorage.clear();
+    });
+
+    it("hides busted players by default", () => {
+        const { result } = renderHook(() => useGameSettings(), { wrapper });
+        expect(result.current.hideBustedPlayers).toBe(true);
+    });
+
+    it("can keep them on the table instead, and remembers that", () => {
+        const { result, unmount } = renderHook(() => useGameSettings(), { wrapper });
+        act(() => result.current.toggleHideBustedPlayers());
+        expect(result.current.hideBustedPlayers).toBe(false);
+        expect(localStorage.getItem("setting_hidebusted")).toBe("false");
+        unmount();
+
+        const again = renderHook(() => useGameSettings(), { wrapper });
+        expect(again.result.current.hideBustedPlayers).toBe(false);
+    });
+});
+
 describe("GameSettingsContext — pot as chips (ui#772)", () => {
     beforeEach(() => {
         localStorage.clear();
