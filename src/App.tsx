@@ -47,7 +47,13 @@ import { generateCSSVariables } from "./utils/colorConfig";
 import { useEffect, useState, lazy, Suspense } from "react";
 import FaviconSetter from "./components/FaviconSetter";
 import { ErrorBoundary } from "./components/common/ErrorBoundary";
+import ClubLoginPage from "./pages/ClubLoginPage";
+import ClubPage from "./pages/ClubPage";
+import ClubProofPage from "./pages/ClubProofPage";
+import { ClubNotifier } from "./components/ClubNotifier";
+import { ClubApiProvider } from "./context/ClubApiContext";
 import { GlobalHeader } from "./components/GlobalHeader";
+import { ClubMessages } from "./components/ClubMessages";
 import { ProfileAvatarProvider } from "./context/profile/ProfileAvatarContext";
 import { ProfileAvatarModal } from "./components/profile";
 import { PaymentApiProvider } from "./context/PaymentApiContext";
@@ -117,17 +123,22 @@ function AppContent() {
         <div className="bg-[#2c3245] min-h-screen">
             <FaviconSetter />
             <GlobalHeader />
+            <ClubMessages />
             <ProfileAvatarModal />
             {/* poker-vm#2097: a throw inside a page shows an error page, not a white
                 screen; keyed by path so navigating away resets it. */}
             <ErrorBoundary key={location.pathname} showDetails={import.meta.env.DEV}>
             {/* ui#779: lazy routes need a Suspense boundary for their load state. */}
             <Suspense fallback={<RouteFallback />}>
+            <ClubNotifier />
             <Routes>
                 <Route path="/test-sdk" element={<TestSdk />} />
                 <Route path="/table/:id" element={<MultiTableRoute />} />
                 <Route path="/table/admin" element={<TableAdminPage />} /> {/* Legacy - keep for backwards compat */}
                 <Route path="/wallet" element={<CosmosWalletPage />} />
+                <Route path="/club-login" element={<ClubLoginPage />} />
+                <Route path="/club/:handle" element={<ClubPage />} />
+                <Route path="/club/:handle/proof" element={<ClubProofPage />} />
                 {/* User-facing routes */}
                 <Route path="/withdrawals" element={<WithdrawalDashboard />} />
                 <Route path="/bridge/withdrawals" element={<WithdrawalDashboard />} />
@@ -197,9 +208,11 @@ function App() {
                             <PaymentApiProvider>
                                 <CosmosApiProvider>
                                     <IndexerApiProvider>
-                                        <ActionSubmitProvider>
-                                            <AppContent />
-                                        </ActionSubmitProvider>
+                                        <ClubApiProvider>
+                                            <ActionSubmitProvider>
+                                                <AppContent />
+                                            </ActionSubmitProvider>
+                                        </ClubApiProvider>
                                     </IndexerApiProvider>
                                 </CosmosApiProvider>
                             </PaymentApiProvider>

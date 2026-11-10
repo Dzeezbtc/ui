@@ -13,6 +13,8 @@ jest.mock("../common", () => ({
 }));
 
 jest.mock("../../context/GameStateContext");
+// No club service here: an ordinary table, so no deposit limit (block52-club#13).
+jest.mock("../../context/ClubApiContext", () => ({ useClubApi: () => null }));
 
 // eslint-disable-next-line import/first
 import TopUpModal from "./TopUpModal";

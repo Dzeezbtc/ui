@@ -1,7 +1,10 @@
 import HTTPClient from "./HTTPClient";
-import { hasContent, hasValue } from "../utils/guards";
+import { hasContent, hasValue, isNullish } from "../utils/guards";
 import type { PlayerSearchParams, PlayersListResponse, PlayerProfile, PlayerSessionsResponse, PlayerHandsResponse } from "../types/players";
 import type { WithdrawalSignatureResponse } from "../utils/withdrawalSignature";
+import type { ClubMission, ClubNotification, ClubOffer, ClubProof, ClubRace, ProtectionRequest, ProtectionState } from "../utils/clubService";
+import type { ClubLook } from "../utils/clubLook";
+import type { ClubMessage } from "../utils/clubMessages";
 
 export class PaymentApi extends HTTPClient {
     public createCryptoPayment = (data: { amount: number; currency: string; cosmosAddress: string }) => this.post("/api/nowpayments/create", data);
@@ -123,4 +126,42 @@ function buildPlayerQuery(params: PlayerSearchParams): string {
     if (hasValue(params.offset)) q.set("offset", String(params.offset));
     const s = q.toString();
     return s ? `?${s}` : "";
+}
+
+/**
+ * The club service's public endpoints (Dzeezbtc/block52-club): club pages,
+ * which tables belong to which club, and joining a club by wallet signature.
+ * Also the staff sign-in challenge used by /club-login.
+ */
+export class ClubApi extends HTTPClient {
+    public getTableClubs = () => this.get<{ tables: Record<string, { handle: string; name: string }> }>("/public/table-clubs");
+    public getClub = (handle: string) => this.get(`/public/clubs/${encodeURIComponent(handle)}`);
+    public getMembership = (handle: string, address: string) => this.get(`/public/clubs/${encodeURIComponent(handle)}/members/${encodeURIComponent(address)}`);
+    public getJoinChallenge = (address: string, club: string) => this.post<{ nonce: string; text: string }>("/public/join/challenge", { address, club });
+    public getClubTerms = (handle: string) => this.get(`/public/clubs/${encodeURIComponent(handle)}/terms`);
+    public canSit = (handle: string, address: string, gameId: string, amount?: number) =>
+        this.get<{ allowed: boolean; reason?: string; depositLeft?: number }>(`/public/clubs/${encodeURIComponent(handle)}/can-sit/${encodeURIComponent(address)}?gameId=${encodeURIComponent(gameId)}${isNullish(amount) ? "" : `&amount=${amount}`}`);
+    public join = (body: { address: string; club: string; nonce: string; signature: string; pubkey: string; nickname?: string; inviteCode?: string; country?: string; acceptTerms?: number; acceptHouseRules?: boolean; referredBy?: string }) => this.post("/public/join", body);
+    public getTableLook = (gameId: string) => this.get<{ club: { handle: string; name: string } | null; look: Partial<ClubLook> | null }>(`/public/tables/${encodeURIComponent(gameId)}/look`);
+    public getPushKey = () => this.get<{ publicKey: string }>("/public/push/key");
+    public getPushChallenge = (address: string, club: string) => this.post<{ nonce: string; text: string }>("/public/push/challenge", { address, club });
+    public savePush = (body: { address: string; club: string; nonce: string; signature: string; pubkey: string; subscription: PushSubscriptionJSON }) => this.post("/public/push", body);
+    public canChat = (handle: string, address: string) => this.get<{ allowed: boolean; reason?: string }>(`/public/clubs/${encodeURIComponent(handle)}/can-chat/${encodeURIComponent(address)}`);
+    public getProtectionChallenge = (address: string, club: string, request: ProtectionRequest) => this.post<{ nonce: string; text: string }>("/public/protection/challenge", { address, club, ...request });
+    public protect = (body: { address: string; club: string; nonce: string; signature: string; pubkey: string } & ProtectionRequest) => this.post<ProtectionState>("/public/protection", body);
+    public getClubProof = (handle: string) => this.get<ClubProof>(`/public/clubs/${encodeURIComponent(handle)}/proof`);
+    public getClubRaces = (handle: string) => this.get<{ races: ClubRace[] }>(`/public/clubs/${encodeURIComponent(handle)}/races`);
+    public getNotificationChallenge = (address: string, club: string) => this.post<{ nonce: string; text: string }>("/public/notifications/challenge", { address, club });
+    public saveNotifications = (body: { address: string; club: string; nonce: string; signature: string; pubkey: string; tournaments: boolean; tables?: boolean; messages?: boolean; telegramChat?: string }) => this.post("/public/notifications", body);
+    public getNotifications = (address: string) => this.get<{ notifications: ClubNotification[] }>(`/public/players/${encodeURIComponent(address)}/notifications`);
+    public getSeatChallenge = (address: string, club: string) => this.post<{ nonce: string; text: string }>("/public/seat-check/challenge", { address, club });
+    public checkSeat = (body: { address: string; club: string; gameId: string; nonce: string; signature: string; pubkey: string; lat?: number; lon?: number }) => this.post<{ allowed: boolean; reason?: string; locationNeeded?: boolean }>("/public/seat-check", body);
+    public getClubMissions = (handle: string) => this.get<{ missions: ClubMission[]; referralBonus: number }>(`/public/clubs/${encodeURIComponent(handle)}/missions`);
+    public getClubOffers = (handle: string) => this.get<{ offers: ClubOffer[] }>(`/public/clubs/${encodeURIComponent(handle)}/offers`);
+    public getClaimChallenge = (address: string, club: string, offerId: string) => this.post<{ nonce: string; text: string }>("/public/bonus-claims/challenge", { address, club, offerId });
+    public claimBonus = (body: { address: string; club: string; offerId: string; nonce: string; signature: string; pubkey: string }) => this.post("/public/bonus-claims", body);
+    public getKycChallenge = (address: string, club: string) => this.post<{ nonce: string; text: string }>("/public/kyc/challenge", { address, club });
+    public submitKyc = (body: { address: string; club: string; nonce: string; signature: string; pubkey: string; fullName: string; birthDate: string; country: string }) => this.post("/public/kyc", body);
+    public getPlayerMessages = (address: string, lang: string) => this.get<{ messages: ClubMessage[] }>(`/public/players/${encodeURIComponent(address)}/messages?lang=${encodeURIComponent(lang)}`);
+    public getSignInChallenge = (address: string, club: string) => this.post<{ nonce: string; text: string }>("/auth/challenge", { address, club });
 }

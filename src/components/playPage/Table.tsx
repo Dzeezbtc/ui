@@ -79,6 +79,9 @@ import { toast } from "react-toastify";
 
 import { isValidPlayerAddress } from "../../utils/addressUtils";
 import { CardBackStyle } from "../../utils/cardImages";
+import { useClubLook } from "../../hooks/club/useClubLook";
+import { TableRadio } from "./TableRadio";
+import { tableStyleFor } from "../../utils/clubLook";
 import { cssVars } from "../../utils/cssVars";
 import { ANIMATION_CSS_VARS } from "../../bus/timing";
 
@@ -764,7 +767,8 @@ const Table = React.memo(({ tableId }: TableProps = {}) => {
 
     // Card back style configuration - driven by VITE_CARD_BACK_URL env var
     // Options: "default", "block52", "custom", "legacy", or a full URL to a custom SVG
-    const cardBackStyle: CardBackStyle = import.meta.env.VITE_CARD_BACK_URL || "default";
+    const clubLook = useClubLook(id);
+    const cardBackStyle: CardBackStyle = clubLook?.cardBack ?? (import.meta.env.VITE_CARD_BACK_URL || "default");
 
     // Game Start Countdown
     const { gameStartTime, showCountdown, handleCountdownComplete, handleSkipCountdown } = useGameStartCountdown();
@@ -1080,6 +1084,11 @@ const Table = React.memo(({ tableId }: TableProps = {}) => {
     const envTableStyle = import.meta.env.VITE_TABLE_STYLE;
     const defaultTableStyle: "modern" | "classic" | "nouns" = envTableStyle === "classic" || envTableStyle === "nouns" ? envTableStyle : "modern";
     const [tableStyle, setTableStyle] = useState<"modern" | "classic" | "nouns">(defaultTableStyle);
+    // A club table starts in the club's felt. The player can still switch it.
+    const clubFelt = clubLook?.felt;
+    useEffect(() => {
+        if (clubFelt) setTableStyle(tableStyleFor(clubFelt));
+    }, [clubFelt]);
 
     // Update viewport mode on window resize
     useEffect(() => {
@@ -1543,8 +1552,9 @@ const Table = React.memo(({ tableId }: TableProps = {}) => {
                                           : "rgba(255, 255, 255, 0.08)"
                             }}
                         >
+                            {clubLook && hasElements(clubLook.radio) && <TableRadio stations={clubLook.radio} />}
                             <TableBoard
-                                clubLogo={clubLogo}
+                                clubLogo={clubLook?.logo ?? clubLogo}
                                 potDisplayValues={potDisplayValues}
                                 communityCards={tableDataValues.tableDataCommunityCards || []}
                                 isSitAndGoWaitingForPlayers={isSitAndGoWaitingForPlayers}

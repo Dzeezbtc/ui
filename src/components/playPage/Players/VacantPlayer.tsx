@@ -39,6 +39,9 @@ import { useNetwork } from "../../../context/NetworkContext";
 import styles from "./VacantPlayer.module.css";
 import { USDCDepositModal } from "../../modals";
 import { useLanguage } from "../../../i18n/useLanguage";
+import { useClubApi } from "../../../context/ClubApiContext";
+import { getCosmosAddress, getCosmosMnemonic } from "../../../utils/cosmos/storage";
+import { depositRefusal, seatRefusal } from "../../../utils/clubService";
 
 const VacantPlayer: React.FC<VacantPlayerProps & { uiPosition?: number }> = memo(
     ({ left, top, index, onJoin, uiPosition }) => {
@@ -92,8 +95,17 @@ const VacantPlayer: React.FC<VacantPlayerProps & { uiPosition?: number }> = memo
             setJoinResponse(null);
         }, [canJoinThisSeat, gameOptions?.maxBuyIn, cosmosWallet.balance]);
 
-        const handleSeatClick = useCallback(() => {
+        const clubApi = useClubApi();
+        // A club table's rules, from the club service: why this player can't sit, if they can't.
+        const [seatRefused, setSeatRefused] = useState<string | null>(null);
+
+        const handleSeatClick = useCallback(async () => {
             if (!isUserAlreadyPlaying && canJoinThisSeat) {
+                const refused = await seatRefusal(clubApi, tableId, getCosmosAddress(), getCosmosMnemonic());
+                if (refused) {
+                    setSeatRefused(refused);
+                    return;
+                }
                 handleJoinClick();
                 return;
             }
@@ -107,7 +119,7 @@ const VacantPlayer: React.FC<VacantPlayerProps & { uiPosition?: number }> = memo
                       ? "game state not loaded yet (no gameOptions — stale/pre-fix table or WS not connected)"
                       : "seat not joinable (taken or not in availableSeats)"
             );
-        }, [isUserAlreadyPlaying, canJoinThisSeat, handleJoinClick, index, gameOptions?.maxPlayers]);
+        }, [isUserAlreadyPlaying, canJoinThisSeat, handleJoinClick, index, gameOptions?.maxPlayers, clubApi, tableId]);
 
         // Detect if this is Sit & Go (fixed buy-in) or Cash game (variable buy-in)
         const isSitAndGo = useMemo(() => {
@@ -186,6 +198,14 @@ const VacantPlayer: React.FC<VacantPlayerProps & { uiPosition?: number }> = memo
             setJoinError(null);
             setJoinSuccess(false);
 
+            // A club's daily deposit limit (block52-club#13).
+            const overLimit = await depositRefusal(clubApi, tableId, getCosmosAddress(), parseFloat(buyInDollars));
+            if (overLimit) {
+                setJoinError(overLimit);
+                setIsJoining(false);
+                return;
+            }
+
             try {
                 // joinTable expects amount in USDC dollar format (e.g., "5.00")
                 // The hook will convert it to microunits internally
@@ -219,7 +239,7 @@ const VacantPlayer: React.FC<VacantPlayerProps & { uiPosition?: number }> = memo
                 setJoinError(err instanceof Error ? err.message : "Unknown error joining table");
                 setIsJoining(false);
             }
-        }, [tableId, index, onJoin, gameOptions?.minBuyIn, gameOptions?.maxBuyIn, buyInAmount, isSitAndGo, currentNetwork, seatDrawn, gameFormat, logicalTrack]);
+        }, [tableId, index, onJoin, gameOptions?.minBuyIn, gameOptions?.maxBuyIn, buyInAmount, isSitAndGo, currentNetwork, seatDrawn, gameFormat, logicalTrack, clubApi]);
 
         // Memoize container styles
         const containerStyle = useMemo(
@@ -268,6 +288,20 @@ const VacantPlayer: React.FC<VacantPlayerProps & { uiPosition?: number }> = memo
                     {/* Dealer Button - TODO: Implement framer motion animation in future iteration */}
                     {/* Dealer Button — rendered at table level using geometry positions */}
                 </div>
+
+                {seatRefused &&
+                    createPortal(
+                        <div className="fixed inset-0 z-50 flex items-center justify-center" role="dialog" aria-modal="true">
+                            <div className="absolute inset-0 bg-black bg-opacity-50" onClick={() => setSeatRefused(null)} />
+                            <div className="relative max-w-sm rounded-xl border border-gray-600 bg-gray-900 p-5 text-gray-100">
+                                <p className="text-sm">{seatRefused}</p>
+                                <button type="button" className="mt-4 rounded-lg bg-violet-600 px-4 py-2 text-sm font-semibold text-white" onClick={() => setSeatRefused(null)}>
+                                    OK
+                                </button>
+                            </div>
+                        </div>,
+                        document.body
+                    )}
 
                 {/* Buy-in modal - using portal to render at document body */}
                 {showBuyInModal &&
