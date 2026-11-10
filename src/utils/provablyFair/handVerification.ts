@@ -24,7 +24,7 @@ import { bytesToHex } from "@noble/hashes/utils";
 import { hasContent, hasElements, hasValue } from "../guards";
 import { deckHash, isRealCard, seedHash, shuffleFromSeed } from "./deckShuffle";
 import { buildVrfInput, bytesToHeight, consensusAddressHex, verifyVrf } from "./ecvrf";
-import { BlockRecord, DeckSeedRecord, HandEndRecord, HandStartRecord, hexBytes } from "./handEvidence";
+import { BlockRecord, DeckSeedRecord, HandEndRecord, HandStartRecord, hasBytes, hexBytes } from "./handEvidence";
 import { explorerBlockPath, explorerTxPath } from "./presentation";
 
 export type CheckStatus = "pass" | "fail" | "pending" | "limited" | "unavailable" | "na";
@@ -370,7 +370,7 @@ export function verifyHand(ev: HandEvidence): HandVerification {
     let deck: string[] | null = null;
     let deal: ReturnType<typeof compareDeal> | null = null;
 
-    if (!seed || seed.length === 0) {
+    if (!hasBytes(seed)) {
         checks.push({ id: "seed", title: CHECK_TITLES.seed, status: "unavailable", detail: "The seed for this hand couldn't be read from the chain." });
     } else {
         deck = shuffleFromSeed(seed);
