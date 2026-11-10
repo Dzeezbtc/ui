@@ -22,6 +22,7 @@ import { GameFormat, GameOptionsDTO, GameVariant, PlayerDTO } from "@block52/pok
 import { useBlindLevel } from "../../../../hooks/game/useBlindLevel";
 import { formatBlindCountdown } from "../../../../utils/blindStructure";
 import styles from "./TableHeader.module.css";
+import { ProvablyFairBadge } from "../../ProvablyFair/ProvablyFairBadge";
 import { hasValue, isNullish } from "../../../../utils/guards";
 
 // Re-exported for existing importers (e.g. MobileTableHeader); the formatter
@@ -280,6 +281,12 @@ export const TableHeader: React.FC<TableHeaderProps> = ({
                             <span className={`text-[10px] sm:text-[15px] font-semibold ${styles.secondaryText}`}>
                                 Hand #{handNumber}
                             </span>
+                            <ProvablyFairBadge
+                                tableId={tableId}
+                                handNumber={handNumber}
+                                tableName={tableName}
+                                gameLabel={gameOptions ? formatTableGameDisplay(gameVariant, gameOptions.bettingLimit) : undefined}
+                            />
                             <span className={`hidden sm:inline-block text-[15px] font-semibold ${styles.secondaryText}`}>
                                 <span className="ml-2">Actions #{actionCount}</span>
                             </span>
