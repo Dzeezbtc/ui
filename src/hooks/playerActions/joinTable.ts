@@ -1,6 +1,5 @@
 import { COSMOS_CONSTANTS, GameFormat, TexasHoldemStateDTO } from "@block52/poker-vm-sdk";
 import { withMoneyMoverRetry } from "../../utils/cosmos/client";
-import { getLatestGameState } from "./transportAction";
 import type { JoinTableOptions } from "./types";
 import type { NetworkEndpoints } from "../../context/NetworkContext";
 import type { JoinTableResult } from "../../types";
@@ -90,10 +89,10 @@ export async function joinTable(tableId: string, options: JoinTableOptions, netw
 
     const lostSeats = new Set<number>();
     for (let attempt = 1; ; attempt++) {
-        // Resolve a real seat from the latest broadcast state — never the
+        // Resolve a real seat from this table's latest state (ui#834) — never the
         // broken seat-0 "random" sentinel (which the SNG/tournament engine
         // mis-seats). See resolveJoinSeat.
-        const seat = resolveJoinSeat(options.seatNumber, getLatestGameState(), options.format, lostSeats);
+        const seat = resolveJoinSeat(options.seatNumber, options.gameState, options.format, lostSeats);
 
         try {
             // Broadcast MsgJoinGame chain-direct. JOIN is an ordered money-mover (it

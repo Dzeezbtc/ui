@@ -15,11 +15,12 @@
 import * as React from "react";
 import { memo, useState, useMemo, useCallback } from "react";
 import { createPortal } from "react-dom";
-import { useParams } from "react-router-dom";
+import { useTableId } from "../../../context/TableIdContext";
 import PokerProfile from "../../../assets/PokerProfile.svg";
 
 import { useVacantSeatData } from "../../../hooks/game/useVacantSeatData";
 import { useGameStateContext } from "../../../context/GameStateContext";
+import { useLogicalTrack } from "../../../context/gameState/LogicalTrackContext";
 import type { VacantPlayerProps } from "../../../types/index";
 import { useDealerPosition } from "../../../hooks/game/useDealerPosition";
 import { joinTable } from "../../../hooks/playerActions/joinTable";
@@ -29,17 +30,20 @@ import { useCosmosWallet } from "../../../hooks";
 import { microToUsdc } from "../../../constants/currency";
 import { hasElements, isNullish } from "../../../utils/guards";
 import { seatsAreDrawn } from "../../../utils/seatDraw";
-import { joinSeatButtonLabel, SEAT_DRAW_NOTE, vacantSeatText } from "../../../utils/vacantSeatText";
+import { joinSeatButtonLabel, seatDrawNote, vacantSeatText } from "../../../utils/vacantSeatText";
 import { useNetwork } from "../../../context/NetworkContext";
 import styles from "./VacantPlayer.module.css";
 import { USDCDepositModal } from "../../modals";
+import { useLanguage } from "../../../i18n/useLanguage";
 
 const VacantPlayer: React.FC<VacantPlayerProps & { uiPosition?: number }> = memo(
     ({ left, top, index, onJoin, uiPosition }) => {
+        const { t, language } = useLanguage();
         const { isUserAlreadyPlaying, canJoinSeat: checkCanJoinSeat } = useVacantSeatData();
-        const { id: tableId } = useParams<{ id: string }>();
+        const tableId = useTableId();
         const { gameOptions } = useGameOptions();
         const { gameFormat } = useGameStateContext();
+        const logicalTrack = useLogicalTrack();
         // A Sit & Go seat is drawn at random on join, not the one clicked (ui#969).
         const seatDrawn = useMemo(() => seatsAreDrawn(gameFormat), [gameFormat]);
         const cosmosWallet = useCosmosWallet();
@@ -187,7 +191,8 @@ const VacantPlayer: React.FC<VacantPlayerProps & { uiPosition?: number }> = memo
                         amount: buyInDollars,
                         // Where seats are drawn, joinTable draws one; the clicked seat is not claimed.
                         seatNumber: seatDrawn ? undefined : index,
-                        format: gameFormat
+                        format: gameFormat,
+                        gameState: logicalTrack.get()
                     },
                     currentNetwork
                 );
@@ -210,7 +215,7 @@ const VacantPlayer: React.FC<VacantPlayerProps & { uiPosition?: number }> = memo
                 setJoinError(err instanceof Error ? err.message : "Unknown error joining table");
                 setIsJoining(false);
             }
-        }, [tableId, index, onJoin, gameOptions?.minBuyIn, gameOptions?.maxBuyIn, buyInAmount, isSitAndGo, currentNetwork, seatDrawn, gameFormat]);
+        }, [tableId, index, onJoin, gameOptions?.minBuyIn, gameOptions?.maxBuyIn, buyInAmount, isSitAndGo, currentNetwork, seatDrawn, gameFormat, logicalTrack]);
 
         // Memoize container styles
         const containerStyle = useMemo(
@@ -224,7 +229,7 @@ const VacantPlayer: React.FC<VacantPlayerProps & { uiPosition?: number }> = memo
         // Memoize seat text
         const seatText = useMemo(
             () => vacantSeatText(index, isUserAlreadyPlaying, canJoinThisSeat, seatDrawn),
-            [isUserAlreadyPlaying, canJoinThisSeat, index, seatDrawn]
+            [isUserAlreadyPlaying, canJoinThisSeat, index, seatDrawn, language]
         );
 
         // Memoized Deposit callback - always open modal; crypto payments don't need Web3 wallet
@@ -274,12 +279,12 @@ const VacantPlayer: React.FC<VacantPlayerProps & { uiPosition?: number }> = memo
                                     // Sit & Go: Fixed buy-in amount
                                     <div className={`mb-6 p-4 rounded-lg border-2 ${styles.fixedBuyInPanel}`}>
                                         <div className="text-center">
-                                            <div className="text-xs text-gray-400 mb-1">Required Buy-In</div>
+                                            <div className="text-xs text-gray-400 mb-1">{t("buyIn.required")}</div>
                                             <div className="text-3xl font-bold text-white">${formatUSDCToSimpleDollars(gameOptions.minBuyIn)}</div>
-                                            <div className="text-xs text-gray-400 mt-1">Fixed amount for this tournament</div>
+                                            <div className="text-xs text-gray-400 mt-1">{t("buyIn.fixed")}</div>
                                             {seatDrawn && (
                                                 <div className="text-xs text-blue-300 mt-2" data-testid="seat-draw-note">
-                                                    {SEAT_DRAW_NOTE}
+                                                    {seatDrawNote()}
                                                 </div>
                                             )}
                                         </div>
@@ -287,7 +292,7 @@ const VacantPlayer: React.FC<VacantPlayerProps & { uiPosition?: number }> = memo
                                 ) : (
                                     // Cash Game: Editable buy-in amount
                                     <div className="mb-6">
-                                        <label className="block text-xs text-gray-400 mb-2">Buy-In Amount</label>
+                                        <label className="block text-xs text-gray-400 mb-2">{t("buyIn.amount")}</label>
 
                                         {/* Slider with min/max labels */}
                                         <div className="mb-3">
@@ -322,7 +327,7 @@ const VacantPlayer: React.FC<VacantPlayerProps & { uiPosition?: number }> = memo
                                                 setBuyInAmount(e.target.value);
                                                 setBuyInAmountDisplay(e.target.value);
                                             }}
-                                            placeholder="Enter amount"
+                                            placeholder={t("buyIn.enterAmount")}
                                             className={`w-full px-4 py-2 rounded-lg text-white text-center text-lg ${styles.buyInInput}`}
                                             step={bigBlindValue.toString()}
                                             min={minBuyInNum.toString()}
@@ -333,7 +338,7 @@ const VacantPlayer: React.FC<VacantPlayerProps & { uiPosition?: number }> = memo
 
                                 {/* User Balance */}
                                 <div className="mb-6">
-                                    <div className="text-xs text-gray-400 mb-2">Your USDC Balance:</div>
+                                    <div className="text-xs text-gray-400 mb-2">{t("buyIn.balance")}</div>
                                     {/* Require update here when cosmos client return array of usdc = 0 instead of returning an empty array */}
                                     {hasElements(cosmosWallet.balance) ? (
                                         cosmosWallet.balance.map((balance, idx) => {
@@ -391,7 +396,7 @@ const VacantPlayer: React.FC<VacantPlayerProps & { uiPosition?: number }> = memo
                                                         d="M4 12a8 8 0 018-8V0C5.373 0 0 5.373 0 12h4zm2 5.291A7.962 7.962 0 014 12H0c0 3.042 1.135 5.824 3 7.938l3-2.647z"
                                                     ></path>
                                                 </svg>
-                                                Joining...
+                                                {t("buyIn.joining")}
                                             </>
                                         ) : (
                                             joinSeatButtonLabel(index, seatDrawn)
@@ -401,14 +406,14 @@ const VacantPlayer: React.FC<VacantPlayerProps & { uiPosition?: number }> = memo
                                         onClick={handleDepositClick}
                                         className={`w-full px-6 py-3 text-sm font-semibold rounded-lg transition duration-300 flex items-center justify-center ${styles.confirmButton}`}
                                     >
-                                        Top Up Game Wallet
+                                        {t("buyIn.topUp")}
                                     </button>
                                     <button
                                         onClick={() => setShowBuyInModal(false)}
                                         className={`w-full px-6 py-3 text-sm font-semibold rounded-lg transition duration-300 ${styles.cancelButton}`}
                                         disabled={isJoining}
                                     >
-                                        Cancel
+                                        {t("buyIn.cancel")}
                                     </button>
                                 </div>
                             </div>
