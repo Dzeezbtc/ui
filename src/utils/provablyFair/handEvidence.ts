@@ -97,6 +97,11 @@ export function base64ToHex(b64: string | null | undefined): string {
     return out;
 }
 
+/** True for a byte array with at least one byte (the guards cover arrays and strings, not Uint8Array). */
+export function hasBytes(bytes: Uint8Array | null | undefined): bytes is Uint8Array {
+    return hasValue(bytes) && bytes.byteLength > 0;
+}
+
 /** Hex → bytes, accepting "" as empty. */
 export function hexBytes(hex: string): Uint8Array {
     return hasContent(hex) ? hexToBytes(hex) : new Uint8Array();

@@ -1,5 +1,5 @@
 import fx from "./__fixtures__/localChainHand5.json";
-import { base64ToHex, hasTxs, hexBytes, parseBlock, parseDeckSeeds, parseGameCreated, parseHandEnd, parseHandStart, parsePlayerSeed } from "./handEvidence";
+import { base64ToHex, hasBytes, hasTxs, hexBytes, parseBlock, parseDeckSeeds, parseGameCreated, parseHandEnd, parseHandStart, parsePlayerSeed } from "./handEvidence";
 import type { TxSearchReply } from "./handEvidence";
 
 const GAME = "0xba95ed78a7e5bc05423ee914a24e9f84311efa3654776bda237c06feae9135f4";
@@ -64,5 +64,8 @@ describe("handEvidence parsers (real local-chain replies)", () => {
         expect(hexBytes("")).toHaveLength(0);
         expect(hasTxs(fx.handStarted as TxSearchReply)).toBe(true);
         expect(hasTxs({})).toBe(false);
+        expect(hasBytes(new Uint8Array([1]))).toBe(true);
+        expect(hasBytes(new Uint8Array())).toBe(false);
+        expect(hasBytes(null)).toBe(false);
     });
 });

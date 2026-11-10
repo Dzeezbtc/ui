@@ -73,7 +73,7 @@ export function goRandInt(stream: HkdfStream, max: number): number {
 
 /** The 52-card deck the chain deals from for `seed` (top card first). */
 export function shuffleFromSeed(seed: Uint8Array): string[] {
-    if (seed.length === 0) {
+    if (seed.byteLength < 1) {
         throw new Error("shuffleFromSeed: empty seed");
     }
     const deck = standardDeck();
