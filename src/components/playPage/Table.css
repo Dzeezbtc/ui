@@ -335,6 +335,58 @@
     position: absolute;
 }
 
+/* Chip movement (Dan's UI #3, #4, #7): transform-only, so it stays on the GPU. */
+.chip-slide-in {
+    display: inline-flex;
+    animation: chip-slide-in 220ms ease-out both;
+}
+
+@keyframes chip-slide-in {
+    from {
+        transform: translate(var(--chip-from-x, 0), var(--chip-from-y, 0));
+        opacity: 0.6;
+    }
+    to {
+        transform: translate(0, 0);
+        opacity: 1;
+    }
+}
+
+.chip-flight-spot {
+    pointer-events: none;
+    z-index: 5;
+}
+
+.chip-flight-measure {
+    display: inline-flex;
+}
+
+.chip-to-pot {
+    display: inline-flex;
+    animation: chip-to-pot 320ms ease-in both;
+}
+
+@keyframes chip-to-pot {
+    from {
+        transform: translate(0, 0);
+        opacity: 1;
+    }
+    85% {
+        opacity: 1;
+    }
+    to {
+        transform: translate(var(--chip-dx, 0), var(--chip-dy, 0)) scale(0.8);
+        opacity: 0;
+    }
+}
+
+@media (prefers-reduced-motion: reduce) {
+    .chip-slide-in,
+    .chip-to-pot {
+        animation: none;
+    }
+}
+
 /* Floating card panel (History + Settings tabs, ui#752). Always visible, inset
    from the right edge so it reads as a card floating above the felt (rounded +
    shadow on the inner element) rather than an edge-docked panel. */
