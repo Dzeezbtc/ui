@@ -2,6 +2,7 @@ import { custodialSigningClient, custodySignIn, custodySignOut, getCustodySessio
 
 beforeAll(() => {
     process.env.VITE_CLUB_SERVICE_URLS = "http://svc";
+    process.env.VITE_SIGNER_URL = "http://signer";
 });
 
 const store: Record<string, string> = {};
@@ -50,7 +51,7 @@ describe("the club account signing client", () => {
         store.custody_session = JSON.stringify({ token: "tok", username: "alice", address: "b521custody" });
     });
 
-    it("sends each game message to the club service with the player token", async () => {
+    it("sends each game message to the Go function (not the club API) with the player token", async () => {
         const calls = mockFetch([
             { ok: true, body: { txHash: "H1" } },
             { ok: true, body: { txHash: "H2" } },
@@ -68,7 +69,7 @@ describe("the club account signing client", () => {
         expect(bodies[2]).toMatchObject({ leave: { gameId: "0xg" } });
         expect(bodies[3]).toMatchObject({ topUp: { gameId: "0xg", amount: "2000000" } });
         expect(new Set(bodies.map(b => b.requestId)).size).toBe(4);
-        expect(calls[0].url).toMatch(/\/custody\/Perform$/);
+        expect(calls[0].url).toBe("http://signer/Perform");
         expect((calls[0].init.headers as Record<string, string>).authorization).toBe("Bearer tok");
     });
 

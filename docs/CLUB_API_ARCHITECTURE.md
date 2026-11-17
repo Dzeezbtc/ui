@@ -4,8 +4,11 @@ Decided in Dzeezbtc/block52-club#54. The full version lives in that repo's `docs
 for this app.
 
 ```
-this app ──REST──► club API (TypeScript) ──gRPC──► pokerchain node     reads: balances, table views, games, history
-                          └──────HTTPS──► Go signer (DO Function)      writes: table actions, WebSocket query signature
+                ┌──REST──► club API (TypeScript)   everything that is not a game action:
+                │                 │                sign-up and login, balances, tables, history, clubs
+this app ───────┤                 └─gRPC──► pokerchain node (reads)
+                │
+                └──REST──► Go functions (signer)   game actions only: signs, then broadcasts to the node over gRPC
 ```
 
 ## What changes for this app
@@ -15,19 +18,21 @@ this app ──REST──► club API (TypeScript) ──gRPC──► pokerchai
 - **No node or network selector.** The header's node dropdown and block-height poll are gone.
 - **Two ways in** (`/signin`):
   - the **built-in wallet** (key in this browser): unchanged, still talks to the node directly for now;
-  - a **club account** (username and password): Block52 holds the key. Game actions, join, leave, top-up and the table
-    WebSocket signature go to the club API (`/custody/…`), which forwards them to the Go signer. Nothing is signed in
-    the browser (`src/utils/custody/session.ts`).
+  - a **club account** (username and password): Block52 holds the key. Sign-in goes to the club API, which returns a
+    player token. Game actions, join, leave, top-up and the table WebSocket signature go **straight to the Go function**
+    (`VITE_SIGNER_URL`) with that token; it signs and broadcasts over gRPC. The club API is not in the game path, and
+    nothing is signed in the browser (`src/utils/custody/session.ts`).
 - **The Game Wallet panel** is where the account shows: username, address, USDC balance, Deposit and Sign out. A club
   account has no seed phrase, so it shows no create, import, seed settings, withdraw or send.
-- **The browser holds only a player token.** Never put the signer's platform secret or any key material in the app.
+- **The browser holds only a player token.** Never put the signer's admin token or any key material in the app: the
+  admin token makes accounts and freezes them, and only the club API holds it.
 
 ## Already on the API
 
 | Need | Route |
 |---|---|
 | Sign up, sign in | `POST /auth/register`, `POST /auth/password` |
-| Table action, account, WS signature | `POST /custody/Perform`, `GetAccount`, `WsAuth` |
+| Table action, account, WS signature | Go function: `POST /Perform`, `/GetAccount`, `/WsAuth` (not the club API) |
 | Balance | `GET /chain/balance/:address` |
 | Recent transactions | `GET /chain/transactions/:address` |
 | Tables (game list and state), filterable by club | coming: the API serves them so a club can filter; the app does not read tables from the node |

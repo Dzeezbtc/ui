@@ -1,7 +1,8 @@
 /**
- * Custodial sign-in (block52-club#47). A player signs in to the club service with a username and password; the
- * service holds their key and signs for them. This is the browser's side: the player token, the address, and a signing
- * client that sends the four game messages to the club service instead of signing here.
+ * Custodial sign-in (block52-club#47, #54). A player signs in to the club API with a username and password and gets a
+ * player token; Block52 holds their key. This is the browser's side: the token, the address, and a signing client that
+ * sends the four game messages to the Go function (the signer) with that token. The function signs and broadcasts to
+ * the node over gRPC; nothing is signed here and the club API is not in the game path.
  *
  * Built-in wallet mode is untouched. Signing in custodially sets the stored address to the custodial one and puts the
  * built-in wallet's mnemonic and address aside (it is not deleted); signing out puts them back.
@@ -20,7 +21,11 @@ export interface CustodySession {
     address: string;
 }
 
+/** The club API (TypeScript): sign-up, sign-in, balances and everything that is not a game action. */
 export const custodyBase = (): string | null => parseAllowList(viteEnv.VITE_CLUB_SERVICE_URLS)[0] ?? null;
+
+/** The Go functions (the signer): game actions only. Called straight from the browser with the player token. */
+export const signerBase = (): string | null => parseAllowList(viteEnv.VITE_SIGNER_URL)[0] ?? null;
 
 export const getCustodySession = (): CustodySession | null => {
     try {
@@ -35,9 +40,8 @@ export const getCustodySession = (): CustodySession | null => {
 
 export const isCustodial = (): boolean => getCustodySession() !== null;
 
-const post = async <T>(path: string, body: unknown, token?: string): Promise<T> => {
-    const base = custodyBase();
-    if (!base) throw new Error("No club service is configured (VITE_CLUB_SERVICE_URLS).");
+const post = async <T>(base: string | null, what: string, path: string, body: unknown, token?: string): Promise<T> => {
+    if (!base) throw new Error(`No ${what} is configured.`);
     const res = await fetch(`${base}${path}`, {
         method: "POST",
         headers: { "content-type": "application/json", ...(token ? { authorization: `Bearer ${token}` } : {}) },
@@ -53,7 +57,7 @@ const post = async <T>(path: string, body: unknown, token?: string): Promise<T> 
 
 /** Signs in with the club username and password. Replaces the stored wallet identity until sign-out. */
 export async function custodySignIn(username: string, password: string): Promise<CustodySession> {
-    const s = await post<CustodySession>("/auth/password", { username, password });
+    const s = await post<CustodySession>(custodyBase(), "club service (VITE_CLUB_SERVICE_URLS)", "/auth/password", { username, password });
     const previousMnemonic = localStorage.getItem(STORAGE_COSMOS_MNEMONIC);
     // Only back up a built-in wallet once: signing in again as another player must not overwrite it with a custodial address.
     if (!getCustodySession() && previousMnemonic) {
@@ -80,14 +84,15 @@ export function custodySignOut(): void {
     localStorage.removeItem(BACKUP_ADDRESS);
 }
 
+/** A game call: to the Go function, with the player token. The club API is not in this path. */
 const authed = <T>(path: string, body: unknown): Promise<T> => {
     const s = getCustodySession();
     if (!s) return Promise.reject(new Error("Sign in first."));
-    return post<T>(path, body, s.token);
+    return post<T>(signerBase(), "signer (VITE_SIGNER_URL)", path, body, s.token);
 };
 
 const perform = async (payload: Record<string, unknown>): Promise<string> => {
-    const r = await authed<{ txHash: string }>("/custody/Perform", { requestId: crypto.randomUUID(), ...payload });
+    const r = await authed<{ txHash: string }>("/Perform", { requestId: crypto.randomUUID(), ...payload });
     return r.txHash;
 };
 
@@ -114,4 +119,4 @@ export const custodialSigningClient = (): object =>
 
 /** The table WebSocket's query signature, made by the signer. */
 export const custodyWsAuth = (): Promise<{ playerAddress: string; timestamp: number; signature: string }> =>
-    authed("/custody/WsAuth", {});
+    authed("/WsAuth", {});
