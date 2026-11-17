@@ -135,9 +135,6 @@ export const GlobalHeader: React.FC = () => {
 
     // User-facing menu items only (admin moved to right side of header)
     const menuItems: MenuItem[] = [...userMenuItems];
-    // Club owners, staff and agents sign in to their club console from here (block52-club).
-    const clubConsoleUrl = (import.meta.env.VITE_CLUB_CONSOLE_URLS ?? "").split(",")[0]?.trim().replace(/\/+$/, "");
-
     return (
         <header
             className={`sticky top-0 z-40 w-full ${styles.headerShell}`}
@@ -178,15 +175,10 @@ export const GlobalHeader: React.FC = () => {
                         </nav>
                     </div>
 
-                    {/* Right: Club login + Admin + Network Status & Selector */}
+                    {/* Right: Account + Admin + Network Status & Selector */}
                     <div className="flex items-center gap-4 flex-shrink-0">
                         <LanguagePicker variant="icon" />
                         <AccountBadge />
-                        {clubConsoleUrl && (
-                            <a href={`${clubConsoleUrl}/login`} className={`px-3 py-2 rounded-lg text-sm font-medium hover:opacity-80 ${styles.navItemInactive}`} title="For club owners, staff and agents">
-                                Club login
-                            </a>
-                        )}
                         <NetworkStatusAndSelector latestBlockHeight={latestBlockHeight} hasError={hasError} />
                         {/* Admin icon - discreet access */}
                         <Link
