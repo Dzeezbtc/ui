@@ -1,4 +1,5 @@
 import React, { useState, useEffect } from "react";
+import { createPortal } from "react-dom";
 import { useLocation, Link } from "react-router-dom";
 import { NetworkSelector } from "./NetworkSelector";
 import { useNetwork } from "../context/NetworkContext";
@@ -303,7 +304,8 @@ export const GlobalHeader: React.FC = () => {
                     </nav>
                 )}
             </div>
-            {authModal && <ClubAuthModal isOpen={authOpen} onClose={() => setAuthOpen(false)} />}
+            {/* In a portal: the header's backdrop-filter makes it the containing block for position: fixed, which cut the modal off at the top. */}
+            {authModal && createPortal(<ClubAuthModal isOpen={authOpen} onClose={() => setAuthOpen(false)} />, document.body)}
         </header>
     );
 };
