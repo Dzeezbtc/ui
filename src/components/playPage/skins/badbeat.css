@@ -82,7 +82,7 @@
     top: var(--bb-board-y, 50%);
     margin: 0 !important;
     /* the card row's middle (63.5px up from the column's bottom) lands on the spot, then scales about it */
-    transform: translate(-50%, calc(-100% + 63.5px)) scale(var(--bb-board-scale, 0.5));
+    transform: translate(-50%, calc(-100% + 63.5px)) scale(var(--bb-board-scale, 0.66));
     transform-origin: 50% calc(100% - 63.5px);
 }
 /* the seats' own card rows and dealer button give way to the 3D ones */
@@ -868,7 +868,7 @@
 }
 /* upright, the felt is narrow: the board's five cards fit between the side seats' cards */
 [data-skin="flagship"][data-look="badbeat"][data-orient="portrait"] [data-part="board-column"] {
-    --bb-board-scale: 0.45;
+    --bb-board-scale: 0.52;
 }
 [data-skin="flagship"][data-look="badbeat"][data-orient="portrait"] [data-part="board-column"] .pot-stack {
     scale: 1.4;
@@ -899,43 +899,92 @@
     transform: translate(-50%, -50%) skewX(-18deg);
 }
 
-/* ---------- the board: each card lands face down, then flips over ---------- */
+/* ---------- dealt cards: land face down on the felt, are rolled over, then lift up flat ----------
+ * The board (TableBoard) and a player's shown cards (BadBeatShowCards) are
+ * dealt like a dealer turns them: the card lies on the table at its angle,
+ * face down, is rolled over end over end to show its face, then lifts off the
+ * felt and stands up flat and bigger, so it reads at a glance. */
 [data-skin="flagship"] .card:has(> .bb-flip) {
     height: 119px;
 }
 [data-look="badbeat"] .bb-flip {
     width: 100%;
     height: 100%;
-    perspective: 700px;
+    perspective: 520px;
+    perspective-origin: 50% 20%;
 }
-/* it flips once it has landed (the drop is the bus's CARD_DROP_MS) */
 [data-look="badbeat"] .bb-flip-in {
     position: relative;
     width: 100%;
     height: 100%;
     transform-style: preserve-3d;
-    animation: bb-flip 0.42s cubic-bezier(0.3, 0.7, 0.3, 1) var(--card-drop-ms, 1s) both;
+    transform-origin: 50% 60%;
+    animation: bb-deal 1.5s cubic-bezier(0.3, 0.6, 0.3, 1) both;
 }
 [data-look="badbeat"] .bb-flip-front,
 [data-look="badbeat"] .bb-flip-back {
     backface-visibility: hidden;
     -webkit-backface-visibility: hidden;
 }
+/* the back is the face's reverse when the card turns end over end */
 [data-look="badbeat"] .bb-flip-back {
     position: absolute !important;
     inset: 0;
-    transform: rotateY(180deg);
+    transform: rotateX(180deg);
 }
-@keyframes bb-flip {
-    from {
-        transform: rotateY(180deg);
+@keyframes bb-deal {
+    /* (no opacity here: fading a 3D card flattens it, and its back would show through) */
+    /* lands face down, lying on the felt */
+    0% {
+        transform: translateY(-26px) rotateX(-128deg);
     }
-    to {
-        transform: rotateY(0deg);
+    16% {
+        transform: translateY(0) rotateX(-128deg);
+    }
+    /* rolled over: face up, still lying on the felt */
+    50% {
+        transform: translateY(0) rotateX(52deg);
+    }
+    62% {
+        transform: translateY(0) rotateX(52deg);
+    }
+    /* lifts off the table and stands up flat */
+    100% {
+        transform: translateY(-4px) rotateX(0deg);
     }
 }
 @media (prefers-reduced-motion: reduce) {
     [data-look="badbeat"] .bb-flip-in {
         animation: none;
     }
+}
+
+/* a shown hand: two big flat cards where the player's cards lay */
+[data-skin="flagship"][data-look="badbeat"] [data-part="bb-show-cards"] {
+    position: absolute;
+    z-index: 30;
+    display: flex;
+    gap: 6px;
+    transform: translate(-50%, -62%);
+    pointer-events: none;
+}
+[data-skin="flagship"][data-look="badbeat"] .bb-show-card {
+    width: 54px;
+    height: 76px;
+}
+[data-skin="flagship"][data-look="badbeat"] .bb-show-card .fs-card {
+    width: 100%;
+    height: 100%;
+    box-shadow:
+        inset 0 0 0 1px rgba(10, 12, 15, 0.12),
+        0 14px 24px -8px rgba(0, 0, 0, 0.85);
+}
+[data-skin="flagship"][data-look="badbeat"][data-orient="portrait"] .bb-show-card {
+    width: 48px;
+    height: 67px;
+}
+
+/* between hands the panel has nothing to show: no empty card */
+[data-skin="flagship"][data-look="badbeat"] [data-part="action-panel"]:not(:has(button, input, [data-part="bb-panel-head"])) {
+    display: none !important;
 }

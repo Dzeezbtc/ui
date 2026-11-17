@@ -140,6 +140,7 @@ import LiveHandStrengthDisplay from "./LiveHandStrengthDisplay";
 import { TurnStatusLabel } from "./TurnStatusLabel";
 import { StreetTracker } from "./StreetTracker";
 import { BadBeatHeroDock } from "./BadBeatHeroDock";
+import { BadBeatShowCards } from "./BadBeat3D/BadBeatShowCards";
 // Bad Beat's 3D table brings three.js: only a Bad Beat table downloads it (ui#36)
 const BadBeatTable3D = React.lazy(() => import("./BadBeat3D/BadBeatTable3D").then(m => ({ default: m.BadBeatTable3D })));
 import { radioStationsFor } from "../../utils/radioStations";
@@ -1663,6 +1664,11 @@ const Table = React.memo(({ tableId }: TableProps = {}) => {
                                     );
                                 })}
                         </div>
+
+                        {/* Bad Beat: a shown hand lifts off the felt, big and flat (ui#36) */}
+                        {tableStyle === "badbeat" && tableLayout.positions.feltCards && (
+                            <BadBeatShowCards spots={tableLayout.positions.feltCards} tableSize={tableSize} startIndex={startIndex} dealerSeat={dealerSeat} />
+                        )}
 
                         {/* Last-pot winner banner (ui#848) */}
                         <WinnerBanner />

@@ -91,10 +91,10 @@ export const TableBoard: React.FC<TableBoardProps> = ({
                 return (
                     <div
                         key={`${idx}-${card}`}
-                        className={`card animate-fall${isWinCard ? " animate-win-card" : ""}${shouldMute ? " opacity-40" : ""}`}
+                        className={`card${tableTheme === "badbeat" ? "" : " animate-fall"}${isWinCard ? " animate-win-card" : ""}${shouldMute ? " opacity-40" : ""}`}
                     >
                         {tableTheme === "badbeat" ? (
-                            // Bad Beat: the card lands face down, then flips over (ui#36)
+                            // Bad Beat: the card lands face down on the felt, is rolled over, then lifts up flat (ui#36)
                             <div className="bb-flip">
                                 <div className="bb-flip-in">
                                     <FlagshipCard code={card} className="fs-board bb-flip-front" />

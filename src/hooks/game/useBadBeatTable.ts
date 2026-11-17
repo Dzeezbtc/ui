@@ -1,6 +1,7 @@
 import { useMemo } from "react";
 import { useGameData } from "../../context/gameState/GameDataContext";
 import { usePlayersBySeat } from "./usePlayersBySeat";
+import { usePlayerSeatInfo } from "../player/usePlayerSeatInfo";
 import { badBeatTableState, type BadBeatTableState } from "../../utils/badBeatTableState";
 
 /**
@@ -15,8 +16,9 @@ export const useBadBeatTable = (tableSize: number, startIndex: number, dealerSea
     const previousActions = gameState?.previousActions;
     const pots = gameState?.pots;
     const smallBlind = gameState?.gameOptions?.smallBlind;
+    const { currentUserSeat } = usePlayerSeatInfo();
     return useMemo(
-        () => badBeatTableState({ playersBySeat, tableSize, startIndex, dealerSeat, round, previousActions: previousActions ?? [], pots, smallBlind }),
-        [playersBySeat, tableSize, startIndex, dealerSeat, round, previousActions, pots, smallBlind]
+        () => badBeatTableState({ playersBySeat, tableSize, startIndex, dealerSeat, round, previousActions: previousActions ?? [], pots, smallBlind, mySeat: currentUserSeat }),
+        [playersBySeat, tableSize, startIndex, dealerSeat, round, previousActions, pots, smallBlind, currentUserSeat]
     );
 };

@@ -2,6 +2,7 @@ import { ActionDTO, PlayerDTO, TexasHoldemRound } from "@block52/poker-vm-sdk";
 import { seatBetThisRound } from "./chipUtils";
 import { hasElements } from "./guards";
 import { hasFoldedOrMucked } from "./playerStatus";
+import { cardFace } from "./cardFace";
 
 /** What the 3D Bad Beat table draws at one table position. */
 export interface BadBeatSeatState {
@@ -9,6 +10,8 @@ export interface BadBeatSeatState {
     cards: string[] | null;
     /** Its bet this round, in small blinds (0 for none). */
     bet: number;
+    /** Another player's cards shown face up (at showdown): drawn big and flat, not on the felt. */
+    shown: boolean;
 }
 
 /** What the 3D Bad Beat table draws. */
@@ -45,8 +48,10 @@ export const badBeatTableState = (args: {
     previousActions: ActionDTO[];
     pots: string[] | undefined;
     smallBlind: string | undefined;
+    /** Your seat (0 or less when not seated): your own cards stay on the felt. */
+    mySeat: number;
 }): BadBeatTableState => {
-    const { playersBySeat, tableSize, startIndex, dealerSeat, round, previousActions, pots, smallBlind } = args;
+    const { playersBySeat, tableSize, startIndex, dealerSeat, round, previousActions, pots, smallBlind, mySeat } = args;
     let dealerPosition: number | null = null;
     const seats: BadBeatSeatState[] = [];
     for (let i = 0; i < tableSize; i++) {
@@ -54,9 +59,11 @@ export const badBeatTableState = (args: {
         const player = playersBySeat.get(seat);
         if (player && seat === dealerSeat) dealerPosition = i;
         const holding = player && hasElements(player.holeCards) && !hasFoldedOrMucked(player.status);
+        const cards = holding ? player.holeCards!.slice(0, 2) : null;
         seats.push({
-            cards: holding ? player.holeCards!.slice(0, 2) : null,
-            bet: inSmallBlinds(seatBetThisRound(player, round, previousActions), smallBlind)
+            cards,
+            bet: inSmallBlinds(seatBetThisRound(player, round, previousActions), smallBlind),
+            shown: !!cards && seat !== mySeat && cards.some(c => !!cardFace(c))
         });
     }
     // the pots count this round's bets too; those still stand in front of their seats

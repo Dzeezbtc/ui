@@ -22,7 +22,7 @@ describe("inSmallBlinds", () => {
 });
 
 describe("badBeatTableState", () => {
-    const base = { tableSize: 4, startIndex: 0, round: TexasHoldemRound.PREFLOP, previousActions: [], smallBlind: "10" };
+    const base = { tableSize: 4, startIndex: 0, round: TexasHoldemRound.PREFLOP, previousActions: [], smallBlind: "10", mySeat: 1 };
 
     it("gives each position its cards, none once folded, and finds the dealer", () => {
         const players = new Map([
@@ -33,6 +33,18 @@ describe("badBeatTableState", () => {
         const s = badBeatTableState({ ...base, playersBySeat: players, dealerSeat: 3, pots: [] });
         expect(s.seats.map(x => x.cards)).toEqual([["AS", "KD"], null, ["??", "??"], null]);
         expect(s.dealerPosition).toBe(2);
+        // your cards stay on the felt; nobody else has shown
+        expect(s.seats.map(x => x.shown)).toEqual([false, false, false, false]);
+    });
+
+    it("marks another player's face-up cards as shown", () => {
+        const players = new Map([
+            [1, player(1, ["AS", "KD"])],
+            [3, player(3, ["QH", "QC"])]
+        ]);
+        const s = badBeatTableState({ ...base, playersBySeat: players, dealerSeat: null, pots: [] });
+        expect(s.seats[2].shown).toBe(true);
+        expect(s.seats[0].shown).toBe(false);
     });
 
     it("leaves no dealer for an empty seat and draws only the pot gathered in the middle", () => {

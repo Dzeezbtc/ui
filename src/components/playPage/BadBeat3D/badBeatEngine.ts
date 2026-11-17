@@ -429,7 +429,8 @@ export class BadBeatEngine {
         state.seats.forEach((seat, i) => {
             const hole = holes[i];
             if (!hole) return;
-            if (seat.cards) {
+            // shown cards are drawn big and flat over the table (BadBeatShowCards), not on the felt
+            if (seat.cards && !seat.shown) {
                 // two cards side by side, a little turned, as dealt in the concept
                 // face up they lie side by side, both fully readable; face down they overlap a little
                 const spread = seat.cards.some(c => !!cardFace(c)) ? 0.52 : 0.34;
