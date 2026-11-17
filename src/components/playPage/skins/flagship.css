@@ -1539,15 +1539,21 @@
     justify-content: center;
     border-radius: 999px !important;
     background: rgba(13, 11, 23, 0.72) !important;
-    border: 1px solid rgba(52, 211, 153, 0.4) !important;
-    color: #34d399 !important;
+    border: 1px solid rgba(124, 58, 237, 0.6) !important;
+    color: #c4b5fd !important;
     backdrop-filter: blur(8px);
 }
 .fs-topbar-tools > button:hover {
-    border-color: #34d399 !important;
+    border-color: #a78bfa !important;
+    background: rgba(124, 58, 237, 0.18) !important;
+}
+.fs-topbar-tools > button[aria-expanded="true"],
+.fs-topbar-tools > button[data-playing] {
+    border-color: #a78bfa !important;
+    background: rgba(124, 58, 237, 0.24) !important;
 }
 .fs-topbar-tools > button svg {
-    color: #34d399 !important;
+    color: #c4b5fd !important;
 }
 .fs-topbar-title {
     display: flex;
