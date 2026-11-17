@@ -171,7 +171,7 @@ export const PlayerActionButtons: React.FC<PlayerActionButtonsProps> = ({
     // the local player is seated — above every panel (sit-in, waiting, sit-out) —
     // via `seatedFrame` below, rather than only in the sit-in states (#392/#2139).
     const seatAtBottomToggle = (
-        <div className={`backdrop-blur-sm rounded-lg shadow-lg border border-white/20 bg-black/60 ${isCompact ? "p-2" : "p-3"}`}>
+        <div data-part="seat-at-bottom" className={`backdrop-blur-sm rounded-lg shadow-lg border border-white/20 bg-black/60 ${isCompact ? "p-2" : "p-3"}`}>
             <label className="flex items-center cursor-pointer">
                 <input
                     type="checkbox"

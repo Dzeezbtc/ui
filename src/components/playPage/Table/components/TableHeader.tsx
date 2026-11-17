@@ -266,7 +266,7 @@ export const TableHeader: React.FC<TableHeaderProps> = ({
                     <div className="flex flex-col">
                         <div className="flex items-center space-x-1 sm:space-x-2">
                             {blindLevel.isActive ? (
-                                <span className={`text-[10px] sm:text-[15px] font-semibold ${styles.secondaryText}`}>
+                                <span data-part="status-blinds" className={`text-[10px] sm:text-[15px] font-semibold ${styles.secondaryText}`}>
                                     {hasValue(blindLevel.level) && `Level ${blindLevel.level + 1} `}{blindLevel.currentBlindsFormatted} Next {blindLevel.nextBlindsFormatted}
                                     {blindLevel.hasTimer && (
                                         <>
@@ -279,24 +279,26 @@ export const TableHeader: React.FC<TableHeaderProps> = ({
                                     )}
                                 </span>
                             ) : (
-                                <span className={`text-[10px] sm:text-[15px] font-semibold ${styles.secondaryText}`}>
+                                <span data-part="status-blinds" className={`text-[10px] sm:text-[15px] font-semibold ${styles.secondaryText}`}>
                                     {`$${formattedValues.smallBlindFormatted} / $${formattedValues.bigBlindFormatted}`}
                                 </span>
                             )}
 
-                            <span className={`text-[10px] sm:text-[15px] font-semibold ${styles.secondaryText}`}>
+                            <span data-part="status-hand" className={`text-[10px] sm:text-[15px] font-semibold ${styles.secondaryText}`}>
                                 {t("table.handNumber", { hand: handNumber })}
                             </span>
+                            <span data-part="status-fair" className="contents">
                             <ProvablyFairBadge
                                 tableId={tableId}
                                 handNumber={handNumber}
                                 tableName={tableName}
                                 gameLabel={gameOptions ? formatTableGameDisplay(gameVariant, gameOptions.bettingLimit) : undefined}
                             />
-                            <span className={`hidden sm:inline-block text-[15px] font-semibold ${styles.secondaryText}`}>
+                            </span>
+                            <span data-part="status-actions" className={`hidden sm:inline-block text-[15px] font-semibold ${styles.secondaryText}`}>
                                 <span className="ml-2">{t("felt.actionCount", { count: actionCount })}</span>
                             </span>
-                            <span className={`text-[10px] sm:text-[15px] font-semibold ${styles.secondaryText}`}>
+                            <span data-part="status-next" className={`text-[10px] sm:text-[15px] font-semibold ${styles.secondaryText}`}>
                                 <span className="sm:ml-2">{t("felt.nextToAct", { seat: String(nextToAct) })}</span>
                             </span>
                             <button
@@ -324,7 +326,7 @@ export const TableHeader: React.FC<TableHeaderProps> = ({
 
                 {/* Header slot (ui#55): the multi-tabling pill bar sits here, in the
                     row's free middle, so it never covers a header control. */}
-                {headerSlot && <div className="flex flex-1 min-w-0 items-center justify-end z-20 px-2">{headerSlot}</div>}
+                {headerSlot && <div data-part="header-slot" className="flex flex-1 min-w-0 items-center justify-end z-20 px-2">{headerSlot}</div>}
 
                 {/* Right Section */}
                 <div className="flex items-center z-10 mr-1 sm:mr-3">

@@ -137,6 +137,8 @@ import { useNetwork } from "../../context/NetworkContext";
 import { PlayerDTO, PlayerStatus } from "@block52/poker-vm-sdk";
 import LiveHandStrengthDisplay from "./LiveHandStrengthDisplay";
 import { TurnStatusLabel } from "./TurnStatusLabel";
+import { TableCornerInfo } from "./Table/components/TableCornerInfo";
+import { blindsLabel } from "../../utils/blindsLabel";
 import { useGameStateSounds } from "../../hooks/notifications/useGameStateSounds";
 import NoWalletOverlay from "./NoWalletOverlay";
 import SngPayoutPanel from "./SngPayoutPanel";
@@ -1548,6 +1550,15 @@ const Table = React.memo(({ tableId }: TableProps = {}) => {
                                             ? "linear-gradient(180deg, rgba(26,26,46,0.4) 0%, rgba(26,26,46,0.7) 100%)"
                                             : "linear-gradient(180deg, rgba(80,55,25,0.25) 0%, rgba(40,25,10,0.45) 100%)"
                                 }}
+                            />
+                        )}
+                        {/* Flagship: blinds and the provably-fair shield, quiet, under the table on the right */}
+                        {tableStyle === "flagship" && id && (
+                            <TableCornerInfo
+                                blinds={blindsLabel(formattedValues.smallBlindFormatted, formattedValues.bigBlindFormatted, formattedValues.isTournamentStyle)}
+                                tableId={id}
+                                handNumber={handNumber}
+                                tableName={gameName}
                             />
                         )}
                         {/* Table felt surface */}

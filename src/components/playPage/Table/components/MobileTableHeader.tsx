@@ -38,6 +38,7 @@ import styles from "./TableHeader.module.css";
 import { ProvablyFairBadge } from "../../ProvablyFair/ProvablyFairBadge";
 import { hasValue, isNullish } from "../../../../utils/guards";
 import { useTableHeaderSlot } from "../../../../context/TableHeaderSlotContext";
+import { useTableStyle } from "../../../../context/TableStyleContext";
 import { useLanguage } from "../../../../i18n/useLanguage";
 
 
@@ -136,6 +137,7 @@ export const MobileTableHeader: React.FC<MobileTableHeaderProps> = ({
     const blindLevel = useBlindLevel();
     const [menuOpen, setMenuOpen] = useState(false);
     const headerSlot = useTableHeaderSlot();
+    const flagship = useTableStyle() === "flagship";
     const [showQR, setShowQR] = useState(false);
     const [showTopUp, setShowTopUp] = useState(false);
     const tableUrl = `${window.location.origin}/table/${tableId}`;
@@ -259,6 +261,7 @@ export const MobileTableHeader: React.FC<MobileTableHeaderProps> = ({
                 <>
                     <div className="fixed inset-0 z-[1999] bg-black/60" onClick={() => setMenuOpen(false)} />
                     <div
+                        data-part="menu-drawer"
                         className={`fixed top-0 right-0 bottom-0 z-[2000] w-[290px] max-w-[85vw] flex flex-col overflow-y-auto border-l-2 ${styles.headerRoot}`}
                         style={{
                             // Leave Table (the drawer's last row) must clear the home
@@ -278,6 +281,14 @@ export const MobileTableHeader: React.FC<MobileTableHeaderProps> = ({
                                 <FaTimes size={16} />
                             </button>
                         </div>
+
+                        {/* Flagship: the status strip is hidden, so the hand and whose turn live here */}
+                        {flagship && (
+                            <div className="px-4 py-2 border-b border-white/10 flex items-center gap-3" data-part="menu-hand">
+                                <span className={`text-xs font-semibold ${styles.secondaryText}`}>Hand #{handNumber}</span>
+                                <span className={`text-xs ${styles.secondaryText}`}>Next: Seat {nextToAct}</span>
+                            </div>
+                        )}
 
                         {/* Game info (read-only) */}
                         {gameOptions && (

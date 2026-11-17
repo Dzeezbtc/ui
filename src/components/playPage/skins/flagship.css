@@ -1278,3 +1278,196 @@
     flex-wrap: nowrap;
     white-space: nowrap;
 }
+
+/* =====================================================================
+ * Pure top: only what matters. Phone: [‹] [balance] ··· [menu]; the hand and
+ * whose turn move into the menu; blinds and the provably-fair shield sit
+ * quietly under the table on the right; "+ Table" is centred everywhere.
+ * ===================================================================== */
+[data-skin="flagship"] [data-part="header-status"] {
+    display: none !important;
+}
+[data-skin="flagship"] [data-part="header-title"] {
+    font-size: 0 !important;
+    width: 42px;
+    min-width: 42px;
+    height: 42px;
+    min-height: 42px !important;
+    padding: 0 !important;
+    justify-content: center;
+    gap: 0;
+}
+[data-skin="flagship"] [data-part="header-title"]::before {
+    width: 42px;
+    height: 42px;
+    background: transparent;
+    color: var(--fs-fg);
+    font-size: 24px;
+}
+[data-skin="flagship"] [data-part="header-actions"] {
+    flex: 1 1 auto;
+    justify-content: space-between;
+}
+
+/* desktop strip: no blinds, hand count, action count or next-to-act up top */
+[data-skin="flagship"] :is([data-part="status-blinds"], [data-part="status-hand"], [data-part="status-actions"], [data-part="status-next"]) {
+    display: none !important;
+}
+[data-skin="flagship"] [data-part="status-fair"] {
+    display: none !important;
+}
+[data-skin="flagship"] [data-part="header-slot"] {
+    position: absolute;
+    left: 50%;
+    top: 50%;
+    transform: translate(-50%, -50%);
+    flex: none;
+    width: auto;
+    padding: 0;
+}
+
+/* the corner under the table, on the right: blinds and the shield */
+[data-skin="flagship"] [data-part="table-corner"] {
+    position: absolute;
+    z-index: 30;
+    right: -20px;
+    top: calc(100% + 128px);
+    display: flex;
+    align-items: center;
+    gap: 10px;
+    padding: 4px 6px 4px 14px;
+    border-radius: 999px;
+    background: rgba(13, 11, 23, 0.6);
+    border: 1px solid var(--fs-line);
+    font-family: var(--fs-mono);
+    font-size: 15px;
+    color: var(--fs-muted);
+    white-space: nowrap;
+}
+[data-skin="flagship"][data-orient="portrait"] [data-part="table-corner"] {
+    right: -80px;
+    top: calc(100% + 70px);
+    font-size: 22px;
+    gap: 16px;
+    padding: 6px 10px 6px 22px;
+}
+[data-skin="flagship"][data-orient="portrait"] [data-part="table-corner"] svg {
+    width: 26px;
+    height: 26px;
+}
+[data-skin="flagship"] [data-part="table-corner"] button {
+    background: rgba(52, 211, 153, 0.12) !important;
+    border: 1px solid rgba(52, 211, 153, 0.4) !important;
+    border-radius: 999px !important;
+}
+
+/* ---------- "Seat me at 6 o'clock" and "Top up chips", in Block52 glass ---------- */
+[data-skin="flagship"] [data-part="seat-at-bottom"] {
+    background: var(--fs-glass) !important;
+    border: 1px solid var(--fs-line2) !important;
+    border-radius: 14px !important;
+    box-shadow: 0 14px 30px -14px #000 !important;
+    backdrop-filter: blur(12px);
+    padding: 10px 14px !important;
+}
+[data-skin="flagship"] [data-part="seat-at-bottom"] span {
+    font-family: var(--fs-sans);
+    font-weight: 500;
+    color: var(--fs-fg) !important;
+}
+[data-skin="flagship"] [data-part="seat-at-bottom"] input[type="checkbox"] {
+    appearance: none;
+    width: 18px;
+    height: 18px;
+    border-radius: 6px;
+    border: 1.5px solid var(--fs-line2);
+    background: var(--fs-panel2);
+    display: grid;
+    place-items: center;
+    cursor: pointer;
+}
+[data-skin="flagship"] [data-part="seat-at-bottom"] input[type="checkbox"]:checked {
+    border-color: transparent;
+    background: var(--fs-grad);
+    box-shadow: 0 0 14px rgba(124, 58, 237, 0.6);
+}
+[data-skin="flagship"] [data-part="seat-at-bottom"] input[type="checkbox"]:checked::after {
+    content: "";
+    width: 9px;
+    height: 5px;
+    margin-top: -2px;
+    border-left: 2px solid #fff;
+    border-bottom: 2px solid #fff;
+    transform: rotate(-45deg);
+}
+[data-skin="flagship"] [data-part="top-up"] {
+    display: inline-flex;
+    align-items: center;
+    gap: 10px;
+    padding: 10px 16px 10px 12px !important;
+    border-radius: 14px !important;
+    background: var(--fs-glass) !important;
+    border: 1px solid var(--fs-line2) !important;
+    box-shadow: 0 14px 30px -14px #000 !important;
+    backdrop-filter: blur(12px);
+    font-family: var(--fs-sans);
+    font-weight: 600 !important;
+    letter-spacing: 0.01em;
+    text-transform: none !important;
+    color: var(--fs-fg) !important;
+}
+[data-skin="flagship"] [data-part="top-up"]:hover:not(:disabled) {
+    border-color: transparent !important;
+    box-shadow:
+        0 0 0 1.5px var(--fs-vi),
+        0 0 22px rgba(124, 58, 237, 0.5) !important;
+}
+/* the money-bag emoji becomes a Block52 chip */
+[data-skin="flagship"] [data-part="top-up-icon"] {
+    font-size: 0;
+    width: 20px;
+    height: 20px;
+    border-radius: 50%;
+    background:
+        repeating-conic-gradient(from 7.5deg, #ffffff 0 9deg, transparent 9deg 45deg),
+        linear-gradient(135deg, #f472b6, #c026d3);
+    box-shadow:
+        inset 0 0 0 4px transparent,
+        0 0 10px rgba(244, 114, 182, 0.55);
+    position: relative;
+}
+[data-skin="flagship"] [data-part="top-up-icon"]::after {
+    content: "";
+    position: absolute;
+    inset: 22%;
+    border-radius: 50%;
+    background: linear-gradient(135deg, #f472b6, #c026d3);
+    box-shadow: inset 0 0 0 1px rgba(255, 255, 255, 0.85);
+}
+
+/* ---------- the phone menu, in Block52 glass ---------- */
+[data-skin="flagship"] [data-part="menu-drawer"] {
+    background: rgba(13, 11, 23, 0.97) !important;
+    border-left: 1px solid var(--fs-line2) !important;
+    box-shadow: -30px 0 80px -30px rgba(124, 58, 237, 0.45);
+    backdrop-filter: blur(20px);
+    font-family: var(--fs-sans);
+}
+[data-skin="flagship"] [data-part="menu-drawer"] :is(.border-white\/10, [class*="border-b"]) {
+    border-color: var(--fs-line) !important;
+}
+[data-skin="flagship"] [data-part="menu-drawer"] :is(span, button, a) {
+    color: var(--fs-fg);
+}
+[data-skin="flagship"] [data-part="menu-drawer"] :is(.text-gray-400, .text-xs.text-gray-400, [class*="secondaryText"]) {
+    color: var(--fs-muted) !important;
+}
+[data-skin="flagship"] [data-part="menu-drawer"] :is(.text-amber-300, [class*="brandText"]) {
+    color: #c4b5fd !important;
+}
+[data-skin="flagship"] [data-part="menu-drawer"] svg {
+    color: #a78bfa;
+}
+[data-skin="flagship"] [data-part="menu-drawer"] button:hover {
+    background: var(--fs-panel2) !important;
+}
