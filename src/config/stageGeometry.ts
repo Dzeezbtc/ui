@@ -907,6 +907,8 @@ export interface FlagshipSeatBox {
 export const FLAGSHIP_SEAT_BOX: FlagshipSeatBox = { halfW: 72, up: 84, down: 52 };
 /** You: your two big cards stand above your plate. */
 export const FLAGSHIP_YOUR_BOX: FlagshipSeatBox = { halfW: 92, up: 156, down: 52 };
+/** You on the phone: bigger cards, and a clear gap between their tips and your bet. */
+export const FLAGSHIP_YOUR_BOX_PORTRAIT: FlagshipSeatBox = { halfW: 100, up: 205, down: 52 };
 /** The widest bet group the flagship draws (chips plus "$12,345.67"), and half its height. */
 export const FLAGSHIP_BET_HALF_W = 78;
 export const FLAGSHIP_BET_HALF_H = 17;
@@ -951,14 +953,14 @@ export function inwardNormal(x: number, y: number, tableWidth: number, tableHeig
  * bottom centre, and your bet goes straight up past your big cards. The spot is
  * the centre of the bet group, in table-div pixels.
  */
-export function placeBetSpotsInFront(players: Position[], tableWidth: number, tableHeight: number): ChipPosition[] {
+export function placeBetSpotsInFront(players: Position[], tableWidth: number, tableHeight: number, yourBox: FlagshipSeatBox = FLAGSHIP_YOUR_BOX): ChipPosition[] {
     const r = (n: number) => `${Math.round(n * 10) / 10}px`;
     const cx = tableWidth / 2;
     return players.map(seat => {
         const sx = parseFloat(seat.left);
         const sy = parseFloat(seat.top);
         const isYou = Math.abs(sx - cx) < tableWidth * 0.05 && sy > tableHeight / 2;
-        const box = isYou ? FLAGSHIP_YOUR_BOX : FLAGSHIP_SEAT_BOX;
+        const box = isYou ? yourBox : FLAGSHIP_SEAT_BOX;
         const [nx, ny] = isYou ? [0, -1] : inwardNormal(sx, sy, tableWidth, tableHeight);
         // Separate the bet from the seat along whichever axis takes the shorter move.
         const across = Math.abs(nx) > 1e-6 ? (box.halfW + FLAGSHIP_BET_HALF_W + BET_GAP) / Math.abs(nx) : Infinity;
@@ -1030,7 +1032,7 @@ export function withBetSpots(positions: PositionArrays, tableSize: TableSize, mo
     const mobile = mode === "mobile-portrait" || mode === "mobile-landscape";
     const board = betBoardFor(tableSize, portrait, dims.tableWidth, dims.tableHeight);
     if (stageShape === "flagship") {
-        return { ...positions, chips: placeBetSpotsInFront(positions.players, dims.tableWidth, dims.tableHeight) };
+        return { ...positions, chips: placeBetSpotsInFront(positions.players, dims.tableWidth, dims.tableHeight, portrait ? FLAGSHIP_YOUR_BOX_PORTRAIT : FLAGSHIP_YOUR_BOX) };
     }
     return {
         ...positions,

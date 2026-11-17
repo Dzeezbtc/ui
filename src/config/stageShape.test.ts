@@ -6,6 +6,7 @@ import {
     FLAGSHIP_BET_HALF_W,
     FLAGSHIP_SEAT_BOX,
     FLAGSHIP_YOUR_BOX,
+    FLAGSHIP_YOUR_BOX_PORTRAIT,
     inwardNormal,
     flagshipBoardKeepOut,
     STAGE_DIMS,
@@ -121,7 +122,7 @@ describe("flagship bets", () => {
                 const seatRects: Rect[] = players.map((p, i) => {
                     const x = parseFloat(p.left);
                     const y = parseFloat(p.top);
-                    const box = i === 0 ? FLAGSHIP_YOUR_BOX : FLAGSHIP_SEAT_BOX;
+                    const box = i === 0 ? (w > h ? FLAGSHIP_YOUR_BOX : FLAGSHIP_YOUR_BOX_PORTRAIT) : FLAGSHIP_SEAT_BOX;
                     return { x0: x - box.halfW, x1: x + box.halfW, y0: y - box.up, y1: y + box.down, what: `seat ${i + 1}` };
                 });
                 const betRects: Rect[] = chips.map((c, i) => {
@@ -147,6 +148,11 @@ describe("flagship bets", () => {
                 });
             }
         }
+    });
+
+    it("leaves a clear gap above your bigger phone cards", () => {
+        const { players, chips } = layout(390, 844, 9);
+        expect(parseFloat(players[0].top) - parseFloat(chips[0].top ?? "")).toBeGreaterThanOrEqual(FLAGSHIP_YOUR_BOX_PORTRAIT.up);
     });
 
     it("sends your bet straight up from your seat", () => {
