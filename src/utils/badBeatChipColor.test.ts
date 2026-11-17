@@ -1,4 +1,4 @@
-import { badBeatChipColor, flatChipStack } from "./badBeatChipColor";
+import { badBeatChipColor, flatChipFaceLabel, flatChipStack, isPaleChip } from "./badBeatChipColor";
 
 describe("badBeatChipColor", () => {
     it("runs white, crimson, ice blue, green, amber up the values", () => {
@@ -54,5 +54,41 @@ describe("badBeatChipColor for Chip and a Chair", () => {
         expect(badBeatChipColor(25, "chipchair").color).toBe("#3d7bff");
         expect(badBeatChipColor(100, "chipchair").color).toBe("#b9a2ff");
         expect(badBeatChipColor(500, "chipchair").color).toBe("#ffd23f");
+    });
+
+    it("has its own pink 1K, green 5K and sky cents, with ink blocks on the white chip only", () => {
+        expect(badBeatChipColor(1000, "chipchair").color).toBe("#ff6fb5");
+        expect(badBeatChipColor(25000, "chipchair").color).toBe("#22c55e");
+        expect(badBeatChipColor(0.25, "chipchair").color).toBe("#7fd4ff");
+        expect(badBeatChipColor(1, "chipchair").slash).toBe("#0e0e10");
+        expect(badBeatChipColor(5, "chipchair").slash).toBe("#ffffff");
+    });
+});
+
+describe("Maison 52's salon plaques", () => {
+    it("tops out at a champagne gold 1K with an espresso mark", () => {
+        expect(badBeatChipColor(1000, "maison")).toEqual({ color: "#d9bf8c", slash: "#4a3418" });
+        expect(badBeatChipColor(999, "maison").color).toBe("#1d1a16");
+    });
+});
+
+describe("flatChipFaceLabel", () => {
+    it("says the value without a currency sign", () => {
+        expect(flatChipFaceLabel(5)).toBe("5");
+        expect(flatChipFaceLabel(25)).toBe("25");
+        expect(flatChipFaceLabel(1000)).toBe("1K");
+        expect(flatChipFaceLabel(2500)).toBe("2.5K");
+        expect(flatChipFaceLabel(0.25)).toBe("25¢");
+        expect(flatChipFaceLabel(2.5)).toBe("2.5");
+    });
+});
+
+describe("isPaleChip", () => {
+    it("tells the ivory, champagne and white chips from the dark ones", () => {
+        expect(isPaleChip("#f4eee2")).toBe(true);
+        expect(isPaleChip("#d9bf8c")).toBe(true);
+        expect(isPaleChip("#ffffff")).toBe(true);
+        expect(isPaleChip("#1d1a16")).toBe(false);
+        expect(isPaleChip("#22427a")).toBe(false);
     });
 });

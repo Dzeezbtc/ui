@@ -183,11 +183,11 @@ export const FLAGSHIP_PORTRAIT_DIMS: StageDims = {
 };
 
 /**
- * Chip and a Chair's phone stage (Dzeezbtc/ui#40): the concept's round,
- * overly table — a 720×960 oval, a little taller than it is wide — on a 900×1240
- * stage, its seats round the rim ({@link chipChairPortraitSeats}).
+ * Chip and a Chair's stage on every screen (Dzeezbtc/ui#40): the concept's
+ * round, overly table — a 720×960 oval, a little taller than it is wide — on a 900×1240
+ * stage, its seats round the rim ({@link chipChairSeats}).
  */
-export const CHIPCHAIR_PORTRAIT_DIMS: StageDims = {
+export const CHIPCHAIR_DIMS: StageDims = {
     stageWidth: 900,
     stageHeight: 1240,
     tableWidth: 720,
@@ -208,8 +208,8 @@ export const CHIPCHAIR_SEAT_OUT = 18;
  * Chip and a Chair's upright seats: evenly round the oval, you at the bottom,
  * each plate centred just outside the rim, as in the concept.
  */
-export function chipChairPortraitSeats(tableSize: number): [number, number][] {
-    const d = CHIPCHAIR_PORTRAIT_DIMS;
+export function chipChairSeats(tableSize: number): [number, number][] {
+    const d = CHIPCHAIR_DIMS;
     const rx = d.tableWidth / 2 + 30 + CHIPCHAIR_SEAT_OUT;
     const ry = d.tableHeight / 2 + 30 + CHIPCHAIR_SEAT_OUT;
     return Array.from({ length: tableSize }, (_, i) => {
@@ -274,7 +274,9 @@ export function getStageOrientation(): StageOrientation {
 }
 
 export function getStageDims(): StageDims {
-    if (isFlagshipPortrait()) return stageShape === "chipchair" ? CHIPCHAIR_PORTRAIT_DIMS : FLAGSHIP_PORTRAIT_DIMS;
+    // Chip and a Chair is the concept's round, overly table on every screen (ui#40)
+    if (stageShape === "chipchair") return CHIPCHAIR_DIMS;
+    if (isFlagshipPortrait()) return FLAGSHIP_PORTRAIT_DIMS;
     return STAGE_DIMS[getStageOrientation()];
 }
 
@@ -423,7 +425,8 @@ const FLAGSHIP_LANDSCAPE_SEAT_COORDS: Record<number, [number, number][]> = {
 
 /** Seat coordinates for the current orientation's stage. */
 export function getSeatCoords(tableSize: TableSize): [number, number][] {
-    if (isFlagshipPortrait()) return stageShape === "chipchair" ? chipChairPortraitSeats(tableSize) : FLAGSHIP_PORTRAIT_SEAT_COORDS[tableSize];
+    if (stageShape === "chipchair") return chipChairSeats(tableSize);
+    if (isFlagshipPortrait()) return FLAGSHIP_PORTRAIT_SEAT_COORDS[tableSize];
     if (isFlagshipShape()) return FLAGSHIP_LANDSCAPE_SEAT_COORDS[tableSize];
     return getStageOrientation() === "portrait" ? PORTRAIT_SEAT_COORDS[tableSize] : SEAT_COORDS[tableSize];
 }

@@ -13,11 +13,12 @@ export const BB_FLAT_CHIP_COLORS: [number, string, string][] = [
 ];
 
 /**
- * Maison 52's chips (Dzeezbtc/ui#38), as on its 3D table: ivory, navy, bottle
- * green, bordeaux and black from the smallest value up, each with its mark
- * (gold on the dark chips, espresso on ivory).
+ * Maison 52's chips, the "Salon plaques" (Dzeezbtc/ui#38, #40): ivory, navy,
+ * bottle green, bordeaux, black and champagne gold from the smallest value up,
+ * each with its mark (gold on the dark chips, espresso on ivory and champagne).
  */
 export const MAISON_FLAT_CHIP_COLORS: [number, string, string][] = [
+    [1000, "#d9bf8c", "#4a3418"],
     [500, "#1d1a16", "#cdb07f"],
     [100, "#6e1f2b", "#cdb07f"],
     [25, "#0f3b2e", "#cdb07f"],
@@ -26,16 +27,19 @@ export const MAISON_FLAT_CHIP_COLORS: [number, string, string][] = [
 ];
 
 /**
- * Chip and a Chair's chips (Dzeezbtc/ui#40), as in the concept: white, red,
- * blue, lavender and yellow from the smallest value up, each ringed in white
- * inside an ink edge.
+ * Chip and a Chair's own chips, the "Sticker chips" (Dzeezbtc/ui#40): sky for
+ * cents, then white, red, blue, lavender, yellow, pink and green up the values,
+ * each with white edge blocks (ink on the white chip).
  */
 export const CHIPCHAIR_FLAT_CHIP_COLORS: [number, string, string][] = [
+    [5000, "#22c55e", "#ffffff"],
+    [1000, "#ff6fb5", "#ffffff"],
     [500, "#ffd23f", "#ffffff"],
     [100, "#b9a2ff", "#ffffff"],
     [25, "#3d7bff", "#ffffff"],
     [5, "#ff4d3d", "#ffffff"],
-    [0, "#ffffff", "#0e0e10"]
+    [1, "#ffffff", "#0e0e10"],
+    [0, "#7fd4ff", "#ffffff"]
 ];
 
 /** A look that draws its own flat chips. */
@@ -51,6 +55,23 @@ const FLAT_CHIP_PALETTES: Record<FlatChipLook, [number, string, string][]> = {
 export const badBeatChipColor = (value: number, look: FlatChipLook = "badbeat"): { color: string; slash: string } => {
     const [, color, slash] = FLAT_CHIP_PALETTES[look].find(([min]) => value >= min)!;
     return { color, slash };
+};
+
+/**
+ * What a sticker or salon chip's face says: its value without a currency sign,
+ * "25", "1K", "50¢" (cents only on cash tables).
+ */
+export const flatChipFaceLabel = (value: number): string => {
+    if (value >= 1000) return `${Math.round(value / 100) / 10}K`;
+    if (value < 1) return `${Math.round(value * 100)}¢`;
+    return `${Math.round(value * 100) / 100}`;
+};
+
+/** True for a pale chip (ivory, champagne, white), whose inlays and marks are drawn dark. */
+export const isPaleChip = (color: string): boolean => {
+    const n = parseInt(color.replace("#", ""), 16);
+    const lum = 0.299 * ((n >> 16) & 255) + 0.587 * ((n >> 8) & 255) + 0.114 * (n & 255);
+    return lum > 170;
 };
 
 /** At most this many chips of one value in a flat Bad Beat stack, as on the 3D table. */

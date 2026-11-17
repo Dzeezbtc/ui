@@ -25,9 +25,9 @@ import {
     MAISON_PORTRAIT_DOCK,
     MAISON_SIDE_COLUMN,
     CHIPCHAIR_COLUMN,
-    CHIPCHAIR_PORTRAIT_DIMS,
+    CHIPCHAIR_DIMS,
     CHIPCHAIR_PORTRAIT_DOCK,
-    chipChairPortraitSeats,
+    chipChairSeats,
     threeTableCamera
 } from "./stageGeometry";
 import { BADBEAT_CAMERA, MAISON_CAMERA, badBeatScene } from "../utils/badBeatScene";
@@ -291,17 +291,17 @@ describe("Chip and a Chair stage", () => {
         return { tx: +m[1], ty: +m[2], zoom: +m[3] };
     };
 
-    it("uses its round oval on an upright phone only", () => {
-        setViewport(390, 844);
+    it("uses its round oval on every screen, the phone's table on a TV too", () => {
         setStageShape("chipchair");
-        expect(getStageDims()).toBe(CHIPCHAIR_PORTRAIT_DIMS);
-        setViewport(1920, 1080);
-        expect(getStageDims()).toBe(STAGE_DIMS.landscape);
+        for (const [w, h] of [[390, 844], [844, 390], [1440, 900], [1920, 1080]]) {
+            setViewport(w, h);
+            expect(getStageDims()).toBe(CHIPCHAIR_DIMS);
+        }
     });
 
     it("seats everyone evenly round the oval, you at the bottom centre", () => {
-        const d = CHIPCHAIR_PORTRAIT_DIMS;
-        const seats = chipChairPortraitSeats(9);
+        const d = CHIPCHAIR_DIMS;
+        const seats = chipChairSeats(9);
         expect(seats).toHaveLength(9);
         expect(seats[0][0]).toBeCloseTo(d.centerX, 0);
         expect(seats[0][1]).toBeGreaterThan(d.centerY + d.tableHeight / 2);

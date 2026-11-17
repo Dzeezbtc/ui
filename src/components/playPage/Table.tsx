@@ -174,7 +174,7 @@ import {
     getStageDims,
     STAGE_DIMS,
     FLAGSHIP_PORTRAIT_DIMS,
-    CHIPCHAIR_PORTRAIT_DIMS,
+    CHIPCHAIR_DIMS,
     getContentBounds,
     VIEWPORT_PARAMS,
     PLAYER_UI_PADDING,
@@ -964,7 +964,7 @@ const Table = React.memo(({ tableId }: TableProps = {}) => {
     const isCompactMobile = isMobilePortrait || tableLayout.viewportMode === "mobile-landscape";
     // Felt/rail dimensions follow the SAME mode as the layout hook, so the
     // markup and the seat positions can never disagree mid-rotation.
-    const stageDims = isMobilePortrait && usesFlagshipLayout(tableStyle) ? (tableStyle === "chipchair" ? CHIPCHAIR_PORTRAIT_DIMS : FLAGSHIP_PORTRAIT_DIMS) : STAGE_DIMS[isMobilePortrait ? "portrait" : "landscape"];
+    const stageDims = tableStyle === "chipchair" ? CHIPCHAIR_DIMS : isMobilePortrait && usesFlagshipLayout(tableStyle) ? FLAGSHIP_PORTRAIT_DIMS : STAGE_DIMS[isMobilePortrait ? "portrait" : "landscape"];
 
     // Add the useGameProgress hook
     const { isGameInProgress, handNumber, actionCount, nextToAct } = useGameProgress(id);

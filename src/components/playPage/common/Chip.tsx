@@ -19,6 +19,8 @@ const CHIP_SIZE = 28;
 const CHIP_SIZE_MOBILE = 32;
 /** How much bigger the Block52 flagship chips are drawn (px). */
 const FLAGSHIP_CHIP_EXTRA = 6;
+/** Chip and a Chair's sticker chips are drawn a size up again, so the value on each face reads (ui#40). */
+const CHIPCHAIR_CHIP_EXTRA = 6;
 
 type ChipProps = {
     amount: string | bigint;
@@ -115,7 +117,7 @@ const Chip: React.FC<ChipProps> = React.memo(({ amount, isTournament, caption })
 
     const isMobile = window.innerWidth <= 768 || window.innerHeight <= 500;
     // The flagship's neon chips are drawn a size up, so their faces read on a big screen.
-    const chipSize = (isMobile ? CHIP_SIZE_MOBILE : CHIP_SIZE) + (flagship ? FLAGSHIP_CHIP_EXTRA : 0);
+    const chipSize = (isMobile ? CHIP_SIZE_MOBILE : CHIP_SIZE) + (flagship ? FLAGSHIP_CHIP_EXTRA : 0) + (tableStyle === "chipchair" ? CHIPCHAIR_CHIP_EXTRA : 0);
 
     const maxVisibleCount = Math.max(1, ...allStacks.map(s => s.visibleCount));
     // Bad Beat: one neat stack, as on its 3D table (ui#36)
