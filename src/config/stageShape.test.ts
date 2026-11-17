@@ -1,4 +1,8 @@
 import {
+    BADBEAT_PORTRAIT_LIFT,
+    BADBEAT_SIDE_COLUMN,
+    calculateZoom,
+    getTableTransform,
     FLAGSHIP_PORTRAIT_DIMS,
     FLAGSHIP_PORTRAIT_PADDING,
     getContentBounds,
@@ -18,6 +22,7 @@ import {
     holeCardSideFor,
     setStageShape
 } from "./stageGeometry";
+import { badBeatScene } from "../utils/badBeatScene";
 
 const setViewport = (width: number, height: number) => {
     Object.defineProperty(window, "innerWidth", { configurable: true, writable: true, value: width });
@@ -168,5 +173,57 @@ describe("flagship bets", () => {
         expect(nx).toBeCloseTo(1);
         expect(ny).toBeCloseTo(0);
         expect(inwardNormal(0, 400, 500, 1000)).toEqual([1, 0]);
+    });
+});
+
+describe("Bad Beat stage shape", () => {
+    afterEach(() => {
+        setStageShape("standard");
+        clearLayoutCache();
+    });
+
+    const parse = (t: string) => {
+        const m = /translate\(([-\d.]+)px, ([-\d.]+)px\) scale\(([\d.]+)\)/.exec(t);
+        if (!m) throw new Error(`unexpected transform ${t}`);
+        return { tx: +m[1], ty: +m[2], zoom: +m[3] };
+    };
+
+    it("puts every plate and bet amount on the 3D table's projected points", () => {
+        setViewport(1920, 1080);
+        setStageShape("badbeat");
+        clearLayoutCache();
+        const { players, chips, seatAngles, boardCentre } = getLayoutPositions(9, "desktop");
+        const { tableWidth, tableHeight } = getStageDims();
+        const scene = badBeatScene(seatAngles!, tableWidth, tableHeight);
+        players.forEach((p, i) => {
+            expect(parseFloat(p.left)).toBeCloseTo(scene.screen.plates[i][0], 0);
+            expect(parseFloat(p.top)).toBeCloseTo(scene.screen.plates[i][1], 0);
+            expect(parseFloat(chips[i].top ?? "")).toBeCloseTo(scene.screen.betLabels[i][1], 0);
+        });
+        expect(parseFloat(boardCentre!.left)).toBeCloseTo(tableWidth / 2, 0);
+        // you sit at the bottom, straight below the board
+        expect(parseFloat(players[0].left)).toBeCloseTo(tableWidth / 2, 0);
+        expect(parseFloat(players[0].top)).toBeGreaterThan(parseFloat(boardCentre!.top));
+    });
+
+    it("on a phone held sideways, sits the table left of the button column", () => {
+        setViewport(844, 390);
+        setStageShape("flagship");
+        const flagship = parse(getTableTransform(calculateZoom(9, 844, 340), 9, 844, 340));
+        setStageShape("badbeat");
+        const badbeat = parse(getTableTransform(calculateZoom(9, 844, 340), 9, 844, 340));
+        expect(badbeat.zoom).toBeGreaterThan(flagship.zoom);
+        // the table's centre is left of the screen's centre, clear of the column
+        const bounds = getContentBounds(9);
+        expect(badbeat.tx + bounds.centerX * badbeat.zoom).toBeCloseTo((844 - BADBEAT_SIDE_COLUMN) / 2, 0);
+    });
+
+    it("on an upright phone, lifts the table into the gap under the top bar", () => {
+        setViewport(390, 844);
+        setStageShape("badbeat");
+        clearLayoutCache();
+        const t = parse(getTableTransform(calculateZoom(9, 390, 790), 9, 390, 790));
+        const centre = t.ty + getContentBounds(9).centerY * t.zoom;
+        expect(centre).toBeCloseTo((790 - 90) / 2 - BADBEAT_PORTRAIT_LIFT, 0);
     });
 });

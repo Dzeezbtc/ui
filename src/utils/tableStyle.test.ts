@@ -1,8 +1,8 @@
-import { TABLE_STYLES, TABLE_STYLE_LABELS, isTableStyle, nextTableStyle, skinForTheme, stageShapeFor, tableStyleFromEnv } from "./tableStyle";
+import { TABLE_STYLES, TABLE_STYLE_LABELS, isTableStyle, nextTableStyle, skinAttrFor, skinForTheme, stageShapeFor, tableStyleFromEnv, usesFlagshipLayout } from "./tableStyle";
 
 describe("tableStyle", () => {
     it("knows every style and names each one", () => {
-        expect(TABLE_STYLES).toEqual(["modern", "classic", "nouns", "chipchair", "flagship"]);
+        expect(TABLE_STYLES).toEqual(["modern", "classic", "nouns", "chipchair", "flagship", "badbeat"]);
         TABLE_STYLES.forEach(s => expect(TABLE_STYLE_LABELS[s]).toBeTruthy());
         expect(TABLE_STYLE_LABELS.chipchair).toBe("Chip and a Chair");
         expect(TABLE_STYLE_LABELS.flagship).toBe("Block52 Flagship");
@@ -22,7 +22,8 @@ describe("tableStyle", () => {
         expect(nextTableStyle("classic")).toBe("nouns");
         expect(nextTableStyle("nouns")).toBe("chipchair");
         expect(nextTableStyle("chipchair")).toBe("flagship");
-        expect(nextTableStyle("flagship")).toBe("modern");
+        expect(nextTableStyle("flagship")).toBe("badbeat");
+        expect(nextTableStyle("badbeat")).toBe("modern");
     });
 
     it("starts in the env style, or modern", () => {
@@ -42,7 +43,18 @@ describe("tableStyle", () => {
 
     it("lays the flagship out on its own stage shape", () => {
         expect(stageShapeFor("flagship")).toBe("flagship");
+        expect(stageShapeFor("badbeat")).toBe("badbeat");
         expect(stageShapeFor("modern")).toBe("standard");
         expect(stageShapeFor("chipchair")).toBe("standard");
+    });
+
+    it("lays Bad Beat out like the flagship, under the flagship's stylesheet", () => {
+        expect(TABLE_STYLE_LABELS.badbeat).toBe("Bad Beat");
+        expect(usesFlagshipLayout("badbeat")).toBe(true);
+        expect(usesFlagshipLayout("flagship")).toBe(true);
+        expect(usesFlagshipLayout("chipchair")).toBe(false);
+        expect(skinAttrFor("badbeat")).toBe("flagship");
+        expect(skinAttrFor("chipchair")).toBe("chipchair");
+        expect(skinForTheme("badbeat")).toBe("badbeat");
     });
 });

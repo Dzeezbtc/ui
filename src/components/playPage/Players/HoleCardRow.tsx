@@ -1,6 +1,7 @@
 import React from "react";
 import { HOLE_CARD_ROW_HEIGHT, holeCardLayout, WinnerCardHighlight } from "../../../utils/holeCardLayout";
 import { useTableStyle } from "../../../context/TableStyleContext";
+import { usesFlagshipLayout } from "../../../utils/tableStyle";
 import { FlagshipCard } from "../Card/FlagshipCard";
 
 export interface HoleCardImage {
@@ -22,7 +23,7 @@ export interface HoleCardImage {
  */
 export const HoleCardRow: React.FC<{ cards: HoleCardImage[] }> = ({ cards }) => {
     const { width, height, overlap } = holeCardLayout(cards.length);
-    const flagship = useTableStyle() === "flagship";
+    const flagship = usesFlagshipLayout(useTableStyle());
     return (
         <>
             {cards.map((card, i) => {

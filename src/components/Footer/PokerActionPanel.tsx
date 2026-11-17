@@ -27,6 +27,9 @@ import { useGameStateContext } from "../../context/GameStateContext";
 import { isConnectionLive } from "../../context/gameState/connection";
 import { useActionSubmit } from "../../context/ActionSubmitContext";
 import { useGameSettings } from "../../context/GameSettingsContext";
+import { useTableStyle } from "../../context/TableStyleContext";
+import { BadBeatPanelHeader, BadBeatWaitingHeader } from "./BadBeatPanelHeader";
+import { usePlayerSeatInfo } from "../../hooks/player/usePlayerSeatInfo";
 import { dealCardsWithEntropy } from "../../hooks/playerActions/dealCards";
 import { useAutoDeal } from "../../hooks/playerActions/useAutoDeal";
 import { useAutoPostBlinds } from "../../hooks/playerActions/useAutoPostBlinds";
@@ -348,6 +351,8 @@ export const PokerActionPanel: React.FC<PokerActionPanelProps> = ({ tableId, net
     const formattedBigBlindAmount = useMemo(() => formatDisplayAmount(toDisplay(bigBlindMicro), isTournament), [toDisplay, bigBlindMicro, isTournament]);
     const bigBlindUsdc = useMemo(() => toDisplay(bigBlindMicro), [toDisplay, bigBlindMicro]);
     const formattedCallAmount = useMemo(() => formatDisplayAmount(callAmount, isTournament), [callAmount, isTournament]);
+    const badBeat = useTableStyle() === "badbeat";
+    const { currentUserSeat } = usePlayerSeatInfo();
 
     // ---- Pre-action bar (ui#388) ------------------------------------------------
     const preActionCallLabel = useMemo(() => formatDisplayAmount(toDisplay(preActionCallMicro), isTournament), [toDisplay, preActionCallMicro, isTournament]);
@@ -596,6 +601,17 @@ export const PokerActionPanel: React.FC<PokerActionPanelProps> = ({ tableId, net
                 {/* Pre-action bar (ui#388) — shown when it's not your turn: Check/Fold,
                     Check | Call {amount}, and Call Any. Arm one and it fires on your turn
                     with no betting bar. */}
+                {/* Bad Beat: "Your turn · $10 to call" and the pot odds (ui#36) */}
+                {badBeat && isUsersTurn && (
+                    <BadBeatPanelHeader
+                        toCall={callAmount}
+                        pot={toDisplay(totalPotMicro)}
+                        callLabel={formattedCallAmount}
+                        potLabel={formatDisplayAmount(toDisplay(totalPotMicro), isTournament)}
+                    />
+                )}
+                {badBeat && !isUsersTurn && <BadBeatWaitingHeader nextToAct={gameState?.nextToAct ?? 0} mySeat={currentUserSeat} />}
+
                 {showPreActions && (
                     <PreActionControls
                         buttons={preActionBtns}

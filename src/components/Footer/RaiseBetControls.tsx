@@ -3,6 +3,7 @@ import { RaiseSlider } from "./RaiseSlider";
 import { PotSizedBetButtons } from "./PotSizedBetButtons";
 import type { RaiseBetControlsProps } from "./types";
 import { hasSingleBetAmount } from "../../utils/pockerActionUtils";
+import { useTableStyle } from "../../context/TableStyleContext";
 
 export const RaiseBetControls: React.FC<RaiseBetControlsProps> = ({
     amount,
@@ -25,6 +26,8 @@ export const RaiseBetControls: React.FC<RaiseBetControlsProps> = ({
     maxIsAllIn,
     allowBlindMultiples
 }) => {
+    // Bad Beat keeps its bet-size row on a phone held sideways too: its panel is a column with room (ui#36)
+    const badBeat = useTableStyle() === "badbeat";
     // A fixed-limit bet or raise has one amount (ui#883): the action button
     // carries it, so there is nothing to slide or preset.
     if (hasSingleBetAmount(minAmount, maxAmount)) {
@@ -49,8 +52,8 @@ export const RaiseBetControls: React.FC<RaiseBetControlsProps> = ({
                 onDecrement={onDecrement}
             />
 
-            {/* Pot-Sized Bet Buttons - Hide in mobile landscape to save space */}
-            {!isMobileLandscape && (
+            {/* Pot-Sized Bet Buttons - Hide in mobile landscape to save space (not on Bad Beat) */}
+            {(!isMobileLandscape || badBeat) && (
                 <PotSizedBetButtons
                     totalPotMicro={totalPotMicro}
                     callAmountMicro={callAmountMicro}

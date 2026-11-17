@@ -4,7 +4,7 @@ import { PlayerChipDataReturn } from "../../types/index";
 import { useGameData } from "../../context/gameState/GameDataContext";
 import { useGameUI } from "../../context/gameState/GameUIContext";
 import { usePlayersBySeat } from "../game/usePlayersBySeat";
-import { shouldShowChips, getRelevantChipAmounts, calculateCurrentRoundBetting, hasPlayerBetInRound } from "../../utils/chipUtils";
+import { shouldShowChips, getRelevantChipAmounts, seatBetThisRound } from "../../utils/chipUtils";
 import { hasElements } from "../../utils/guards";
 
 /**
@@ -35,23 +35,12 @@ export const usePlayerChipData = (seatIndex: number): PlayerChipDataReturn => {
     const lastActionIndex = hasElements(previousActions) ? previousActions[previousActions.length - 1].index : -1;
     const actionsFingerprint = `${previousActions.length}:${lastActionIndex}`;
 
-    const chipAmount = useMemo<string>(() => {
-        if (!player?.address) return "0";
-        if (!shouldShowChips(player.status)) return "0";
-
-        if (round === TexasHoldemRound.ANTE || round === TexasHoldemRound.PREFLOP) {
-            // Only show chips once the player has made a real betting action (not just buy-in)
-            if (hasPlayerBetInRound(player.address, previousActions)) {
-                return player.sumOfBets || "0";
-            }
-            return "0";
-        }
-
-        if (!round) return "0";
-        return calculateCurrentRoundBetting(player.address, round, previousActions);
+    const chipAmount = useMemo<string>(
+        () => seatBetThisRound(player ?? undefined, round, previousActions),
         // previousActions deliberately omitted — actionsFingerprint covers it
         // eslint-disable-next-line react-hooks/exhaustive-deps
-    }, [player?.address, player?.status, player?.sumOfBets, round, actionsFingerprint]);
+        [player?.address, player?.status, player?.sumOfBets, round, actionsFingerprint]
+    );
 
     const chipActions = useMemo<string[]>(() => {
         if (!player?.address) return [];

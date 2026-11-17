@@ -1,6 +1,7 @@
 import React from "react";
 import { formatPotLabel, potLabelParts, PotName } from "../../../../utils/potTextUtils";
 import { useTableStyle } from "../../../../context/TableStyleContext";
+import { usesFlagshipLayout } from "../../../../utils/tableStyle";
 import { PotPill } from "./PotPill";
 
 interface MainPotDisplayProps {
@@ -16,7 +17,7 @@ interface MainPotDisplayProps {
 }
 
 export const MainPotDisplay: React.FC<MainPotDisplayProps> = ({ amount, rawAmount, isTournamentStyle, asChips, label = "Main Pot" }) => {
-    const flagship = useTableStyle() === "flagship";
+    const flagship = usesFlagshipLayout(useTableStyle());
     if (asChips) {
         return (
             <div className="pot-chips-secondary">

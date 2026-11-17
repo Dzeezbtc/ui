@@ -5,6 +5,7 @@ import { useLanguage } from "../../i18n/useLanguage";
 import { hasValue, isNumber, isString } from "../../utils/guards";
 import { popoverPosition } from "../../utils/provablyFair/presentation";
 import styles from "./ProvablyFair/ProvablyFair.module.css";
+import { useTableStyle } from "../../context/TableStyleContext";
 
 const KEY = "b52.table.radio";
 const PANEL_WIDTH = 224;
@@ -33,6 +34,7 @@ function saveRadioPrefs(p: { url: string | null; volume: number }) {
  * Sits in the table header beside the provably fair shield and matches it.
  */
 export const TableRadio: React.FC<{ stations: { name: string; url: string }[] }> = ({ stations }) => {
+    const look = useTableStyle();
     const audio = useRef<HTMLAudioElement | null>(null);
     const anchorRef = useRef<HTMLButtonElement>(null);
     const panelRef = useRef<HTMLDivElement>(null);
@@ -118,7 +120,8 @@ export const TableRadio: React.FC<{ stations: { name: string; url: string }[] }>
                 createPortal(
                     <div
                         ref={panelRef}
-                        className="fixed z-[10000] w-56 rounded-xl border border-white/10 bg-[rgba(13,11,23,0.55)] p-2 shadow-xl backdrop-blur-[3px]"
+                        data-look={look}
+                        className="fs-radio-panel fixed z-[10000] w-56 rounded-xl border border-white/10 bg-[rgba(13,11,23,0.55)] p-2 shadow-xl backdrop-blur-[3px]"
                         style={{ top: panelAt.top, left: panelAt.left }}
                         role="menu"
                         data-testid="table-radio-menu"

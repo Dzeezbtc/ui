@@ -5,7 +5,10 @@ import { getChipImageUrl } from "../../../utils/cardImages";
 import { getChipSet } from "../../../constants/chips";
 import { useChipStyle } from "../../../context/GameSettingsContext";
 import { useTableStyle } from "../../../context/TableStyleContext";
+import { usesFlagshipLayout } from "../../../utils/tableStyle";
 import { B52Chip } from "./B52Chip";
+import { BadBeatChip } from "./BadBeatChip";
+import { flatChipStack } from "../../../utils/badBeatChipColor";
 
 /** Vertical offset per chip for same-denomination vertical stacking (px). */
 const STACK_OFFSET_Y = 4;
@@ -103,7 +106,10 @@ const Chip: React.FC<ChipProps> = React.memo(({ amount, isTournament, caption })
     // chosen in Settings (marble by default, or flat notched) (ui#842).
     const chipStyle = useChipStyle();
     // The Block52 flagship draws its own neon chips (same denominations, same breakdown).
-    const flagship = useTableStyle() === "flagship";
+    const tableStyle = useTableStyle();
+    const flagship = usesFlagshipLayout(tableStyle);
+    // Bad Beat draws its own Broadcast chips (ui#36)
+    const badBeat = tableStyle === "badbeat";
     const allStacks = decomposeAmount(dollarAmount, getChipSet(chipStyle, !!isTournament));
 
     const isMobile = window.innerWidth <= 768 || window.innerHeight <= 500;
@@ -111,7 +117,9 @@ const Chip: React.FC<ChipProps> = React.memo(({ amount, isTournament, caption })
     const chipSize = (isMobile ? CHIP_SIZE_MOBILE : CHIP_SIZE) + (flagship ? FLAGSHIP_CHIP_EXTRA : 0);
 
     const maxVisibleCount = Math.max(1, ...allStacks.map(s => s.visibleCount));
-    const bounds = getClusterBounds(allStacks.length, chipSize, maxVisibleCount);
+    // Bad Beat: one neat stack, as on its 3D table (ui#36)
+    const bbStack = badBeat ? flatChipStack(allStacks, chipSize, STACK_OFFSET_Y, 3) : null;
+    const bounds = bbStack ? { width: bbStack.width, height: bbStack.height } : getClusterBounds(allStacks.length, chipSize, maxVisibleCount);
 
     // How much of the cluster overlaps into the pill
     const chipInset = chipSize * 0.55;
@@ -138,7 +146,10 @@ const Chip: React.FC<ChipProps> = React.memo(({ amount, isTournament, caption })
                     transform: "translateY(-50%)",
                 }}
             >
-                {allStacks.map((stack, si) => {
+                {bbStack?.chips.map((c, i) => (
+                    <BadBeatChip key={`bb-${i}`} value={c.value} size={chipSize} style={{ left: `${c.left}px`, bottom: `${c.bottom}px`, zIndex: i }} />
+                ))}
+                {!bbStack && allStacks.map((stack, si) => {
                     const pos = getClusterPosition(si, allStacks.length, chipSize);
                     return Array.from({ length: stack.visibleCount }).map((_, ci) => flagship ? (
                         <B52Chip

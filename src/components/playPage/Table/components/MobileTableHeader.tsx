@@ -39,6 +39,7 @@ import { ProvablyFairBadge } from "../../ProvablyFair/ProvablyFairBadge";
 import { hasValue, isNullish } from "../../../../utils/guards";
 import { useTableHeaderSlot } from "../../../../context/TableHeaderSlotContext";
 import { useTableStyle } from "../../../../context/TableStyleContext";
+import { usesFlagshipLayout } from "../../../../utils/tableStyle";
 import { useLanguage } from "../../../../i18n/useLanguage";
 
 
@@ -140,7 +141,7 @@ export const MobileTableHeader: React.FC<MobileTableHeaderProps> = ({
     const blindLevel = useBlindLevel();
     const [menuOpen, setMenuOpen] = useState(false);
     const headerSlot = useTableHeaderSlot();
-    const flagship = useTableStyle() === "flagship";
+    const flagship = usesFlagshipLayout(useTableStyle());
     const [showQR, setShowQR] = useState(false);
     const [showTopUp, setShowTopUp] = useState(false);
     const tableUrl = `${window.location.origin}/table/${tableId}`;

@@ -9,7 +9,7 @@
  */
 
 import React, { useMemo } from "react";
-import { TableStyle } from "../../../../utils/tableStyle";
+import { TableStyle, usesFlagshipLayout } from "../../../../utils/tableStyle";
 import { getCardImageUrl, getCardBackUrl, CardBackStyle } from "../../../../utils/cardImages";
 import { PotDisplayValues } from "../../../../utils/potDisplayUtils";
 import { useCardAnimations } from "../../../../hooks/animations/useCardAnimations";
@@ -91,9 +91,17 @@ export const TableBoard: React.FC<TableBoardProps> = ({
                 return (
                     <div
                         key={`${idx}-${card}`}
-                        className={`card animate-fall${isWinCard ? " animate-win-card" : ""}${shouldMute ? " opacity-40" : ""}`}
+                        className={`card${tableTheme === "badbeat" ? "" : " animate-fall"}${isWinCard ? " animate-win-card" : ""}${shouldMute ? " opacity-40" : ""}`}
                     >
-                        {tableTheme === "flagship" ? (
+                        {tableTheme === "badbeat" ? (
+                            // Bad Beat: the card lands face down on the felt, is rolled over, then lifts up flat (ui#36)
+                            <div className="bb-flip">
+                                <div className="bb-flip-in">
+                                    <FlagshipCard code={card} className="fs-board bb-flip-front" />
+                                    <FlagshipCard back className="fs-board bb-flip-back" />
+                                </div>
+                            </div>
+                        ) : usesFlagshipLayout(tableTheme) ? (
                             <FlagshipCard code={card} className="fs-board" />
                         ) : (
                             <OppositePlayerCards frontSrc={getCardImageUrl(card)} backSrc={getCardBackUrl(cardBackStyle)} flipped />
@@ -116,7 +124,14 @@ export const TableBoard: React.FC<TableBoardProps> = ({
     return (
         <>
             {/* Club Logo */}
-            {tableTheme === "flagship" ? (
+            {tableTheme === "badbeat" ? (
+                // Bad Beat's felt: the broadcast wordmark, slanted, "BEAT" in crimson.
+                <div className="table-logo fs-logo bb-logo" aria-hidden="true">
+                    <span className="bb-wordmark">
+                        <span>BAD</span> <b>BEAT</b>
+                    </span>
+                </div>
+            ) : tableTheme === "flagship" ? (
                 // The Block52 flagship felt: the wordmark across the table, the
                 // mark alone on the upright phone table (the skin picks one).
                 <div className="table-logo fs-logo" aria-hidden="true">
@@ -130,7 +145,7 @@ export const TableBoard: React.FC<TableBoardProps> = ({
             )}
 
             {/* Central Display Area */}
-            <div className="flex flex-col items-center justify-center -mt-8">
+            <div data-part="board-column" className="flex flex-col items-center justify-center -mt-8">
                 {/* Hide pot display when sit-and-go is waiting for players */}
                 {/* Fixed-height pot slot (ui#918): the pots grow upward from its bottom edge, so the
                     community cards never move with the pot count, pot-as-chips or street. */}

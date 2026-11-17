@@ -82,10 +82,11 @@ import { CardBackStyle } from "../../utils/cardImages";
 import { useClubLook } from "../../hooks/club/useClubLook";
 import { TableRadio } from "./TableRadio";
 import { tableStyleForLook } from "../../utils/clubLook";
-import { TABLE_STYLE_LABELS, TableStyle, nextTableStyle, stageShapeFor, tableStyleFromEnv } from "../../utils/tableStyle";
+import { TABLE_STYLE_LABELS, TableStyle, nextTableStyle, skinAttrFor, stageShapeFor, tableStyleFromEnv, usesFlagshipLayout } from "../../utils/tableStyle";
 import { TableStyleProvider } from "../../context/TableStyleContext";
 import "./skins/chipchair.css";
 import "./skins/flagship.css";
+import "./skins/badbeat.css";
 import { cssVars } from "../../utils/cssVars";
 import { ANIMATION_CSS_VARS } from "../../bus/timing";
 
@@ -137,6 +138,11 @@ import { useNetwork } from "../../context/NetworkContext";
 import { PlayerDTO, PlayerStatus } from "@block52/poker-vm-sdk";
 import LiveHandStrengthDisplay from "./LiveHandStrengthDisplay";
 import { TurnStatusLabel } from "./TurnStatusLabel";
+import { StreetTracker } from "./StreetTracker";
+import { BadBeatHeroDock } from "./BadBeatHeroDock";
+import { BadBeatShowCards } from "./BadBeat3D/BadBeatShowCards";
+// Bad Beat's 3D table brings three.js: only a Bad Beat table downloads it (ui#36)
+const BadBeatTable3D = React.lazy(() => import("./BadBeat3D/BadBeatTable3D").then(m => ({ default: m.BadBeatTable3D })));
 import { radioStationsFor } from "../../utils/radioStations";
 import { ProvablyFairBadge } from "./ProvablyFair/ProvablyFairBadge";
 import { FlagshipTopBar } from "./Table/components/FlagshipTopBar";
@@ -953,7 +959,7 @@ const Table = React.memo(({ tableId }: TableProps = {}) => {
     const isCompactMobile = isMobilePortrait || tableLayout.viewportMode === "mobile-landscape";
     // Felt/rail dimensions follow the SAME mode as the layout hook, so the
     // markup and the seat positions can never disagree mid-rotation.
-    const stageDims = isMobilePortrait && tableStyle === "flagship" ? FLAGSHIP_PORTRAIT_DIMS : STAGE_DIMS[isMobilePortrait ? "portrait" : "landscape"];
+    const stageDims = isMobilePortrait && usesFlagshipLayout(tableStyle) ? FLAGSHIP_PORTRAIT_DIMS : STAGE_DIMS[isMobilePortrait ? "portrait" : "landscape"];
 
     // Add the useGameProgress hook
     const { isGameInProgress, handNumber, actionCount, nextToAct } = useGameProgress(id);
@@ -1358,7 +1364,7 @@ const Table = React.memo(({ tableId }: TableProps = {}) => {
     return (
         <SitOutIntentProvider tableId={id} network={currentNetwork} pendingSitOut={pendingSitOut} legalActions={playerLegalActions}>
         <TableStyleProvider value={tableStyle}>
-        <div className="table-container" data-connection={connection.status} data-skin={tableStyle} data-orient={isMobilePortrait ? "portrait" : "landscape"}>
+        <div className="table-container" data-connection={connection.status} data-skin={skinAttrFor(tableStyle)} data-look={tableStyle} data-orient={isMobilePortrait ? "portrait" : "landscape"}>
             {/* Connection freshness (ui#613): shown whenever the live socket is not live */}
             {!isReplayMode && id && (
                 <ConnectionBanner
@@ -1396,7 +1402,7 @@ const Table = React.memo(({ tableId }: TableProps = {}) => {
             {/* Table style toggle — on phones (either orientation) this lives in
                 the hamburger menu instead. z-index is deliberately modest: this must
                 never sit above modals/overlays (it used to be 999999 and beat everything). */}
-            {!isCompactMobile && tableStyle !== "flagship" && (
+            {!isCompactMobile && !usesFlagshipLayout(tableStyle) && (
                 <button
                     onClick={() => setTableStyle(nextTableStyle)}
                     style={{
@@ -1427,7 +1433,7 @@ const Table = React.memo(({ tableId }: TableProps = {}) => {
 
             {/*//! HEADER - CASINO STYLE — phones (both orientations) get the
                 collapsed one-row header + hamburger */}
-            {tableStyle === "flagship" ? (
+            {usesFlagshipLayout(tableStyle) ? (
                 <FlagshipTopBar
                     gameFormat={gameFormat || null}
                     gameVariant={gameVariant}
@@ -1546,8 +1552,21 @@ const Table = React.memo(({ tableId }: TableProps = {}) => {
             {/*//! BODY — single flex-grow container, measured by geometry engine */}
             <div ref={tableContainerRef} className="flex-grow relative overflow-visible">
                 {/* Background layers */}
-                {tableStyle !== "nouns" && tableStyle !== "chipchair" && tableStyle !== "flagship" && <HexagonPattern patternId="hexagons-table" />}
-                {tableStyle === "flagship" ? (
+                {tableStyle !== "nouns" && tableStyle !== "chipchair" && !usesFlagshipLayout(tableStyle) && <HexagonPattern patternId="hexagons-table" />}
+                {/* Bad Beat: the concept's 3D table, under everything that sits on it (ui#36) */}
+                {tableStyle === "badbeat" && tableLayout.positions.seatAngles ? (
+                    <React.Suspense fallback={<div className="flagship-background" />}>
+                        <BadBeatTable3D
+                            seatAngles={tableLayout.positions.seatAngles}
+                            tableSize={(tableSize || 9) as 2 | 4 | 6 | 9}
+                            startIndex={startIndex}
+                            dealerSeat={dealerSeat}
+                            zoom={tableLayout.zoom}
+                            containerWidth={tableLayout.containerWidth}
+                            containerHeight={tableLayout.containerHeight}
+                        />
+                    </React.Suspense>
+                ) : usesFlagshipLayout(tableStyle) ? (
                     <div className="flagship-background" />
                 ) : tableStyle === "chipchair" ? (
                     <div className="chipchair-background" />
@@ -1569,13 +1588,15 @@ const Table = React.memo(({ tableId }: TableProps = {}) => {
                         Also the root for the card-animation durations (src/bus/timing.ts → CSS custom properties). */}
                     <div
                         ref={tableDivRef}
+                        data-part="table-plane"
                         className="absolute"
                         style={{
                             width: `${stageDims.tableWidth}px`,
                             height: `${stageDims.tableHeight}px`,
                             left: `${stageDims.originX}px`,
                             top: `${stageDims.originY}px`,
-                            ...cssVars(ANIMATION_CSS_VARS)
+                            ...cssVars(ANIMATION_CSS_VARS),
+                            ...(tableLayout.positions.boardCentre ? cssVars({ "--bb-board-x": tableLayout.positions.boardCentre.left, "--bb-board-y": tableLayout.positions.boardCentre.top }) : {})
                         }}
                     >
                         {/* Outer rail — Ignition-style 3D depth (modern and nouns) */}
@@ -1644,6 +1665,11 @@ const Table = React.memo(({ tableId }: TableProps = {}) => {
                                 })}
                         </div>
 
+                        {/* Bad Beat: a shown hand lifts off the felt, big and flat (ui#36) */}
+                        {tableStyle === "badbeat" && tableLayout.positions.feltCards && (
+                            <BadBeatShowCards spots={tableLayout.positions.feltCards} tableSize={tableSize} startIndex={startIndex} dealerSeat={dealerSeat} />
+                        )}
+
                         {/* Last-pot winner banner (ui#848) */}
                         <WinnerBanner />
 
@@ -1677,7 +1703,9 @@ const Table = React.memo(({ tableId }: TableProps = {}) => {
 
                 {/* Live Hand Strength Display */}
                 <LiveHandStrengthDisplay />
-                {tableStyle === "flagship" && <TurnStatusLabel nextToAct={nextToAct} mySeat={currentUserSeat} />}
+                {usesFlagshipLayout(tableStyle) && <TurnStatusLabel nextToAct={nextToAct} mySeat={currentUserSeat} />}
+                {tableStyle === "badbeat" && <StreetTracker round={gameState?.round} />}
+                {tableStyle === "badbeat" && <BadBeatHeroDock />}
             </div>
 
             {/*//! FOOTER — hidden in replay mode (read-only).
@@ -1718,7 +1746,7 @@ const Table = React.memo(({ tableId }: TableProps = {}) => {
 
             {/*//! FLOATING PANEL — History + Settings tabs (ui#752). Always visible on
                 desktop; on phones it opens from the hamburger menu and closes itself. */}
-            {tableStyle === "flagship" ? null : isCompactMobile ? (
+            {usesFlagshipLayout(tableStyle) ? null : isCompactMobile ? (
                 mobilePanelOpen && <TablePanel activeTab={panelTab} onSelectTab={setPanelTab} onClose={() => setMobilePanelOpen(false)} />
             ) : desktopPanelCollapsed ? (
                 <TablePanelExpandTab onExpand={() => setDesktopPanelCollapsedPersisted(false)} />
