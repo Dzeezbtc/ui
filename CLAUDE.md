@@ -900,6 +900,7 @@ VITE_WALLETCONNECT_PROJECT_ID=your_project_id
 
 ## Related Documentation
 
+- [Club API data flow](./docs/CLUB_API_ARCHITECTURE.md) - The app talks to the club API only (REST); the API reads nodes over gRPC; table actions go through the Go signer
 - [Hooks Documentation](./src/hooks/README.md) - Complete hook reference
 - [SDK Documentation](../sdk/CLAUDE.md) - SDK usage and API
 - [Component Architecture](./src/components/README.md) - Component patterns
