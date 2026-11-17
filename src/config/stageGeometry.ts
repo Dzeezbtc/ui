@@ -207,7 +207,7 @@ export const MAISON_DOCK_HEIGHT = 156;
 /** …a column this wide (px) on the right on a phone held sideways… */
 export const MAISON_SIDE_COLUMN = 290;
 /** …and a block this tall (px) along the bottom on an upright phone. */
-export const MAISON_PORTRAIT_DOCK = 236;
+export const MAISON_PORTRAIT_DOCK = 200;
 
 /** The camera of a stage drawn as a 3D table (Bad Beat, Maison 52), or null for a flat one. */
 export function threeTableCamera(shape: StageShape = stageShape): TableCameraSpec | null {

@@ -1151,7 +1151,7 @@
 
 /* upright phone: a block along the bottom (stageGeometry MAISON_PORTRAIT_DOCK) — your cards, stack and whose turn in one row, then the panel */
 [data-skin="flagship"][data-look="maison"][data-orient="portrait"] [data-part="maison-dock"] {
-    height: calc(236px + env(safe-area-inset-bottom));
+    height: calc(200px + env(safe-area-inset-bottom));
     align-items: flex-start;
     gap: 10px;
     padding: 8px 14px env(safe-area-inset-bottom);

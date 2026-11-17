@@ -28,11 +28,31 @@ export const BB_ELEVATION = { landscape: 0.92, portrait: 1.05 } as const;
 export interface TableCameraSpec {
     fov: number;
     elevation: { landscape: number; portrait: number };
+    /** Upright, the plates' ring and the room kept clear round them, when a look sets its own (else the shared ones). */
+    portraitPlate?: { rx: number; rz: number; y: number };
+    portraitMargin?: { x: number; y: number };
 }
 /** Bad Beat's camera (the concept's "3d" view). */
 export const BADBEAT_CAMERA: TableCameraSpec = { fov: BB_FOV, elevation: BB_ELEVATION };
 /** Maison 52's camera: lower and longer, so the salon's wall shows behind the table (design/concepts/10-maison setView). */
-export const MAISON_CAMERA: TableCameraSpec = { fov: 30, elevation: { landscape: 0.8, portrait: 1.02 } };
+export const MAISON_CAMERA: TableCameraSpec = {
+    fov: 30,
+    elevation: { landscape: 0.8, portrait: 1.02 },
+    // upright the side plates sit over the rail, as in the concept, so the table can fill the width
+    portraitPlate: { rx: 5.55, rz: 2.72, y: 0.5 },
+    portraitMargin: { x: 0.11, y: 0.035 }
+};
+
+/** The plates' ring for a camera and orientation. */
+export function plateRing(spec: TableCameraSpec, portrait: boolean): { rx: number; rz: number; y: number } {
+    return portrait && spec.portraitPlate ? spec.portraitPlate : BB_RINGS.plate;
+}
+
+/** The room (fraction of the frame) kept clear round the plates, for a camera and orientation. */
+export function fitMargin(spec: TableCameraSpec, portrait: boolean): { x: number; y: number } {
+    if (!portrait) return BB_FIT_MARGIN.landscape;
+    return spec.portraitMargin ?? BB_FIT_MARGIN.portrait;
+}
 
 /** The plates' ring (rx along the long side, rz along the short side, height y), as the concept. */
 export const BB_RINGS = {
@@ -172,10 +192,10 @@ function railExtremes(portrait: boolean): Vec3[] {
 export function fitBadBeatCamera(angles: number[], portrait: boolean, width: number, height: number, spec: TableCameraSpec = BADBEAT_CAMERA): BadBeatCamera {
     const el = portrait ? spec.elevation.portrait : spec.elevation.landscape;
     const dir: Vec3 = [0, Math.sin(el), Math.cos(el)];
-    const margin = portrait ? BB_FIT_MARGIN.portrait : BB_FIT_MARGIN.landscape;
+    const margin = fitMargin(spec, portrait);
     const mx = margin.x * width;
     const my = margin.y * height;
-    const pts = [...angles.map(a => ringPoint(a, BB_RINGS.plate, portrait)), ...railExtremes(portrait)];
+    const pts = [...angles.map(a => ringPoint(a, plateRing(spec, portrait), portrait)), ...railExtremes(portrait)];
     const at = (d: number): BadBeatCamera => ({
         position: [BB_LOOK[0] + dir[0] * d, BB_LOOK[1] + dir[1] * d, BB_LOOK[2] + dir[2] * d],
         look: BB_LOOK,
@@ -306,7 +326,7 @@ export function badBeatScene(angles: number[], width: number, height: number, sp
     const portrait = height > width;
     const camera = fitBadBeatCamera(angles, portrait, width, height, spec);
     const proj = (p: Vec3) => projectPoint(camera, p, width, height);
-    const plates = angles.map(a => ringPoint(a, BB_RINGS.plate, portrait));
+    const plates = angles.map(a => ringPoint(a, plateRing(spec, portrait), portrait));
     const bets = plates.map(p => inFrontOf(p, BB_INSETS.bet, 0.21, portrait));
     const holes = plates.map(p => inFrontOf(p, BB_INSETS.hole, 0.215, portrait));
     // the disc beside the seat's cards, on whichever side has more room from the other seats' things
@@ -319,7 +339,7 @@ export function badBeatScene(angles: number[], width: number, height: number, sp
     });
     const bz = boardZ(holes, portrait);
     const pot: Vec3 = [0, 0.21, bz - BB_POT_BEHIND];
-    const margin = portrait ? BB_FIT_MARGIN.portrait : BB_FIT_MARGIN.landscape;
+    const margin = fitMargin(spec, portrait);
     const mx = margin.x * width;
     const my = margin.y * height;
     const content = { x0: Infinity, y0: Infinity, x1: -Infinity, y1: -Infinity };
