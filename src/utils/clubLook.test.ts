@@ -29,7 +29,8 @@ it("keeps the club theme", () => {
 it("starts a club table in its theme's skin, else its felt", () => {
     expect(tableStyleForLook({ theme: "chipandachair", felt: "classic" })).toBe("chipchair");
     expect(tableStyleForLook({ theme: "block52", felt: "classic" })).toBe("classic");
-    expect(tableStyleForLook({ theme: "maison", felt: "dark" })).toBe("modern");
+    expect(tableStyleForLook({ theme: "maison", felt: "dark" })).toBe("maison");
+    expect(tableStyleForLook({ theme: "triplebarrel", felt: "dark" })).toBe("modern");
 });
 
 it("names social links", () => {

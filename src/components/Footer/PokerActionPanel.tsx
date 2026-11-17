@@ -28,6 +28,7 @@ import { isConnectionLive } from "../../context/gameState/connection";
 import { useActionSubmit } from "../../context/ActionSubmitContext";
 import { useGameSettings } from "../../context/GameSettingsContext";
 import { useTableStyle } from "../../context/TableStyleContext";
+import { isThreeTableStyle } from "../../utils/tableStyle";
 import { BadBeatPanelHeader, BadBeatWaitingHeader } from "./BadBeatPanelHeader";
 import { usePlayerSeatInfo } from "../../hooks/player/usePlayerSeatInfo";
 import { dealCardsWithEntropy } from "../../hooks/playerActions/dealCards";
@@ -351,7 +352,7 @@ export const PokerActionPanel: React.FC<PokerActionPanelProps> = ({ tableId, net
     const formattedBigBlindAmount = useMemo(() => formatDisplayAmount(toDisplay(bigBlindMicro), isTournament), [toDisplay, bigBlindMicro, isTournament]);
     const bigBlindUsdc = useMemo(() => toDisplay(bigBlindMicro), [toDisplay, bigBlindMicro]);
     const formattedCallAmount = useMemo(() => formatDisplayAmount(callAmount, isTournament), [callAmount, isTournament]);
-    const badBeat = useTableStyle() === "badbeat";
+    const badBeat = isThreeTableStyle(useTableStyle());
     const { currentUserSeat } = usePlayerSeatInfo();
 
     // ---- Pre-action bar (ui#388) ------------------------------------------------

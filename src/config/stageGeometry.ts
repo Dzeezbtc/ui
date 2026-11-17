@@ -51,7 +51,7 @@
  * - Issue #46:  https://github.com/block52/ui/issues/46
  */
 
-import { badBeatScene, seatAngle } from "../utils/badBeatScene";
+import { BADBEAT_CAMERA, MAISON_CAMERA, badBeatScene, seatAngle, type TableCameraSpec } from "../utils/badBeatScene";
 
 // ─── Types ───────────────────────────────────────────────────────────
 
@@ -153,7 +153,7 @@ export const STAGE_DIMS: Record<StageOrientation, StageDims> = {
  * wide oval on phones. Landscape is the same for both. Set by the table when
  * its style changes ({@link setStageShape}); the layout cache is keyed on it.
  */
-export type StageShape = "standard" | "flagship" | "badbeat";
+export type StageShape = "standard" | "flagship" | "badbeat" | "maison";
 let stageShape: StageShape = "standard";
 
 /** Switch the stage shape. Returns true when it changed (the caller re-lays out). */
@@ -202,8 +202,33 @@ export const BADBEAT_SIDE_BOTTOM = 28;
 /** Bad Beat on an upright phone: the table rises this far (px) into the gap under the top bar. */
 export const BADBEAT_PORTRAIT_LIFT = 60;
 
-function isBadBeatSideColumn(mode: ViewportMode): boolean {
-    return stageShape === "badbeat" && mode === "mobile-landscape";
+/** Maison 52's dock (layout A): a bar this tall (px) along the bottom on a big screen… */
+export const MAISON_DOCK_HEIGHT = 156;
+/** …a column this wide (px) on the right on a phone held sideways… */
+export const MAISON_SIDE_COLUMN = 290;
+/** …and a block this tall (px) along the bottom on an upright phone. */
+export const MAISON_PORTRAIT_DOCK = 236;
+
+/** The camera of a stage drawn as a 3D table (Bad Beat, Maison 52), or null for a flat one. */
+export function threeTableCamera(shape: StageShape = stageShape): TableCameraSpec | null {
+    if (shape === "badbeat") return BADBEAT_CAMERA;
+    if (shape === "maison") return MAISON_CAMERA;
+    return null;
+}
+
+/** On a phone held sideways, how wide (px) the controls' column on the right is (0 when there is none). */
+function sideColumnWidth(mode: ViewportMode): number {
+    if (mode !== "mobile-landscape") return 0;
+    if (stageShape === "badbeat") return BADBEAT_SIDE_COLUMN;
+    if (stageShape === "maison") return MAISON_SIDE_COLUMN;
+    return 0;
+}
+
+/** What the stage keeps clear (px) at the bottom: the footer, a 3D table's dock, or just room for your plate beside a column. */
+function bottomReserve(mode: ViewportMode, footerOverlay: number): number {
+    if (sideColumnWidth(mode) > 0) return BADBEAT_SIDE_BOTTOM;
+    if (stageShape === "maison") return mode === "mobile-portrait" ? MAISON_PORTRAIT_DOCK : MAISON_DOCK_HEIGHT;
+    return footerOverlay;
 }
 
 export function getStageOrientation(): StageOrientation {
@@ -1066,14 +1091,14 @@ export function clearLayoutCache(): void {
  * point projected through the same fixed camera the WebGL table is drawn with
  * (utils/badBeatScene). The cards, chips and D disc are 3D objects on the felt.
  */
-export function badBeatPositions(positions: PositionArrays, tableWidth: number, tableHeight: number): PositionArrays {
+export function badBeatPositions(positions: PositionArrays, tableWidth: number, tableHeight: number, camera: TableCameraSpec = BADBEAT_CAMERA): PositionArrays {
     const r = (n: number) => `${Math.round(n * 10) / 10}px`;
     const angleOf = (p: Position) => seatAngle(parseFloat(p.left), parseFloat(p.top), tableWidth, tableHeight);
     const seatAngles = positions.players.map(angleOf);
-    const scene = badBeatScene(seatAngles, tableWidth, tableHeight);
+    const scene = badBeatScene(seatAngles, tableWidth, tableHeight, camera);
     const at = ([x, y]: [number, number], p?: Position): Position => ({ ...p, left: r(x), top: r(y) });
     const plates = scene.screen.plates.map((pt, i) => at(pt, positions.players[i]));
-    const vacant = badBeatScene(positions.vacantPlayers.map(angleOf), tableWidth, tableHeight).screen.plates.map((pt, i) => at(pt, positions.vacantPlayers[i]));
+    const vacant = badBeatScene(positions.vacantPlayers.map(angleOf), tableWidth, tableHeight, camera).screen.plates.map((pt, i) => at(pt, positions.vacantPlayers[i]));
     const chips: ChipPosition[] = scene.screen.betLabels.map(([x, y], i) => ({
         left: r(x),
         top: r(y),
@@ -1103,7 +1128,8 @@ export function withBetSpots(positions: PositionArrays, tableSize: TableSize, mo
     const portrait = mode === "mobile-portrait";
     const mobile = mode === "mobile-portrait" || mode === "mobile-landscape";
     const board = betBoardFor(tableSize, portrait, dims.tableWidth, dims.tableHeight);
-    if (stageShape === "badbeat") return badBeatPositions(positions, dims.tableWidth, dims.tableHeight);
+    const camera = threeTableCamera();
+    if (camera) return badBeatPositions(positions, dims.tableWidth, dims.tableHeight, camera);
     if (isFlagshipShape()) {
         return { ...positions, chips: placeBetSpotsInFront(positions.players, dims.tableWidth, dims.tableHeight, portrait ? FLAGSHIP_YOUR_BOX_PORTRAIT : FLAGSHIP_YOUR_BOX) };
     }
@@ -1231,10 +1257,11 @@ export function getContentBounds(tableSize: TableSize): ContentBounds {
     // (the table fills ~3/4 of the width, not edge to edge).
     const basePad = isFlagshipPortrait() ? FLAGSHIP_PORTRAIT_PADDING : isFlagshipShape() && mode === "desktop" ? FLAGSHIP_DESKTOP_PADDING : PLAYER_UI_PADDING[mode];
     // Bad Beat: what the fixed camera shows of the plates and rail (projected) is the content.
-    if (stageShape === "badbeat") {
+    const camera = threeTableCamera();
+    if (camera) {
         const dims = getStageDims();
         const angles = getLayoutPositions(tableSize, mode).seatAngles ?? [];
-        const { content } = badBeatScene(angles, dims.tableWidth, dims.tableHeight);
+        const { content } = badBeatScene(angles, dims.tableWidth, dims.tableHeight, camera);
         return {
             width: content.x1 - content.x0,
             height: content.y1 - content.y0,
@@ -1280,10 +1307,10 @@ export function calculateZoom(
     // Usable space = container minus any fixed overlay minus breathing room.
     // Portrait needs no axis swap: the portrait stage is already vertical, so
     // its content bounds are taller than wide and fit the viewport directly.
-    const side = isBadBeatSideColumn(mode);
-    const usableWidth = containerWidth - params.paddingH - (side ? BADBEAT_SIDE_COLUMN : 0);
+    const side = sideColumnWidth(mode);
+    const usableWidth = containerWidth - params.paddingH - side;
     // sideways, your plate and its clock sit at the very bottom: keep room for them
-    const usableHeight = containerHeight - (side ? BADBEAT_SIDE_BOTTOM : params.footerOverlay) - params.paddingV;
+    const usableHeight = containerHeight - bottomReserve(mode, params.footerOverlay) - params.paddingV;
 
     const scaleByWidth = usableWidth / bounds.width;
     const scaleByHeight = usableHeight / bounds.height;
@@ -1292,7 +1319,7 @@ export function calculateZoom(
     // Across a big screen the flagship's side seats push their cards outward,
     // so it sits a touch smaller to keep them clear of the side panel.
     // Bad Beat's table is tipped back, so it stands shorter than its flat bounds: let it grow.
-    const shapeScale = stageShape === "badbeat" ? 1 : isFlagshipShape() && mode === "desktop" ? FLAGSHIP_DESKTOP_SCALE : 1;
+    const shapeScale = threeTableCamera() ? 1 : isFlagshipShape() && mode === "desktop" ? FLAGSHIP_DESKTOP_SCALE : 1;
     const result = Math.max(MIN_SCALE, Math.min(fitScale * shapeScale, MAX_GLOBAL_SCALE));
 
     return result;
@@ -1313,10 +1340,9 @@ export function getTableOffset(
     const bounds = getContentBounds(tableSize);
 
     // Center of the usable area within the container
-    const side = isBadBeatSideColumn(mode);
-    const usableCenterX = (containerWidth - (side ? BADBEAT_SIDE_COLUMN : 0)) / 2;
+    const usableCenterX = (containerWidth - sideColumnWidth(mode)) / 2;
     const lift = stageShape === "badbeat" && mode === "mobile-portrait" ? BADBEAT_PORTRAIT_LIFT : 0;
-    const usableCenterY = (containerHeight - (side ? BADBEAT_SIDE_BOTTOM : params.footerOverlay)) / 2 - lift;
+    const usableCenterY = (containerHeight - bottomReserve(mode, params.footerOverlay)) / 2 - lift;
 
     // Content center after scaling (transform-origin: 0 0).
     // Portrait needs no special case: the portrait stage is natively vertical

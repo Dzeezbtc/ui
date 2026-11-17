@@ -18,3 +18,6 @@ export const turnStatus = (nextToAct: number, mySeat: number): TurnStatus | null
     if (nextToAct === mySeat) return { mine: true, title: "Your turn", detail: "" };
     return { mine: false, title: "Waiting", detail: `(Seat ${nextToAct}'s turn)` };
 };
+
+/** Whose turn it is, plain ("Seat 5's turn"): Maison 52's dock says "Waiting — Seat 5's turn". */
+export const whoseTurn = (nextToAct: number): string => `Seat ${nextToAct}'s turn`;

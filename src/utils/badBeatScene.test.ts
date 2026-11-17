@@ -138,6 +138,7 @@ describe("chipStack", () => {
     it("stacks the highest value at the bottom, each colour a touch over from the one below", () => {
         const stack = chipStack(131);
         expect(stack.map(c => c.color)).toEqual([0x2ee59d, 0x9fd8ff, 0xff2d55, 0xeef1f5]);
+        expect(stack.map(c => c.rank)).toEqual([1, 2, 3, 4]);
         stack.forEach((c, i) => i > 0 && expect(c.y).toBeGreaterThan(stack[i - 1].y));
         stack.forEach((c, i) => i > 0 && expect(c.shift - stack[i - 1].shift).toBeCloseTo(0.035));
         expect(stack[0].shift + stack[3].shift).toBeCloseTo(0);

@@ -20,9 +20,13 @@ import {
     getStageDims,
     getStageShape,
     holeCardSideFor,
-    setStageShape
+    setStageShape,
+    MAISON_DOCK_HEIGHT,
+    MAISON_PORTRAIT_DOCK,
+    MAISON_SIDE_COLUMN,
+    threeTableCamera
 } from "./stageGeometry";
-import { badBeatScene } from "../utils/badBeatScene";
+import { BADBEAT_CAMERA, MAISON_CAMERA, badBeatScene } from "../utils/badBeatScene";
 
 const setViewport = (width: number, height: number) => {
     Object.defineProperty(window, "innerWidth", { configurable: true, writable: true, value: width });
@@ -225,5 +229,49 @@ describe("Bad Beat stage shape", () => {
         const t = parse(getTableTransform(calculateZoom(9, 390, 790), 9, 390, 790));
         const centre = t.ty + getContentBounds(9).centerY * t.zoom;
         expect(centre).toBeCloseTo((790 - 90) / 2 - BADBEAT_PORTRAIT_LIFT, 0);
+    });
+});
+
+describe("Maison 52 stage shape", () => {
+    const parse = (t: string) => {
+        const m = /translate\(([-\d.]+)px, ([-\d.]+)px\) scale\(([\d.]+)\)/.exec(t);
+        if (!m) throw new Error(`unexpected transform ${t}`);
+        return { tx: +m[1], ty: +m[2], zoom: +m[3] };
+    };
+    afterEach(() => {
+        setStageShape("standard");
+        clearLayoutCache();
+    });
+
+    it("draws a 3D table with its own camera; flat shapes have none", () => {
+        expect(threeTableCamera("maison")).toBe(MAISON_CAMERA);
+        expect(threeTableCamera("badbeat")).toBe(BADBEAT_CAMERA);
+        expect(threeTableCamera("flagship")).toBeNull();
+    });
+
+    it("on a big screen, centres the table above the dock bar", () => {
+        setViewport(1920, 1080);
+        setStageShape("maison");
+        clearLayoutCache();
+        const t = parse(getTableTransform(calculateZoom(9, 1920, 1000), 9, 1920, 1000));
+        const centre = t.ty + getContentBounds(9).centerY * t.zoom;
+        expect(centre).toBeCloseTo((1000 - MAISON_DOCK_HEIGHT) / 2, 0);
+    });
+
+    it("on a phone held sideways, sits the table left of the dock column", () => {
+        setViewport(844, 390);
+        setStageShape("maison");
+        clearLayoutCache();
+        const t = parse(getTableTransform(calculateZoom(9, 844, 340), 9, 844, 340));
+        expect(t.tx + getContentBounds(9).centerX * t.zoom).toBeCloseTo((844 - MAISON_SIDE_COLUMN) / 2, 0);
+    });
+
+    it("on an upright phone, centres the table above the dock block", () => {
+        setViewport(390, 844);
+        setStageShape("maison");
+        clearLayoutCache();
+        const t = parse(getTableTransform(calculateZoom(9, 390, 790), 9, 390, 790));
+        const centre = t.ty + getContentBounds(9).centerY * t.zoom;
+        expect(centre).toBeCloseTo((790 - MAISON_PORTRAIT_DOCK) / 2, 0);
     });
 });

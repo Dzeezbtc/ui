@@ -4,14 +4,15 @@ import type { StageShape } from "../config/stageGeometry";
 /**
  * The table's look. "modern", "classic" and "nouns" restyle the felt and rail;
  * "chipchair" (the Chip and a Chair theme), "flagship" (the Block52
- * flagship look) and "badbeat" (Bad Beat, built on the flagship's layout) are full skins: seats, buttons, panels and the felt, each
+ * flagship look), "badbeat" (Bad Beat) and "maison" (Maison 52), the last two
+ * 3D tables built on the flagship's layout, are full skins: seats, buttons, panels and the felt, each
  * from one scoped stylesheet in components/playPage/skins/. Every style shows
  * the same components, so the controls and behaviour never differ between them.
  */
-export type TableStyle = "modern" | "classic" | "nouns" | "chipchair" | "flagship" | "badbeat";
+export type TableStyle = "modern" | "classic" | "nouns" | "chipchair" | "flagship" | "badbeat" | "maison";
 
 /** Every style, in the order the style button cycles through them. */
-export const TABLE_STYLES: readonly TableStyle[] = ["modern", "classic", "nouns", "chipchair", "flagship", "badbeat"];
+export const TABLE_STYLES: readonly TableStyle[] = ["modern", "classic", "nouns", "chipchair", "flagship", "badbeat", "maison"];
 
 /** What the style button and the mobile menu call each style. */
 export const TABLE_STYLE_LABELS: Record<TableStyle, string> = {
@@ -20,7 +21,8 @@ export const TABLE_STYLE_LABELS: Record<TableStyle, string> = {
     nouns: "Nouns",
     chipchair: "Chip and a Chair",
     flagship: "Block52 Flagship",
-    badbeat: "Bad Beat"
+    badbeat: "Bad Beat",
+    maison: "Maison 52"
 };
 
 /** True when the value names a table style. */
@@ -38,7 +40,8 @@ export const tableStyleFromEnv = (value: unknown): TableStyle => (isTableStyle(v
 /** Club themes (block52-club setting profile.theme) that come with their own table skin. */
 const THEME_SKINS: Record<string, TableStyle> = {
     chipandachair: "chipchair",
-    badbeat: "badbeat"
+    badbeat: "badbeat",
+    maison: "maison"
 };
 
 /** The table skin a club theme brings, or null when the theme only styles the lobby. */
@@ -49,7 +52,10 @@ export const skinForTheme = (theme: string): TableStyle | null => THEME_SKINS[th
  * the tools under the balance, the settings cog, the even seats and bets in
  * front. Each brings its own look (Bad Beat restyles the flagship's parts).
  */
-export const usesFlagshipLayout = (style: TableStyle): boolean => style === "flagship" || style === "badbeat";
+export const usesFlagshipLayout = (style: TableStyle): boolean => style === "flagship" || isThreeTableStyle(style);
+
+/** True for the styles drawn as a 3D table (Bad Beat, Maison 52): a WebGL table under the plates, cards and chips. */
+export const isThreeTableStyle = (style: TableStyle): style is "badbeat" | "maison" => style === "badbeat" || style === "maison";
 
 /**
  * The table root's data-skin: a style on the flagship layout shares the
@@ -57,5 +63,5 @@ export const usesFlagshipLayout = (style: TableStyle): boolean => style === "fla
  */
 export const skinAttrFor = (style: TableStyle): TableStyle => (usesFlagshipLayout(style) ? "flagship" : style);
 
-/** The stage shape a style lays out on: the flagship's phone table (a wide oval); Bad Beat fits it its own way on phones. */
-export const stageShapeFor = (style: TableStyle): StageShape => (style === "badbeat" ? "badbeat" : usesFlagshipLayout(style) ? "flagship" : "standard");
+/** The stage shape a style lays out on: the flagship's phone table (a wide oval); a 3D table (Bad Beat, Maison 52) has its own camera and fit. */
+export const stageShapeFor = (style: TableStyle): StageShape => (isThreeTableStyle(style) ? style : usesFlagshipLayout(style) ? "flagship" : "standard");

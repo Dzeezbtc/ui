@@ -1,8 +1,8 @@
-import { TABLE_STYLES, TABLE_STYLE_LABELS, isTableStyle, nextTableStyle, skinAttrFor, skinForTheme, stageShapeFor, tableStyleFromEnv, usesFlagshipLayout } from "./tableStyle";
+import { TABLE_STYLES, TABLE_STYLE_LABELS, isTableStyle, nextTableStyle, skinAttrFor, skinForTheme, stageShapeFor, tableStyleFromEnv, usesFlagshipLayout, isThreeTableStyle } from "./tableStyle";
 
 describe("tableStyle", () => {
     it("knows every style and names each one", () => {
-        expect(TABLE_STYLES).toEqual(["modern", "classic", "nouns", "chipchair", "flagship", "badbeat"]);
+        expect(TABLE_STYLES).toEqual(["modern", "classic", "nouns", "chipchair", "flagship", "badbeat", "maison"]);
         TABLE_STYLES.forEach(s => expect(TABLE_STYLE_LABELS[s]).toBeTruthy());
         expect(TABLE_STYLE_LABELS.chipchair).toBe("Chip and a Chair");
         expect(TABLE_STYLE_LABELS.flagship).toBe("Block52 Flagship");
@@ -23,7 +23,8 @@ describe("tableStyle", () => {
         expect(nextTableStyle("nouns")).toBe("chipchair");
         expect(nextTableStyle("chipchair")).toBe("flagship");
         expect(nextTableStyle("flagship")).toBe("badbeat");
-        expect(nextTableStyle("badbeat")).toBe("modern");
+        expect(nextTableStyle("badbeat")).toBe("maison");
+        expect(nextTableStyle("maison")).toBe("modern");
     });
 
     it("starts in the env style, or modern", () => {
@@ -37,13 +38,15 @@ describe("tableStyle", () => {
     it("maps a club theme to its table skin", () => {
         expect(skinForTheme("chipandachair")).toBe("chipchair");
         expect(skinForTheme("block52")).toBeNull();
-        expect(skinForTheme("maison")).toBeNull();
+        expect(skinForTheme("maison")).toBe("maison");
+        expect(skinForTheme("triplebarrel")).toBeNull();
         expect(skinForTheme("")).toBeNull();
     });
 
     it("lays the flagship out on its own stage shape", () => {
         expect(stageShapeFor("flagship")).toBe("flagship");
         expect(stageShapeFor("badbeat")).toBe("badbeat");
+        expect(stageShapeFor("maison")).toBe("maison");
         expect(stageShapeFor("modern")).toBe("standard");
         expect(stageShapeFor("chipchair")).toBe("standard");
     });
@@ -51,6 +54,11 @@ describe("tableStyle", () => {
     it("lays Bad Beat out like the flagship, under the flagship's stylesheet", () => {
         expect(TABLE_STYLE_LABELS.badbeat).toBe("Bad Beat");
         expect(usesFlagshipLayout("badbeat")).toBe(true);
+        expect(TABLE_STYLE_LABELS.maison).toBe("Maison 52");
+        expect(usesFlagshipLayout("maison")).toBe(true);
+        expect(isThreeTableStyle("maison")).toBe(true);
+        expect(isThreeTableStyle("badbeat")).toBe(true);
+        expect(isThreeTableStyle("flagship")).toBe(false);
         expect(usesFlagshipLayout("flagship")).toBe(true);
         expect(usesFlagshipLayout("chipchair")).toBe(false);
         expect(skinAttrFor("badbeat")).toBe("flagship");

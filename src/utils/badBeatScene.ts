@@ -24,6 +24,16 @@ export const BB_LOOK: Vec3 = [0, 0, 0.1];
 /** Camera elevation (radians above the table): the concept's "3d" view, sideways and upright. */
 export const BB_ELEVATION = { landscape: 0.92, portrait: 1.05 } as const;
 
+/** A 3D table's fixed camera: its field of view and how high above the table it looks down. */
+export interface TableCameraSpec {
+    fov: number;
+    elevation: { landscape: number; portrait: number };
+}
+/** Bad Beat's camera (the concept's "3d" view). */
+export const BADBEAT_CAMERA: TableCameraSpec = { fov: BB_FOV, elevation: BB_ELEVATION };
+/** Maison 52's camera: lower and longer, so the salon's wall shows behind the table (design/concepts/10-maison setView). */
+export const MAISON_CAMERA: TableCameraSpec = { fov: 30, elevation: { landscape: 0.8, portrait: 1.02 } };
+
 /** The plates' ring (rx along the long side, rz along the short side, height y), as the concept. */
 export const BB_RINGS = {
     plate: { rx: 5.55, rz: 3.05, y: 0.5 }
@@ -159,8 +169,8 @@ function railExtremes(portrait: boolean): Vec3[] {
  * distance at which every plate and the whole rail still sit inside the frame
  * with the margins kept clear. The camera never moves after this.
  */
-export function fitBadBeatCamera(angles: number[], portrait: boolean, width: number, height: number): BadBeatCamera {
-    const el = portrait ? BB_ELEVATION.portrait : BB_ELEVATION.landscape;
+export function fitBadBeatCamera(angles: number[], portrait: boolean, width: number, height: number, spec: TableCameraSpec = BADBEAT_CAMERA): BadBeatCamera {
+    const el = portrait ? spec.elevation.portrait : spec.elevation.landscape;
     const dir: Vec3 = [0, Math.sin(el), Math.cos(el)];
     const margin = portrait ? BB_FIT_MARGIN.portrait : BB_FIT_MARGIN.landscape;
     const mx = margin.x * width;
@@ -169,7 +179,7 @@ export function fitBadBeatCamera(angles: number[], portrait: boolean, width: num
     const at = (d: number): BadBeatCamera => ({
         position: [BB_LOOK[0] + dir[0] * d, BB_LOOK[1] + dir[1] * d, BB_LOOK[2] + dir[2] * d],
         look: BB_LOOK,
-        fov: BB_FOV,
+        fov: spec.fov,
         aspect: width / height
     });
     let lo = 3;
@@ -292,9 +302,9 @@ export interface BadBeatScene {
  * {@link seatAngle}) and a frame of width × height px: the camera, each seat's
  * plate, cards, bet and dealer spot in the world, and the same projected.
  */
-export function badBeatScene(angles: number[], width: number, height: number): BadBeatScene {
+export function badBeatScene(angles: number[], width: number, height: number, spec: TableCameraSpec = BADBEAT_CAMERA): BadBeatScene {
     const portrait = height > width;
-    const camera = fitBadBeatCamera(angles, portrait, width, height);
+    const camera = fitBadBeatCamera(angles, portrait, width, height, spec);
     const proj = (p: Vec3) => projectPoint(camera, p, width, height);
     const plates = angles.map(a => ringPoint(a, BB_RINGS.plate, portrait));
     const bets = plates.map(p => inFrontOf(p, BB_INSETS.bet, 0.21, portrait));
@@ -363,6 +373,8 @@ export const BB_CHIP_THICK = 0.042;
 
 export interface StackChip {
     color: number;
+    /** Its value's place in {@link BB_CHIP_DENOMS} (0 = the biggest): a table look colours chips by it. */
+    rank: number;
     /** Height of the chip's middle above the felt. */
     y: number;
     /** Sideways shift (world units, across the screen) from the stack's middle. */
@@ -380,7 +392,8 @@ export function chipStack(smallBlinds: number): StackChip[] {
     const mid = (piles.length - 1) / 2;
     piles.forEach(({ color, count }, g) => {
         for (let k = 0; k < Math.min(count, BB_STACK_PER_COLOUR); k++) {
-            chips.push({ color, y: 0.02 + chips.length * BB_CHIP_THICK, shift: (g - mid) * BB_STACK_STEP });
+            const rank = BB_CHIP_DENOMS.findIndex(([, c]) => c === color);
+            chips.push({ color, rank, y: 0.02 + chips.length * BB_CHIP_THICK, shift: (g - mid) * BB_STACK_STEP });
         }
     });
     return chips;

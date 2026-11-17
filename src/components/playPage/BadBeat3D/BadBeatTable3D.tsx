@@ -3,8 +3,11 @@ import { getStageDims, getTableOffset, type TableSize } from "../../../config/st
 import { badBeatScene } from "../../../utils/badBeatScene";
 import { useBadBeatTable } from "../../../hooks/game/useBadBeatTable";
 import { BadBeatEngine } from "./badBeatEngine";
+import { lookFor, type ThreeTableLookName } from "./looks";
 
 interface BadBeatTable3DProps {
+    /** The table's look (./looks): Bad Beat or Maison 52. */
+    look: ThreeTableLookName;
     /** Per table position, its angle round the table (stageGeometry seatAngles). */
     seatAngles: number[];
     tableSize: TableSize;
@@ -20,7 +23,7 @@ interface BadBeatTable3DProps {
  * table area, behind the plates, bet amounts, board and pot, which sit on its
  * projected points. Without WebGL it draws nothing and the room shows through.
  */
-export const BadBeatTable3D: React.FC<BadBeatTable3DProps> = ({ seatAngles, tableSize, startIndex, dealerSeat, zoom, containerWidth, containerHeight }) => {
+export const BadBeatTable3D: React.FC<BadBeatTable3DProps> = ({ look, seatAngles, tableSize, startIndex, dealerSeat, zoom, containerWidth, containerHeight }) => {
     const canvasRef = useRef<HTMLCanvasElement>(null);
     const [engine, setEngine] = useState<BadBeatEngine | null>(null);
     const state = useBadBeatTable(tableSize, startIndex, dealerSeat);
@@ -32,13 +35,13 @@ export const BadBeatTable3D: React.FC<BadBeatTable3DProps> = ({ seatAngles, tabl
         if (!canvas) return;
         let made: BadBeatEngine | null = null;
         try {
-            made = new BadBeatEngine(canvas);
+            made = new BadBeatEngine(canvas, lookFor(look));
         } catch (err) {
             console.error("Bad Beat: no WebGL for the 3D table", err);
         }
         setEngine(made);
         return () => made?.dispose();
-    }, []);
+    }, [look]);
 
     useEffect(() => {
         if (!engine || containerWidth <= 0 || containerHeight <= 0) return;

@@ -9,7 +9,7 @@
  */
 
 import React, { useMemo } from "react";
-import { TableStyle, usesFlagshipLayout } from "../../../../utils/tableStyle";
+import { TableStyle, isThreeTableStyle, usesFlagshipLayout } from "../../../../utils/tableStyle";
 import { getCardImageUrl, getCardBackUrl, CardBackStyle } from "../../../../utils/cardImages";
 import { PotDisplayValues } from "../../../../utils/potDisplayUtils";
 import { useCardAnimations } from "../../../../hooks/animations/useCardAnimations";
@@ -91,10 +91,10 @@ export const TableBoard: React.FC<TableBoardProps> = ({
                 return (
                     <div
                         key={`${idx}-${card}`}
-                        className={`card${tableTheme === "badbeat" ? "" : " animate-fall"}${isWinCard ? " animate-win-card" : ""}${shouldMute ? " opacity-40" : ""}`}
+                        className={`card${isThreeTableStyle(tableTheme) ? "" : " animate-fall"}${isWinCard ? " animate-win-card" : ""}${shouldMute ? " opacity-40" : ""}`}
                     >
-                        {tableTheme === "badbeat" ? (
-                            // Bad Beat: the card lands face down on the felt, is rolled over, then lifts up flat (ui#36)
+                        {isThreeTableStyle(tableTheme) ? (
+                            // A 3D table (Bad Beat, Maison 52): the card lands face down on the felt, is rolled over, then lifts up flat (ui#36)
                             <div className="bb-flip">
                                 <div className="bb-flip-in">
                                     <FlagshipCard code={card} className="fs-board bb-flip-front" />
@@ -123,8 +123,8 @@ export const TableBoard: React.FC<TableBoardProps> = ({
 
     return (
         <>
-            {/* Club Logo */}
-            {tableTheme === "badbeat" ? (
+            {/* Club Logo (Maison 52 draws its wordmark on the 3D felt) */}
+            {tableTheme === "maison" ? null : tableTheme === "badbeat" ? (
                 // Bad Beat's felt: the broadcast wordmark, slanted, "BEAT" in crimson.
                 <div className="table-logo fs-logo bb-logo" aria-hidden="true">
                     <span className="bb-wordmark">
