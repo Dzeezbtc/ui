@@ -14,6 +14,14 @@ export function potLabelText(label: PotLabel | "Pot"): string {
 }
 
 /**
+ * A pot pill's name and amount as separate parts ("Pot", "$9.00"), for skins that
+ * set them in different type. Same words and currency as {@link formatPotLabel}.
+ */
+export function potLabelParts(label: PotLabel | "Pot", amount: string, isTournamentStyle: boolean): { name: string; value: string } {
+    return { name: potLabelText(label), value: isTournamentStyle ? amount : `$${amount}` };
+}
+
+/**
  * Formats a pot label with its amount for display.
  * Cash games show a $ prefix, tournaments show raw chip count.
  */

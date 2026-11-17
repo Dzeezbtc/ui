@@ -1110,3 +1110,171 @@
 [data-skin="flagship"][data-orient="portrait"] .chip-position :is(.text-2xl, .text-4xl) {
     font-size: 22px !important;
 }
+
+/* =====================================================================
+ * Polish: the pot pill, the phone's top bar and the action buttons, in the
+ * concept's look (functions unchanged).
+ * ===================================================================== */
+
+/* ---------- pot: "Pot $310" — a quiet name and the amount, small ---------- */
+[data-skin="flagship"] [data-part="pot"] {
+    display: inline-flex;
+    align-items: baseline;
+    gap: 7px;
+    padding: 5px 16px 6px;
+    border-radius: 999px;
+    background: rgba(13, 11, 23, 0.72);
+    border: 1px solid var(--fs-line2);
+    backdrop-filter: blur(8px);
+    font-family: var(--fs-sans);
+    font-size: 15px;
+    line-height: 1.2;
+    color: var(--fs-fg);
+    box-shadow: 0 10px 24px -14px #000;
+}
+[data-skin="flagship"] [data-part="pot"] .fs-pot-name {
+    font-family: var(--fs-mono);
+    font-weight: 500;
+    font-size: 0.85em;
+    color: var(--fs-muted);
+}
+[data-skin="flagship"] [data-part="pot"] .fs-pot-value {
+    font-family: var(--fs-disp);
+    font-weight: 600;
+    font-size: 1.15em;
+    letter-spacing: -0.02em;
+}
+
+/* ---------- phone top bar: [‹ Table name]  ·  [balance] [menu] ---------- */
+[data-skin="flagship"] [data-part="header"]:has([data-part="header-title"]) {
+    background: transparent !important;
+    border-bottom: 0 !important;
+    backdrop-filter: none;
+    padding-top: calc(env(safe-area-inset-top) + 8px) !important;
+    padding-bottom: 4px;
+    padding-right: calc(env(safe-area-inset-right) + 10px) !important;
+    gap: 10px;
+}
+[data-skin="flagship"] [data-part="header-title"] {
+    flex: 0 1 auto !important;
+    display: inline-flex;
+    align-items: center;
+    gap: 10px;
+    min-height: 42px !important;
+    padding: 0 18px 0 6px !important;
+    border-radius: 14px !important;
+    background: var(--fs-glass) !important;
+    border: 1px solid var(--fs-line2) !important;
+    font-family: var(--fs-disp);
+    font-size: 15px !important;
+    font-weight: 600 !important;
+    letter-spacing: -0.02em;
+}
+[data-skin="flagship"] [data-part="header-title"]::before {
+    content: "‹";
+    display: grid;
+    place-items: center;
+    width: 30px;
+    height: 30px;
+    border-radius: 10px;
+    background: var(--fs-panel2);
+    font-family: var(--fs-sans);
+    font-size: 20px;
+    line-height: 1;
+    color: var(--fs-muted);
+}
+[data-skin="flagship"] [data-part="header-actions"] {
+    gap: 8px;
+}
+[data-skin="flagship"] [data-part="header-balance"] {
+    min-height: 40px !important;
+    padding: 0 12px !important;
+    border-radius: 12px !important;
+    background: var(--fs-glass) !important;
+    border: 1px solid var(--fs-line2) !important;
+}
+[data-skin="flagship"] [data-part="header-balance"] span {
+    font-family: var(--fs-mono);
+}
+[data-skin="flagship"] [data-part="header-menu"] {
+    width: 42px !important;
+    height: 42px !important;
+    border-radius: 12px !important;
+    background: var(--fs-glass) !important;
+    border: 1px solid var(--fs-line2) !important;
+}
+[data-skin="flagship"] [data-part="header-status"] {
+    background: transparent !important;
+    border-bottom: 0 !important;
+    height: 20px;
+    gap: 10px;
+}
+[data-skin="flagship"] [data-part="header-status"] > span {
+    font-family: var(--fs-mono);
+    font-size: 10.5px !important;
+    font-weight: 500 !important;
+    color: var(--fs-muted) !important;
+}
+[data-skin="flagship"] [data-part="header-tables"] {
+    background: transparent !important;
+    border-bottom: 0 !important;
+    padding-top: 2px !important;
+    padding-bottom: 2px !important;
+}
+[data-skin="flagship"] [data-part="header-tables"] .b52-mt-add {
+    height: 26px;
+    padding: 0 12px;
+    font-size: 12px;
+}
+
+/* ---------- action buttons: slim glass bar, the concept's proportions ---------- */
+[data-skin="flagship"] :is(.btn-fold, .btn-check, .btn-call, .btn-raise, .btn-deal, .btn-small-blind, .btn-big-blind) {
+    min-height: 0 !important;
+    height: 48px;
+    padding-top: 0 !important;
+    padding-bottom: 0 !important;
+    font-size: 15px !important;
+    letter-spacing: 0.01em;
+    text-transform: none;
+}
+[data-skin="flagship"] [data-part="raise-slider"] {
+    padding: 6px 10px !important;
+    min-height: 0 !important;
+}
+[data-skin="flagship"] [data-part="raise-slider"] :is(button, input:not([type="range"])) {
+    height: 34px !important;
+    min-height: 0 !important;
+    font-size: 14px !important;
+}
+/* the words inside a button take the button's size */
+[data-skin="flagship"] :is(.btn-fold, .btn-check, .btn-call, .btn-raise, .btn-deal, .btn-small-blind, .btn-big-blind, .btn-pot, .btn-all-in) * {
+    font-size: inherit !important;
+    line-height: 1.15;
+}
+[data-skin="flagship"] :is(.btn-pot, .btn-all-in) {
+    height: 32px;
+    min-height: 0 !important;
+    padding-top: 0 !important;
+    padding-bottom: 0 !important;
+    font-size: 13px !important;
+}
+[data-skin="flagship"][data-orient="portrait"] :is(.btn-fold, .btn-check, .btn-call, .btn-raise, .btn-deal, .btn-small-blind, .btn-big-blind) {
+    height: 44px;
+    font-size: 14px !important;
+}
+[data-skin="flagship"][data-orient="portrait"] [data-part="raise-slider"] :is(button, input:not([type="range"])) {
+    height: 30px !important;
+    font-size: 13px !important;
+}
+[data-skin="flagship"][data-orient="portrait"] :is(.btn-pot, .btn-all-in) {
+    height: 28px;
+    font-size: 12px !important;
+}
+[data-skin="flagship"][data-orient="portrait"] :is(.btn-raise, .btn-call, .btn-check) {
+    white-space: nowrap;
+    font-size: 13px !important;
+}
+[data-skin="flagship"][data-orient="portrait"] :is(.btn-raise, .btn-call, .btn-check) > * {
+    flex-wrap: nowrap;
+    white-space: nowrap;
+}

@@ -1,4 +1,4 @@
-import { formatPotLabel } from "./potTextUtils";
+import { formatPotLabel, potLabelParts } from "./potTextUtils";
 
 describe("formatPotLabel", () => {
     describe("cash games (isTournamentStyle = false)", () => {
@@ -27,5 +27,16 @@ describe("formatPotLabel", () => {
         it("formats zero amount", () => {
             expect(formatPotLabel("Total Pot", "0", true)).toBe("Total Pot: 0");
         });
+    });
+});
+
+describe("potLabelParts", () => {
+    it("splits a cash pot into its name and dollar amount", () => {
+        expect(potLabelParts("Pot", "9.00", false)).toEqual({ name: "Pot", value: "$9.00" });
+        expect(potLabelParts("Total Pot", "1,110.00", false)).toEqual({ name: "Total Pot", value: "$1,110.00" });
+    });
+
+    it("keeps tournament pots in chips, with no dollar sign", () => {
+        expect(potLabelParts("Main Pot", "1,500", true)).toEqual({ name: "Main Pot", value: "1,500" });
     });
 });

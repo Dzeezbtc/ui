@@ -176,14 +176,16 @@ export const MobileTableHeader: React.FC<MobileTableHeaderProps> = ({
                 }}
             >
                 <button
+                    data-part="header-title"
                     className="text-white text-sm font-bold cursor-pointer truncate min-w-0 flex-1 min-h-[44px] text-left"
                     onClick={handleLobbyClick}
                 >
                     {tableName ? tableName : `Table ${tableId ? tableId.slice(-5) : ""}`}
                 </button>
-                <div className="flex items-center flex-shrink-0">
+                <div className="flex items-center flex-shrink-0" data-part="header-actions">
                     {/* Balance — money on the table, wanted at a glance; tap to refresh */}
                     <button
+                        data-part="header-balance"
                         onClick={fetchAccountBalance}
                         disabled={isBalanceLoading}
                         className="min-h-[44px] flex items-center px-2 disabled:opacity-50"
@@ -199,6 +201,7 @@ export const MobileTableHeader: React.FC<MobileTableHeaderProps> = ({
                         )}
                     </button>
                     <button
+                        data-part="header-menu"
                         onClick={() => setMenuOpen(true)}
                         className="w-11 h-11 flex items-center justify-center text-white hover:opacity-80"
                         title="Menu"
@@ -211,6 +214,7 @@ export const MobileTableHeader: React.FC<MobileTableHeaderProps> = ({
 
             {/* Status strip — text only, no controls. No action count on mobile. */}
             <div
+                data-part="header-status"
                 className={`w-full flex items-center justify-center gap-3 px-2 h-[22px] sub-header z-[1] ${styles.subHeaderRoot}`}
                 style={{ paddingLeft: "env(safe-area-inset-left)", paddingRight: "env(safe-area-inset-right)" }}
             >
@@ -242,6 +246,7 @@ export const MobileTableHeader: React.FC<MobileTableHeaderProps> = ({
                 row on phones — the status strip above is too short for it. */}
             {headerSlot && (
                 <div
+                    data-part="header-tables"
                     className={`w-full flex items-center justify-center px-2 py-1 ${styles.subHeaderRoot}`}
                     style={{ paddingLeft: "env(safe-area-inset-left)", paddingRight: "env(safe-area-inset-right)" }}
                 >
