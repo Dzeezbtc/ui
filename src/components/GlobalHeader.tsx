@@ -6,6 +6,7 @@ import { getCosmosClient } from "../utils/cosmos/client";
 import { ProfileAvatarButton } from "./profile";
 import { hasElements } from "../utils/guards";
 import styles from "./GlobalHeader.module.css";
+import { AccountBadge } from "./AccountBadge";
 import { LanguagePicker } from "./LanguagePicker";
 import { useLanguage } from "../i18n/useLanguage";
 
@@ -180,6 +181,7 @@ export const GlobalHeader: React.FC = () => {
                     {/* Right: Club login + Admin + Network Status & Selector */}
                     <div className="flex items-center gap-4 flex-shrink-0">
                         <LanguagePicker variant="icon" />
+                        <AccountBadge />
                         {clubConsoleUrl && (
                             <a href={`${clubConsoleUrl}/login`} className={`px-3 py-2 rounded-lg text-sm font-medium hover:opacity-80 ${styles.navItemInactive}`} title="For club owners, staff and agents">
                                 Club login

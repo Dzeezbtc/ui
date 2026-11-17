@@ -10,6 +10,7 @@
 
 import { ethers } from "ethers";
 import { getCosmosMnemonic } from "./storage";
+import { custodyWsAuth, isCustodial } from "../custody/session";
 import { STORAGE_KEYS } from "../../constants/storageKeys";
 
 // Cosmos HD derivation path (same as poker-cli uses: sdk.GetConfig().GetFullBIP44Path())
@@ -61,6 +62,15 @@ export async function createAuthPayload(): Promise<{
     timestamp: number;
     signature: string;
 } | null> {
+    // A club account: the signer makes the same EIP-191 signature the browser would.
+    if (isCustodial()) {
+        try {
+            return await custodyWsAuth();
+        } catch (error) {
+            console.error("[signing] Club account WebSocket auth failed:", error);
+            return null;
+        }
+    }
     const mnemonic = getCosmosMnemonic();
     if (!mnemonic) {
         console.error("[signing] No mnemonic found for auth payload");
