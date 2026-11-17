@@ -8,6 +8,7 @@ import { useTableStyle } from "../../../context/TableStyleContext";
 import { usesFlagshipLayout } from "../../../utils/tableStyle";
 import { B52Chip } from "./B52Chip";
 import { BadBeatChip } from "./BadBeatChip";
+import { flatChipStack } from "../../../utils/badBeatChipColor";
 
 /** Vertical offset per chip for same-denomination vertical stacking (px). */
 const STACK_OFFSET_Y = 4;
@@ -116,7 +117,9 @@ const Chip: React.FC<ChipProps> = React.memo(({ amount, isTournament, caption })
     const chipSize = (isMobile ? CHIP_SIZE_MOBILE : CHIP_SIZE) + (flagship ? FLAGSHIP_CHIP_EXTRA : 0);
 
     const maxVisibleCount = Math.max(1, ...allStacks.map(s => s.visibleCount));
-    const bounds = getClusterBounds(allStacks.length, chipSize, maxVisibleCount);
+    // Bad Beat: one neat stack, as on its 3D table (ui#36)
+    const bbStack = badBeat ? flatChipStack(allStacks, chipSize, STACK_OFFSET_Y, 3) : null;
+    const bounds = bbStack ? { width: bbStack.width, height: bbStack.height } : getClusterBounds(allStacks.length, chipSize, maxVisibleCount);
 
     // How much of the cluster overlaps into the pill
     const chipInset = chipSize * 0.55;
@@ -143,16 +146,12 @@ const Chip: React.FC<ChipProps> = React.memo(({ amount, isTournament, caption })
                     transform: "translateY(-50%)",
                 }}
             >
-                {allStacks.map((stack, si) => {
+                {bbStack?.chips.map((c, i) => (
+                    <BadBeatChip key={`bb-${i}`} value={c.value} size={chipSize} style={{ left: `${c.left}px`, bottom: `${c.bottom}px`, zIndex: i }} />
+                ))}
+                {!bbStack && allStacks.map((stack, si) => {
                     const pos = getClusterPosition(si, allStacks.length, chipSize);
-                    return Array.from({ length: stack.visibleCount }).map((_, ci) => badBeat ? (
-                        <BadBeatChip
-                            key={`s${si}-c${ci}`}
-                            value={stack.value}
-                            size={chipSize}
-                            style={{ left: `${pos.x}px`, bottom: `${pos.y + ci * STACK_OFFSET_Y}px`, zIndex: si * 10 + ci }}
-                        />
-                    ) : flagship ? (
+                    return Array.from({ length: stack.visibleCount }).map((_, ci) => flagship ? (
                         <B52Chip
                             key={`s${si}-c${ci}`}
                             value={stack.value}

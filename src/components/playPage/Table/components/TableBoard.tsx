@@ -93,7 +93,15 @@ export const TableBoard: React.FC<TableBoardProps> = ({
                         key={`${idx}-${card}`}
                         className={`card animate-fall${isWinCard ? " animate-win-card" : ""}${shouldMute ? " opacity-40" : ""}`}
                     >
-                        {usesFlagshipLayout(tableTheme) ? (
+                        {tableTheme === "badbeat" ? (
+                            // Bad Beat: the card lands face down, then flips over (ui#36)
+                            <div className="bb-flip">
+                                <div className="bb-flip-in">
+                                    <FlagshipCard code={card} className="fs-board bb-flip-front" />
+                                    <FlagshipCard back className="fs-board bb-flip-back" />
+                                </div>
+                            </div>
+                        ) : usesFlagshipLayout(tableTheme) ? (
                             <FlagshipCard code={card} className="fs-board" />
                         ) : (
                             <OppositePlayerCards frontSrc={getCardImageUrl(card)} backSrc={getCardBackUrl(cardBackStyle)} flipped />

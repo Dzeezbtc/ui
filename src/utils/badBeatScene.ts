@@ -188,9 +188,9 @@ export function fitBadBeatCamera(angles: number[], portrait: boolean, width: num
 }
 
 /** A bet's amount sits this far (world units) from its chips' middle: above or below them… */
-export const BB_BET_LABEL_GAP = 0.48;
+export const BB_BET_LABEL_GAP = 0.38;
 /** …or, for a seat at the side, beside them (the amount is wide). */
-export const BB_BET_LABEL_GAP_SIDE = 0.8;
+export const BB_BET_LABEL_GAP_SIDE = 0.68;
 
 /**
  * Where a bet's amount sits: right by its chips, on the side facing the middle
@@ -298,25 +298,36 @@ export const BB_CHIP_DENOMS: [number, number][] = [
     [1, 0xeef1f5]
 ];
 
-/** Piles of one bet stand this far apart (a chip is 0.28 across). */
-export const BB_PILE_GAP = 0.3;
+/** How many chips of one colour a stack shows, at most: a short, tidy stack. */
+export const BB_STACK_PER_COLOUR = 4;
+/** Each colour in a stack sits this far (world units) over from the one under it, so a band of it shows. */
+export const BB_STACK_STEP = 0.035;
+/** One chip's thickness in a stack. */
+export const BB_CHIP_THICK = 0.042;
+
+export interface StackChip {
+    color: number;
+    /** Height of the chip's middle above the felt. */
+    y: number;
+    /** Sideways shift (world units, across the screen) from the stack's middle. */
+    shift: number;
+}
 
 /**
- * Where each of a bet's piles stands, from the bet's spot (world x, z), lined
- * up with the seat: two side by side across its line, a third and fourth in a
- * second row behind them (towards the seat), so a bet never reaches far towards
- * its amount or across into the next seat's.
+ * A bet as one neat stack: the highest value at the bottom, the lowest on
+ * top, at most {@link BB_STACK_PER_COLOUR} of each, and each colour sitting
+ * a touch over from the one below, so you see a sliver of every colour.
  */
-export function pileSpots(count: number, bet: Vec3, plate: Vec3): [number, number][] {
-    const dx = bet[0] - plate[0];
-    const dz = bet[2] - plate[2];
-    const l = Math.hypot(dx, dz) || 1;
-    // in: towards the middle; across: along the rail
-    const [ix, iz] = [dx / l, dz / l];
-    const [ax, az] = [-iz, ix];
-    const h = BB_PILE_GAP / 2;
-    const grid: [number, number][][] = [[[0, 0]], [[-h, 0], [h, 0]], [[-h, h], [h, h], [0, -h]], [[-h, h], [h, h], [-h, -h], [h, -h]]];
-    return (grid[count - 1] ?? []).map(([a, i]) => [ax * a + ix * i, az * a + iz * i]);
+export function chipStack(smallBlinds: number): StackChip[] {
+    const piles = chipPiles(smallBlinds);
+    const chips: StackChip[] = [];
+    const mid = (piles.length - 1) / 2;
+    piles.forEach(({ color, count }, g) => {
+        for (let k = 0; k < Math.min(count, BB_STACK_PER_COLOUR); k++) {
+            chips.push({ color, y: 0.02 + chips.length * BB_CHIP_THICK, shift: (g - mid) * BB_STACK_STEP });
+        }
+    });
+    return chips;
 }
 
 /**

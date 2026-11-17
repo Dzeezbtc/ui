@@ -1,5 +1,5 @@
 import * as THREE from "three";
-import { BB_TABLE, chipPiles, pileSpots, type BadBeatScene, type Vec3 } from "../../../utils/badBeatScene";
+import { BB_TABLE, chipStack, type BadBeatScene, type Vec3 } from "../../../utils/badBeatScene";
 import type { BadBeatTableState } from "../../../utils/badBeatTableState";
 import { cardFace } from "../../../utils/cardFace";
 import { chipEdge, chipFace } from "./badBeatChips";
@@ -18,6 +18,8 @@ import { isNullish } from "../../../utils/guards";
  */
 
 const FONT = '"Barlow Condensed", ui-sans-serif, system-ui, sans-serif';
+/** Card ranks: the full-width cut, so a Q never reads as a 0. */
+const RANK_FONT = '"Barlow", ui-sans-serif, system-ui, sans-serif';
 
 /** The frame (the table div) on the canvas, in CSS px. */
 export interface BadBeatFrame {
@@ -115,7 +117,9 @@ function feltTexture(c1: string, c2: string): THREE.CanvasTexture {
 
 /** A card face ("AS") or the crimson hatched "BB" back ("back"). */
 function cardCanvas(code: string): HTMLCanvasElement {
-    const [c, x] = makeCanvas(256, 358);
+    // drawn at twice the size, so a card stays sharp up close on a big screen
+    const [c, x] = makeCanvas(512, 716);
+    x.scale(2, 2);
     const rr = (w: number, h: number, r: number) => {
         x.beginPath();
         x.moveTo(r, 0);
@@ -156,18 +160,22 @@ function cardCanvas(code: string): HTMLCanvasElement {
         x.restore();
     } else {
         rr(256, 358, 26);
-        x.fillStyle = "#F7F8FA";
+        x.fillStyle = "#FFFFFF";
         x.fill();
-        x.fillStyle = face.red ? "#E3123F" : "#0A0C0F";
-        x.font = `800 128px ${FONT}`;
+        x.lineWidth = 3;
+        x.strokeStyle = "rgba(10,12,15,.18)";
+        x.stroke();
+        // a big heavy rank, a big suit under it, a bigger one in the corner
+        x.fillStyle = face.red ? "#E0102F" : "#0A0C0F";
+        x.font = `800 ${face.rank === "10" ? 112 : 132}px ${RANK_FONT}`;
         x.textBaseline = "top";
-        x.fillText(face.rank, 22, 6);
-        x.font = "72px serif";
-        x.fillText(face.suit, 26, 138);
-        x.font = "150px serif";
+        x.fillText(face.rank, 18, 10);
+        x.font = "96px serif";
+        x.fillText(face.suit, 22, 136);
+        x.font = "170px serif";
         x.textAlign = "right";
         x.textBaseline = "bottom";
-        x.fillText(face.suit, 238, 350);
+        x.fillText(face.suit, 244, 352);
     }
     return c;
 }
@@ -182,6 +190,8 @@ export class BadBeatEngine {
     private readonly chipMaterials = new Map<number, THREE.Material[]>();
     private readonly chipGeometry = new THREE.CylinderGeometry(0.14, 0.14, 0.04, 32);
     private readonly cardGeometry = new THREE.PlaneGeometry(0.66 * 0.62, 0.92 * 0.62);
+    /** Face-up cards (yours, and at showdown) a size up, so they read from across the table. */
+    private readonly faceGeometry = new THREE.PlaneGeometry(0.66 * 0.74, 0.92 * 0.74);
     private dynamic = new THREE.Group();
     private layout: BadBeatScene | null = null;
     private state: BadBeatTableState | null = null;
@@ -311,10 +321,11 @@ export class BadBeatEngine {
     /** Redraw the text once the condensed face is really in (the sheet that declares it may load late). */
     private whenFontReady(tries: number): void {
         const spec = `italic 900 64px ${FONT}`;
+        void document.fonts?.load(`800 64px ${RANK_FONT}`);
         const fonts = document.fonts;
         if (!fonts) return;
         void fonts.load(spec).then(() => {
-            if (fonts.check(spec) && Array.from(fonts).some(f => f.family.replace(/"/g, "") === "Barlow Condensed" && f.status === "loaded")) this.refreshText();
+            if (fonts.check(spec) && Array.from(fonts).some(f => f.family.replace(/"/g, "") === "Barlow Condensed" && f.status === "loaded") && fonts.check(`800 64px ${RANK_FONT}`)) this.refreshText();
             else if (tries > 0) this.fontTimer = window.setTimeout(() => this.whenFontReady(tries - 1), 250);
         });
     }
@@ -360,7 +371,12 @@ export class BadBeatEngine {
     private cardMesh(code: string): THREE.Group {
         const faceUp = !!cardFace(code);
         const g = new THREE.Group();
-        const f = new THREE.Mesh(this.cardGeometry, new THREE.MeshStandardMaterial({ map: this.cardTexture(faceUp ? code.toUpperCase() : "back"), transparent: true, alphaTest: 0.5, roughness: 0.5 }));
+        // a face is drawn unlit and untoned, so it stays white with crisp black and red under the table's lights
+        const map = this.cardTexture(faceUp ? code.toUpperCase() : "back");
+        const material = faceUp
+            ? new THREE.MeshBasicMaterial({ map, transparent: true, alphaTest: 0.5, toneMapped: false })
+            : new THREE.MeshStandardMaterial({ map, transparent: true, alphaTest: 0.5, roughness: 0.5 });
+        const f = new THREE.Mesh(faceUp ? this.faceGeometry : this.cardGeometry, material);
         f.rotation.x = -Math.PI / 2;
         f.position.y = 0.004;
         f.castShadow = true;
@@ -381,21 +397,16 @@ export class BadBeatEngine {
         return mats;
     }
 
-    /** A bet's chips: its piles side by side in a row across the line from `from` (its seat) to `at`. */
-    private chipStack(smallBlinds: number, seed: number, at: Vec3, from: Vec3): THREE.Group {
+    /** A bet's chips: one neat stack ({@link chipStack}), its colours stepping across the screen so each shows a sliver. */
+    private chipStack(smallBlinds: number, seed: number): THREE.Group {
         const g = new THREE.Group();
-        const piles = chipPiles(smallBlinds);
-        const spots = pileSpots(piles.length, at, from);
-        piles.forEach(({ color, count }, col) => {
-            const [ox, oz] = spots[col];
-            for (let k = 0; k < count; k++) {
-                const m = new THREE.Mesh(this.chipGeometry, this.chipMats(color));
-                m.position.set(ox, 0.02 + k * 0.042, oz);
-                // a fixed jitter per chip, so a redraw never shuffles them
-                m.rotation.y = ((seed * 7 + col * 3 + k) * 2.399) % (Math.PI * 2);
-                m.castShadow = true;
-                g.add(m);
-            }
+        chipStack(smallBlinds).forEach(({ color, y, shift }, k) => {
+            const m = new THREE.Mesh(this.chipGeometry, this.chipMats(color));
+            m.position.set(shift, y, 0);
+            // a fixed turn per chip, so a redraw never shuffles them
+            m.rotation.y = ((seed * 7 + k) * 2.399) % (Math.PI * 2);
+            m.castShadow = true;
+            g.add(m);
         });
         return g;
     }
@@ -420,23 +431,24 @@ export class BadBeatEngine {
             if (!hole) return;
             if (seat.cards) {
                 // two cards side by side, a little turned, as dealt in the concept
+                // face up they lie side by side, both fully readable; face down they overlap a little
+                const spread = seat.cards.some(c => !!cardFace(c)) ? 0.52 : 0.34;
                 seat.cards.forEach((code, k) => {
                     const m = this.cardMesh(code);
-                    const off = (k - 0.5) * 0.34;
+                    const off = (k - 0.5) * spread;
                     m.position.set(hole[0] + off, 0.22 + k * 0.006, hole[2]);
-                    m.rotation.y = (((i * 5 + k * 3) % 7) / 7 - 0.5) * 0.25;
+                    m.rotation.y = cardFace(code) ? 0 : (((i * 5 + k * 3) % 7) / 7 - 0.5) * 0.25;
                     this.dynamic.add(m);
                 });
             }
             if (seat.bet > 0 && bets[i]) {
-                const s = this.chipStack(seat.bet, i, bets[i], layout.world.plates[i]);
+                const s = this.chipStack(seat.bet, i);
                 s.position.set(bets[i][0], 0.2, bets[i][2]);
                 this.dynamic.add(s);
             }
         });
         if (state.pot > 0) {
-            // the pot's piles in a row across the table
-            const s = this.chipStack(state.pot, 99, pot, [pot[0], pot[1], pot[2] - 1]);
+            const s = this.chipStack(state.pot, 99);
             s.position.set(pot[0], 0.2, pot[2]);
             this.dynamic.add(s);
         }

@@ -13,7 +13,7 @@
  * action panel as one card: "Your turn · $10 to call", presets, slider and
  * amount, pot odds, then Fold / Call / Raise. Same controls, same behaviour.
  */
-@import url("https://fonts.googleapis.com/css2?family=Barlow+Condensed:ital,wght@0,600;0,700;0,800;1,700;1,800;1,900&family=IBM+Plex+Mono:wght@400;500;600&display=swap");
+@import url("https://fonts.googleapis.com/css2?family=Barlow:wght@700;800&family=Barlow+Condensed:ital,wght@0,600;0,700;0,800;1,700;1,800;1,900&family=IBM+Plex+Mono:wght@400;500;600&display=swap");
 
 /* ---------- palette ---------- */
 [data-look="badbeat"] {
@@ -47,6 +47,8 @@
     --fs-disp: "Barlow Condensed", ui-sans-serif, system-ui, sans-serif;
     --fs-mono: "IBM Plex Mono", ui-monospace, Menlo, monospace;
     --bb-cond: "Barlow Condensed", ui-sans-serif, system-ui, sans-serif;
+    /* card ranks: the full-width cut, so a Q never reads as a 0 */
+    --bb-rank: "Barlow", ui-sans-serif, system-ui, sans-serif;
     --bb-red: #ff2d55;
     --bb-bg3: #181c22;
     --bb-steel: #262b33;
@@ -104,30 +106,36 @@
 [data-look="badbeat"] .fs-card {
     background: #fff;
     color: #0a0c0f;
-    font-family: var(--bb-cond);
+    font-family: var(--bb-rank);
     border-radius: 11% / 8%;
-    box-shadow: 0 10px 18px -8px rgba(0, 0, 0, 0.8);
+    box-shadow:
+        inset 0 0 0 1px rgba(10, 12, 15, 0.12),
+        0 10px 18px -8px rgba(0, 0, 0, 0.8);
 }
 [data-look="badbeat"] .fs-card.fs-red {
-    color: #e3123f;
+    color: #e0102f;
 }
 [data-look="badbeat"] .fs-card::after {
     content: none;
 }
+/* clear at a glance: a big heavy rank, a big suit under it, a bigger one in the corner */
 [data-look="badbeat"] .fs-card .fs-r {
-    left: 11%;
-    top: 3%;
+    left: 9%;
+    top: 2%;
+    font-family: var(--bb-rank);
     font-weight: 800;
-    font-size: 48cqw;
-    letter-spacing: -0.02em;
+    font-size: 46cqw;
+    line-height: 1;
+    letter-spacing: -0.04em;
 }
 [data-look="badbeat"] .fs-card .fs-s {
-    left: 13%;
-    top: calc(5% + 48cqw);
-    font-size: 24cqw;
+    left: 10%;
+    top: calc(6% + 44cqw);
+    font-size: 34cqw;
+    line-height: 1;
 }
 [data-look="badbeat"] .fs-card .fs-pip {
-    font-size: 46cqw;
+    font-size: 54cqw;
 }
 [data-look="badbeat"] .fs-card.fs-back {
     background:
@@ -889,4 +897,45 @@
     height: 32%;
     background: var(--slash, #fff);
     transform: translate(-50%, -50%) skewX(-18deg);
+}
+
+/* ---------- the board: each card lands face down, then flips over ---------- */
+[data-skin="flagship"] .card:has(> .bb-flip) {
+    height: 119px;
+}
+[data-look="badbeat"] .bb-flip {
+    width: 100%;
+    height: 100%;
+    perspective: 700px;
+}
+/* it flips once it has landed (the drop is the bus's CARD_DROP_MS) */
+[data-look="badbeat"] .bb-flip-in {
+    position: relative;
+    width: 100%;
+    height: 100%;
+    transform-style: preserve-3d;
+    animation: bb-flip 0.42s cubic-bezier(0.3, 0.7, 0.3, 1) var(--card-drop-ms, 1s) both;
+}
+[data-look="badbeat"] .bb-flip-front,
+[data-look="badbeat"] .bb-flip-back {
+    backface-visibility: hidden;
+    -webkit-backface-visibility: hidden;
+}
+[data-look="badbeat"] .bb-flip-back {
+    position: absolute !important;
+    inset: 0;
+    transform: rotateY(180deg);
+}
+@keyframes bb-flip {
+    from {
+        transform: rotateY(180deg);
+    }
+    to {
+        transform: rotateY(0deg);
+    }
+}
+@media (prefers-reduced-motion: reduce) {
+    [data-look="badbeat"] .bb-flip-in {
+        animation: none;
+    }
 }

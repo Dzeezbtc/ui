@@ -1,4 +1,4 @@
-import { BB_TABLE, betLabelPoint, pileSpots, badBeatScene, boardZ, chipPiles, inFrontOf, fitBadBeatCamera, projectPoint, ringPoint, seatAngle, BB_RINGS, type Vec3 } from "./badBeatScene";
+import { BB_TABLE, betLabelPoint, chipStack, badBeatScene, boardZ, chipPiles, inFrontOf, fitBadBeatCamera, projectPoint, ringPoint, seatAngle, BB_RINGS, type Vec3 } from "./badBeatScene";
 
 // The flagship ring's seat angles for n evenly spaced seats, you at the bottom.
 const ring = (n: number) => Array.from({ length: n }, (_, i) => Math.PI / 2 + (i * 2 * Math.PI) / n);
@@ -90,10 +90,8 @@ describe("badBeatScene", () => {
                 // cards: two side by side (0.75 × 0.6), bets and the disc: round
                 const things = [
                     ...world.holes.map((p, i) => ({ p, r: 0.42, what: `cards ${i}` })),
-                        // the biggest bet: four piles in a row across the seat's line
-                    ...world.bets.flatMap((p, i) =>
-                        pileSpots(4, p, world.plates[i]).map(([dx, dz]) => ({ p: [p[0] + dx, p[1], p[2] + dz] as Vec3, r: 0.14, what: `bet ${i}` }))
-                    ),
+                    // a bet: one stack, its colours stepping a touch to the side
+                    ...world.bets.map((p, i) => ({ p, r: 0.22, what: `bet ${i}` })),
                     ...world.dealers.map((p, i) => ({ p, r: 0.2, what: `dealer ${i}` }))
                 ];
                 things.forEach(t => {
@@ -136,15 +134,18 @@ describe("chipPiles", () => {
     });
 });
 
-describe("pileSpots", () => {
-    it("stands a bet's piles apart, lined up with its seat", () => {
-        for (let n = 1; n <= 4; n++) {
-            const spots = pileSpots(n, [0, 0, -1], [0, 0, -3]);
-            expect(spots).toHaveLength(n);
-            spots.forEach((a, i) => spots.forEach((b, j) => j > i && expect(Math.hypot(a[0] - b[0], a[1] - b[1])).toBeGreaterThanOrEqual(0.29)));
-            // never more than a chip and a half towards the middle
-            spots.forEach(([, z]) => expect(z).toBeLessThanOrEqual(0.15 + 1e-9));
-        }
+describe("chipStack", () => {
+    it("stacks the highest value at the bottom, each colour a touch over from the one below", () => {
+        const stack = chipStack(131);
+        expect(stack.map(c => c.color)).toEqual([0x2ee59d, 0x9fd8ff, 0xff2d55, 0xeef1f5]);
+        stack.forEach((c, i) => i > 0 && expect(c.y).toBeGreaterThan(stack[i - 1].y));
+        stack.forEach((c, i) => i > 0 && expect(c.shift - stack[i - 1].shift).toBeCloseTo(0.035));
+        expect(stack[0].shift + stack[3].shift).toBeCloseTo(0);
+    });
+
+    it("keeps a stack short: at most four of a colour", () => {
+        expect(chipStack(4000).length).toBe(4);
+        expect(chipStack(0)).toEqual([]);
     });
 });
 

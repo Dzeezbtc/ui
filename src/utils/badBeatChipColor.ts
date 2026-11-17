@@ -17,3 +17,26 @@ export const badBeatChipColor = (value: number): { color: string; slash: string 
     const [, color, slash] = BB_FLAT_CHIP_COLORS.find(([min]) => value >= min)!;
     return { color, slash };
 };
+
+/** At most this many chips of one value in a flat Bad Beat stack, as on the 3D table. */
+export const BB_FLAT_PER_VALUE = 4;
+
+/**
+ * A flat Bad Beat bet as one neat stack (ui#36), as the 3D table draws it: the
+ * highest value at the bottom (the stacks come largest first), at most
+ * {@link BB_FLAT_PER_VALUE} of each, each value stepped `step` px across so a
+ * sliver of every colour shows. Returns each chip's spot and the stack's size.
+ */
+export const flatChipStack = (
+    stacks: { value: number; visibleCount: number }[],
+    chipSize: number,
+    rise: number,
+    step: number
+): { chips: { value: number; left: number; bottom: number }[]; width: number; height: number } => {
+    const chips: { value: number; left: number; bottom: number }[] = [];
+    stacks.forEach((s, g) => {
+        for (let k = 0; k < Math.min(s.visibleCount, BB_FLAT_PER_VALUE); k++) chips.push({ value: s.value, left: g * step, bottom: chips.length * rise });
+    });
+    const groups = Math.max(1, stacks.length);
+    return { chips, width: chipSize + (groups - 1) * step, height: chipSize + Math.max(0, chips.length - 1) * rise };
+};
