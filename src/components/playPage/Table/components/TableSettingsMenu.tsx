@@ -328,7 +328,7 @@ export const TableSettingsMenu: React.FC<TableSettingsMenuProps> = props => {
                 aria-label={tk("settingsMenu.open")}
                 aria-expanded={hasValue(at)}
                 aria-haspopup="dialog"
-                className="fs-corner-btn"
+                className="fs-tool-btn"
                 data-testid="table-settings"
             >
                 <IoSettingsOutline size={13} />

@@ -137,7 +137,8 @@ import { useNetwork } from "../../context/NetworkContext";
 import { PlayerDTO, PlayerStatus } from "@block52/poker-vm-sdk";
 import LiveHandStrengthDisplay from "./LiveHandStrengthDisplay";
 import { TurnStatusLabel } from "./TurnStatusLabel";
-import { TableCornerInfo } from "./Table/components/TableCornerInfo";
+import { radioStationsFor } from "../../utils/radioStations";
+import { ProvablyFairBadge } from "./ProvablyFair/ProvablyFairBadge";
 import { FlagshipTopBar } from "./Table/components/FlagshipTopBar";
 import { TableSettingsMenu } from "./Table/components/TableSettingsMenu";
 import { blindsLabel } from "../../utils/blindsLabel";
@@ -778,7 +779,7 @@ const Table = React.memo(({ tableId }: TableProps = {}) => {
     // Card back style configuration - driven by VITE_CARD_BACK_URL env var
     // Options: "default", "block52", "custom", "legacy", or a full URL to a custom SVG
     const clubLook = useClubLook(id);
-    const radioSlot = clubLook && hasElements(clubLook.radio) ? <TableRadio stations={clubLook.radio} /> : null;
+    const radioSlot = <TableRadio stations={radioStationsFor(clubLook?.radio)} />;
     const cardBackStyle: CardBackStyle = clubLook?.cardBack ?? (import.meta.env.VITE_CARD_BACK_URL || "default");
 
     // Game Start Countdown
@@ -1435,6 +1436,38 @@ const Table = React.memo(({ tableId }: TableProps = {}) => {
                     balanceFormatted={balanceFormatted}
                     handleLobbyClick={handleLobbyClick}
                     fetchAccountBalance={fetchAccountBalance}
+                    stakes={blindsLabel(formattedValues.smallBlindFormatted, formattedValues.bigBlindFormatted, formattedValues.isTournamentStyle)}
+                    tools={
+                        <>
+                            {id && <ProvablyFairBadge tableId={id} handNumber={handNumber} tableName={gameName} compact />}
+                            {radioSlot}
+                            {id && (
+                                <TableSettingsMenu
+                                    tableId={id}
+                                    handNumber={handNumber}
+                                    tableStyle={tableStyle}
+                                    onCycleTableStyle={() => setTableStyle(nextTableStyle)}
+                                    currentNetwork={currentNetwork}
+                                    publicKey={publicKey}
+                                    formattedAddress={formattedAddress}
+                                    isCurrentUserSeated={isCurrentUserSeated}
+                                    canLeave={!!currentPlayerData && !formattedValues.isTournamentStyle}
+                                    showTopUpEntry={isCurrentUserSeated && !formattedValues.isTournamentStyle}
+                                    legalActions={playerLegalActions}
+                                    currentStack={currentPlayerData?.stack || "0"}
+                                    minBuyIn={gameOptions?.minBuyIn || "0"}
+                                    maxBuyIn={gameOptions?.maxBuyIn || "0"}
+                                    walletBalance={accountBalance}
+                                    replayHand={replayHand}
+                                    handleOpenReplay={isReplayMode ? undefined : handleOpenReplay}
+                                    handleCopyTableLink={handleCopyTableLink}
+                                    handleShareHand={handleShareHand}
+                                    handleLeaveTableClick={handleLeaveTableClick}
+                                    copyToClipboard={copyToClipboard}
+                                />
+                            )}
+                        </>
+                    }
                 />
             ) : isCompactMobile ? (
                 <MobileTableHeader
@@ -1566,40 +1599,6 @@ const Table = React.memo(({ tableId }: TableProps = {}) => {
                                             : "linear-gradient(180deg, rgba(80,55,25,0.25) 0%, rgba(40,25,10,0.45) 100%)"
                                 }}
                             />
-                        )}
-                        {/* Flagship: blinds and the provably-fair shield, quiet, under the table on the right */}
-                        {tableStyle === "flagship" && id && (
-                            <TableCornerInfo
-                                blinds={blindsLabel(formattedValues.smallBlindFormatted, formattedValues.bigBlindFormatted, formattedValues.isTournamentStyle)}
-                                tableId={id}
-                                handNumber={handNumber}
-                                tableName={gameName}
-                            >
-                                {radioSlot}
-                                <TableSettingsMenu
-                                    tableId={id}
-                                    handNumber={handNumber}
-                                    tableStyle={tableStyle}
-                                    onCycleTableStyle={() => setTableStyle(nextTableStyle)}
-                                    currentNetwork={currentNetwork}
-                                    publicKey={publicKey}
-                                    formattedAddress={formattedAddress}
-                                    isCurrentUserSeated={isCurrentUserSeated}
-                                    canLeave={!!currentPlayerData && !formattedValues.isTournamentStyle}
-                                    showTopUpEntry={isCurrentUserSeated && !formattedValues.isTournamentStyle}
-                                    legalActions={playerLegalActions}
-                                    currentStack={currentPlayerData?.stack || "0"}
-                                    minBuyIn={gameOptions?.minBuyIn || "0"}
-                                    maxBuyIn={gameOptions?.maxBuyIn || "0"}
-                                    walletBalance={accountBalance}
-                                    replayHand={replayHand}
-                                    handleOpenReplay={isReplayMode ? undefined : handleOpenReplay}
-                                    handleCopyTableLink={handleCopyTableLink}
-                                    handleShareHand={handleShareHand}
-                                    handleLeaveTableClick={handleLeaveTableClick}
-                                    copyToClipboard={copyToClipboard}
-                                />
-                            </TableCornerInfo>
                         )}
                         {/* Table felt surface */}
                         <div

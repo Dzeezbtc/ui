@@ -16,12 +16,16 @@ interface FlagshipTopBarProps {
     balanceFormatted: string;
     handleLobbyClick: () => void;
     fetchAccountBalance: () => void;
+    /** "$10 / $20", already formatted; shown after the game. */
+    stakes: string;
+    /** The shield, radio and settings buttons, shown under the balance. */
+    tools: React.ReactNode;
 }
 
 /**
  * The Block52 Flagship's top bar (Dzeezbtc/ui#31): back to the lobby and the
- * game on the left, the multi-table pills in the middle, the balance on the
- * right. Everything else lives in the settings cog under the table.
+ * game with its stakes on the left, the multi-table pills in the middle, the
+ * balance on the right with the shield, radio and settings cog just under it.
  */
 export const FlagshipTopBar: React.FC<FlagshipTopBarProps> = ({
     gameFormat,
@@ -30,33 +34,41 @@ export const FlagshipTopBar: React.FC<FlagshipTopBarProps> = ({
     isBalanceLoading,
     balanceFormatted,
     handleLobbyClick,
-    fetchAccountBalance
+    fetchAccountBalance,
+    stakes,
+    tools
 }) => {
     const { t } = useLanguage();
     const headerSlot = useTableHeaderSlot();
     const format =
         hasValue(gameFormat) && hasValue(gameOptions) ? displayGameFormat(gameFormat, gameOptions.scheduledStartTime, formatGameFormatDisplay) : undefined;
-    const title = flagshipGameTitle(format, formatTableGameDisplay(gameVariant, gameOptions?.bettingLimit));
+    const game = flagshipGameTitle(format, formatTableGameDisplay(gameVariant, gameOptions?.bettingLimit), "");
 
     return (
         <div data-part="fs-topbar" className="fs-topbar flex-shrink-0">
             <button type="button" className="fs-topbar-back" onClick={handleLobbyClick} title={t("nav.tables")} aria-label={t("nav.tables")}>
                 <FaChevronLeft size={14} />
             </button>
-            <span className="fs-topbar-title" data-testid="fs-game-title">
-                {title}
+            <span className="fs-topbar-title" data-testid="fs-game-title" title={flagshipGameTitle(undefined, game, stakes)}>
+                <span className="fs-topbar-game">{game}</span>
+                <span className="fs-topbar-stakes">{stakes}</span>
             </span>
             <div className="fs-topbar-slot">{headerSlot}</div>
-            <button type="button" className="fs-topbar-balance" onClick={fetchAccountBalance} disabled={isBalanceLoading} title="Refresh balance">
-                {isBalanceLoading ? (
-                    t("table.loading")
-                ) : (
-                    <>
-                        ${balanceFormatted}
-                        <span className="fs-topbar-unit">USDC</span>
-                    </>
-                )}
-            </button>
+            <div className="fs-topbar-right">
+                <button type="button" className="fs-topbar-balance" onClick={fetchAccountBalance} disabled={isBalanceLoading} title="Refresh balance">
+                    {isBalanceLoading ? (
+                        t("table.loading")
+                    ) : (
+                        <>
+                            ${balanceFormatted}
+                            <span className="fs-topbar-unit">USDC</span>
+                        </>
+                    )}
+                </button>
+                <div className="fs-topbar-tools" data-part="fs-tools">
+                    {tools}
+                </div>
+            </div>
         </div>
     );
 };
