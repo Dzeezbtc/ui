@@ -52,173 +52,52 @@
     --bb-steel: #262b33;
 }
 
-/* ---------- room ---------- */
-[data-skin="flagship"][data-look="badbeat"] .flagship-background {
-    background: radial-gradient(70% 70% at 50% 45%, #16202a, #0a0c0f 75%);
+/* ---------- the table: the concept's three.js table (BadBeatTable3D) ----------
+ * The WebGL canvas fills the table area and draws the room, rail, felt, the
+ * seats' cards, the chips and the D disc. The HTML table pieces go clear: the
+ * plates, bet amounts, board and pot sit on the 3D table's projected points. */
+[data-skin="flagship"][data-look="badbeat"] [data-part="bb-3d"] {
+    z-index: 0;
+    pointer-events: none;
 }
-
-/* ---------- the table: a thick graphite rail tipped back, steel-blue felt ----------
- * The rail draws the whole table (rail, crimson pin-line, felt) and is tipped
- * back like the concept's camera; the felt element goes clear so the board,
- * pot and bets on it stay flat and readable. */
-[data-skin="flagship"][data-look="badbeat"] [data-part="rail"] {
-    border: 0 !important;
-    border-radius: 9999px !important;
-    background: linear-gradient(180deg, #3a4049 0%, #272c33 40%, #1a1d22 100%) !important;
-    box-shadow:
-        inset 0 2px 0 rgba(255, 255, 255, 0.1),
-        inset 0 -6px 18px rgba(0, 0, 0, 0.45),
-        0 34px 0 -6px #0d0f12,
-        0 34px 0 -5px rgba(255, 45, 85, 0.25),
-        0 0 60px rgba(255, 45, 85, 0.18),
-        0 60px 90px -30px #000 !important;
-    transform: none !important;
-}
-[data-skin="flagship"][data-look="badbeat"] [data-part="rail"]::before {
-    content: "";
-    position: absolute;
-    inset: 7.5% 4.6%;
-    border-radius: 9999px;
-    background: linear-gradient(180deg, rgba(255, 45, 85, 0.75), rgba(255, 45, 85, 0.3));
-    box-shadow: 0 0 22px rgba(255, 45, 85, 0.3);
-    animation: none;
-}
-[data-skin="flagship"][data-look="badbeat"] [data-part="rail"]::after {
-    content: "";
-    position: absolute;
-    inset: calc(7.5% + 3px) calc(4.6% + 3px);
-    border-radius: 9999px;
-    background:
-        radial-gradient(ellipse at 50% 40%, rgba(80, 140, 190, 0.22), transparent 62%),
-        repeating-radial-gradient(circle at 30% 30%, rgba(255, 255, 255, 0.014) 0 1px, transparent 1px 3px),
-        radial-gradient(ellipse at 50% 45%, #284a64 0%, #1a3043 52%, #0d1820 100%);
-    box-shadow:
-        inset 0 0 0 1px rgba(0, 0, 0, 0.6),
-        inset 0 10px 40px rgba(0, 0, 0, 0.55);
+[data-skin="flagship"][data-look="badbeat"] [data-part="rail"],
+[data-skin="flagship"][data-look="badbeat"] .bb-logo {
+    display: none !important;
 }
 [data-skin="flagship"][data-look="badbeat"] [data-part="felt"] {
     background: transparent !important;
     border: 0 !important;
     box-shadow: none !important;
 }
-[data-skin="flagship"][data-look="badbeat"] [data-part="felt"]::before {
-    display: none;
-}
+[data-skin="flagship"][data-look="badbeat"] [data-part="felt"]::before,
 [data-skin="flagship"][data-look="badbeat"] [data-part="felt"]::after {
-    inset: 14% 10%;
-    border: 1.5px dashed rgba(220, 228, 240, 0.13);
-}
-/* phone: the same table, upright */
-[data-skin="flagship"][data-look="badbeat"][data-orient="portrait"] [data-part="rail"] {
-    background: linear-gradient(180deg, #3a4049 0%, #272c33 40%, #1a1d22 100%) !important;
-    transform: none !important;
-}
-[data-skin="flagship"][data-look="badbeat"][data-orient="portrait"] [data-part="rail"]::before {
-    inset: 4.4% 6.6%;
-    animation: none;
-    background: linear-gradient(180deg, rgba(255, 45, 85, 0.8), rgba(255, 45, 85, 0.3));
-    box-shadow: 0 0 22px rgba(255, 45, 85, 0.3);
-}
-[data-skin="flagship"][data-look="badbeat"][data-orient="portrait"] [data-part="rail"]::after {
-    inset: calc(4.4% + 3px) calc(6.6% + 3px);
-    background:
-        radial-gradient(ellipse at 50% 40%, rgba(80, 140, 190, 0.22), transparent 62%),
-        radial-gradient(ellipse at 50% 45%, #284a64 0%, #1a3043 52%, #0d1820 100%);
-}
-
-/* ---------- the camera: the whole table plane tipped back in real 3D ----------
- * Rail, felt, the cards and chips lying on it all tip together, so they
- * foreshorten like the concept. The seats stand back up (rotated the other
- * way about their bottom edge), so plates, stacks and tags face you. */
-[data-skin="flagship"][data-look="badbeat"] [data-part="table-plane"] {
-    transform: perspective(var(--bb-persp, 1800px)) rotateX(var(--bb-tilt, 38deg));
-    transform-origin: 50% 50%;
-    transform-style: preserve-3d;
-}
-[data-skin="flagship"][data-look="badbeat"][data-orient="portrait"] [data-part="table-plane"] {
-    --bb-persp: 2200px;
-    --bb-tilt: 26deg;
-}
-[data-skin="flagship"][data-look="badbeat"] [data-part="table-plane"] > div,
-[data-skin="flagship"][data-look="badbeat"] [data-part="table-plane"] > div > div {
-    transform-style: preserve-3d;
-}
-[data-skin="flagship"][data-look="badbeat"] :is([data-part="seat"], [data-part="hero-seat"]),
-[data-skin="flagship"][data-look="badbeat"] [data-testid^="vacant-seat-"] {
-    transform: translate(-50%, -50%) translateZ(2px) rotateX(calc(-1 * var(--bb-tilt, 38deg))) !important;
-    transform-origin: 50% 100%;
-}
-[data-skin="flagship"][data-look="badbeat"][data-orient="portrait"] :is([data-part="seat"], [data-part="hero-seat"]),
-[data-skin="flagship"][data-look="badbeat"][data-orient="portrait"] [data-testid^="vacant-seat-"] {
-    transform: translate(-50%, -50%) translateZ(2px) rotateX(-26deg) !important;
-}
-/* the seats' own card rows give way to the cards on the felt */
-[data-skin="flagship"][data-look="badbeat"] :is([data-part="seat"], [data-part="hero-seat"]) [data-part="hole-cards"],
-[data-skin="flagship"][data-look="badbeat"] [data-part="seat-dealer"] {
     display: none !important;
 }
-/* cards on the felt: two, side by side, lying flat */
-[data-skin="flagship"][data-look="badbeat"] [data-part="bb-felt-cards"] {
+/* the board and pot: centred on the board's projected spot, at the 3D cards' size */
+[data-skin="flagship"][data-look="badbeat"] [data-part="board-column"] {
     position: absolute;
-    z-index: 3;
-    display: flex;
-    align-items: center;
-    gap: 4px;
-    transform: translate(-50%, -50%);
-    pointer-events: none;
+    left: var(--bb-board-x, 50%);
+    top: var(--bb-board-y, 50%);
+    margin: 0 !important;
+    /* the card row's middle (63.5px up from the column's bottom) lands on the spot, then scales about it */
+    transform: translate(-50%, calc(-100% + 63.5px)) scale(var(--bb-board-scale, 0.5));
+    transform-origin: 50% calc(100% - 63.5px);
 }
-[data-skin="flagship"][data-look="badbeat"] .bb-felt-card {
-    width: 44px;
+/* the seats' own card rows and dealer button give way to the 3D ones */
+[data-skin="flagship"][data-look="badbeat"] :is([data-part="seat"], [data-part="hero-seat"]) [data-part="hole-cards"],
+[data-skin="flagship"][data-look="badbeat"] [data-part="seat-dealer"],
+[data-skin="flagship"][data-look="badbeat"] .dealer-button,
+[data-skin="flagship"][data-look="badbeat"] .chip-to-pot {
+    display: none !important;
 }
-[data-skin="flagship"][data-look="badbeat"] .bb-felt-card:first-child {
-    transform: rotate(-4deg);
+/* a bet: just its amount over the 3D chips */
+[data-skin="flagship"][data-look="badbeat"] .chip-position [class*="bg-[#00000054]"] {
+    margin-left: 0 !important;
+    padding-left: 0 !important;
+    padding-right: 0 !important;
 }
-[data-skin="flagship"][data-look="badbeat"] .bb-felt-card + .bb-felt-card {
-    transform: rotate(5deg);
-}
-[data-skin="flagship"][data-look="badbeat"] [data-part="bb-dealer"] {
-    position: absolute;
-    left: calc(100% + 8px);
-    top: 50%;
-    width: 34px;
-    height: 34px;
-    margin-top: -17px;
-    display: grid;
-    place-items: center;
-    border-radius: 50%;
-    background: radial-gradient(circle at 40% 35%, #ffffff, #d9dde3);
-    box-shadow:
-        0 0 0 2px #0a0c0f,
-        0 4px 0 #9aa1ab,
-        0 8px 12px -4px #000;
-    font-family: var(--bb-cond);
-    font-weight: 900;
-    font-style: italic;
-    font-size: 20px;
-    color: #0a0c0f;
-}
-
-/* ---------- felt wordmark: BAD in steel, BEAT in crimson, slanted ---------- */
-[data-skin="flagship"][data-look="badbeat"] .bb-logo .bb-wordmark {
-    position: absolute;
-    left: 50%;
-    top: 74%;
-    transform: translate(-50%, -50%);
-    font-family: var(--bb-cond);
-    font-weight: 900;
-    font-style: italic;
-    font-size: 66px;
-    line-height: 1;
-    white-space: nowrap;
-    color: #5d6b7a;
-    opacity: 0.8;
-}
-[data-skin="flagship"][data-look="badbeat"] .bb-logo .bb-wordmark b {
-    font-weight: 900;
-    color: var(--bb-red);
-}
-[data-skin="flagship"][data-look="badbeat"][data-orient="portrait"] .bb-logo .bb-wordmark {
-    font-size: 54px;
+[data-skin="flagship"][data-look="badbeat"] .chip-position [class*="bg-[#00000054]"] > div.absolute {
+    display: none !important;
 }
 
 /* ---------- cards: white, condensed italic ranks; backs pink hatched "BB" ---------- */
@@ -878,7 +757,8 @@
         height: 26px !important;
         font-size: 10.5px !important;
     }
-    [data-skin="flagship"][data-look="badbeat"] [data-part="bb-panel-odds"] span + span {
+    /* as the concept sideways: no pot line (the pot is on the table), so the bet-size row fits */
+    [data-skin="flagship"][data-look="badbeat"] [data-part="bb-panel-odds"] {
         display: none;
     }
     /* your big cards and "You" box top right, as in the concept */
@@ -941,4 +821,72 @@
 [data-look="badbeat"] .b52-chip::after,
 [data-look="badbeat"] .b52-chip > * {
     display: none !important;
+}
+
+/* the 3D felt has no empty board slots: the board's cards just land */
+[data-skin="flagship"][data-look="badbeat"] [data-part="board-slot"] {
+    visibility: hidden;
+}
+
+/* the plates at the concept's size against the table */
+[data-skin="flagship"][data-look="badbeat"] :is([data-part="seat"], [data-part="hero-seat"]),
+[data-skin="flagship"][data-look="badbeat"] [data-testid^="vacant-seat-"] {
+    scale: 0.82;
+}
+/* the pot sits just above the board, under the far seats' bets */
+[data-skin="flagship"][data-look="badbeat"] [data-part="board-column"] .pot-slot {
+    margin-top: 0 !important;
+}
+[data-skin="flagship"][data-look="badbeat"] [data-part="board-column"] .pot-stack {
+    bottom: 4px;
+}
+[data-skin="flagship"][data-look="badbeat"] [data-part="board-column"] > .mt-8 {
+    margin-top: 10px !important;
+}
+
+/* whose turn lives in the panel's header (BadBeatWaitingHeader), not a corner label */
+[data-skin="flagship"][data-look="badbeat"] [data-part="turn-status"] {
+    display: none !important;
+}
+[data-skin="flagship"][data-look="badbeat"] [data-part="bb-panel-head"][data-waiting] b {
+    color: var(--fs-fg);
+}
+[data-skin="flagship"][data-look="badbeat"] [data-part="bb-panel-head"][data-waiting] span {
+    color: var(--fs-muted);
+}
+[data-skin="flagship"][data-look="badbeat"] [data-part="bb-panel-head"][data-waiting] {
+    justify-content: flex-start;
+    gap: 6px;
+}
+/* upright, the felt is narrow: the board's five cards fit between the side seats' cards */
+[data-skin="flagship"][data-look="badbeat"][data-orient="portrait"] [data-part="board-column"] {
+    --bb-board-scale: 0.45;
+}
+[data-skin="flagship"][data-look="badbeat"][data-orient="portrait"] [data-part="board-column"] .pot-stack {
+    scale: 1.4;
+    transform-origin: 50% 100%;
+}
+
+/* ---------- the flat Broadcast chip (BadBeatChip): the 3D table's chip, face on ---------- */
+.bb-chip {
+    position: absolute;
+    border-radius: 50%;
+    background:
+        radial-gradient(circle, var(--c) 0 26%, #fff 26% 29%, transparent 29%),
+        radial-gradient(circle, #15181d 0 58%, transparent 58%),
+        repeating-conic-gradient(from -8deg, var(--c) 0 38deg, #15181d 38deg 60deg);
+    box-shadow:
+        0 0 0 1px rgba(0, 0, 0, 0.6),
+        0 2px 0 #0b0d10,
+        0 4px 6px -2px rgba(0, 0, 0, 0.7);
+}
+.bb-chip::after {
+    content: "";
+    position: absolute;
+    left: 50%;
+    top: 50%;
+    width: 9%;
+    height: 32%;
+    background: var(--slash, #fff);
+    transform: translate(-50%, -50%) skewX(-18deg);
 }

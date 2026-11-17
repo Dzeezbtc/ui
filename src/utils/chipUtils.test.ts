@@ -1,5 +1,5 @@
 import { ActionDTO, NonPlayerActionType, PlayerActionType, PlayerDTO, PlayerStatus, TexasHoldemRound } from "@block52/poker-vm-sdk";
-import { shouldShowChips, getRelevantChipAmounts, calculateCurrentRoundBetting, hasPlayerBetInRound, currentRoundContribution, isCheckFreeForPlayer, hasVoluntarilyCommittedThisRound, amountToCallMicroForPlayer, CHIP_ACTIONS } from "./chipUtils";
+import { shouldShowChips, getRelevantChipAmounts, calculateCurrentRoundBetting, hasPlayerBetInRound, currentRoundContribution, isCheckFreeForPlayer, hasVoluntarilyCommittedThisRound, amountToCallMicroForPlayer, CHIP_ACTIONS, seatBetThisRound } from "./chipUtils";
 import { MAX_ACTION_GROUPS } from "../constants/chips";
 
 // Helper to build an ActionDTO for tests
@@ -376,5 +376,22 @@ describe("amountToCallMicroForPlayer", () => {
     it("is zero with missing inputs", () => {
         expect(amountToCallMicroForPlayer(null, me, TexasHoldemRound.FLOP, [])).toBe(0n);
         expect(amountToCallMicroForPlayer(players, "", TexasHoldemRound.FLOP, [])).toBe(0n);
+    });
+});
+
+describe("seatBetThisRound", () => {
+    const seat = (status: PlayerStatus, sumOfBets = "30") => ({ address: "0xP", status, sumOfBets }) as unknown as PlayerDTO;
+    const bet = makeAction({ playerId: "0xP", round: TexasHoldemRound.PREFLOP, action: PlayerActionType.CALL, amount: "30", index: 1 });
+
+    it("shows a preflop bet only once the player has really bet", () => {
+        expect(seatBetThisRound(seat(PlayerStatus.ACTIVE), TexasHoldemRound.PREFLOP, [])).toBe("0");
+        expect(seatBetThisRound(seat(PlayerStatus.ACTIVE), TexasHoldemRound.PREFLOP, [bet])).toBe("30");
+    });
+
+    it("counts only this street's betting later on, and nothing for an empty seat", () => {
+        const flop = makeAction({ playerId: "0xP", round: TexasHoldemRound.FLOP, action: PlayerActionType.BET, amount: "50", index: 2 });
+        expect(seatBetThisRound(seat(PlayerStatus.ACTIVE), TexasHoldemRound.FLOP, [bet, flop])).toBe("50");
+        expect(seatBetThisRound(undefined, TexasHoldemRound.FLOP, [flop])).toBe("0");
+        expect(seatBetThisRound(seat(PlayerStatus.ACTIVE), undefined, [flop])).toBe("0");
     });
 });

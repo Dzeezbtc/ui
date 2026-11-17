@@ -28,7 +28,8 @@ import { isConnectionLive } from "../../context/gameState/connection";
 import { useActionSubmit } from "../../context/ActionSubmitContext";
 import { useGameSettings } from "../../context/GameSettingsContext";
 import { useTableStyle } from "../../context/TableStyleContext";
-import { BadBeatPanelHeader } from "./BadBeatPanelHeader";
+import { BadBeatPanelHeader, BadBeatWaitingHeader } from "./BadBeatPanelHeader";
+import { usePlayerSeatInfo } from "../../hooks/player/usePlayerSeatInfo";
 import { dealCardsWithEntropy } from "../../hooks/playerActions/dealCards";
 import { useAutoDeal } from "../../hooks/playerActions/useAutoDeal";
 import { useAutoPostBlinds } from "../../hooks/playerActions/useAutoPostBlinds";
@@ -351,6 +352,7 @@ export const PokerActionPanel: React.FC<PokerActionPanelProps> = ({ tableId, net
     const bigBlindUsdc = useMemo(() => toDisplay(bigBlindMicro), [toDisplay, bigBlindMicro]);
     const formattedCallAmount = useMemo(() => formatDisplayAmount(callAmount, isTournament), [callAmount, isTournament]);
     const badBeat = useTableStyle() === "badbeat";
+    const { currentUserSeat } = usePlayerSeatInfo();
 
     // ---- Pre-action bar (ui#388) ------------------------------------------------
     const preActionCallLabel = useMemo(() => formatDisplayAmount(toDisplay(preActionCallMicro), isTournament), [toDisplay, preActionCallMicro, isTournament]);
@@ -608,6 +610,7 @@ export const PokerActionPanel: React.FC<PokerActionPanelProps> = ({ tableId, net
                         potLabel={formatDisplayAmount(toDisplay(totalPotMicro), isTournament)}
                     />
                 )}
+                {badBeat && !isUsersTurn && <BadBeatWaitingHeader nextToAct={gameState?.nextToAct ?? 0} mySeat={currentUserSeat} />}
 
                 {showPreActions && (
                     <PreActionControls

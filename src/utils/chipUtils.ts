@@ -221,3 +221,18 @@ export const amountToCallMicroForPlayer = (
     }, BigInt(0));
     return highest > mine ? highest - mine : BigInt(0);
 };
+
+/**
+ * The chips a seat has in front of it this round, as usePlayerChipData shows
+ * them: preflop only once the player has really bet (not the buy-in), later
+ * streets this round's betting; "0" when they hold none or are out of the hand.
+ */
+export const seatBetThisRound = (player: PlayerDTO | undefined, round: TexasHoldemRound | undefined, previousActions: ActionDTO[]): string => {
+    if (!player?.address) return "0";
+    if (!shouldShowChips(player.status)) return "0";
+    if (round === TexasHoldemRound.ANTE || round === TexasHoldemRound.PREFLOP) {
+        return hasPlayerBetInRound(player.address, previousActions) ? player.sumOfBets || "0" : "0";
+    }
+    if (!round) return "0";
+    return calculateCurrentRoundBetting(player.address, round, previousActions);
+};

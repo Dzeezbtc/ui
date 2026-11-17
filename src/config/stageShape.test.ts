@@ -1,5 +1,4 @@
 import {
-    BADBEAT_CARDS_HALF,
     BADBEAT_PORTRAIT_LIFT,
     BADBEAT_SIDE_COLUMN,
     calculateZoom,
@@ -23,6 +22,7 @@ import {
     holeCardSideFor,
     setStageShape
 } from "./stageGeometry";
+import { badBeatScene } from "../utils/badBeatScene";
 
 const setViewport = (width: number, height: number) => {
     Object.defineProperty(window, "innerWidth", { configurable: true, writable: true, value: width });
@@ -188,26 +188,25 @@ describe("Bad Beat stage shape", () => {
         return { tx: +m[1], ty: +m[2], zoom: +m[3] };
     };
 
-    it("stands every plate outside the felt, with its cards on the felt in front", () => {
+    it("puts every plate and bet amount on the 3D table's projected points", () => {
         setViewport(1920, 1080);
         setStageShape("badbeat");
         clearLayoutCache();
-        const { players, feltCards } = getLayoutPositions(9, "desktop");
+        const { players, chips, seatAngles, boardCentre } = getLayoutPositions(9, "desktop");
         const { tableWidth, tableHeight } = getStageDims();
-        const r = tableHeight / 2;
-        // distance from the stadium's centre line: more than r is off the felt
-        const fromSpine = (p: { left: string; top: string }) => {
-            const x = parseFloat(p.left);
-            const y = parseFloat(p.top);
-            return Math.hypot(x - Math.min(Math.max(x, r), tableWidth - r), y - r);
-        };
+        const scene = badBeatScene(seatAngles!, tableWidth, tableHeight);
         players.forEach((p, i) => {
-            expect(fromSpine(p)).toBeGreaterThan(r);
-            expect(fromSpine(feltCards![i])).toBeLessThan(r);
+            expect(parseFloat(p.left)).toBeCloseTo(scene.screen.plates[i][0], 0);
+            expect(parseFloat(p.top)).toBeCloseTo(scene.screen.plates[i][1], 0);
+            expect(parseFloat(chips[i].top ?? "")).toBeCloseTo(scene.screen.betLabels[i][1], 0);
         });
+        expect(parseFloat(boardCentre!.left)).toBeCloseTo(tableWidth / 2, 0);
+        // you sit at the bottom, straight below the board
+        expect(parseFloat(players[0].left)).toBeCloseTo(tableWidth / 2, 0);
+        expect(parseFloat(players[0].top)).toBeGreaterThan(parseFloat(boardCentre!.top));
     });
 
-    it("on a phone held sideways, grows the table and sits it left of the button column", () => {
+    it("on a phone held sideways, sits the table left of the button column", () => {
         setViewport(844, 390);
         setStageShape("flagship");
         const flagship = parse(getTableTransform(calculateZoom(9, 844, 340), 9, 844, 340));
@@ -226,51 +225,5 @@ describe("Bad Beat stage shape", () => {
         const t = parse(getTableTransform(calculateZoom(9, 390, 790), 9, 390, 790));
         const centre = t.ty + getContentBounds(9).centerY * t.zoom;
         expect(centre).toBeCloseTo((790 - 90) / 2 - BADBEAT_PORTRAIT_LIFT, 0);
-    });
-});
-
-describe("Bad Beat felt", () => {
-    type Rect = { x0: number; x1: number; y0: number; y1: number; what: string };
-    const overlaps = (a: Rect, b: Rect) => a.x0 < b.x1 && b.x0 < a.x1 && a.y0 < b.y1 && b.y0 < a.y1;
-    afterEach(() => {
-        setStageShape("standard");
-        clearLayoutCache();
-    });
-
-    it("lays every seat's cards and bet on the felt without touching another's, the board or each other", () => {
-        const problems: string[] = [];
-        for (const [w, h, mode] of [[1920, 1080, "desktop"], [844, 390, "mobile-landscape"], [390, 844, "mobile-portrait"]] as const) {
-            for (const size of [2, 4, 6, 9] as const) {
-                setViewport(w, h);
-                setStageShape("badbeat");
-                clearLayoutCache();
-                const { chips, feltCards } = getLayoutPositions(size, mode);
-                const { tableWidth, tableHeight } = getStageDims();
-                const where = `${w}x${h} ${size}-max`;
-                const cards: Rect[] = (feltCards ?? []).map((c, i) => {
-                    const x = parseFloat(c.left);
-                    const y = parseFloat(c.top);
-                    return { x0: x - BADBEAT_CARDS_HALF.w, x1: x + BADBEAT_CARDS_HALF.w, y0: y - BADBEAT_CARDS_HALF.h, y1: y + BADBEAT_CARDS_HALF.h, what: `cards ${i + 1}` };
-                });
-                // a bet: the chips stand up to a stack's height above the spot
-                const bets: Rect[] = chips.map((c, i) => {
-                    const x = parseFloat(c.left);
-                    const y = parseFloat(c.top ?? "");
-                    return { x0: x - FLAGSHIP_BET_HALF_W, x1: x + FLAGSHIP_BET_HALF_W, y0: y - FLAGSHIP_BET_HALF_H - 26, y1: y + FLAGSHIP_BET_HALF_H, what: `bet ${i + 1}` };
-                });
-                const k = flagshipBoardKeepOut(tableWidth, tableHeight);
-                const board: Rect = { x0: k.x - k.hw, x1: k.x + k.hw, y0: k.y - k.hy, y1: k.y + k.hy, what: "board" };
-                const all = [...cards, ...bets];
-                const clash: string[] = [];
-                all.forEach((a, i) => {
-                    if (overlaps(a, board)) clash.push(`${a.what} on board`);
-                    all.forEach((b, j) => {
-                        if (j > i && overlaps(a, b)) clash.push(`${a.what} on ${b.what}`);
-                    });
-                });
-                if (clash.length) problems.push(`${where}: ${clash.join(", ")}`);
-            }
-        }
-        expect(problems).toEqual([]);
     });
 });

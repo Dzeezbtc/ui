@@ -7,6 +7,7 @@ import { useChipStyle } from "../../../context/GameSettingsContext";
 import { useTableStyle } from "../../../context/TableStyleContext";
 import { usesFlagshipLayout } from "../../../utils/tableStyle";
 import { B52Chip } from "./B52Chip";
+import { BadBeatChip } from "./BadBeatChip";
 
 /** Vertical offset per chip for same-denomination vertical stacking (px). */
 const STACK_OFFSET_Y = 4;
@@ -104,7 +105,10 @@ const Chip: React.FC<ChipProps> = React.memo(({ amount, isTournament, caption })
     // chosen in Settings (marble by default, or flat notched) (ui#842).
     const chipStyle = useChipStyle();
     // The Block52 flagship draws its own neon chips (same denominations, same breakdown).
-    const flagship = usesFlagshipLayout(useTableStyle());
+    const tableStyle = useTableStyle();
+    const flagship = usesFlagshipLayout(tableStyle);
+    // Bad Beat draws its own Broadcast chips (ui#36)
+    const badBeat = tableStyle === "badbeat";
     const allStacks = decomposeAmount(dollarAmount, getChipSet(chipStyle, !!isTournament));
 
     const isMobile = window.innerWidth <= 768 || window.innerHeight <= 500;
@@ -141,7 +145,14 @@ const Chip: React.FC<ChipProps> = React.memo(({ amount, isTournament, caption })
             >
                 {allStacks.map((stack, si) => {
                     const pos = getClusterPosition(si, allStacks.length, chipSize);
-                    return Array.from({ length: stack.visibleCount }).map((_, ci) => flagship ? (
+                    return Array.from({ length: stack.visibleCount }).map((_, ci) => badBeat ? (
+                        <BadBeatChip
+                            key={`s${si}-c${ci}`}
+                            value={stack.value}
+                            size={chipSize}
+                            style={{ left: `${pos.x}px`, bottom: `${pos.y + ci * STACK_OFFSET_Y}px`, zIndex: si * 10 + ci }}
+                        />
+                    ) : flagship ? (
                         <B52Chip
                             key={`s${si}-c${ci}`}
                             value={stack.value}

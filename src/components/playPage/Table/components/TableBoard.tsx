@@ -137,7 +137,7 @@ export const TableBoard: React.FC<TableBoardProps> = ({
             )}
 
             {/* Central Display Area */}
-            <div className="flex flex-col items-center justify-center -mt-8">
+            <div data-part="board-column" className="flex flex-col items-center justify-center -mt-8">
                 {/* Hide pot display when sit-and-go is waiting for players */}
                 {/* Fixed-height pot slot (ui#918): the pots grow upward from its bottom edge, so the
                     community cards never move with the pot count, pot-as-chips or street. */}

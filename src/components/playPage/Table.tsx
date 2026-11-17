@@ -140,7 +140,8 @@ import LiveHandStrengthDisplay from "./LiveHandStrengthDisplay";
 import { TurnStatusLabel } from "./TurnStatusLabel";
 import { StreetTracker } from "./StreetTracker";
 import { BadBeatHeroDock } from "./BadBeatHeroDock";
-import { BadBeatFeltCards } from "./BadBeatFeltCards";
+// Bad Beat's 3D table brings three.js: only a Bad Beat table downloads it (ui#36)
+const BadBeatTable3D = React.lazy(() => import("./BadBeat3D/BadBeatTable3D").then(m => ({ default: m.BadBeatTable3D })));
 import { radioStationsFor } from "../../utils/radioStations";
 import { ProvablyFairBadge } from "./ProvablyFair/ProvablyFairBadge";
 import { FlagshipTopBar } from "./Table/components/FlagshipTopBar";
@@ -1551,7 +1552,20 @@ const Table = React.memo(({ tableId }: TableProps = {}) => {
             <div ref={tableContainerRef} className="flex-grow relative overflow-visible">
                 {/* Background layers */}
                 {tableStyle !== "nouns" && tableStyle !== "chipchair" && !usesFlagshipLayout(tableStyle) && <HexagonPattern patternId="hexagons-table" />}
-                {usesFlagshipLayout(tableStyle) ? (
+                {/* Bad Beat: the concept's 3D table, under everything that sits on it (ui#36) */}
+                {tableStyle === "badbeat" && tableLayout.positions.seatAngles ? (
+                    <React.Suspense fallback={<div className="flagship-background" />}>
+                        <BadBeatTable3D
+                            seatAngles={tableLayout.positions.seatAngles}
+                            tableSize={(tableSize || 9) as 2 | 4 | 6 | 9}
+                            startIndex={startIndex}
+                            dealerSeat={dealerSeat}
+                            zoom={tableLayout.zoom}
+                            containerWidth={tableLayout.containerWidth}
+                            containerHeight={tableLayout.containerHeight}
+                        />
+                    </React.Suspense>
+                ) : usesFlagshipLayout(tableStyle) ? (
                     <div className="flagship-background" />
                 ) : tableStyle === "chipchair" ? (
                     <div className="chipchair-background" />
@@ -1580,7 +1594,8 @@ const Table = React.memo(({ tableId }: TableProps = {}) => {
                             height: `${stageDims.tableHeight}px`,
                             left: `${stageDims.originX}px`,
                             top: `${stageDims.originY}px`,
-                            ...cssVars(ANIMATION_CSS_VARS)
+                            ...cssVars(ANIMATION_CSS_VARS),
+                            ...(tableLayout.positions.boardCentre ? cssVars({ "--bb-board-x": tableLayout.positions.boardCentre.left, "--bb-board-y": tableLayout.positions.boardCentre.top }) : {})
                         }}
                     >
                         {/* Outer rail — Ignition-style 3D depth (modern and nouns) */}
@@ -1647,10 +1662,6 @@ const Table = React.memo(({ tableId }: TableProps = {}) => {
                                         />
                                     );
                                 })}
-                            {/* Bad Beat: each seat's cards lie on the felt in front of it */}
-                            {tableStyle === "badbeat" && tableLayout.positions.feltCards && (
-                                <BadBeatFeltCards spots={tableLayout.positions.feltCards} tableSize={tableSize} startIndex={startIndex} dealerSeat={dealerSeat} />
-                            )}
                         </div>
 
                         {/* Last-pot winner banner (ui#848) */}

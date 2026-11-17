@@ -1,5 +1,7 @@
 import React from "react";
 import { potOddsPercent } from "../../utils/potOdds";
+import { turnStatus } from "../../utils/turnStatus";
+import { hasValue } from "../../utils/guards";
 
 interface BadBeatPanelHeaderProps {
     /** The amount to call (display units), 0 when you can check. */
@@ -29,12 +31,28 @@ export const BadBeatPanelHeader: React.FC<BadBeatPanelHeaderProps> = ({ toCall, 
                 <span>
                     Pot <b>{potLabel}</b>
                 </span>
-                {odds !== null && (
+                {hasValue(odds) && (
                     <span>
                         Pot odds <b>{odds}%</b> · need that much equity
                     </span>
                 )}
             </div>
         </>
+    );
+};
+
+/**
+ * Bad Beat's panel header while you wait (Dzeezbtc/ui#36): "Waiting (Seat 7's
+ * turn)" where "Your turn" goes, as in the concept. Nothing between hands or
+ * when you are not seated.
+ */
+export const BadBeatWaitingHeader: React.FC<{ nextToAct: number; mySeat: number }> = ({ nextToAct, mySeat }) => {
+    const status = turnStatus(nextToAct, mySeat);
+    if (!status || status.mine) return null;
+    return (
+        <div data-part="bb-panel-head" data-waiting="true" role="status" aria-live="polite">
+            <b>{status.title}</b>
+            <span>{status.detail}</span>
+        </div>
     );
 };

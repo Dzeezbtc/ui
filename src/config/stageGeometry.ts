@@ -51,6 +51,8 @@
  * - Issue #46:  https://github.com/block52/ui/issues/46
  */
 
+import { badBeatScene, seatAngle } from "../utils/badBeatScene";
+
 // ─── Types ───────────────────────────────────────────────────────────
 
 export interface Position {
@@ -198,9 +200,7 @@ export const BADBEAT_SIDE_COLUMN = 290;
 /** …and keeps this much (px) clear at the bottom for your plate and its clock. */
 export const BADBEAT_SIDE_BOTTOM = 28;
 /** Bad Beat on an upright phone: the table rises this far (px) into the gap under the top bar. */
-export const BADBEAT_PORTRAIT_LIFT = 30;
-/** Bad Beat's table is tipped back (about 38°, so ~0.8 as tall): it may fit that much bigger. */
-export const BADBEAT_TILT_GROW = 1.12;
+export const BADBEAT_PORTRAIT_LIFT = 60;
 
 function isBadBeatSideColumn(mode: ViewportMode): boolean {
     return stageShape === "badbeat" && mode === "mobile-landscape";
@@ -787,8 +787,10 @@ export interface PositionArrays {
     dealers: Position[];
     turnAnimations: Position[];
     winAnimations: Position[];
-    /** Bad Beat only: per seat, where its two cards lie on the felt in front of it. */
-    feltCards?: Position[];
+    /** Bad Beat only: per seat, its angle round the 3D table (utils/badBeatScene). */
+    seatAngles?: number[];
+    /** Bad Beat only: where the board's middle card lies (table-div px). */
+    boardCentre?: Position;
     /** Per seat, the two hole-card centres (ui#21 dealing animation targets). */
     holeCards: HoleCardSlotPosition[];
     /** The deck the hole cards fly from (a single point). */
@@ -1055,94 +1057,40 @@ export function clearLayoutCache(): void {
     layoutCache.clear();
 }
 
-/** Bad Beat: how far (px) each plate sits outside the rim, so the felt stays clear. */
-export const BADBEAT_SEAT_OUT = 46;
-/** …plus this much (px) more for a seat beside the felt, where the plate's width faces it. */
-export const BADBEAT_SEAT_OUT_SIDE = 52;
-/** On an upright phone the plates sit on the rail itself (px out from the felt's edge). */
-export const BADBEAT_SEAT_OUT_UPRIGHT = 26;
-/** Bad Beat: how far (px) in from the rim a seat's two cards lie on the felt. */
-export const BADBEAT_CARDS_IN = 38;
-/** Bad Beat: half the size (px) of a seat's two cards lying on the felt. */
-export const BADBEAT_CARDS_HALF = { w: 48, h: 32 };
-/** Bad Beat: how far (px) a bet's chip stack stands up above its spot. */
-export const BADBEAT_STACK_RISE = 26;
-
 /**
- * Bad Beat's table (Dzeezbtc/ui#36), from the concept: the plates stand outside
- * the rail, each seat's two cards lie on the felt just in from the rim in front
- * of it, and its bet lies further in, beyond the cards. The seat ring is the
- * flagship's (even spacing), so bets still never cross.
+ * Bad Beat's table (Dzeezbtc/ui#36) is the concept's three.js table: the seat
+ * ring keeps the flagship's order and spacing (each seat's angle round the
+ * table), and every plate, bet amount and dealing target is that seat's 3D
+ * point projected through the same fixed camera the WebGL table is drawn with
+ * (utils/badBeatScene). The cards, chips and D disc are 3D objects on the felt.
  */
 export function badBeatPositions(positions: PositionArrays, tableWidth: number, tableHeight: number): PositionArrays {
     const r = (n: number) => `${Math.round(n * 10) / 10}px`;
-    const cx = tableWidth / 2;
-    const normal = (p: Position): [number, number] => {
-        const x = parseFloat(p.left);
-        const y = parseFloat(p.top);
-        const you = Math.abs(x - cx) < tableWidth * 0.05 && y > tableHeight / 2;
-        return you ? [0, -1] : inwardNormal(x, y, tableWidth, tableHeight);
-    };
-    // Everything is measured from the felt's edge in front of the seat: the
-    // nearest point of the stadium's rim, along the seat's inward normal.
-    const radius = Math.min(tableWidth, tableHeight) / 2;
-    // On an upright phone the width is what's scarce: the plates sit on the rail.
-    const upright = tableHeight > tableWidth;
-    const shift = (p: Position, d: number): Position => {
-        const [nx, ny] = normal(p);
-        const x = parseFloat(p.left);
-        const y = parseFloat(p.top);
-        const horizontal = tableWidth >= tableHeight;
-        const ax = horizontal ? Math.min(Math.max(x, radius), tableWidth - radius) : radius;
-        const ay = horizontal ? radius : Math.min(Math.max(y, radius), tableHeight - radius);
-        const rimX = ax - nx * radius;
-        const rimY = ay - ny * radius;
-        return { ...p, left: r(rimX + nx * d), top: r(rimY + ny * d) };
-    };
-    // a plate is wide and short: one beside the felt stands further out than one above it
-    const sideOut = upright ? 0 : BADBEAT_SEAT_OUT_SIDE;
-    const baseOut = upright ? BADBEAT_SEAT_OUT_UPRIGHT : BADBEAT_SEAT_OUT;
-    const out = (list: Position[]) => list.map(p => shift(p, -(baseOut + sideOut * Math.abs(normal(p)[0]))));
-    // upright, the plates sit on the rail, so a side seat's cards lie a plate's half-width further in
-    const board = flagshipBoardKeepOut(tableWidth, tableHeight);
-    const feltCards = positions.players.map(p => {
-        const spot = shift(p, BADBEAT_CARDS_IN + (upright ? BADBEAT_SEAT_OUT_SIDE * Math.abs(normal(p)[0]) : 0));
-        const x = parseFloat(spot.left);
-        const y = parseFloat(spot.top);
-        const onBoard = Math.abs(x - board.x) < board.hw + BADBEAT_CARDS_HALF.w && Math.abs(y - board.y) < board.hy + BADBEAT_CARDS_HALF.h;
-        if (!onBoard) return spot;
-        // never onto the board: stop the cards at its edge
-        const edge = board.hw + BADBEAT_CARDS_HALF.w + 2;
-        return { ...spot, left: r(board.x + (x >= board.x ? edge : -edge)) };
-    });
-    // The bet lies straight on from the cards, just clear of them (its chips
-    // stand up to a stack's height above the spot); a side seat level with the
-    // board slides it up or down to clear the board, as on the flagship.
-    const chips: ChipPosition[] = feltCards.map((c, i) => {
-        const [nx, ny] = normal(positions.players[i]);
-        const up = FLAGSHIP_BET_HALF_H + BADBEAT_STACK_RISE;
-        const across = Math.abs(nx) > 1e-6 ? (BADBEAT_CARDS_HALF.w + FLAGSHIP_BET_HALF_W + BET_GAP) / Math.abs(nx) : Infinity;
-        const along = Math.abs(ny) > 1e-6 ? (BADBEAT_CARDS_HALF.h + (ny > 0 ? up : FLAGSHIP_BET_HALF_H) + BET_GAP) / Math.abs(ny) : Infinity;
-        const d = Math.min(across, along);
-        const x = parseFloat(c.left) + nx * d;
-        let y = parseFloat(c.top) + ny * d;
-        if (Math.abs(x - board.x) < board.hw + FLAGSHIP_BET_HALF_W && y + FLAGSHIP_BET_HALF_H > board.y - board.hy && y - up < board.y + board.hy) {
-            const above = board.y - board.hy - FLAGSHIP_BET_HALF_H - BET_GAP / 2;
-            const below = board.y + board.hy + up + BET_GAP / 2;
-            y = Math.abs(y - above) <= Math.abs(y - below) ? above : below;
-        }
-        const sx = parseFloat(positions.players[i].left);
-        const sy = parseFloat(positions.players[i].top);
-        return { left: r(x), top: r(y), bottom: r(tableHeight - y), side: betSideFor(sx, sy, tableWidth, tableHeight) };
-    });
+    const angleOf = (p: Position) => seatAngle(parseFloat(p.left), parseFloat(p.top), tableWidth, tableHeight);
+    const seatAngles = positions.players.map(angleOf);
+    const scene = badBeatScene(seatAngles, tableWidth, tableHeight);
+    const at = ([x, y]: [number, number], p?: Position): Position => ({ ...p, left: r(x), top: r(y) });
+    const plates = scene.screen.plates.map((pt, i) => at(pt, positions.players[i]));
+    const vacant = badBeatScene(positions.vacantPlayers.map(angleOf), tableWidth, tableHeight).screen.plates.map((pt, i) => at(pt, positions.vacantPlayers[i]));
+    const chips: ChipPosition[] = scene.screen.betLabels.map(([x, y], i) => ({
+        left: r(x),
+        top: r(y),
+        bottom: r(tableHeight - y),
+        side: betSideFor(parseFloat(positions.players[i].left), parseFloat(positions.players[i].top), tableWidth, tableHeight)
+    }));
+    const holeCards: HoleCardSlotPosition[] = scene.screen.holes.map(([x, y]) => ({ first: at([x - 12, y]), second: at([x + 12, y]) }));
     return {
         ...positions,
-        players: out(positions.players),
-        vacantPlayers: out(positions.vacantPlayers),
-        turnAnimations: out(positions.turnAnimations),
-        winAnimations: out(positions.winAnimations),
-        feltCards,
-        chips
+        players: plates,
+        vacantPlayers: vacant,
+        turnAnimations: plates,
+        winAnimations: plates,
+        dealers: scene.screen.holes.map(pt => at(pt)),
+        holeCards,
+        deck: at(scene.screen.pot),
+        chips,
+        seatAngles,
+        boardCentre: at(scene.screen.board)
     };
 }
 
@@ -1279,11 +1227,19 @@ export function getContentBounds(tableSize: TableSize): ContentBounds {
     // The flagship phone table keeps the concept's breathing room either side
     // (the table fills ~3/4 of the width, not edge to edge).
     const basePad = isFlagshipPortrait() ? FLAGSHIP_PORTRAIT_PADDING : isFlagshipShape() && mode === "desktop" ? FLAGSHIP_DESKTOP_PADDING : PLAYER_UI_PADDING[mode];
-    // Bad Beat's plates stand outside the rail: leave them that much more room.
-    const badBeat = stageShape === "badbeat";
-    const upright = isFlagshipPortrait();
-    const extra = badBeat ? (upright ? BADBEAT_SEAT_OUT_UPRIGHT : BADBEAT_SEAT_OUT) : 0;
-    const pad = { x: basePad.x + (badBeat && !upright ? extra + BADBEAT_SEAT_OUT_SIDE : 0), top: basePad.top + extra, bottom: basePad.bottom + extra };
+    // Bad Beat: what the fixed camera shows of the plates and rail (projected) is the content.
+    if (stageShape === "badbeat") {
+        const dims = getStageDims();
+        const angles = getLayoutPositions(tableSize, mode).seatAngles ?? [];
+        const { content } = badBeatScene(angles, dims.tableWidth, dims.tableHeight);
+        return {
+            width: content.x1 - content.x0,
+            height: content.y1 - content.y0,
+            centerX: dims.originX + (content.x0 + content.x1) / 2,
+            centerY: dims.originY + (content.y0 + content.y1) / 2
+        };
+    }
+    const pad = basePad;
     const coords = getSeatCoords(tableSize);
     let minX = Infinity, maxX = -Infinity, minY = Infinity, maxY = -Infinity;
     for (const [x, y] of coords) {
@@ -1333,23 +1289,22 @@ export function calculateZoom(
     // Across a big screen the flagship's side seats push their cards outward,
     // so it sits a touch smaller to keep them clear of the side panel.
     // Bad Beat's table is tipped back, so it stands shorter than its flat bounds: let it grow.
-    const shapeScale = stageShape === "badbeat" && mode !== "mobile-portrait" ? BADBEAT_TILT_GROW : isFlagshipShape() && mode === "desktop" ? FLAGSHIP_DESKTOP_SCALE : 1;
+    const shapeScale = stageShape === "badbeat" ? 1 : isFlagshipShape() && mode === "desktop" ? FLAGSHIP_DESKTOP_SCALE : 1;
     const result = Math.max(MIN_SCALE, Math.min(fitScale * shapeScale, MAX_GLOBAL_SCALE));
 
     return result;
 }
 
 /**
- * Build CSS transform — pixel-based, no percentages.
- * Centers the content within the measured container.
- * CSS wrapper must have: top:0; left:0; transform-origin: 0 0;
+ * Where the table's content sits in the measured container (px), before the
+ * zoom: its content centred in the usable area.
  */
-export function getTableTransform(
+export function getTableOffset(
     zoom: number,
     tableSize: TableSize,
     containerWidth: number,
     containerHeight: number
-): string {
+): { tx: number; ty: number } {
     const mode = getViewportMode();
     const params = VIEWPORT_PARAMS[mode];
     const bounds = getContentBounds(tableSize);
@@ -1369,5 +1324,14 @@ export function getTableTransform(
     const tx = usableCenterX - scaledCenterX;
     const ty = usableCenterY - scaledCenterY;
 
+    return { tx, ty };
+}
+
+/**
+ * Build CSS transform — pixel-based, no percentages ({@link getTableOffset}, then the zoom).
+ * CSS wrapper must have: top:0; left:0; transform-origin: 0 0;
+ */
+export function getTableTransform(zoom: number, tableSize: TableSize, containerWidth: number, containerHeight: number): string {
+    const { tx, ty } = getTableOffset(zoom, tableSize, containerWidth, containerHeight);
     return `translate(${tx.toFixed(1)}px, ${ty.toFixed(1)}px) scale(${zoom})`;
 }
