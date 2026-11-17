@@ -1,10 +1,11 @@
-import { TABLE_STYLES, TABLE_STYLE_LABELS, isTableStyle, nextTableStyle, skinForTheme, tableStyleFromEnv } from "./tableStyle";
+import { TABLE_STYLES, TABLE_STYLE_LABELS, isTableStyle, nextTableStyle, skinForTheme, stageShapeFor, tableStyleFromEnv } from "./tableStyle";
 
 describe("tableStyle", () => {
     it("knows every style and names each one", () => {
-        expect(TABLE_STYLES).toEqual(["modern", "classic", "nouns", "chipchair"]);
+        expect(TABLE_STYLES).toEqual(["modern", "classic", "nouns", "chipchair", "flagship"]);
         TABLE_STYLES.forEach(s => expect(TABLE_STYLE_LABELS[s]).toBeTruthy());
         expect(TABLE_STYLE_LABELS.chipchair).toBe("Chip and a Chair");
+        expect(TABLE_STYLE_LABELS.flagship).toBe("Block52 Flagship");
     });
 
     it("recognises style names and nothing else", () => {
@@ -20,11 +21,13 @@ describe("tableStyle", () => {
         expect(nextTableStyle("modern")).toBe("classic");
         expect(nextTableStyle("classic")).toBe("nouns");
         expect(nextTableStyle("nouns")).toBe("chipchair");
-        expect(nextTableStyle("chipchair")).toBe("modern");
+        expect(nextTableStyle("chipchair")).toBe("flagship");
+        expect(nextTableStyle("flagship")).toBe("modern");
     });
 
     it("starts in the env style, or modern", () => {
         expect(tableStyleFromEnv("chipchair")).toBe("chipchair");
+        expect(tableStyleFromEnv("flagship")).toBe("flagship");
         expect(tableStyleFromEnv("classic")).toBe("classic");
         expect(tableStyleFromEnv("purple")).toBe("modern");
         expect(tableStyleFromEnv(undefined)).toBe("modern");
@@ -35,5 +38,11 @@ describe("tableStyle", () => {
         expect(skinForTheme("block52")).toBeNull();
         expect(skinForTheme("maison")).toBeNull();
         expect(skinForTheme("")).toBeNull();
+    });
+
+    it("lays the flagship out on its own stage shape", () => {
+        expect(stageShapeFor("flagship")).toBe("flagship");
+        expect(stageShapeFor("modern")).toBe("standard");
+        expect(stageShapeFor("chipchair")).toBe("standard");
     });
 });

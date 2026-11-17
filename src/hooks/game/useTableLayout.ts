@@ -13,7 +13,9 @@ import {
     getViewportMode,
     calculateZoom,
     getTableTransform,
-    getLayoutPositions
+    getLayoutPositions,
+    setStageShape,
+    type StageShape
 } from "../../config/stageGeometry";
 
 export interface UseTableLayoutReturn {
@@ -29,8 +31,12 @@ export interface UseTableLayoutReturn {
 
 export const useTableLayout = (
     tableSize: TableSize,
-    containerRef?: RefObject<HTMLDivElement | null>
+    containerRef?: RefObject<HTMLDivElement | null>,
+    shape: StageShape = "standard"
 ): UseTableLayoutReturn => {
+    // The stage shape lives in the geometry engine (it picks the felt and seat
+    // ring); set it before anything below reads positions. Idempotent.
+    setStageShape(shape);
     const [viewportMode, setViewportMode] = useState(getViewportMode());
     const [isLandscape, setIsLandscape] = useState(window.innerWidth > window.innerHeight);
     // Container dimensions are held in STATE, measured by refreshLayout, rather
@@ -126,12 +132,12 @@ export const useTableLayout = (
     // their own seat, centred on it.
     // Keyed only on (tableSize, viewportMode) and cached per pair in
     // stageGeometry, so game-state ticks never recompute placements.
-    const positions = useMemo(() => getLayoutPositions(tableSize, viewportMode), [tableSize, viewportMode]);
+    const positions = useMemo(() => getLayoutPositions(tableSize, viewportMode), [tableSize, viewportMode, shape]);
 
     const { width: cw, height: ch } = containerSize;
 
-    const zoom = useMemo(() => calculateZoom(tableSize, cw, ch), [tableSize, cw, ch, viewportMode]);
-    const tableTransform = useMemo(() => getTableTransform(zoom, tableSize, cw, ch), [zoom, tableSize, cw, ch, viewportMode]);
+    const zoom = useMemo(() => calculateZoom(tableSize, cw, ch), [tableSize, cw, ch, viewportMode, shape]);
+    const tableTransform = useMemo(() => getTableTransform(zoom, tableSize, cw, ch), [zoom, tableSize, cw, ch, viewportMode, shape]);
 
     // Memoized so the returned object keeps a stable identity: PlayerSeating puts
     // it in a useCallback dep array, and a fresh object per render invalidated

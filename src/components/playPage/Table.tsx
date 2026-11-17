@@ -82,8 +82,10 @@ import { CardBackStyle } from "../../utils/cardImages";
 import { useClubLook } from "../../hooks/club/useClubLook";
 import { TableRadio } from "./TableRadio";
 import { tableStyleForLook } from "../../utils/clubLook";
-import { TABLE_STYLE_LABELS, TableStyle, nextTableStyle, tableStyleFromEnv } from "../../utils/tableStyle";
+import { TABLE_STYLE_LABELS, TableStyle, nextTableStyle, stageShapeFor, tableStyleFromEnv } from "../../utils/tableStyle";
+import { TableStyleProvider } from "../../context/TableStyleContext";
 import "./skins/chipchair.css";
+import "./skins/flagship.css";
 import { cssVars } from "../../utils/cssVars";
 import { ANIMATION_CSS_VARS } from "../../bus/timing";
 
@@ -134,6 +136,7 @@ import { useGameSettings } from "../../context/GameSettingsContext";
 import { useNetwork } from "../../context/NetworkContext";
 import { PlayerDTO, PlayerStatus } from "@block52/poker-vm-sdk";
 import LiveHandStrengthDisplay from "./LiveHandStrengthDisplay";
+import { TurnStatusLabel } from "./TurnStatusLabel";
 import { useGameStateSounds } from "../../hooks/notifications/useGameStateSounds";
 import NoWalletOverlay from "./NoWalletOverlay";
 import SngPayoutPanel from "./SngPayoutPanel";
@@ -155,6 +158,7 @@ import {
     getSeatCoords,
     getStageDims,
     STAGE_DIMS,
+    FLAGSHIP_PORTRAIT_DIMS,
     getContentBounds,
     VIEWPORT_PARAMS,
     PLAYER_UI_PADDING,
@@ -922,7 +926,15 @@ const Table = React.memo(({ tableId }: TableProps = {}) => {
     // fallback (9) while loading; the loading guard below still prevents any
     // fabricated board from being PAINTED until tableSize is real (#466), so this
     // computed-but-unrendered layout causes no flash.
-    const tableLayout = useTableLayout((tableSize || 9) as 2 | 4 | 6 | 9, tableContainerRef);
+    const [tableStyle, setTableStyle] = useState<TableStyle>(() => tableStyleFromEnv(import.meta.env.VITE_TABLE_STYLE));
+    // A club table starts in the club theme's skin, or its felt. The player can still switch it.
+    const clubFelt = clubLook?.felt;
+    const clubTheme = clubLook?.theme;
+    useEffect(() => {
+        if (clubFelt && clubTheme) setTableStyle(tableStyleForLook({ theme: clubTheme, felt: clubFelt }));
+    }, [clubFelt, clubTheme]);
+    // The flagship skin brings its own phone table shape (a wide oval).
+    const tableLayout = useTableLayout((tableSize || 9) as 2 | 4 | 6 | 9, tableContainerRef, stageShapeFor(tableStyle));
     const { dealerSeat } = useDealerPosition();
 
     // Portrait phones get a decluttered UI + the vertical portrait stage —
@@ -935,7 +947,7 @@ const Table = React.memo(({ tableId }: TableProps = {}) => {
     const isCompactMobile = isMobilePortrait || tableLayout.viewportMode === "mobile-landscape";
     // Felt/rail dimensions follow the SAME mode as the layout hook, so the
     // markup and the seat positions can never disagree mid-rotation.
-    const stageDims = STAGE_DIMS[isMobilePortrait ? "portrait" : "landscape"];
+    const stageDims = isMobilePortrait && tableStyle === "flagship" ? FLAGSHIP_PORTRAIT_DIMS : STAGE_DIMS[isMobilePortrait ? "portrait" : "landscape"];
 
     // Add the useGameProgress hook
     const { isGameInProgress, handNumber, actionCount, nextToAct } = useGameProgress(id);
@@ -1083,13 +1095,6 @@ const Table = React.memo(({ tableId }: TableProps = {}) => {
     // Optimize window width detection - only check on resize
     const [isMobile, setIsMobile] = useState(window.innerWidth <= 414);
     const [isMobileLandscape, setIsMobileLandscape] = useState(getViewportMode() === "mobile-landscape");
-    const [tableStyle, setTableStyle] = useState<TableStyle>(() => tableStyleFromEnv(import.meta.env.VITE_TABLE_STYLE));
-    // A club table starts in the club theme's skin, or its felt. The player can still switch it.
-    const clubFelt = clubLook?.felt;
-    const clubTheme = clubLook?.theme;
-    useEffect(() => {
-        if (clubFelt && clubTheme) setTableStyle(tableStyleForLook({ theme: clubTheme, felt: clubFelt }));
-    }, [clubFelt, clubTheme]);
 
     // Update viewport mode on window resize
     useEffect(() => {
@@ -1346,7 +1351,8 @@ const Table = React.memo(({ tableId }: TableProps = {}) => {
 
     return (
         <SitOutIntentProvider tableId={id} network={currentNetwork} pendingSitOut={pendingSitOut} legalActions={playerLegalActions}>
-        <div className="table-container" data-connection={connection.status} data-skin={tableStyle}>
+        <TableStyleProvider value={tableStyle}>
+        <div className="table-container" data-connection={connection.status} data-skin={tableStyle} data-orient={isMobilePortrait ? "portrait" : "landscape"}>
             {/* Connection freshness (ui#613): shown whenever the live socket is not live */}
             {!isReplayMode && id && (
                 <ConnectionBanner
@@ -1490,8 +1496,10 @@ const Table = React.memo(({ tableId }: TableProps = {}) => {
             {/*//! BODY — single flex-grow container, measured by geometry engine */}
             <div ref={tableContainerRef} className="flex-grow relative overflow-visible">
                 {/* Background layers */}
-                {tableStyle !== "nouns" && tableStyle !== "chipchair" && <HexagonPattern patternId="hexagons-table" />}
-                {tableStyle === "chipchair" ? (
+                {tableStyle !== "nouns" && tableStyle !== "chipchair" && tableStyle !== "flagship" && <HexagonPattern patternId="hexagons-table" />}
+                {tableStyle === "flagship" ? (
+                    <div className="flagship-background" />
+                ) : tableStyle === "chipchair" ? (
                     <div className="chipchair-background" />
                 ) : tableStyle === "nouns" ? (
                     <div className="nouns-background" />
@@ -1620,6 +1628,7 @@ const Table = React.memo(({ tableId }: TableProps = {}) => {
 
                 {/* Live Hand Strength Display */}
                 <LiveHandStrengthDisplay />
+                {tableStyle === "flagship" && <TurnStatusLabel nextToAct={nextToAct} mySeat={currentUserSeat} />}
             </div>
 
             {/*//! FOOTER — hidden in replay mode (read-only).
@@ -1725,6 +1734,7 @@ const Table = React.memo(({ tableId }: TableProps = {}) => {
             {/* Replay is read-only and must work without a wallet (poker-vm#2025). */}
             {!hasWallet && !isReplayMode && <NoWalletOverlay onWalletReady={handleWalletReady} />}
         </div>
+        </TableStyleProvider>
         </SitOutIntentProvider>
     );
 });

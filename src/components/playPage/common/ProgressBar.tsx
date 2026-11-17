@@ -39,9 +39,9 @@ const ProgressBar: React.FC<ProgressBarProps> = React.memo(({ index }) => {
     const progressFraction = phaseTimeoutValue > 0 ? Math.max(0, Math.min(1, shownSeconds / phaseTimeoutValue)) : 0;
 
     return (
-        <div className="animate-progress delay-2000 flex items-center w-full h-2 mb-2 mt-auto gap-2 relative">
-            <span className={`ml-2 text-sm w-[15px] ${isInTimeBank ? "text-amber-300 font-bold" : "text-white"}`}>{shownSeconds}</span>
-            <div className="relative flex-1 mr-[10px] h-full w-[calc(100%-25px)] bg-[#f0f0f030] rounded-md overflow-hidden">
+        <div data-part="turn-clock" data-bank={isInTimeBank ? "true" : undefined} className="animate-progress delay-2000 flex items-center w-full h-2 mb-2 mt-auto gap-2 relative">
+            <span data-part="turn-clock-seconds" className={`ml-2 text-sm w-[15px] ${isInTimeBank ? "text-amber-300 font-bold" : "text-white"}`}>{shownSeconds}</span>
+            <div data-part="turn-clock-track" className="relative flex-1 mr-[10px] h-full w-[calc(100%-25px)] bg-[#f0f0f030] rounded-md overflow-hidden">
                 {/*
                     Scaled, not resized. `timeRemaining` updates once a second, and
                     a 1s transition makes the browser interpolate continuously for
@@ -51,6 +51,7 @@ const ProgressBar: React.FC<ProgressBarProps> = React.memo(({ index }) => {
                     the bar is a solid color so scaling is visually identical.
                 */}
                 <div
+                    data-part="turn-clock-fill"
                     className={`absolute top-0 left-0 h-full w-full origin-left transition-transform duration-1000 ease-linear ${isInTimeBank ? "bg-amber-400" : "bg-white"}`}
                     style={{
                         transform: `scaleX(${progressFraction})`

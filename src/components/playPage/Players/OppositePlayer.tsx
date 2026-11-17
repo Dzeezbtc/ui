@@ -33,6 +33,8 @@ import { NftAvatarImage } from "../../profile/NftAvatarImage";
 import { usePlayerNote } from "../../../hooks/player/usePlayerNotes";
 import { PlayerNoteTags } from "./PlayerNoteTags";
 import { PlayerNotesPanel } from "./PlayerNotesPanel";
+import { seatGradient } from "../../../utils/cardFace";
+import { getStageDims, holeCardSideFor } from "../../../config/stageGeometry";
 
 type OppositePlayerProps = {
     left?: string;
@@ -136,6 +138,7 @@ const OppositePlayer: React.FC<OppositePlayerProps> = React.memo(({ left, top, i
                 aria-label={`Player notes for seat ${index}`}
                 data-testid={`opponent-seat-${index}`}
                 data-part="seat"
+                data-card-side={holeCardSideFor(left ?? "0", getStageDims().tableWidth)}
             >
                 {/* Development Mode Debug Info */}
                 {import.meta.env.VITE_NODE_ENV === "development" && (
@@ -146,7 +149,7 @@ const OppositePlayer: React.FC<OppositePlayerProps> = React.memo(({ left, top, i
                         <div className="text-orange-300">Addr: ...{playerData?.address ? playerData.address.slice(-3) : "N/A"}</div>
                     </div>
                 )}
-                <div className="flex justify-center gap-1">
+                <div className="flex justify-center gap-1" data-part="hole-cards" data-shown={isShowingCards && hasElements(showingCards) ? "true" : undefined}>
                     {hasElements(holeCards) && !isFolded ? (
                         isShowingCards && hasElements(showingCards) ? (
                             // Show the actual cards if player is showing
@@ -154,6 +157,7 @@ const OppositePlayer: React.FC<OppositePlayerProps> = React.memo(({ left, top, i
                                 cards={showingCards.map((card, i) => ({
                                     key: `${i}-${card}`,
                                     src: getCardImageUrl(card),
+                                    code: card,
                                     alt: `Player Card ${i + 1}`,
                                     highlight: winnerCardHighlight(card, isWinner, winnerCards)
                                 }))}
@@ -175,6 +179,10 @@ const OppositePlayer: React.FC<OppositePlayerProps> = React.memo(({ left, top, i
                     )}
                 </div>
                 <div className="relative flex flex-col justify-end mt-[-6px] mx-1">
+                    {/* Flagship skin only: the round gradient avatar (its stylesheet shows it) */}
+                    <span data-part="seat-avatar" aria-hidden="true" style={{ background: seatGradient(index) }} />
+                    {/* Flagship skin only: the dealer button sits on the dealer's own avatar */}
+                    {isDealer && <span data-part="seat-dealer" aria-label="Dealer">D</span>}
                     {selectedAvatarUrl && (
                         <NftAvatarImage
                             src={selectedAvatarUrl}

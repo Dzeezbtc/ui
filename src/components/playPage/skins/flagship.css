@@ -1,0 +1,1112 @@
+/*
+ * Block52 Flagship — a full table skin (table style "flagship").
+ *
+ * Violet-black room, a glowing brand-gradient rim, midnight felt, dark glass
+ * plates and panels, and the brand gradient on the primary action. Every rule
+ * is scoped to [data-skin="flagship"] on the table root, so the other styles
+ * are untouched, and it only restyles: same components, same controls, same
+ * behaviour. Parts are found through the table's global classes (btn-*,
+ * badge-*, table-panel, pot-display, sub-header …), the data-part hooks
+ * (rail, felt, header, footer, action-panel, pre-actions, raise-slider, seat,
+ * hero-seat, vacant-seat, side-actions, hand-strength) and the panels'
+ * data-testids.
+ */
+@import url("https://fonts.googleapis.com/css2?family=Unbounded:wght@500;600;700&family=Inter:wght@400;500;600;700&family=Geist+Mono:wght@400;500;600&display=swap");
+
+[data-skin="flagship"] {
+    --fs-bg: #07060d;
+    --fs-bg2: #0d0b17;
+    --fs-glass: rgba(13, 11, 23, 0.88);
+    --fs-panel: rgba(255, 255, 255, 0.035);
+    --fs-panel2: rgba(255, 255, 255, 0.06);
+    --fs-line: rgba(255, 255, 255, 0.08);
+    --fs-line2: rgba(255, 255, 255, 0.15);
+    --fs-fg: #f4f2fa;
+    --fs-muted: #9a95b0;
+    --fs-faint: #5f5a75;
+    --fs-vi: #7c3aed;
+    --fs-hot: #f472b6;
+    --fs-good: #34d399;
+    --fs-grad: linear-gradient(120deg, #c026d3 0%, #7c3aed 50%, #3b82f6 100%);
+    --fs-disp: "Unbounded", ui-sans-serif, system-ui, sans-serif;
+    --fs-sans: "Inter", ui-sans-serif, system-ui, -apple-system, sans-serif;
+    --fs-mono: "Geist Mono", ui-monospace, Menlo, monospace;
+    font-family: var(--fs-sans);
+    background: var(--fs-bg);
+    color: var(--fs-fg);
+}
+
+/* ---------- room ---------- */
+[data-skin="flagship"] .flagship-background {
+    position: absolute;
+    inset: 0;
+    z-index: 0;
+    background:
+        radial-gradient(60% 55% at 50% 50%, #1a1340 0%, transparent 70%),
+        radial-gradient(40% 35% at 15% 85%, rgba(192, 38, 211, 0.12), transparent 70%),
+        radial-gradient(40% 35% at 85% 15%, rgba(59, 130, 246, 0.12), transparent 70%),
+        var(--fs-bg);
+}
+
+/* ---------- table: thin glowing gradient rim on midnight felt ---------- */
+@property --fs-spin {
+    syntax: "<angle>";
+    inherits: false;
+    initial-value: 0deg;
+}
+@keyframes fs-spin {
+    to {
+        --fs-spin: 360deg;
+    }
+}
+[data-skin="flagship"] [data-part="rail"] {
+    background: rgba(255, 255, 255, 0.025) !important;
+    border: 1px solid var(--fs-line) !important;
+    box-shadow:
+        0 0 80px rgba(124, 58, 237, 0.35),
+        0 30px 80px -30px #000 !important;
+}
+[data-skin="flagship"] [data-part="felt"] {
+    background: radial-gradient(ellipse at 50% 45%, #1e1852 0%, #16123f 45%, #06051a 100%) !important;
+    border: 0 !important;
+    box-shadow: inset 0 0 60px rgba(0, 0, 0, 0.6) !important;
+}
+[data-skin="flagship"] [data-part="felt"]::before {
+    content: "";
+    position: absolute;
+    inset: -4px;
+    border-radius: inherit;
+    padding: 4px;
+    background: conic-gradient(from var(--fs-spin), #c026d3, #7c3aed, #3b82f6, #4dd0f8, #7c3aed, #c026d3);
+    -webkit-mask:
+        linear-gradient(#000 0 0) content-box,
+        linear-gradient(#000 0 0);
+    -webkit-mask-composite: xor;
+    mask-composite: exclude;
+    filter: drop-shadow(0 0 10px rgba(124, 58, 237, 0.7));
+    animation: fs-spin 12s linear infinite;
+    pointer-events: none;
+    z-index: 0;
+}
+[data-skin="flagship"] [data-part="felt"]::after {
+    content: "";
+    position: absolute;
+    inset: 12% 9%;
+    border-radius: 9999px;
+    border: 1.5px dashed rgba(255, 255, 255, 0.07);
+    pointer-events: none;
+}
+@media (prefers-reduced-motion: reduce) {
+    [data-skin="flagship"] [data-part="felt"]::before {
+        animation: none;
+    }
+}
+[data-skin="flagship"] .table-logo {
+    opacity: 0.45;
+}
+[data-skin="flagship"] .table-logo img {
+    opacity: 0.5;
+    filter: drop-shadow(0 0 18px rgba(124, 58, 237, 0.55));
+}
+
+/* ---------- header ---------- */
+[data-skin="flagship"] [data-part="header"],
+[data-skin="flagship"] .sub-header,
+[data-skin="flagship"] [class*="subHeaderRoot"] {
+    background: rgba(7, 6, 13, 0.82) !important;
+    backdrop-filter: blur(14px);
+    border-bottom: 1px solid var(--fs-line) !important;
+    box-shadow: none !important;
+    color: var(--fs-fg) !important;
+}
+[data-skin="flagship"] [data-part="header"] :is(button, a):not([role="switch"]),
+[data-skin="flagship"] :is([class*="gameFormatContainer"], [class*="walletInfo"]) {
+    background: var(--fs-panel2) !important;
+    border: 1px solid var(--fs-line) !important;
+    border-radius: 999px !important;
+    color: var(--fs-fg) !important;
+    box-shadow: none !important;
+}
+[data-skin="flagship"] [data-part="header"] :is(button, a) *,
+[data-skin="flagship"] :is([class*="gameFormatContainer"], [class*="walletInfo"]) * {
+    color: var(--fs-fg) !important;
+}
+[data-skin="flagship"] [class*="balanceIcon"] {
+    background: var(--fs-grad) !important;
+}
+[data-skin="flagship"] .sub-header button[class*="badge"] {
+    background: rgba(52, 211, 153, 0.12) !important;
+    border: 1px solid rgba(52, 211, 153, 0.4) !important;
+    border-radius: 999px !important;
+}
+[data-skin="flagship"] .b52-mt-add {
+    background: var(--fs-grad) !important;
+    border: 0 !important;
+    border-radius: 999px !important;
+    color: #fff !important;
+}
+
+/* ---------- seats ---------- */
+[data-skin="flagship"] .badge-container {
+    background: var(--fs-glass);
+    border: 1px solid var(--fs-line2);
+    border-radius: 12px;
+    padding: 4px 12px 4px 4px;
+    box-shadow: 0 14px 30px -14px #000;
+    backdrop-filter: blur(10px);
+}
+[data-skin="flagship"] .badge-number {
+    background: var(--fs-grad) !important;
+    color: #fff;
+    font-family: var(--fs-mono);
+    font-weight: 600;
+    box-shadow: 0 0 0 2px var(--fs-bg2);
+}
+[data-skin="flagship"] .badge-value {
+    font-family: var(--fs-disp);
+    font-weight: 600;
+    letter-spacing: -0.02em;
+    color: var(--fs-fg);
+}
+[data-skin="flagship"] .seat-banner-box {
+    background: var(--fs-glass) !important;
+    border: 1px solid var(--fs-line2) !important;
+    border-radius: 12px 12px 8px 8px;
+    color: var(--fs-fg) !important;
+    backdrop-filter: blur(10px);
+}
+[data-skin="flagship"] .action-display-box {
+    background: var(--fs-fg);
+    color: var(--fs-bg);
+    border-radius: 999px;
+}
+[data-skin="flagship"] :is(.action-display-text, .action-display-amount) {
+    color: var(--fs-bg);
+    font-weight: 700;
+}
+[data-skin="flagship"] .equity-chip {
+    background: var(--fs-grad);
+    color: #fff;
+    border: 0;
+}
+/* your own seat glows */
+[data-skin="flagship"] [data-part="hero-seat"] .badge-container {
+    border-color: transparent;
+    box-shadow:
+        0 0 0 1.5px var(--fs-vi),
+        0 0 34px rgba(124, 58, 237, 0.55);
+}
+/* empty seat */
+[data-skin="flagship"] [data-part="vacant-seat"] button {
+    border: 1.5px dashed var(--fs-line2) !important;
+    background: rgba(0, 0, 0, 0.3) !important;
+    color: var(--fs-muted) !important;
+    box-shadow: none !important;
+}
+[data-skin="flagship"] [data-part="vacant-seat"] button:hover {
+    border-color: transparent !important;
+    box-shadow: 0 0 0 1.5px var(--fs-vi) !important;
+    color: var(--fs-fg) !important;
+}
+[data-skin="flagship"] :is(.card, [data-part="seat"] img, [data-part="hero-seat"] img) {
+    filter: drop-shadow(0 10px 14px rgba(0, 0, 0, 0.55));
+}
+
+/* pot and bets */
+[data-skin="flagship"] .pot-display {
+    background: rgba(0, 0, 0, 0.4) !important;
+    border: 1px solid rgba(255, 255, 255, 0.1);
+    border-radius: 999px;
+    color: var(--fs-fg) !important;
+    font-family: var(--fs-mono);
+}
+[data-skin="flagship"] :is(.pot-pill-label, .chip-caption) {
+    padding: 2px 10px;
+    border-radius: 999px;
+    background: rgba(0, 0, 0, 0.45);
+    border: 1px solid rgba(255, 255, 255, 0.1);
+    color: var(--fs-fg);
+    font-family: var(--fs-mono);
+}
+
+/* ---------- action bar ---------- */
+[data-skin="flagship"] [data-part="footer"] {
+    background: linear-gradient(180deg, transparent, rgba(7, 6, 13, 0.92) 35%) !important;
+    backdrop-filter: none !important;
+}
+[data-skin="flagship"] [data-part="action-panel"] :is(.text-white, .text-gray-300, .text-gray-400) {
+    color: var(--fs-fg) !important;
+}
+[data-skin="flagship"] :is(.btn-fold, .btn-check, .btn-call, .btn-raise, .btn-all-in, .btn-deal, .btn-small-blind, .btn-big-blind) {
+    border-radius: 16px !important;
+    font-family: var(--fs-sans);
+    font-weight: 700 !important;
+    backdrop-filter: none !important;
+    transition: transform 0.12s, box-shadow 0.2s;
+}
+[data-skin="flagship"] .btn-fold {
+    background: var(--fs-panel2) !important;
+    border: 1px solid var(--fs-line) !important;
+    color: var(--fs-muted) !important;
+}
+[data-skin="flagship"] :is(.btn-check, .btn-call, .btn-small-blind, .btn-big-blind) {
+    background: rgba(255, 255, 255, 0.1) !important;
+    border: 1px solid var(--fs-line2) !important;
+    color: var(--fs-fg) !important;
+}
+[data-skin="flagship"] :is(.btn-raise, .btn-deal) {
+    background: var(--fs-grad) !important;
+    border: 0 !important;
+    color: #fff !important;
+    box-shadow:
+        0 12px 30px -10px rgba(124, 58, 237, 0.9),
+        inset 0 1px 0 rgba(255, 255, 255, 0.25) !important;
+}
+[data-skin="flagship"] .btn-all-in {
+    background: linear-gradient(120deg, #f472b6, #c026d3) !important;
+    border: 0 !important;
+    color: #fff !important;
+}
+[data-skin="flagship"] :is(.btn-fold, .btn-check, .btn-call, .btn-raise, .btn-all-in):hover:not(:disabled) {
+    transform: translateY(-1px);
+}
+[data-skin="flagship"] :is(.btn-fold, .btn-check, .btn-call, .btn-raise, .btn-all-in) :is(span, small) {
+    font-family: var(--fs-mono);
+    font-weight: 500;
+    color: inherit !important;
+    opacity: 0.85;
+}
+[data-skin="flagship"] .btn-pot {
+    background: var(--fs-panel2) !important;
+    border: 1px solid var(--fs-line) !important;
+    border-radius: 10px !important;
+    color: var(--fs-muted) !important;
+    font-weight: 600;
+    box-shadow: none !important;
+}
+[data-skin="flagship"] .btn-pot:hover:not(:disabled) {
+    color: var(--fs-fg) !important;
+    border-color: var(--fs-line2) !important;
+}
+
+/* pre-select boxes */
+[data-skin="flagship"] [data-part="pre-actions"] button {
+    background: var(--fs-panel2) !important;
+    border: 1px solid var(--fs-line) !important;
+    border-radius: 12px !important;
+    color: var(--fs-muted) !important;
+    font-weight: 600;
+}
+[data-skin="flagship"] [data-part="pre-actions"] button[aria-checked="true"] {
+    color: var(--fs-fg) !important;
+    border-color: transparent !important;
+    box-shadow:
+        0 0 0 1.5px var(--fs-vi),
+        0 0 22px rgba(124, 58, 237, 0.45);
+}
+[data-skin="flagship"] [data-part="pre-actions"] button[aria-checked="true"] > span:first-child {
+    background: var(--fs-grad) !important;
+    border-color: transparent !important;
+}
+
+/* raise slider */
+[data-skin="flagship"] [data-part="raise-slider"] {
+    background: rgba(13, 11, 23, 0.8) !important;
+    border: 1px solid var(--fs-line) !important;
+    border-radius: 16px !important;
+    box-shadow: none !important;
+}
+[data-skin="flagship"] [data-part="raise-slider"] input[type="range"] {
+    accent-color: var(--fs-vi);
+}
+[data-skin="flagship"] [data-part="raise-slider"] input:not([type="range"]) {
+    background: var(--fs-panel2) !important;
+    border: 1px solid var(--fs-line2) !important;
+    border-radius: 10px;
+    color: var(--fs-fg) !important;
+    font-family: var(--fs-disp);
+    font-weight: 600;
+}
+[data-skin="flagship"] [data-part="raise-slider"] button {
+    background: var(--fs-panel2) !important;
+    border: 1px solid var(--fs-line) !important;
+    border-radius: 9px !important;
+    color: var(--fs-fg) !important;
+}
+
+/* ---------- history + settings panel ---------- */
+[data-skin="flagship"] .table-panel > div {
+    background: rgba(16, 13, 28, 0.94) !important;
+    border: 1px solid var(--fs-line) !important;
+    border-radius: 20px !important;
+    backdrop-filter: blur(24px);
+    box-shadow: 0 40px 90px -30px #000 !important;
+}
+[data-skin="flagship"] .table-panel [role="switch"][aria-checked="true"] {
+    background: var(--fs-grad) !important;
+}
+[data-skin="flagship"] .table-panel-expand {
+    background: var(--fs-glass) !important;
+    border: 1px solid var(--fs-line2) !important;
+    color: var(--fs-fg) !important;
+}
+
+/* side buttons, hand strength */
+[data-skin="flagship"] [data-part="side-actions"] > :is(div, button),
+[data-skin="flagship"] [data-part="hand-strength"] {
+    background: var(--fs-glass) !important;
+    border: 1px solid var(--fs-line2) !important;
+    border-radius: 14px !important;
+    backdrop-filter: blur(12px) !important;
+}
+
+/* ---------- tournaments ---------- */
+[data-skin="flagship"] [data-testid="sng-payout-structure"],
+[data-skin="flagship"] [data-testid="blinds-panel"] {
+    background: rgba(16, 13, 28, 0.94) !important;
+    border: 1px solid var(--fs-line) !important;
+    border-radius: 16px !important;
+    backdrop-filter: blur(20px) !important;
+}
+[data-skin="flagship"] [data-testid="sng-payout-structure"] > div:first-child {
+    background: var(--fs-grad);
+    -webkit-background-clip: text;
+    background-clip: text;
+    color: transparent !important;
+}
+[data-skin="flagship"] [data-testid="blinds-panel-root"] > button {
+    background: var(--fs-glass) !important;
+    border: 1px solid var(--fs-line2) !important;
+    border-radius: 999px !important;
+    color: var(--fs-fg) !important;
+}
+[data-skin="flagship"] [data-testid="blinds-panel"] [class*="rowCurrent"] {
+    background: rgba(124, 58, 237, 0.25) !important;
+}
+
+/* =====================================================================
+ * The flagship's own drawing (cards, logo, avatars, your big cards) —
+ * the parts that match the Block52 flagship concept, not just its colours.
+ * ===================================================================== */
+
+/* ---------- cards: pearl faces, pink and ink, a slow holo sheen ---------- */
+.fs-card {
+    container-type: inline-size;
+    position: relative;
+    flex: none;
+    aspect-ratio: 5 / 7;
+    border-radius: 12% / 8.6%;
+    overflow: hidden;
+    background: linear-gradient(160deg, #ffffff, #eeeaf8);
+    color: #0e0b1c;
+    font-family: "Unbounded", ui-sans-serif, system-ui, sans-serif;
+    box-shadow:
+        inset 0 0 0 1px rgba(0, 0, 0, 0.06),
+        0 10px 18px -6px rgba(10, 0, 40, 0.75);
+}
+.fs-card.fs-red {
+    color: #d9195f;
+}
+.fs-card::after {
+    content: "";
+    position: absolute;
+    inset: 0;
+    background: linear-gradient(115deg, transparent 30%, rgba(192, 38, 211, 0.18) 42%, rgba(77, 156, 248, 0.2) 52%, transparent 64%);
+    background-size: 250% 100%;
+    animation: fs-holo 5s ease-in-out infinite;
+    mix-blend-mode: multiply;
+    pointer-events: none;
+}
+@keyframes fs-holo {
+    0%,
+    100% {
+        background-position: 100% 0;
+    }
+    50% {
+        background-position: 0 0;
+    }
+}
+.fs-card .fs-r {
+    position: absolute;
+    left: 10%;
+    top: 5%;
+    font-size: 36cqw;
+    font-weight: 700;
+    line-height: 1;
+    letter-spacing: -0.04em;
+}
+.fs-card .fs-s {
+    position: absolute;
+    left: 11%;
+    top: calc(8% + 37cqw);
+    font-size: 20cqw;
+    line-height: 1;
+    font-family: "Inter", ui-sans-serif, system-ui, sans-serif;
+}
+.fs-card .fs-pip {
+    position: absolute;
+    right: 8%;
+    bottom: 4%;
+    font-size: 52cqw;
+    line-height: 1;
+    font-family: "Inter", ui-sans-serif, system-ui, sans-serif;
+}
+.fs-card.fs-back {
+    background: linear-gradient(120deg, #c026d3 0%, #7c3aed 50%, #3b82f6 100%);
+    box-shadow:
+        inset 0 0 0 3px #f4f2fa,
+        0 6px 12px -4px rgba(0, 0, 0, 0.6);
+}
+.fs-card.fs-back::after {
+    animation: none;
+    background: url("../../../assets/flagship/back52.svg") center / 62% no-repeat;
+    mix-blend-mode: normal;
+    opacity: 0.92;
+}
+@media (prefers-reduced-motion: reduce) {
+    .fs-card::after {
+        animation: none;
+    }
+}
+
+/* board: the five cards, same size as before, pearl not image */
+[data-skin="flagship"] .card:has(> .fs-board) {
+    height: 119px;
+    perspective: none;
+}
+[data-skin="flagship"] .fs-board {
+    width: 100%;
+    height: 100%;
+}
+[data-skin="flagship"] [data-part="board-slot"] {
+    height: 119px !important;
+    border: 0 !important;
+    border-radius: 10px !important;
+    background: rgba(255, 255, 255, 0.03);
+    box-shadow: inset 0 0 0 1px rgba(255, 255, 255, 0.12);
+}
+
+/* ---------- felt logo: the Block52 wordmark, the mark on phones ---------- */
+[data-skin="flagship"] .fs-logo {
+    inset: 0;
+    top: 0;
+    left: 0;
+    transform: none;
+    opacity: 1;
+}
+[data-skin="flagship"] .fs-logo .fs-wordmark {
+    position: absolute;
+    left: 50%;
+    top: 72%;
+    width: 270px;
+    aspect-ratio: 500 / 107;
+    transform: translate(-50%, -50%);
+    background: var(--fs-grad);
+    -webkit-mask-size: contain;
+    mask-size: contain;
+    -webkit-mask-repeat: no-repeat;
+    mask-repeat: no-repeat;
+    -webkit-mask-position: center;
+    mask-position: center;
+    opacity: 0.7;
+    filter: drop-shadow(0 0 14px rgba(124, 58, 237, 0.6));
+}
+[data-skin="flagship"] .fs-logo .fs-mark {
+    display: none;
+    position: absolute;
+    left: 50%;
+    top: 74%;
+    width: 150px;
+    transform: translate(-44.5%, -50%);
+    opacity: 0.55;
+    filter: drop-shadow(0 0 12px rgba(124, 58, 237, 0.55));
+}
+[data-skin="flagship"][data-orient="portrait"] .fs-logo .fs-wordmark {
+    display: none;
+}
+[data-skin="flagship"][data-orient="portrait"] .fs-logo .fs-mark {
+    display: block;
+}
+
+/* ---------- seats: round avatar, glass plate under it ---------- */
+[data-part="seat-avatar"] {
+    display: none;
+}
+[data-skin="flagship"] [data-part="seat"] [data-part="seat-avatar"] {
+    display: block;
+    position: relative;
+    z-index: 1;
+    width: 66px;
+    height: 66px;
+    margin: 0 auto;
+    border-radius: 50%;
+    border: 3px solid var(--fs-bg2);
+    box-shadow: 0 10px 24px -10px #000;
+}
+[data-skin="flagship"] [data-part="seat"] [class*="avatarChip"] {
+    top: 0;
+    left: 50%;
+    right: auto;
+    transform: translateX(-50%);
+    width: 66px;
+    height: 66px;
+    border: 3px solid var(--fs-bg2);
+    z-index: 2;
+}
+/* the plate hangs under the avatar */
+[data-skin="flagship"] [data-part="seat"] > div:last-child > div.h-\[55px\] {
+    height: 50px;
+}
+[data-skin="flagship"] [data-part="seat"] > div:last-child > div.absolute {
+    top: 56px;
+    z-index: 5;
+}
+[data-skin="flagship"] [data-part="seat"] .badge-container {
+    flex-direction: column;
+    align-items: center;
+    gap: 0;
+    width: max-content;
+    min-width: 108px;
+    margin: 0 auto;
+    padding: 5px 14px 7px;
+}
+[data-skin="flagship"] [data-part="seat"] .badge-number {
+    width: auto;
+    height: auto;
+    min-width: 0;
+    padding: 0;
+    background: none !important;
+    box-shadow: none;
+    color: var(--fs-muted);
+    font-family: var(--fs-sans);
+    font-weight: 500;
+    font-size: 12px;
+    line-height: 1.2;
+}
+[data-skin="flagship"] [data-part="seat"] .badge-number::before {
+    content: "Seat\00a0";
+}
+[data-skin="flagship"] [data-part="seat"] .badge-value {
+    font-size: 17px;
+    line-height: 1.2;
+}
+
+/* their face-down cards stick out away from the felt, small and tilted */
+[data-skin="flagship"] [data-part="seat"] [data-part="hole-cards"] {
+    position: absolute;
+    z-index: 0;
+    top: 0;
+    gap: 0;
+}
+[data-skin="flagship"] [data-part="seat"] [data-part="hole-cards"] .fs-card {
+    width: 38px !important;
+    height: auto !important;
+    margin: 0 !important;
+}
+/* a real crossover fan: both cards pivot on their bottom corners and cross */
+[data-skin="flagship"] [data-part="seat"] [data-part="hole-cards"] .fs-card {
+    transform-origin: 50% 92%;
+}
+[data-skin="flagship"] [data-part="seat"] [data-part="hole-cards"] .fs-card:first-child {
+    transform: rotate(-17deg);
+}
+[data-skin="flagship"] [data-part="seat"] [data-part="hole-cards"] .fs-card + .fs-card {
+    margin-left: -27px !important;
+    transform: rotate(15deg) translateY(-2px);
+}
+/* tucked in behind the avatar: the circle covers the inner card's bottom corner */
+[data-skin="flagship"] [data-part="seat"][data-card-side="right"] [data-part="hole-cards"] {
+    left: calc(50% + 11px);
+    top: -12px;
+}
+[data-skin="flagship"] [data-part="seat"][data-card-side="left"] [data-part="hole-cards"] {
+    right: calc(50% + 11px);
+    top: -12px;
+    flex-direction: row-reverse;
+}
+[data-skin="flagship"] [data-part="seat"][data-card-side="left"] [data-part="hole-cards"] .fs-card:first-child {
+    transform: rotate(17deg);
+}
+[data-skin="flagship"] [data-part="seat"][data-card-side="left"] [data-part="hole-cards"] .fs-card + .fs-card {
+    margin-left: 0 !important;
+    margin-right: -27px !important;
+    transform: rotate(-15deg) translateY(-2px);
+}
+[data-skin="flagship"] [data-part="seat"][data-card-side="up"] [data-part="hole-cards"] {
+    left: 50%;
+    top: -36px;
+    transform: translateX(-50%);
+}
+/* shown at showdown: face up, bigger, centred over the avatar */
+[data-skin="flagship"] [data-part="seat"] [data-part="hole-cards"][data-shown] {
+    left: 50% !important;
+    right: auto !important;
+    top: -40px !important;
+    transform: translateX(-50%);
+    flex-direction: row !important;
+    z-index: 3;
+}
+[data-skin="flagship"] [data-part="seat"] [data-part="hole-cards"][data-shown] .fs-card {
+    width: 54px !important;
+}
+[data-skin="flagship"] [data-part="seat"] [data-part="hole-cards"][data-shown] .fs-card + .fs-card {
+    margin-left: -8px !important;
+    margin-right: 0 !important;
+}
+[data-skin="flagship"] [data-part="seat"] [data-part="hole-cards"] > div:not(.fs-card) {
+    display: none;
+}
+
+/* ---------- you: your two big cards sit in your seat, plate under them ---------- */
+[data-skin="flagship"] [data-part="hero-seat"] [data-part="seat-avatar"] {
+    display: none;
+}
+[data-skin="flagship"] [data-part="hero-seat"] [data-part="hole-cards"] {
+    position: absolute;
+    left: 50%;
+    bottom: 75px;
+    transform: translateX(-50%);
+    gap: 0;
+    z-index: 0;
+    align-items: flex-end;
+}
+[data-skin="flagship"] [data-part="hero-seat"] [data-part="hole-cards"] .fs-card {
+    opacity: 0.92;
+    width: 104px !important;
+    height: auto !important;
+    margin: 0 !important;
+}
+[data-skin="flagship"] [data-part="hero-seat"] [data-part="hole-cards"] .fs-card:first-child {
+    transform: rotate(-6deg) translate(12px, 6px);
+}
+[data-skin="flagship"] [data-part="hero-seat"] [data-part="hole-cards"] .fs-card + .fs-card {
+    transform: rotate(5deg) translate(-12px, 4px);
+}
+[data-skin="flagship"] [data-part="hero-seat"] [data-part="hole-cards"] .fs-card.animate-win-card {
+    translate: 0 -10px;
+}
+[data-skin="flagship"] [data-part="hero-seat"] [data-part="hole-cards"] > div:not(.fs-card) {
+    display: none;
+}
+[data-skin="flagship"] [data-part="hero-seat"] .badge-container {
+    position: relative;
+    z-index: 2;
+    width: max-content;
+    min-width: 170px;
+    margin: 0 auto;
+    padding: 8px 18px;
+    gap: 10px;
+    justify-content: center;
+    background: rgba(13, 11, 23, 0.94);
+}
+[data-skin="flagship"] [data-part="hero-seat"] .badge-number {
+    display: none;
+}
+[data-skin="flagship"] [data-part="hero-seat"] .badge-value {
+    font-size: 19px;
+}
+[data-skin="flagship"] [data-part="hero-seat"] .badge-value::before {
+    content: "You";
+    margin-right: 10px;
+    font-family: var(--fs-sans);
+    font-weight: 500;
+    font-size: 15px;
+    letter-spacing: 0;
+    color: var(--fs-muted);
+}
+
+/* ---------- pot pill, small like the concept ---------- */
+[data-skin="flagship"] .pot-display {
+    font-size: 20px;
+    padding: 4px 14px;
+}
+
+/* ---------- empty seat: dashed "Sit" circle ---------- */
+[data-skin="flagship"] [data-part="vacant-seat"] button {
+    border-radius: 999px !important;
+}
+
+/* ---------- phone (portrait): the concept's table, tipped back a little ----------
+ * The rail (it has no children) draws the whole table: dark band, spinning
+ * gradient rim and midnight felt, tilted 12° away so it narrows toward the top
+ * like the concept. The felt itself goes clear, so the board, pot and chips on
+ * it stay flat and readable. */
+[data-skin="flagship"][data-orient="portrait"] [data-part="rail"] {
+    border: 0 !important;
+    border-radius: 9999px !important;
+    background: linear-gradient(180deg, #1c1830, #0b0915) !important;
+    box-shadow:
+        inset 0 1px 0 rgba(255, 255, 255, 0.12),
+        0 60px 90px -40px rgba(0, 0, 0, 0.95) !important;
+    /* the concept: perspective 1.45× the table's width (714px rail), tipped 12° */
+    transform: perspective(1035px) rotateX(12deg);
+    transform-origin: 50% 50%;
+}
+[data-skin="flagship"][data-orient="portrait"] [data-part="rail"]::before {
+    content: "";
+    position: absolute;
+    inset: 3.6% 2.3%;
+    border-radius: 9999px;
+    background: conic-gradient(from var(--fs-spin), #c026d3, #7c3aed, #3b82f6, #4d9cf8, #7c3aed, #c026d3);
+    animation: fs-spin 8s linear infinite;
+    box-shadow:
+        0 0 40px rgba(124, 58, 237, 0.55),
+        0 0 90px rgba(192, 38, 211, 0.2);
+}
+[data-skin="flagship"][data-orient="portrait"] [data-part="rail"]::after {
+    content: "";
+    position: absolute;
+    inset: 4.6% 3%;
+    border-radius: 9999px;
+    background:
+        radial-gradient(70% 50% at 50% 42%, rgba(124, 58, 237, 0.22), transparent 70%),
+        radial-gradient(ellipse at 50% 45%, #1e1852 0%, #16123f 45%, #06051a 100%);
+    box-shadow: inset 0 0 60px rgba(0, 0, 0, 0.6);
+}
+[data-skin="flagship"][data-orient="portrait"] [data-part="felt"] {
+    background: transparent !important;
+    box-shadow: none !important;
+}
+[data-skin="flagship"][data-orient="portrait"] [data-part="felt"]::before {
+    display: none;
+}
+[data-skin="flagship"][data-orient="portrait"] [data-part="felt"]::after {
+    inset: 10% 12%;
+    border-radius: 9999px;
+}
+@media (prefers-reduced-motion: reduce) {
+    [data-skin="flagship"][data-orient="portrait"] [data-part="rail"]::before {
+        animation: none;
+    }
+}
+
+/* across the table (landscape) the board sits a little higher, so the wordmark
+   fits between it and your cards */
+[data-skin="flagship"]:not([data-orient="portrait"]) [data-part="felt"] .pot-slot {
+    margin-top: -40px;
+}
+/* phone: bigger hero cards relative to the narrower felt */
+[data-skin="flagship"][data-orient="portrait"] [data-part="hero-seat"] [data-part="hole-cards"] .fs-card {
+    width: 120px !important;
+}
+
+/* whose turn: a soft violet glow behind the plate, not grey ripples */
+[data-skin="flagship"] .turn-animation-ring {
+    background: radial-gradient(closest-side, rgba(124, 58, 237, 0.45), rgba(192, 38, 211, 0.18) 60%, transparent);
+}
+@media (prefers-reduced-motion: reduce) {
+    [data-skin="flagship"] .turn-animation-ring {
+        animation: none;
+        opacity: 0.6;
+        transform: scale(0.9);
+    }
+    [data-skin="flagship"] .turn-animation-ring:not(.turn-animation-ring-0) {
+        display: none;
+    }
+}
+
+/* phone: the hand-strength label is a small pill in the corner, clear of your cards */
+[data-skin="flagship"][data-orient="portrait"] [data-part="hand-strength"] {
+    right: 8px !important;
+    max-width: 30vw;
+    padding: 5px 10px !important;
+    border-radius: 12px !important;
+}
+[data-skin="flagship"][data-orient="portrait"] [data-part="hand-strength"] .text-sm {
+    font-size: 11.5px;
+    line-height: 1.25;
+    text-align: right;
+}
+
+/* ---------- the turn clock: a row of lit cubes, "⏱ 28s" under it (the concept's) ---------- */
+[data-skin="flagship"] .seat-banner-shell {
+    margin-top: -12px;
+}
+[data-skin="flagship"] .seat-banner-box:has([data-part="turn-clock"]) {
+    background: rgba(13, 11, 23, 0.92) !important;
+    border: 1px solid var(--fs-line2) !important;
+    border-top: 0 !important;
+    border-radius: 0 0 12px 12px;
+    box-shadow: 0 14px 30px -14px #000;
+    padding: 14px 14px 4px;
+}
+[data-skin="flagship"] [data-part="turn-clock"] {
+    flex-direction: column-reverse;
+    align-items: stretch;
+    height: auto;
+    gap: 3px;
+    margin: 0;
+}
+[data-skin="flagship"] [data-part="turn-clock-track"] {
+    flex: none;
+    width: 100% !important;
+    height: 5px;
+    margin: 0;
+    border-radius: 1px;
+    background: rgba(255, 255, 255, 0.14);
+    -webkit-mask: repeating-linear-gradient(90deg, #000 0 8%, transparent 8% 10%);
+    mask: repeating-linear-gradient(90deg, #000 0 8%, transparent 8% 10%);
+}
+[data-skin="flagship"] [data-part="turn-clock-fill"] {
+    background: var(--fs-grad) !important;
+}
+[data-skin="flagship"] [data-part="turn-clock"][data-bank] [data-part="turn-clock-fill"] {
+    background: linear-gradient(90deg, #fbbf24, #f472b6) !important;
+}
+[data-skin="flagship"] [data-part="turn-clock-seconds"] {
+    width: auto !important;
+    margin: 0;
+    text-align: center;
+    font-family: var(--fs-mono);
+    font-size: 11px !important;
+    color: var(--fs-faint) !important;
+}
+[data-skin="flagship"] [data-part="turn-clock-seconds"]::before {
+    content: "⏱ ";
+}
+[data-skin="flagship"] [data-part="turn-clock-seconds"]::after {
+    content: "s";
+}
+[data-skin="flagship"] [data-part="turn-clock"][data-bank] [data-part="turn-clock-seconds"] {
+    color: #fbbf24 !important;
+}
+
+/* ---------- dealer button: a pearl "D" on the dealer's own avatar ----------
+ * It sits on the avatar's upper edge, half on the circle and half hanging off,
+ * on the side away from the player's cards. The table-level button is not used. */
+[data-skin="flagship"] .dealer-button {
+    display: none;
+}
+[data-part="seat-dealer"] {
+    display: none;
+}
+[data-skin="flagship"] [data-part="seat-dealer"] {
+    display: grid;
+    place-items: center;
+    position: absolute;
+    z-index: 4;
+    width: 41px;
+    height: 41px;
+    top: -11px;
+    left: calc(50% - 23px - 20.5px);
+    border-radius: 50%;
+    overflow: hidden;
+    background: linear-gradient(160deg, #ffffff, #eeeaf8);
+    box-shadow:
+        0 0 0 2.5px rgba(13, 11, 23, 0.95),
+        0 0 16px rgba(124, 58, 237, 0.55),
+        0 6px 12px -4px #000;
+    font-family: var(--fs-disp);
+    font-weight: 700;
+    font-size: 19.5px;
+    line-height: 1;
+    color: #0e0b1c;
+}
+[data-skin="flagship"] [data-part="seat-dealer"]::after {
+    content: "";
+    position: absolute;
+    inset: 0;
+    background: linear-gradient(115deg, transparent 30%, rgba(192, 38, 211, 0.22) 42%, rgba(77, 156, 248, 0.24) 52%, transparent 64%);
+    background-size: 250% 100%;
+    animation: fs-holo 5s ease-in-out infinite;
+    mix-blend-mode: multiply;
+}
+/* cards on the left: the button goes on the right */
+[data-skin="flagship"] [data-part="seat"]:is([data-card-side="left"], [data-card-side="up"]) [data-part="seat-dealer"] {
+    left: calc(50% + 23px - 20.5px);
+}
+/* you: on the top right corner of your plate */
+[data-skin="flagship"] [data-part="hero-seat"] [data-part="seat-dealer"] {
+    top: -43px;
+    left: calc(50% + 78px);
+}
+
+/* ---------- whose turn: "Your turn" / "Waiting (Seat 5's turn)", opposite the hand strength ---------- */
+[data-skin="flagship"] [data-part="turn-status"] {
+    padding: 8px 14px;
+    border-radius: 14px;
+    background: var(--fs-glass);
+    border: 1px solid var(--fs-line2);
+    backdrop-filter: blur(12px);
+    color: var(--fs-fg);
+    font-size: 14px;
+    white-space: nowrap;
+}
+[data-skin="flagship"] [data-part="turn-status"] b {
+    font-weight: 600;
+}
+[data-skin="flagship"] [data-part="turn-status"] span {
+    color: var(--fs-muted);
+}
+[data-skin="flagship"] [data-part="turn-status"][data-mine] {
+    border-color: transparent;
+    box-shadow:
+        0 0 0 1.5px var(--fs-vi),
+        0 0 26px rgba(124, 58, 237, 0.55);
+}
+[data-skin="flagship"][data-orient="portrait"] [data-part="turn-status"] {
+    left: 8px !important;
+    max-width: 44vw;
+    padding: 5px 10px;
+    border-radius: 12px;
+    font-size: 11.5px;
+    white-space: normal;
+}
+/* face-up at showdown: barely fanned, easy to read */
+[data-skin="flagship"] [data-part="seat"] [data-part="hole-cards"][data-shown] .fs-card:first-child {
+    transform: rotate(-5deg);
+}
+[data-skin="flagship"] [data-part="seat"] [data-part="hole-cards"][data-shown] .fs-card + .fs-card {
+    transform: rotate(5deg);
+}
+
+/* ---------- time bank clock: a glass button left of your plate, in Block52 colours ---------- */
+[data-skin="flagship"] [data-part="hero-seat"] .badge-leading {
+    margin-right: 10px;
+    z-index: 30;
+}
+[data-skin="flagship"] .time-bank-clock {
+    width: 40px;
+    height: 40px;
+    background: var(--fs-glass);
+    border: 1px solid var(--fs-line2);
+    backdrop-filter: blur(10px);
+    box-shadow: 0 10px 24px -10px #000;
+}
+[data-skin="flagship"] .time-bank-clock-icon {
+    width: 24px;
+    height: 24px;
+}
+[data-skin="flagship"] .tbc-body {
+    fill: #7c3aed;
+}
+[data-skin="flagship"] .tbc-bell {
+    fill: #f472b6;
+}
+[data-skin="flagship"] :is(.tbc-hammer, .tbc-leg) {
+    stroke: #f472b6;
+}
+[data-skin="flagship"] .tbc-hand-minute {
+    stroke: #c026d3;
+}
+[data-skin="flagship"] .time-bank-clock-idle {
+    opacity: 0.7;
+    filter: none;
+}
+[data-skin="flagship"] :is(.time-bank-clock-ready, .time-bank-clock-armed, .time-bank-clock-running) {
+    border-color: transparent;
+    box-shadow:
+        0 0 0 1.5px var(--fs-vi),
+        0 0 22px rgba(124, 58, 237, 0.6);
+}
+
+/* other players: the cube clock tucks into the plate (no seconds line), so it
+   never hangs over their bet */
+[data-skin="flagship"] [data-part="seat"] [data-part="turn-clock-seconds"] {
+    display: none;
+}
+[data-skin="flagship"] [data-part="seat"] .badge-container {
+    padding-bottom: 14px;
+}
+/* the cube clock and the FOLD / ALL IN / SEATED words sit inside the bottom of the plate */
+[data-skin="flagship"] [data-part="seat"] .seat-banner-shell:has([data-part="turn-clock"], .seat-banner-content-inner > span.seat-banner-text) {
+    top: auto;
+    bottom: 5px;
+    margin-top: 0;
+    height: auto;
+    z-index: 3;
+    left: 14px;
+    right: 14px;
+}
+[data-skin="flagship"] [data-part="seat"] .seat-banner-shell:has(.seat-banner-content-inner > span.seat-banner-text) {
+    bottom: -2px;
+}
+[data-skin="flagship"] [data-part="seat"] .seat-banner-box:has([data-part="turn-clock"]) [data-part="turn-clock"] {
+    margin: 0 !important;
+}
+[data-skin="flagship"] [data-part="seat"] .seat-banner-box:has(.seat-banner-content-inner > span.seat-banner-text) {
+    background: transparent !important;
+    border: 0 !important;
+    box-shadow: none;
+    backdrop-filter: none;
+    padding: 0;
+    height: auto;
+    min-height: 0;
+}
+[data-skin="flagship"] [data-part="seat"] .seat-banner-content-inner > span.seat-banner-text {
+    height: auto;
+    margin: 0;
+    font-size: 9px;
+    letter-spacing: 0.12em;
+    color: var(--fs-faint) !important;
+}
+[data-skin="flagship"] [data-part="seat"] .seat-banner-box:has([data-part="turn-clock"]) {
+    background: transparent !important;
+    border: 0 !important;
+    box-shadow: none;
+    backdrop-filter: none;
+    padding: 0;
+    height: auto;
+    min-height: 0;
+}
+
+/* ---------- what a player just did ("Call", "Check", "Raise $60"): the concept's
+   white tag on top of their avatar, not a box under the plate ---------- */
+[data-skin="flagship"] [data-part="seat"] .seat-banner-shell:has(.action-display-content) {
+    top: auto;
+    bottom: calc(100% + 46px);
+    left: 50%;
+    right: auto;
+    width: max-content;
+    height: auto;
+    margin: 0;
+    z-index: 6;
+    overflow: visible;
+    transform: translateX(-50%);
+}
+[data-skin="flagship"] [data-part="hero-seat"] .seat-banner-shell:has(.action-display-content) {
+    top: auto;
+    bottom: calc(100% + 8px);
+    left: 50%;
+    right: auto;
+    width: max-content;
+    height: auto;
+    margin: 0;
+    z-index: 6;
+    overflow: visible;
+    transform: translateX(-50%);
+}
+[data-skin="flagship"] .seat-banner-box:has(.action-display-content) {
+    height: auto;
+    min-height: 0;
+    padding: 3px 12px 4px;
+    border: 0 !important;
+    border-radius: 999px;
+    background: var(--fs-fg) !important;
+    box-shadow: 0 6px 14px -6px #000;
+    backdrop-filter: none;
+}
+[data-skin="flagship"] .seat-banner-box :is(.action-display-text, .action-display-amount) {
+    color: #0d0b17 !important;
+    font-family: var(--fs-sans);
+    font-weight: 700;
+    font-size: 13px;
+    line-height: 1.2;
+    text-transform: capitalize;
+    white-space: nowrap;
+}
+[data-skin="flagship"] .seat-banner-box .action-display-content {
+    display: flex;
+    gap: 5px;
+    align-items: center;
+    justify-content: center;
+}
+
+/* bet amounts: a size that keeps even a "$12,345.67" bet inside its spot */
+[data-skin="flagship"] .chip-position :is(.text-2xl, .text-4xl) {
+    font-size: 17px !important;
+    line-height: 1.2;
+}
+[data-skin="flagship"][data-orient="portrait"] .chip-position :is(.text-2xl, .text-4xl) {
+    font-size: 22px !important;
+}

@@ -1,23 +1,25 @@
 import { isString } from "./guards";
+import type { StageShape } from "../config/stageGeometry";
 
 /**
  * The table's look. "modern", "classic" and "nouns" restyle the felt and rail;
- * "chipchair" is a full skin (the Chip and a Chair theme): seats, buttons,
- * panels and the felt, all from one scoped stylesheet
- * (components/playPage/skins/chipchair.css). Every style shows the same
- * components, so the controls and behaviour never differ between them.
+ * "chipchair" (the Chip and a Chair theme) and "flagship" (the Block52
+ * flagship look) are full skins: seats, buttons, panels and the felt, each
+ * from one scoped stylesheet in components/playPage/skins/. Every style shows
+ * the same components, so the controls and behaviour never differ between them.
  */
-export type TableStyle = "modern" | "classic" | "nouns" | "chipchair";
+export type TableStyle = "modern" | "classic" | "nouns" | "chipchair" | "flagship";
 
 /** Every style, in the order the style button cycles through them. */
-export const TABLE_STYLES: readonly TableStyle[] = ["modern", "classic", "nouns", "chipchair"];
+export const TABLE_STYLES: readonly TableStyle[] = ["modern", "classic", "nouns", "chipchair", "flagship"];
 
 /** What the style button and the mobile menu call each style. */
 export const TABLE_STYLE_LABELS: Record<TableStyle, string> = {
     modern: "Modern",
     classic: "Classic",
     nouns: "Nouns",
-    chipchair: "Chip and a Chair"
+    chipchair: "Chip and a Chair",
+    flagship: "Block52 Flagship"
 };
 
 /** True when the value names a table style. */
@@ -39,3 +41,6 @@ const THEME_SKINS: Record<string, TableStyle> = {
 
 /** The table skin a club theme brings, or null when the theme only styles the lobby. */
 export const skinForTheme = (theme: string): TableStyle | null => THEME_SKINS[theme] ?? null;
+
+/** The stage shape a style lays out on: the flagship has its own phone table (a wide oval). */
+export const stageShapeFor = (style: TableStyle): StageShape => (style === "flagship" ? "flagship" : "standard");
