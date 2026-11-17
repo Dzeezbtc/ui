@@ -25,9 +25,31 @@ export const MAISON_FLAT_CHIP_COLORS: [number, string, string][] = [
     [0, "#f4eee2", "#6b4f2a"]
 ];
 
-/** The colour of a chip of this value (dollars, or tournament points) and of its mark, for a 3D table's look. */
-export const badBeatChipColor = (value: number, look: "badbeat" | "maison" = "badbeat"): { color: string; slash: string } => {
-    const [, color, slash] = (look === "maison" ? MAISON_FLAT_CHIP_COLORS : BB_FLAT_CHIP_COLORS).find(([min]) => value >= min)!;
+/**
+ * Chip and a Chair's chips (Dzeezbtc/ui#40), as in the concept: white, red,
+ * blue, lavender and yellow from the smallest value up, each ringed in white
+ * inside an ink edge.
+ */
+export const CHIPCHAIR_FLAT_CHIP_COLORS: [number, string, string][] = [
+    [500, "#ffd23f", "#ffffff"],
+    [100, "#b9a2ff", "#ffffff"],
+    [25, "#3d7bff", "#ffffff"],
+    [5, "#ff4d3d", "#ffffff"],
+    [0, "#ffffff", "#0e0e10"]
+];
+
+/** A look that draws its own flat chips. */
+export type FlatChipLook = "badbeat" | "maison" | "chipchair";
+
+const FLAT_CHIP_PALETTES: Record<FlatChipLook, [number, string, string][]> = {
+    badbeat: BB_FLAT_CHIP_COLORS,
+    maison: MAISON_FLAT_CHIP_COLORS,
+    chipchair: CHIPCHAIR_FLAT_CHIP_COLORS
+};
+
+/** The colour of a chip of this value (dollars, or tournament points) and of its mark, for a look that draws its own chips. */
+export const badBeatChipColor = (value: number, look: FlatChipLook = "badbeat"): { color: string; slash: string } => {
+    const [, color, slash] = FLAT_CHIP_PALETTES[look].find(([min]) => value >= min)!;
     return { color, slash };
 };
 

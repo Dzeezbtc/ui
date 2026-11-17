@@ -82,7 +82,7 @@ import { CardBackStyle } from "../../utils/cardImages";
 import { useClubLook } from "../../hooks/club/useClubLook";
 import { TableRadio } from "./TableRadio";
 import { tableStyleForLook } from "../../utils/clubLook";
-import { TABLE_STYLE_LABELS, TableStyle, isThreeTableStyle, nextTableStyle, skinAttrFor, stageShapeFor, tableStyleFromEnv, usesFlagshipLayout } from "../../utils/tableStyle";
+import { TABLE_STYLE_LABELS, TableStyle, dealsFaceDown, isThreeTableStyle, nextTableStyle, skinAttrFor, stageShapeFor, tableStyleFromEnv, usesFlagshipLayout } from "../../utils/tableStyle";
 import { TableStyleProvider } from "../../context/TableStyleContext";
 import "./skins/chipchair.css";
 import "./skins/flagship.css";
@@ -143,6 +143,7 @@ import { TurnStatusLabel } from "./TurnStatusLabel";
 import { StreetTracker } from "./StreetTracker";
 import { BadBeatHeroDock } from "./BadBeatHeroDock";
 import { MaisonDock } from "./MaisonDock";
+import { ChipChairDock } from "./ChipChairDock";
 import { BadBeatShowCards } from "./BadBeat3D/BadBeatShowCards";
 // Bad Beat's 3D table brings three.js: only a Bad Beat table downloads it (ui#36)
 const BadBeatTable3D = React.lazy(() => import("./BadBeat3D/BadBeatTable3D").then(m => ({ default: m.BadBeatTable3D })));
@@ -173,6 +174,7 @@ import {
     getStageDims,
     STAGE_DIMS,
     FLAGSHIP_PORTRAIT_DIMS,
+    CHIPCHAIR_PORTRAIT_DIMS,
     getContentBounds,
     VIEWPORT_PARAMS,
     PLAYER_UI_PADDING,
@@ -962,7 +964,7 @@ const Table = React.memo(({ tableId }: TableProps = {}) => {
     const isCompactMobile = isMobilePortrait || tableLayout.viewportMode === "mobile-landscape";
     // Felt/rail dimensions follow the SAME mode as the layout hook, so the
     // markup and the seat positions can never disagree mid-rotation.
-    const stageDims = isMobilePortrait && usesFlagshipLayout(tableStyle) ? FLAGSHIP_PORTRAIT_DIMS : STAGE_DIMS[isMobilePortrait ? "portrait" : "landscape"];
+    const stageDims = isMobilePortrait && usesFlagshipLayout(tableStyle) ? (tableStyle === "chipchair" ? CHIPCHAIR_PORTRAIT_DIMS : FLAGSHIP_PORTRAIT_DIMS) : STAGE_DIMS[isMobilePortrait ? "portrait" : "landscape"];
 
     // Add the useGameProgress hook
     const { isGameInProgress, handNumber, actionCount, nextToAct } = useGameProgress(id);
@@ -1367,7 +1369,7 @@ const Table = React.memo(({ tableId }: TableProps = {}) => {
     return (
         <SitOutIntentProvider tableId={id} network={currentNetwork} pendingSitOut={pendingSitOut} legalActions={playerLegalActions}>
         <TableStyleProvider value={tableStyle}>
-        <div className="table-container" data-connection={connection.status} data-skin={skinAttrFor(tableStyle)} data-look={tableStyle} data-three={isThreeTableStyle(tableStyle) ? "true" : undefined} data-orient={isMobilePortrait ? "portrait" : "landscape"}>
+        <div className="table-container" data-connection={connection.status} data-skin={skinAttrFor(tableStyle)} data-look={tableStyle} data-three={isThreeTableStyle(tableStyle) ? "true" : undefined} data-deal={dealsFaceDown(tableStyle) ? "roll" : undefined} data-orient={isMobilePortrait ? "portrait" : "landscape"}>
             {/* Connection freshness (ui#613): shown whenever the live socket is not live */}
             {!isReplayMode && id && (
                 <ConnectionBanner
@@ -1711,6 +1713,7 @@ const Table = React.memo(({ tableId }: TableProps = {}) => {
                 {isThreeTableStyle(tableStyle) && <StreetTracker round={gameState?.round} />}
                 {tableStyle === "badbeat" && <BadBeatHeroDock />}
                 {tableStyle === "maison" && <MaisonDock />}
+                {tableStyle === "chipchair" && <ChipChairDock tableId={id} />}
             </div>
 
             {/*//! FOOTER — hidden in replay mode (read-only).

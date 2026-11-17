@@ -24,6 +24,10 @@ import {
     MAISON_DOCK_HEIGHT,
     MAISON_PORTRAIT_DOCK,
     MAISON_SIDE_COLUMN,
+    CHIPCHAIR_COLUMN,
+    CHIPCHAIR_PORTRAIT_DIMS,
+    CHIPCHAIR_PORTRAIT_DOCK,
+    chipChairPortraitSeats,
     threeTableCamera
 } from "./stageGeometry";
 import { BADBEAT_CAMERA, MAISON_CAMERA, badBeatScene } from "../utils/badBeatScene";
@@ -273,5 +277,62 @@ describe("Maison 52 stage shape", () => {
         const t = parse(getTableTransform(calculateZoom(9, 390, 790), 9, 390, 790));
         const centre = t.ty + getContentBounds(9).centerY * t.zoom;
         expect(centre).toBeCloseTo((790 - MAISON_PORTRAIT_DOCK) / 2, 0);
+    });
+});
+
+describe("Chip and a Chair stage", () => {
+    afterEach(() => {
+        setStageShape("standard");
+        clearLayoutCache();
+    });
+    const parse = (transform: string) => {
+        const m = /translate\(([-\d.]+)px,\s*([-\d.]+)px\)\s*scale\(([-\d.]+)\)/.exec(transform);
+        if (!m) throw new Error(`unexpected transform ${transform}`);
+        return { tx: +m[1], ty: +m[2], zoom: +m[3] };
+    };
+
+    it("uses its round oval on an upright phone only", () => {
+        setViewport(390, 844);
+        setStageShape("chipchair");
+        expect(getStageDims()).toBe(CHIPCHAIR_PORTRAIT_DIMS);
+        setViewport(1920, 1080);
+        expect(getStageDims()).toBe(STAGE_DIMS.landscape);
+    });
+
+    it("seats everyone evenly round the oval, you at the bottom centre", () => {
+        const d = CHIPCHAIR_PORTRAIT_DIMS;
+        const seats = chipChairPortraitSeats(9);
+        expect(seats).toHaveLength(9);
+        expect(seats[0][0]).toBeCloseTo(d.centerX, 0);
+        expect(seats[0][1]).toBeGreaterThan(d.centerY + d.tableHeight / 2);
+        seats.forEach(([x, y]) => {
+            const r = ((x - d.centerX) / (d.tableWidth / 2)) ** 2 + ((y - d.centerY) / (d.tableHeight / 2)) ** 2;
+            expect(r).toBeGreaterThan(1);
+            expect(r).toBeLessThan(1.4);
+        });
+    });
+
+    it("on a big screen, sits the table left of the column", () => {
+        setViewport(1920, 1080);
+        setStageShape("chipchair");
+        clearLayoutCache();
+        const t = parse(getTableTransform(calculateZoom(9, 1920, 1000), 9, 1920, 1000));
+        expect(t.tx + getContentBounds(9).centerX * t.zoom).toBeCloseTo((1920 - CHIPCHAIR_COLUMN.desktop) / 2, 0);
+    });
+
+    it("on a phone held sideways, sits the table left of the narrower column", () => {
+        setViewport(844, 390);
+        setStageShape("chipchair");
+        clearLayoutCache();
+        const t = parse(getTableTransform(calculateZoom(9, 844, 340), 9, 844, 340));
+        expect(t.tx + getContentBounds(9).centerX * t.zoom).toBeCloseTo((844 - CHIPCHAIR_COLUMN.phone) / 2, 0);
+    });
+
+    it("on an upright phone, centres the table above the You bar and buttons", () => {
+        setViewport(390, 844);
+        setStageShape("chipchair");
+        clearLayoutCache();
+        const t = parse(getTableTransform(calculateZoom(9, 390, 790), 9, 390, 790));
+        expect(t.ty + getContentBounds(9).centerY * t.zoom).toBeCloseTo((790 - CHIPCHAIR_PORTRAIT_DOCK) / 2, 0);
     });
 });

@@ -1,10 +1,10 @@
 import React from "react";
-import { badBeatChipColor } from "../../../utils/badBeatChipColor";
+import { badBeatChipColor, type FlatChipLook } from "../../../utils/badBeatChipColor";
 
 type BadBeatChipProps = {
     value: number;
-    /** Which 3D table's chips: Bad Beat's Broadcast set or Maison 52's. */
-    look: "badbeat" | "maison";
+    /** Whose chips: Bad Beat's Broadcast set, Maison 52's or Chip and a Chair's. */
+    look: FlatChipLook;
     size: number;
     style?: React.CSSProperties;
 };

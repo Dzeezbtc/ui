@@ -9,6 +9,7 @@ import { isThreeTableStyle, usesFlagshipLayout } from "../../../utils/tableStyle
 import { B52Chip } from "./B52Chip";
 import { BadBeatChip } from "./BadBeatChip";
 import { flatChipStack } from "../../../utils/badBeatChipColor";
+import { flatChipLookFor } from "../../../utils/tableStyle";
 
 /** Vertical offset per chip for same-denomination vertical stacking (px). */
 const STACK_OFFSET_Y = 4;
@@ -108,8 +109,8 @@ const Chip: React.FC<ChipProps> = React.memo(({ amount, isTournament, caption })
     // The Block52 flagship draws its own neon chips (same denominations, same breakdown).
     const tableStyle = useTableStyle();
     const flagship = usesFlagshipLayout(tableStyle);
-    // a 3D table draws its own chips: Bad Beat's Broadcast set, Maison 52's (ui#36, #38)
-    const badBeat = isThreeTableStyle(tableStyle);
+    // a style that draws its own chips in one neat stack: Bad Beat's Broadcast set, Maison 52's, Chip and a Chair's (ui#36, #38, #40)
+    const badBeat = isThreeTableStyle(tableStyle) || tableStyle === "chipchair";
     const allStacks = decomposeAmount(dollarAmount, getChipSet(chipStyle, !!isTournament));
 
     const isMobile = window.innerWidth <= 768 || window.innerHeight <= 500;
@@ -147,7 +148,7 @@ const Chip: React.FC<ChipProps> = React.memo(({ amount, isTournament, caption })
                 }}
             >
                 {bbStack?.chips.map((c, i) => (
-                    <BadBeatChip key={`bb-${i}`} value={c.value} look={tableStyle === "maison" ? "maison" : "badbeat"} size={chipSize} style={{ left: `${c.left}px`, bottom: `${c.bottom}px`, zIndex: i }} />
+                    <BadBeatChip key={`bb-${i}`} value={c.value} look={flatChipLookFor(tableStyle)} size={chipSize} style={{ left: `${c.left}px`, bottom: `${c.bottom}px`, zIndex: i }} />
                 ))}
                 {!bbStack && allStacks.map((stack, si) => {
                     const pos = getClusterPosition(si, allStacks.length, chipSize);

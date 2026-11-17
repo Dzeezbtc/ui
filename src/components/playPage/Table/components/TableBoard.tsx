@@ -9,7 +9,7 @@
  */
 
 import React, { useMemo } from "react";
-import { TableStyle, isThreeTableStyle, usesFlagshipLayout } from "../../../../utils/tableStyle";
+import { TableStyle, dealsFaceDown, usesFlagshipLayout } from "../../../../utils/tableStyle";
 import { getCardImageUrl, getCardBackUrl, CardBackStyle } from "../../../../utils/cardImages";
 import { PotDisplayValues } from "../../../../utils/potDisplayUtils";
 import { useCardAnimations } from "../../../../hooks/animations/useCardAnimations";
@@ -91,10 +91,10 @@ export const TableBoard: React.FC<TableBoardProps> = ({
                 return (
                     <div
                         key={`${idx}-${card}`}
-                        className={`card${isThreeTableStyle(tableTheme) ? "" : " animate-fall"}${isWinCard ? " animate-win-card" : ""}${shouldMute ? " opacity-40" : ""}`}
+                        className={`card${dealsFaceDown(tableTheme) ? "" : " animate-fall"}${isWinCard ? " animate-win-card" : ""}${shouldMute ? " opacity-40" : ""}`}
                     >
-                        {isThreeTableStyle(tableTheme) ? (
-                            // A 3D table (Bad Beat, Maison 52): the card lands face down on the felt, is rolled over, then lifts up flat (ui#36)
+                        {dealsFaceDown(tableTheme) ? (
+                            // Bad Beat, Maison 52, Chip and a Chair: the card lands face down on the felt, is rolled over, then lifts up flat (ui#36)
                             <div className="bb-flip">
                                 <div className="bb-flip-in">
                                     <FlagshipCard code={card} className="fs-board bb-flip-front" />
@@ -124,7 +124,12 @@ export const TableBoard: React.FC<TableBoardProps> = ({
     return (
         <>
             {/* Club Logo (Maison 52 draws its wordmark on the 3D felt) */}
-            {tableTheme === "maison" ? null : tableTheme === "badbeat" ? (
+            {tableTheme === "maison" ? null : tableTheme === "chipchair" ? (
+                // Chip and a Chair's felt: its name, big and faint, as in the concept
+                <div className="table-logo cc-logo" aria-hidden="true">
+                    <span className="cc-wordmark">Chip and a Chair</span>
+                </div>
+            ) : tableTheme === "badbeat" ? (
                 // Bad Beat's felt: the broadcast wordmark, slanted, "BEAT" in crimson.
                 <div className="table-logo fs-logo bb-logo" aria-hidden="true">
                     <span className="bb-wordmark">

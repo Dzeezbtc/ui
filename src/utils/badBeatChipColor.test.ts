@@ -46,3 +46,13 @@ describe("badBeatChipColor for Maison 52", () => {
         expect(badBeatChipColor(500, "maison")).toEqual({ color: "#1d1a16", slash: "#cdb07f" });
     });
 });
+
+describe("badBeatChipColor for Chip and a Chair", () => {
+    it("runs white, red, blue, lavender, yellow up the values", () => {
+        expect(badBeatChipColor(1, "chipchair").color).toBe("#ffffff");
+        expect(badBeatChipColor(5, "chipchair").color).toBe("#ff4d3d");
+        expect(badBeatChipColor(25, "chipchair").color).toBe("#3d7bff");
+        expect(badBeatChipColor(100, "chipchair").color).toBe("#b9a2ff");
+        expect(badBeatChipColor(500, "chipchair").color).toBe("#ffd23f");
+    });
+});
