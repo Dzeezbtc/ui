@@ -776,6 +776,7 @@ const Table = React.memo(({ tableId }: TableProps = {}) => {
     // Card back style configuration - driven by VITE_CARD_BACK_URL env var
     // Options: "default", "block52", "custom", "legacy", or a full URL to a custom SVG
     const clubLook = useClubLook(id);
+    const radioSlot = clubLook && hasElements(clubLook.radio) ? <TableRadio stations={clubLook.radio} /> : null;
     const cardBackStyle: CardBackStyle = clubLook?.cardBack ?? (import.meta.env.VITE_CARD_BACK_URL || "default");
 
     // Game Start Countdown
@@ -1427,6 +1428,7 @@ const Table = React.memo(({ tableId }: TableProps = {}) => {
                 <MobileTableHeader
                     tableId={id || ""}
                     tableName={gameName}
+                    radioSlot={radioSlot}
                     handleOpenReplay={isReplayMode ? undefined : handleOpenReplay}
                     replayHand={replayHand}
                     currentNetwork={currentNetwork}
@@ -1464,6 +1466,7 @@ const Table = React.memo(({ tableId }: TableProps = {}) => {
                 <TableHeader
                     tableId={id || ""}
                     tableName={gameName}
+                    radioSlot={radioSlot}
                     handleOpenReplay={isReplayMode ? undefined : handleOpenReplay}
                     replayHand={replayHand}
                     isMobileLandscape={isMobileLandscape}
@@ -1576,7 +1579,6 @@ const Table = React.memo(({ tableId }: TableProps = {}) => {
                                           : "rgba(255, 255, 255, 0.08)"
                             }}
                         >
-                            {clubLook && hasElements(clubLook.radio) && <TableRadio stations={clubLook.radio} />}
                             <TableBoard
                                 clubLogo={clubLook?.logo ?? clubLogo}
                                 potDisplayValues={potDisplayValues}

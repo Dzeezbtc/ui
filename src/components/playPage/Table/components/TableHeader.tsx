@@ -37,6 +37,8 @@ export interface TableHeaderProps {
     tableId: string;
     /** Optional ENS-style table name (poker-vm#337); falls back to the truncated tableId when absent. */
     tableName?: string;
+    /** Table radio button, shown beside the provably fair shield (block52-club#46). */
+    radioSlot?: React.ReactNode;
     isMobileLandscape: boolean;
 
     // Game data
@@ -81,6 +83,7 @@ export interface TableHeaderProps {
 export const TableHeader: React.FC<TableHeaderProps> = ({
     tableId,
     tableName,
+    radioSlot,
     isMobileLandscape,
     gameFormat,
     gameVariant,
@@ -294,6 +297,7 @@ export const TableHeader: React.FC<TableHeaderProps> = ({
                                 tableName={tableName}
                                 gameLabel={gameOptions ? formatTableGameDisplay(gameVariant, gameOptions.bettingLimit) : undefined}
                             />
+                            {radioSlot}
                             </span>
                             <span data-part="status-actions" className={`hidden sm:inline-block text-[15px] font-semibold ${styles.secondaryText}`}>
                                 <span className="ml-2">{t("felt.actionCount", { count: actionCount })}</span>

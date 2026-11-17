@@ -1,9 +1,12 @@
-import React, { useEffect, useRef, useState } from "react";
+import React, { useCallback, useEffect, useRef, useState } from "react";
 import { FaMusic, FaStop } from "react-icons/fa";
 import { useLanguage } from "../../i18n/useLanguage";
-import { isNumber, isString } from "../../utils/guards";
+import { hasValue, isNumber, isString } from "../../utils/guards";
+import { popoverPosition } from "../../utils/provablyFair/presentation";
+import styles from "./ProvablyFair/ProvablyFair.module.css";
 
 const KEY = "b52.table.radio";
+const PANEL_WIDTH = 224;
 
 /** Last station and volume, kept in this browser only. */
 export function readRadioPrefs(): { url: string | null; volume: number } {
@@ -26,10 +29,13 @@ function saveRadioPrefs(p: { url: string | null; volume: number }) {
 /**
  * The table radio (block52-club#46): the club's stations, played in the page.
  * Never starts by itself; stops when the player leaves the table.
+ * Sits in the table header beside the provably fair shield and matches it.
  */
 export const TableRadio: React.FC<{ stations: { name: string; url: string }[] }> = ({ stations }) => {
     const audio = useRef<HTMLAudioElement | null>(null);
-    const [open, setOpen] = useState(false);
+    const anchorRef = useRef<HTMLButtonElement>(null);
+    const panelRef = useRef<HTMLDivElement>(null);
+    const [panelAt, setPanelAt] = useState<{ top: number; left: number } | null>(null);
     const [playing, setPlaying] = useState<string | null>(null);
     const [volume, setVolume] = useState(() => readRadioPrefs().volume);
     const [error, setError] = useState<string | null>(null);
@@ -43,6 +49,30 @@ export const TableRadio: React.FC<{ stations: { name: string; url: string }[] }>
         },
         []
     );
+
+    const toggle = useCallback(() => {
+        if (hasValue(panelAt)) return setPanelAt(null);
+        const rect = anchorRef.current?.getBoundingClientRect();
+        if (rect) setPanelAt(popoverPosition(rect, PANEL_WIDTH, window.innerWidth));
+    }, [panelAt]);
+
+    // Close the list on an outside click or Escape; the music keeps playing.
+    useEffect(() => {
+        if (!hasValue(panelAt)) return;
+        const onDown = (e: MouseEvent) => {
+            if (!(e.target instanceof Node)) return;
+            if (!panelRef.current?.contains(e.target) && !anchorRef.current?.contains(e.target)) setPanelAt(null);
+        };
+        const onKey = (e: KeyboardEvent) => {
+            if (e.key === "Escape") setPanelAt(null);
+        };
+        document.addEventListener("mousedown", onDown);
+        window.addEventListener("keydown", onKey);
+        return () => {
+            document.removeEventListener("mousedown", onDown);
+            window.removeEventListener("keydown", onKey);
+        };
+    }, [panelAt]);
 
     const stop = () => {
         audio.current?.pause();
@@ -67,19 +97,30 @@ export const TableRadio: React.FC<{ stations: { name: string; url: string }[] }>
     };
 
     return (
-        <div className="absolute left-1/2 -top-12 z-30 -translate-x-1/2">
+        <>
             <button
+                ref={anchorRef}
                 type="button"
-                onClick={() => setOpen(o => !o)}
+                onClick={toggle}
                 title={t("club.radio")}
                 aria-label={t("club.radio")}
-                aria-expanded={open}
-                className={`flex h-9 w-9 items-center justify-center rounded-full border ${playing ? "border-emerald-400 text-emerald-300" : "border-white/20 text-white/80"} bg-black/60 hover:bg-black/80`}
+                aria-expanded={hasValue(panelAt)}
+                aria-haspopup="menu"
+                className={styles.badge}
+                data-testid="table-radio"
+                data-playing={playing ? "true" : undefined}
+                style={playing ? { borderColor: "var(--accent-success)" } : undefined}
             >
-                <FaMusic size={14} />
+                <FaMusic size={12} className={`${styles.badgeIcon} ${playing ? "animate-pulse" : ""}`} />
             </button>
-            {open && (
-                <div className="absolute left-1/2 top-11 w-56 -translate-x-1/2 rounded-xl border border-white/10 bg-gray-900/95 p-2 shadow-xl" role="menu">
+            {panelAt && (
+                <div
+                    ref={panelRef}
+                    className="fixed z-[10000] w-56 rounded-xl border border-white/10 bg-gray-900/95 p-2 shadow-xl"
+                    style={{ top: panelAt.top, left: panelAt.left }}
+                    role="menu"
+                    data-testid="table-radio-menu"
+                >
                     {stations.map(s => (
                         <button
                             key={s.url}
@@ -116,6 +157,6 @@ export const TableRadio: React.FC<{ stations: { name: string; url: string }[] }>
                     {error && <p className="px-3 pb-1 text-xs text-red-300">{error}</p>}
                 </div>
             )}
-        </div>
+        </>
     );
 };
