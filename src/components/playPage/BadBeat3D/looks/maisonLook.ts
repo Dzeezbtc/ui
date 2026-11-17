@@ -214,30 +214,80 @@ function cardCanvas(code: string): HTMLCanvasElement {
     return c;
 }
 
-/** A chip's rim: its colour with six gold inserts. */
+/** The salon plaques' cream inlay and gold foil (Dzeezbtc/ui#40). */
+const PLAQUE_INLAY = "#EFE4CC";
+const PLAQUE_GOLD = "#CDB07F";
+
+/** A salon plaque's rim: its colour with eight cream inlays, a fine gold line top and bottom. */
 function chipEdge(color: number): HTMLCanvasElement {
     const [c, x] = makeCanvas(256, 24);
     x.fillStyle = hex(color);
     x.fillRect(0, 0, 256, 24);
-    x.fillStyle = "#CDB07F";
-    for (let i = 0; i < 6; i++) x.fillRect(i * 42 + 12, 0, 10, 24);
+    x.fillStyle = plaqueInlay(color);
+    for (let i = 0; i < 8; i++) x.fillRect(i * 32 + 9, 0, 14, 24);
+    x.fillStyle = PLAQUE_GOLD;
+    x.fillRect(0, 2, 256, 2);
+    x.fillRect(0, 20, 256, 2);
     return c;
 }
 
-/** A chip's face: its colour with a gold ring and a fine inner ring. */
+/** The mark on a plaque's centre: gold on the dark chips, espresso on ivory. */
+function plaqueMark(color: number): string {
+    const r = (color >> 16) & 255;
+    const g = (color >> 8) & 255;
+    const b = color & 255;
+    return 0.299 * r + 0.587 * g + 0.114 * b > 160 ? "#4A3418" : PLAQUE_GOLD;
+}
+
+/** A plaque's inlays: cream, or espresso on the pale chips so they still show. */
+function plaqueInlay(color: number): string {
+    return plaqueMark(color) === PLAQUE_GOLD ? PLAQUE_INLAY : "#6B4F2A";
+}
+
+/**
+ * A salon plaque's face: eight cream inlays round the rim, a gold-foil ring
+ * inside the edge, and a raised, finely engraved centre with the M52 monogram.
+ */
 function chipFace(color: number): HTMLCanvasElement {
     const [c, x] = makeCanvas(256, 256);
+    const mark = plaqueMark(color);
     x.fillStyle = hex(color);
     x.fillRect(0, 0, 256, 256);
-    x.strokeStyle = "#CDB07F";
-    x.lineWidth = 8;
+    // eight inlays round the rim
+    x.fillStyle = plaqueInlay(color);
+    for (let i = 0; i < 8; i++) {
+        const a0 = (i / 8) * Math.PI * 2 - Math.PI / 16;
+        x.beginPath();
+        x.arc(128, 128, 128, a0, a0 + Math.PI / 8);
+        x.arc(128, 128, 102, a0 + Math.PI / 8, a0, true);
+        x.closePath();
+        x.fill();
+    }
+    // the gold-foil ring
+    x.strokeStyle = PLAQUE_GOLD;
+    x.lineWidth = 6;
     x.beginPath();
-    x.arc(128, 128, 108, 0, Math.PI * 2);
+    x.arc(128, 128, 94, 0, Math.PI * 2);
     x.stroke();
+    // the engraved centre
+    x.strokeStyle = "rgba(255,255,255,0.08)";
+    x.lineWidth = 1.5;
+    for (let r = 8; r < 72; r += 5) {
+        x.beginPath();
+        x.arc(128, 128, r, 0, Math.PI * 2);
+        x.stroke();
+    }
+    x.strokeStyle = mark;
     x.lineWidth = 3;
     x.beginPath();
-    x.arc(128, 128, 72, 0, Math.PI * 2);
+    x.arc(128, 128, 74, 0, Math.PI * 2);
     x.stroke();
+    // the monogram
+    x.fillStyle = mark;
+    x.textAlign = "center";
+    x.textBaseline = "middle";
+    x.font = "700 64px 'Cormorant Garamond', Georgia, serif";
+    x.fillText("M52", 128, 132);
     return c;
 }
 
