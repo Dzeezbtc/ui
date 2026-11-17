@@ -12,9 +12,22 @@ export const BB_FLAT_CHIP_COLORS: [number, string, string][] = [
     [0, "#eef1f5", "#15181d"]
 ];
 
-/** The colour of a chip of this value (dollars, or tournament points) and of its slash. */
-export const badBeatChipColor = (value: number): { color: string; slash: string } => {
-    const [, color, slash] = BB_FLAT_CHIP_COLORS.find(([min]) => value >= min)!;
+/**
+ * Maison 52's chips (Dzeezbtc/ui#38), as on its 3D table: ivory, navy, bottle
+ * green, bordeaux and black from the smallest value up, each with its mark
+ * (gold on the dark chips, espresso on ivory).
+ */
+export const MAISON_FLAT_CHIP_COLORS: [number, string, string][] = [
+    [500, "#1d1a16", "#cdb07f"],
+    [100, "#6e1f2b", "#cdb07f"],
+    [25, "#0f3b2e", "#cdb07f"],
+    [5, "#22427a", "#cdb07f"],
+    [0, "#f4eee2", "#6b4f2a"]
+];
+
+/** The colour of a chip of this value (dollars, or tournament points) and of its mark, for a 3D table's look. */
+export const badBeatChipColor = (value: number, look: "badbeat" | "maison" = "badbeat"): { color: string; slash: string } => {
+    const [, color, slash] = (look === "maison" ? MAISON_FLAT_CHIP_COLORS : BB_FLAT_CHIP_COLORS).find(([min]) => value >= min)!;
     return { color, slash };
 };
 

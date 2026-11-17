@@ -1,0 +1,1257 @@
+/*
+ * Maison 52 — a full table skin (table style "maison", Dzeezbtc/ui#38), drawn
+ * from the Maison 52 concept (design/concepts/10-maison): a night salon.
+ *
+ * The table root carries data-skin="flagship", data-look="maison" and
+ * data-three: the flagship sheet supplies the shared plumbing (the clean top
+ * bar, the tools, banners and clocks), three-table.css the 3D table's, and
+ * everything you see is drawn here: ivory and champagne gold on bordeaux-black
+ * lacquer, Cormorant Garamond with Jost small caps, ivory gilt cards, round
+ * initial avatars, and layout A — the concept's dock (your cards, stack and
+ * hand, whose turn, then the actions) as a bar along the bottom, a column on a
+ * sideways phone, a block on an upright one. Same controls, same behaviour.
+ */
+@import url("https://fonts.googleapis.com/css2?family=Cormorant+Garamond:ital,wght@0,500;0,600;0,700;1,500;1,600&family=Jost:wght@400;500;600&display=swap");
+
+/* ---------- palette ---------- */
+[data-look="maison"] {
+    --fs-bg: #170a0f;
+    --fs-bg-rgb: 23, 10, 15;
+    --fs-bg2: #1e0f15;
+    --fs-bg3-rgb: 42, 20, 28;
+    --fs-glass-rgb: 30, 15, 21;
+    --fs-glass: rgba(30, 15, 21, 0.9);
+    --fs-line: rgba(205, 176, 127, 0.14);
+    --fs-line2: rgba(205, 176, 127, 0.3);
+    --fs-fg: #f1e9da;
+    --fs-muted: #b3a48b;
+    --fs-faint: #7d6f5c;
+    --fs-vi: #cdb07f;
+    --fs-vi-rgb: 205, 176, 127;
+    --fs-vi-soft: #e3cc9e;
+    --fs-vi-mid: #e3cc9e;
+    --fs-mag: #cdb07f;
+    --fs-mag-rgb: 205, 176, 127;
+    --fs-blue: #e3cc9e;
+    --fs-blue-rgb: 227, 204, 158;
+    --fs-cyan: #e3cc9e;
+    --fs-cyan2: #e3cc9e;
+    --fs-cyan-rgb: 227, 204, 158;
+    --fs-hot: #e3cc9e;
+    --fs-hot-rgb: 227, 204, 158;
+    --fs-gold: #cdb07f;
+    --fs-good: #7fae8b;
+    --fs-grad: linear-gradient(120deg, #e8d3a6, #b8925a);
+    --fs-sans: "Jost", ui-sans-serif, system-ui, sans-serif;
+    --fs-disp: "Cormorant Garamond", Georgia, serif;
+    --fs-mono: "Jost", ui-sans-serif, system-ui, sans-serif;
+    /* the look's display face (stacks, amounts, ranks): Cormorant Garamond */
+    --bb-cond: "Cormorant Garamond", Georgia, serif;
+    --bb-rank: "Cormorant Garamond", Georgia, serif;
+    --bb-red: #cdb07f;
+    --bb-bg3: #241218;
+    --bb-steel: #2e1820;
+    --ms-ivory: #f4eee2;
+    --ms-gold: #cdb07f;
+    --ms-gold2: #d6b06a;
+    --ms-wine: #6e1f2b;
+    --ms-emerald: #0f3b2e;
+    --ms-ink: #1d1a16;
+    --ms-small: "Jost", ui-sans-serif, system-ui, sans-serif;
+}
+
+/* ---------- cards: white, condensed italic ranks; backs pink hatched "BB" ---------- */
+[data-look="maison"] .fs-card {
+    background: #fff;
+    color: #170a0f;
+    font-family: var(--bb-rank);
+    border-radius: 11% / 8%;
+    box-shadow:
+        inset 0 0 0 1px rgba(23, 10, 15, 0.12),
+        0 10px 18px -8px rgba(0, 0, 0, 0.8);
+}
+[data-look="maison"] .fs-card.fs-red {
+    color: #e0102f;
+}
+[data-look="maison"] .fs-card::after {
+    content: none;
+}
+/* clear at a glance: a big heavy rank, a big suit under it, a bigger one in the corner */
+[data-look="maison"] .fs-card .fs-r {
+    left: 9%;
+    top: 2%;
+    font-family: var(--bb-rank);
+    font-weight: 800;
+    font-size: 46cqw;
+    line-height: 1;
+    letter-spacing: -0.04em;
+}
+[data-look="maison"] .fs-card .fs-s {
+    left: 10%;
+    top: calc(6% + 44cqw);
+    font-size: 34cqw;
+    line-height: 1;
+}
+[data-look="maison"] .fs-card .fs-pip {
+    font-size: 54cqw;
+}
+[data-look="maison"] .fs-card.fs-back {
+    background:
+        repeating-linear-gradient(135deg, rgba(255, 255, 255, 0.16) 0 2px, transparent 2px 7px),
+        linear-gradient(160deg, #ff8aa1, #ff4f74);
+    box-shadow:
+        inset 0 0 0 2px #fff,
+        0 8px 14px -6px rgba(0, 0, 0, 0.7);
+}
+[data-look="maison"] .fs-card.fs-back::after {
+    content: "BB";
+    display: grid;
+    place-items: center;
+    background: none;
+    opacity: 1;
+    color: #3a0d18;
+    font-family: var(--bb-cond);
+    font-weight: 900;
+    font-style: italic;
+    font-size: 34cqw;
+    letter-spacing: -0.06em;
+}
+
+/* ---------- seats: the concept's broadcast plate ----------
+ * [square avatar | "Seat 6" over the stack], one row, 150px wide. The round
+ * avatar above the plate is gone; the avatar sits inside the plate's left. */
+[data-skin="flagship"][data-look="maison"] :is([data-part="seat"], [data-part="hero-seat"]) .badge-container {
+    position: relative;
+    flex-direction: column !important;
+    align-items: flex-start !important;
+    justify-content: center;
+    gap: 0 !important;
+    width: 150px !important;
+    min-width: 0 !important;
+    margin: 0 auto;
+    padding: 6px 12px 6px 52px !important;
+    border-radius: 12px !important;
+    background: rgba(30, 15, 21, 0.88) !important;
+    border: 1px solid var(--fs-line2) !important;
+    box-shadow: 0 14px 30px -14px #000 !important;
+    backdrop-filter: blur(10px);
+}
+[data-skin="flagship"][data-look="maison"] :is([data-part="seat"], [data-part="hero-seat"]) .badge-number {
+    display: block !important;
+    width: auto;
+    height: auto;
+    min-width: 0;
+    padding: 0;
+    background: none !important;
+    box-shadow: none !important;
+    color: var(--fs-muted) !important;
+    font-family: var(--fs-sans) !important;
+    font-weight: 500 !important;
+    font-size: 12px !important;
+    line-height: 1.2;
+}
+[data-skin="flagship"][data-look="maison"] [data-part="seat"] .badge-number::before {
+    content: "Seat\00a0";
+}
+[data-skin="flagship"][data-look="maison"] [data-part="hero-seat"] .badge-number {
+    font-size: 0 !important;
+}
+[data-skin="flagship"][data-look="maison"] [data-part="hero-seat"] .badge-number::before {
+    content: "You";
+    font-size: 12px;
+    color: var(--bb-red);
+    font-weight: 700;
+}
+[data-skin="flagship"][data-look="maison"] :is([data-part="seat"], [data-part="hero-seat"]) .badge-value {
+    font-family: var(--bb-cond) !important;
+    font-weight: 800 !important;
+    font-style: italic;
+    font-size: 21px !important;
+    line-height: 1.05;
+    letter-spacing: 0.01em;
+}
+[data-skin="flagship"][data-look="maison"] [data-part="hero-seat"] .badge-value::before {
+    content: none;
+}
+[data-skin="flagship"][data-look="maison"] [data-part="hero-seat"] .badge-container {
+    border-color: rgba(205, 176, 127, 0.8) !important;
+    box-shadow:
+        0 0 0 1px rgba(205, 176, 127, 0.5),
+        0 0 26px rgba(205, 176, 127, 0.35) !important;
+}
+/* the avatar: a 36px rounded square inside the plate's left */
+[data-skin="flagship"][data-look="maison"] :is([data-part="seat"], [data-part="hero-seat"]) [data-part="seat-avatar"],
+[data-skin="flagship"][data-look="maison"] :is([data-part="seat"], [data-part="hero-seat"]) [class*="avatarChip"] {
+    display: block !important;
+    position: absolute !important;
+    z-index: 6 !important;
+    top: 0 !important;
+    left: calc(50% - 75px + 8px) !important;
+    right: auto !important;
+    width: 36px !important;
+    height: 36px !important;
+    margin: 0 !important;
+    transform: none !important;
+    border: 0 !important;
+    border-radius: 9px !important;
+    box-shadow: none !important;
+}
+/* the plate sits where the avatar's circle was */
+[data-skin="flagship"][data-look="maison"] :is([data-part="seat"], [data-part="hero-seat"]) > div:last-child > div.absolute {
+    top: -8px !important;
+    z-index: 5;
+}
+[data-skin="flagship"][data-look="maison"] :is([data-part="seat"], [data-part="hero-seat"]) > div:last-child > div.h-\[55px\] {
+    height: 44px !important;
+}
+/* their two face-down cards sit side by side over the plate, a little fanned */
+[data-skin="flagship"][data-look="maison"] :is([data-part="seat"], [data-part="hero-seat"]) [data-part="hole-cards"] {
+    position: relative !important;
+    left: auto !important;
+    right: auto !important;
+    top: auto !important;
+    bottom: auto !important;
+    transform: none !important;
+    flex-direction: row !important;
+    justify-content: center;
+    align-items: flex-end;
+    gap: 3px !important;
+    height: 56px;
+    margin-bottom: 2px;
+    z-index: 0;
+}
+[data-skin="flagship"][data-look="maison"] :is([data-part="seat"], [data-part="hero-seat"]) [data-part="hole-cards"] .fs-card {
+    width: 38px !important;
+    height: auto !important;
+    margin: 0 !important;
+    opacity: 1 !important;
+    transform-origin: 50% 100%;
+}
+[data-skin="flagship"][data-look="maison"] :is([data-part="seat"], [data-part="hero-seat"]) [data-part="hole-cards"] .fs-card:first-child {
+    transform: rotate(-5deg) !important;
+}
+[data-skin="flagship"][data-look="maison"] :is([data-part="seat"], [data-part="hero-seat"]) [data-part="hole-cards"] .fs-card + .fs-card {
+    margin: 0 !important;
+    transform: rotate(5deg) !important;
+}
+/* your two at your seat: face up, the same size as everyone's */
+[data-skin="flagship"][data-look="maison"] [data-part="hero-seat"] [data-part="hole-cards"] .fs-card {
+    width: 40px !important;
+}
+/* shown at showdown: a size up, still over the plate */
+[data-skin="flagship"][data-look="maison"] [data-part="seat"] [data-part="hole-cards"][data-shown] .fs-card {
+    width: 46px !important;
+}
+[data-skin="flagship"][data-look="maison"] :is([data-part="seat"], [data-part="hero-seat"]) [data-part="hole-cards"] > div:not(.fs-card) {
+    display: none;
+}
+
+/* ---------- what a player just did: a slanted white tag ---------- */
+[data-skin="flagship"][data-look="maison"] .seat-banner-box:has(.action-display-content) {
+    border-radius: 0 !important;
+    transform: skewX(-12deg);
+    background: var(--fs-fg) !important;
+    border: 0 !important;
+    box-shadow: 0 6px 14px -6px #000 !important;
+}
+[data-skin="flagship"][data-look="maison"] .seat-banner-box :is(.action-display-text, .action-display-amount) {
+    color: #170a0f !important;
+    font-family: var(--bb-cond) !important;
+    font-weight: 800 !important;
+    font-style: italic;
+    text-transform: uppercase;
+    letter-spacing: 0.04em;
+}
+
+/* ---------- whose turn on the table ---------- */
+[data-skin="flagship"][data-look="maison"] .turn-animation-ring {
+    background: radial-gradient(closest-side, rgba(205, 176, 127, 0.35), rgba(205, 176, 127, 0.1) 60%, transparent);
+}
+[data-skin="flagship"][data-look="maison"] [data-part="turn-clock-fill"] {
+    background: var(--bb-red) !important;
+}
+
+/* ---------- dealer: a white "D" disc on the plate's top corner ---------- */
+[data-skin="flagship"][data-look="maison"] [data-part="seat-dealer"] {
+    width: 30px !important;
+    height: 30px !important;
+    top: -12px !important;
+    left: calc(50% + 60px) !important;
+    background: #fff !important;
+    box-shadow:
+        0 0 0 2px #170a0f,
+        0 6px 10px -4px #000 !important;
+    font-family: var(--bb-cond) !important;
+    font-weight: 900 !important;
+    font-style: italic;
+    font-size: 18px !important;
+    color: #170a0f !important;
+}
+[data-skin="flagship"][data-look="maison"] [data-part="seat"]:is([data-card-side="left"], [data-card-side="up"]) [data-part="seat-dealer"],
+[data-skin="flagship"][data-look="maison"] [data-part="hero-seat"] [data-part="seat-dealer"] {
+    top: -12px !important;
+    left: calc(50% + 60px) !important;
+}
+[data-skin="flagship"][data-look="maison"] [data-part="seat-dealer"] {
+    z-index: 8 !important;
+}
+[data-skin="flagship"][data-look="maison"] [data-part="seat-dealer"]::after {
+    content: none;
+}
+
+/* ---------- pot and bets: slanted broadcast labels ---------- */
+[data-skin="flagship"][data-look="maison"] [data-part="pot"] {
+    border-radius: 0 !important;
+    border: 0 !important;
+    border-left: 3px solid var(--bb-red) !important;
+    background: rgba(23, 10, 15, 0.78) !important;
+    transform: skewX(-12deg);
+    font-family: var(--bb-cond) !important;
+    font-style: italic;
+    font-size: 18px !important;
+}
+[data-skin="flagship"][data-look="maison"] [data-part="pot"] .fs-pot-name {
+    font-family: var(--bb-cond);
+    color: var(--fs-muted);
+}
+[data-skin="flagship"][data-look="maison"] [data-part="pot"] .fs-pot-value {
+    font-family: var(--bb-cond);
+    font-weight: 800;
+    font-size: 1.2em;
+}
+[data-skin="flagship"][data-look="maison"] :is(.pot-pill-label, .chip-caption) {
+    border-radius: 0 !important;
+    border: 0 !important;
+    background: none !important;
+    font-family: var(--bb-cond) !important;
+    font-weight: 800;
+    font-style: italic;
+    text-shadow: 0 2px 6px #000;
+}
+/* a bet: the chips and the amount in condensed italic, no pill behind them */
+[data-skin="flagship"][data-look="maison"] [class*="bg-[#00000054]"] {
+    background: none !important;
+}
+[data-skin="flagship"][data-look="maison"] [class*="bg-[#00000054]"] > span[class*="text-[#dbd3d3]"] {
+    color: #fff !important;
+    font-family: var(--bb-cond);
+    font-weight: 800 !important;
+    font-style: italic;
+    font-size: 1.15em;
+    text-shadow: 0 2px 6px #000;
+}
+[data-skin="flagship"][data-look="maison"] [data-part="board-slot"] {
+    border-radius: 9px !important;
+    background: rgba(255, 255, 255, 0.025);
+    box-shadow: inset 0 0 0 1px rgba(205, 176, 127, 0.1);
+}
+
+/* ---------- top bar ---------- */
+[data-look="maison"] .fs-topbar-game {
+    font-family: var(--bb-cond);
+    font-weight: 800;
+    font-style: italic;
+    font-size: 1.15em;
+    text-transform: uppercase;
+    letter-spacing: 0.03em;
+}
+
+/* ---------- street tracker: under the game title ---------- */
+[data-skin="flagship"][data-look="maison"] [data-part="street-tracker"] {
+    top: calc(env(safe-area-inset-top) + 60px);
+    left: calc(env(safe-area-inset-left) + 14px);
+    transform: none;
+    display: flex;
+    gap: 3px;
+    padding: 4px;
+    border-radius: 12px;
+    background: rgba(30, 15, 21, 0.85);
+    border: 1px solid var(--fs-line);
+    pointer-events: none;
+}
+[data-skin="flagship"][data-look="maison"] [data-part="street-tracker"] span {
+    padding: 3px 11px;
+    transform: skewX(-12deg);
+    background: var(--bb-bg3);
+    font-family: var(--bb-cond);
+    font-weight: 800;
+    font-style: italic;
+    font-size: 15px;
+    text-transform: uppercase;
+    letter-spacing: 0.04em;
+    color: var(--fs-faint);
+}
+[data-skin="flagship"][data-look="maison"] [data-part="street-tracker"] span[data-state="done"] {
+    color: var(--fs-muted);
+}
+[data-skin="flagship"][data-look="maison"] [data-part="street-tracker"] span[data-state="now"] {
+    background: var(--bb-red);
+    color: #fff;
+}
+[data-skin="flagship"][data-look="maison"][data-orient="portrait"] [data-part="street-tracker"] {
+    top: calc(env(safe-area-inset-top) + 54px);
+    left: calc(env(safe-area-inset-left) + 10px);
+}
+[data-skin="flagship"][data-look="maison"][data-orient="portrait"] [data-part="street-tracker"] span {
+    padding: 2px 8px;
+    font-size: 12px;
+}
+
+/* ---------- you, big at the bottom: your cards and "You $412.50 · Pair of queens" ---------- */
+[data-skin="flagship"][data-look="maison"] [data-part="bb-hero-dock"] {
+    position: fixed;
+    z-index: 40;
+    left: 50%;
+    bottom: calc(env(safe-area-inset-bottom) + 18px);
+    transform: translateX(-50%);
+    display: flex;
+    align-items: flex-end;
+    gap: 14px;
+    pointer-events: none;
+}
+[data-skin="flagship"][data-look="maison"] [data-part="bb-hero-cards"] {
+    display: flex;
+    gap: 8px;
+}
+[data-skin="flagship"][data-look="maison"] .bb-hero-card {
+    width: 84px;
+    box-shadow: 0 18px 30px -10px rgba(0, 0, 0, 0.8);
+}
+[data-skin="flagship"][data-look="maison"] .bb-hero-card:first-child {
+    transform: rotate(-4deg);
+}
+[data-skin="flagship"][data-look="maison"] .bb-hero-card + .bb-hero-card {
+    transform: rotate(4deg);
+}
+[data-skin="flagship"][data-look="maison"] [data-part="bb-hero-info"] {
+    display: flex;
+    align-items: center;
+    gap: 10px;
+    margin-bottom: 8px;
+    padding: 7px 16px;
+    border-radius: 10px;
+    background: rgba(30, 15, 21, 0.92);
+    border: 1px solid var(--fs-line2);
+    white-space: nowrap;
+}
+[data-skin="flagship"][data-look="maison"] [data-part="bb-hero-info"] span {
+    font-size: 13px;
+    color: var(--fs-muted);
+}
+[data-skin="flagship"][data-look="maison"] [data-part="bb-hero-info"] b {
+    font-family: var(--bb-cond);
+    font-weight: 800;
+    font-style: italic;
+    font-size: 24px;
+    color: var(--fs-fg);
+}
+[data-skin="flagship"][data-look="maison"] [data-part="bb-hero-info"] .bb-hero-strength {
+    color: var(--fs-fg);
+    font-weight: 600;
+}
+[data-skin="flagship"][data-look="maison"] [data-part="bb-hero-dock"][data-mine] [data-part="bb-hero-info"] {
+    border-color: var(--bb-red);
+    box-shadow: 0 0 24px rgba(205, 176, 127, 0.35);
+}
+[data-skin="flagship"][data-look="maison"] [data-part="bb-hero-dock"][data-folded] [data-part="bb-hero-cards"] {
+    opacity: 0.3;
+    filter: grayscale(1);
+}
+/* the dock says the hand strength; the panel says it is your turn */
+[data-skin="flagship"][data-look="maison"] [data-part="hand-strength"],
+[data-skin="flagship"][data-look="maison"] [data-part="turn-status"][data-mine] {
+    display: none;
+}
+
+/* ---------- the action panel: one card, bottom right ---------- */
+[data-skin="flagship"][data-look="maison"] [data-part="footer"] {
+    left: auto !important;
+    right: calc(env(safe-area-inset-right) + 18px);
+    bottom: calc(env(safe-area-inset-bottom) + 18px) !important;
+    width: 430px !important;
+    height: auto !important;
+    background: none !important;
+    backdrop-filter: none !important;
+}
+[data-skin="flagship"][data-look="maison"] [data-part="footer"] > div,
+[data-skin="flagship"][data-look="maison"] [data-part="footer"] > div > div:not([data-part]) {
+    position: relative !important;
+    height: auto !important;
+    max-width: none !important;
+    padding: 0 !important;
+    bottom: auto !important;
+}
+[data-skin="flagship"][data-look="maison"] [data-part="action-panel"] {
+    display: flex !important;
+    flex-direction: column;
+    gap: 10px;
+    width: 100% !important;
+    margin: 0 !important;
+    padding: 14px;
+    border-radius: 16px !important;
+    background: rgba(30, 15, 21, 0.9) !important;
+    border: 1px solid var(--fs-line2);
+    backdrop-filter: blur(16px);
+    box-shadow: 0 30px 60px -20px #000;
+}
+[data-skin="flagship"][data-look="maison"] [data-part="action-panel"] > * {
+    margin: 0 !important;
+}
+/* the concept's order: header, presets, slider + amount, pot odds, then the buttons */
+[data-skin="flagship"][data-look="maison"] [data-part="bb-panel-head"] {
+    order: 0;
+    display: flex;
+    justify-content: space-between;
+    align-items: center;
+    font-size: 13px;
+    color: var(--fs-muted);
+}
+[data-skin="flagship"][data-look="maison"] [data-part="bb-panel-head"] b {
+    color: var(--bb-red);
+    font-weight: 600;
+}
+[data-skin="flagship"][data-look="maison"] [data-part="action-panel"] > :has(> .btn-pot) {
+    order: 1;
+    display: grid !important;
+    grid-auto-flow: column;
+    grid-auto-columns: minmax(0, 1fr);
+    gap: 5px !important;
+}
+[data-skin="flagship"][data-look="maison"] [data-part="raise-slider"] {
+    order: 2;
+}
+[data-skin="flagship"][data-look="maison"] [data-part="bb-panel-odds"] {
+    order: 3;
+    display: flex;
+    justify-content: space-between;
+    gap: 8px;
+    font-size: 12.5px;
+    color: var(--fs-muted);
+}
+[data-skin="flagship"][data-look="maison"] [data-part="bb-panel-odds"] b {
+    color: var(--fs-fg);
+    font-weight: 600;
+}
+[data-skin="flagship"][data-look="maison"] [data-part="action-panel"] > :has(> :is(.btn-fold, .btn-check, .btn-call)) {
+    order: 4;
+    display: grid !important;
+    grid-template-columns: 1fr 1fr 1.3fr;
+    gap: 8px !important;
+}
+/* presets: small steel keys */
+[data-skin="flagship"][data-look="maison"] :is(.btn-pot, .btn-all-in) {
+    height: 34px !important;
+    padding: 0 !important;
+    border-radius: 8px !important;
+    background: var(--bb-bg3) !important;
+    border: 1px solid var(--fs-line) !important;
+    color: var(--fs-muted) !important;
+    font-family: var(--fs-sans) !important;
+    font-size: 12px !important;
+    font-style: normal !important;
+    font-weight: 600 !important;
+    text-transform: none !important;
+    box-shadow: none !important;
+    transform: none !important;
+}
+[data-skin="flagship"][data-look="maison"] .btn-all-in {
+    color: var(--bb-red) !important;
+    border-color: rgba(205, 176, 127, 0.45) !important;
+}
+/* slider + amount */
+[data-skin="flagship"][data-look="maison"] [data-part="raise-slider"] {
+    padding: 0 !important;
+    gap: 10px;
+    background: none !important;
+    border: 0 !important;
+    box-shadow: none !important;
+    backdrop-filter: none !important;
+}
+[data-skin="flagship"][data-look="maison"] [data-part="raise-slider"] > * {
+    margin-left: 0 !important;
+    margin-right: 0 !important;
+}
+[data-skin="flagship"][data-look="maison"] [data-part="raise-slider"] .btn-slider {
+    width: 30px !important;
+    height: 30px !important;
+    padding: 0 !important;
+    border-radius: 8px !important;
+    background: var(--bb-bg3) !important;
+    border: 1px solid var(--fs-line) !important;
+    color: var(--fs-muted) !important;
+}
+[data-skin="flagship"][data-look="maison"] [data-part="raise-slider"] input[type="range"] {
+    flex: 1;
+    accent-color: var(--bb-red);
+}
+[data-skin="flagship"][data-look="maison"] [data-part="raise-slider"] input[type="range"]::-webkit-slider-thumb {
+    width: 18px !important;
+    height: 18px !important;
+    border-radius: 5px !important;
+    background: #fff !important;
+    border: 0 !important;
+    box-shadow: 0 0 0 3px var(--bb-red) !important;
+}
+[data-skin="flagship"][data-look="maison"] [data-part="raise-slider"] input[type="range"]::-moz-range-thumb {
+    border-radius: 5px !important;
+    background: #fff !important;
+    box-shadow: 0 0 0 3px var(--bb-red) !important;
+}
+[data-skin="flagship"][data-look="maison"] [data-part="raise-slider"] input:not([type="range"]) {
+    width: 110px !important;
+    height: 40px !important;
+    padding: 0 10px !important;
+    border-radius: 9px !important;
+    background: #170a0f !important;
+    border: 1px solid var(--fs-line2) !important;
+    font-family: var(--bb-cond) !important;
+    font-weight: 800;
+    font-style: italic;
+    font-size: 22px !important;
+    text-align: right;
+}
+/* Fold / Call / Raise */
+[data-skin="flagship"][data-look="maison"] :is(.btn-fold, .btn-check, .btn-call, .btn-raise, .btn-deal, .btn-small-blind, .btn-big-blind) {
+    height: 52px !important;
+    min-height: 0 !important;
+    padding: 0 6px !important;
+    flex-direction: column;
+    gap: 2px !important;
+    border-radius: 12px !important;
+    font-family: var(--bb-cond) !important;
+    font-weight: 800 !important;
+    font-style: italic;
+    font-size: 22px !important;
+    line-height: 1 !important;
+    text-transform: uppercase;
+    letter-spacing: 0.02em;
+    white-space: nowrap;
+    transform: none !important;
+}
+[data-skin="flagship"][data-look="maison"] :is(.btn-fold, .btn-check, .btn-call, .btn-raise) :is(span, small) {
+    font-family: var(--fs-sans) !important;
+    font-style: normal;
+    font-weight: 600 !important;
+    font-size: 12px !important;
+    text-transform: none;
+    letter-spacing: 0;
+    opacity: 0.85;
+}
+[data-skin="flagship"][data-look="maison"] .btn-fold {
+    background: var(--bb-bg3) !important;
+    border: 1px solid var(--fs-line2) !important;
+    color: var(--fs-muted) !important;
+}
+[data-skin="flagship"][data-look="maison"] :is(.btn-check, .btn-call, .btn-small-blind, .btn-big-blind) {
+    background: var(--bb-steel) !important;
+    border: 1px solid var(--fs-line2) !important;
+    color: var(--fs-fg) !important;
+}
+[data-skin="flagship"][data-look="maison"] :is(.btn-raise, .btn-deal) {
+    background: var(--bb-red) !important;
+    border: 0 !important;
+    color: #fff !important;
+    box-shadow: 0 12px 30px -10px rgba(205, 176, 127, 0.9) !important;
+}
+
+/* ---------- top-up sits over "Seat me" on the left, clear of the panel ---------- */
+[data-skin="flagship"][data-look="maison"] [data-part="side-actions"]:has([data-part="top-up"]) {
+    left: calc(env(safe-area-inset-left) + 18px) !important;
+    right: auto !important;
+    top: auto !important;
+    bottom: calc(env(safe-area-inset-bottom) + 140px) !important;
+    transform: none !important;
+}
+
+/* ---------- the turn label (while you wait) ---------- */
+[data-skin="flagship"][data-look="maison"] [data-part="turn-status"] {
+    border-radius: 10px;
+}
+[data-skin="flagship"][data-look="maison"] [data-part="turn-status"] b {
+    font-family: var(--bb-cond);
+    font-style: italic;
+    font-weight: 800;
+    text-transform: uppercase;
+    letter-spacing: 0.03em;
+}
+
+/* ---------- upright phone: the panel full width at the bottom, no dock ---------- */
+[data-skin="flagship"][data-look="maison"][data-orient="portrait"] [data-part="footer"] {
+    left: 0 !important;
+    right: 0;
+    bottom: 0 !important;
+    width: auto !important;
+    padding: 0 8px calc(env(safe-area-inset-bottom) + 8px) !important;
+}
+[data-skin="flagship"][data-look="maison"][data-orient="portrait"] [data-part="action-panel"] {
+    gap: 8px;
+    padding: 10px;
+}
+[data-skin="flagship"][data-look="maison"][data-orient="portrait"] :is(.btn-fold, .btn-check, .btn-call, .btn-raise) {
+    height: 46px !important;
+    font-size: 19px !important;
+}
+[data-skin="flagship"][data-look="maison"][data-orient="portrait"] [data-part="bb-hero-dock"] {
+    display: none;
+}
+
+/* ---------- phone held sideways: the panel in a column on the right ----------
+ * The stage leaves BADBEAT_SIDE_COLUMN (290px) on the right (stageGeometry). */
+@media (orientation: landscape) and (max-height: 500px) {
+    [data-skin="flagship"][data-look="maison"] [data-part="footer"] {
+        right: calc(env(safe-area-inset-right) + 8px);
+        bottom: 8px !important;
+        width: 276px !important;
+    }
+    [data-skin="flagship"][data-look="maison"] [data-part="action-panel"] {
+        gap: 6px;
+        padding: 9px;
+    }
+    [data-skin="flagship"][data-look="maison"] [data-part="raise-slider"] > div:first-child:has(> span) {
+        display: none;
+    }
+    [data-skin="flagship"][data-look="maison"] [data-part="raise-slider"] input:not([type="range"]) {
+        width: 76px !important;
+        height: 30px !important;
+        font-size: 17px !important;
+    }
+    [data-skin="flagship"][data-look="maison"] :is(.btn-fold, .btn-check, .btn-call, .btn-raise) {
+        height: 40px !important;
+        font-size: 16px !important;
+    }
+    [data-skin="flagship"][data-look="maison"] :is(.btn-pot, .btn-all-in) {
+        height: 26px !important;
+        font-size: 10.5px !important;
+    }
+    /* as the concept sideways: no pot line (the pot is on the table), so the bet-size row fits */
+    [data-skin="flagship"][data-look="maison"] [data-part="bb-panel-odds"] {
+        display: none;
+    }
+    /* your big cards and "You" box top right, as in the concept */
+    [data-skin="flagship"][data-look="maison"] [data-part="bb-hero-dock"] {
+        left: auto;
+        right: calc(env(safe-area-inset-right) + 8px);
+        top: calc(env(safe-area-inset-top) + 86px);
+        bottom: auto;
+        transform: none;
+        align-items: center;
+        gap: 8px;
+    }
+    [data-skin="flagship"][data-look="maison"] .bb-hero-card {
+        width: 56px;
+    }
+    [data-skin="flagship"][data-look="maison"] [data-part="bb-hero-info"] {
+        margin: 0;
+        padding: 6px 10px;
+        gap: 6px;
+    }
+    [data-skin="flagship"][data-look="maison"] [data-part="bb-hero-info"] b {
+        font-size: 19px;
+    }
+    [data-skin="flagship"][data-look="maison"] [data-part="bb-hero-info"] span {
+        font-size: 11.5px;
+    }
+    /* the street tracker between your cards and the panel */
+    [data-skin="flagship"][data-look="maison"] [data-part="street-tracker"] {
+        top: calc(env(safe-area-inset-top) + 178px);
+        left: auto;
+        right: calc(env(safe-area-inset-right) + 8px);
+    }
+    [data-skin="flagship"][data-look="maison"] [data-part="street-tracker"] span {
+        padding: 2px 9px;
+        font-size: 13px;
+    }
+    /* "Waiting (Seat N's turn)" in the bottom-left corner, clear of the table */
+    [data-skin="flagship"][data-look="maison"] [data-part="turn-status"] {
+        left: calc(env(safe-area-inset-left) + 8px) !important;
+        right: auto;
+        top: auto;
+        bottom: calc(env(safe-area-inset-bottom) + 8px) !important;
+    }
+}
+
+/* ---------- portaled panels ---------- */
+.fs-radio-panel[data-look="maison"] {
+    background: rgba(30, 15, 21, 0.6) !important;
+}
+
+/* ---------- bets: plain white chip discs, as in the concept ---------- */
+[data-look="maison"] .b52-chip {
+    background: radial-gradient(circle at 45% 38%, #ffffff 0%, #eef0f3 55%, #c9ced6 100%) !important;
+    box-shadow:
+        0 0 0 1px rgba(0, 0, 0, 0.35),
+        0 3px 0 #9aa1ab,
+        0 6px 8px -3px rgba(0, 0, 0, 0.85) !important;
+}
+[data-look="maison"] .b52-chip::before,
+[data-look="maison"] .b52-chip::after,
+[data-look="maison"] .b52-chip > * {
+    display: none !important;
+}
+
+
+/* =====================================================================
+ * Maison 52's own look, over the shared parts above
+ * ===================================================================== */
+
+/* ---------- cards: ivory with a gilt edge; backs ivory with the green M monogram ---------- */
+[data-look="maison"] .fs-card {
+    background: linear-gradient(160deg, #fffdf8, #f2eadc);
+    color: #1d1a16;
+    font-family: var(--bb-rank);
+    border-radius: 9% / 6.5%;
+    box-shadow:
+        inset 0 0 0 2px #c9a56a,
+        inset 0 0 0 5px #fffdf8,
+        inset 0 0 0 6px rgba(169, 131, 76, 0.55),
+        0 10px 18px -8px rgba(0, 0, 0, 0.8);
+}
+[data-look="maison"] .fs-card.fs-red {
+    color: #8a1c2c;
+}
+[data-look="maison"] .fs-card .fs-r {
+    font-family: var(--bb-rank);
+    font-weight: 700;
+    font-size: 50cqw;
+    letter-spacing: -0.02em;
+}
+[data-look="maison"] .fs-card.fs-back {
+    background:
+        radial-gradient(circle at 50% 50%, #0f3b2e 0 16%, #cdb07f 16% 17.5%, transparent 17.5%),
+        repeating-radial-gradient(ellipse 60% 80% at 50% 50%, rgba(15, 59, 46, 0.2) 0 1px, transparent 1px 7px),
+        #f7f1e6;
+    box-shadow:
+        inset 0 0 0 2px #c9a56a,
+        inset 0 0 0 6px #f7f1e6,
+        inset 0 0 0 7px #a9834c,
+        0 8px 14px -6px rgba(0, 0, 0, 0.7);
+}
+[data-look="maison"] .fs-card.fs-back::after {
+    content: "M";
+    color: #cdb07f;
+    font-family: var(--bb-rank);
+    font-weight: 600;
+    font-style: italic;
+    font-size: 24cqw;
+    letter-spacing: 0;
+}
+
+/* ---------- plates: lacquer, a fine gold line, round avatar, Jost small caps over a Cormorant stack ---------- */
+[data-skin="flagship"][data-look="maison"] :is([data-part="seat"], [data-part="hero-seat"]) .badge-container {
+    border-radius: 4px !important;
+    background: rgba(30, 15, 21, 0.92) !important;
+    border: 1px solid rgba(205, 176, 127, 0.32) !important;
+}
+[data-skin="flagship"][data-look="maison"] :is([data-part="seat"], [data-part="hero-seat"]) .badge-number {
+    font-family: var(--ms-small) !important;
+    font-weight: 500 !important;
+    font-size: 10.5px !important;
+    letter-spacing: 0.2em;
+    text-transform: uppercase;
+}
+[data-skin="flagship"][data-look="maison"] :is([data-part="seat"], [data-part="hero-seat"]) .badge-value {
+    font-family: var(--bb-cond) !important;
+    font-weight: 600 !important;
+    font-style: normal;
+    font-size: 24px !important;
+    color: var(--fs-fg) !important;
+}
+[data-skin="flagship"][data-look="maison"] [data-part="hero-seat"] .badge-container {
+    border-color: rgba(205, 176, 127, 0.85) !important;
+    box-shadow: 0 0 0 1px rgba(205, 176, 127, 0.35) !important;
+}
+/* your plate says "You", not your seat number */
+[data-skin="flagship"][data-look="maison"] [data-part="hero-seat"] .badge-number {
+    font-size: 0 !important;
+}
+[data-skin="flagship"][data-look="maison"] [data-part="hero-seat"] .badge-number::before {
+    color: var(--ms-gold);
+    font-weight: 500;
+    font-size: 10.5px;
+}
+[data-skin="flagship"][data-look="maison"] :is([data-part="seat"], [data-part="hero-seat"]) [data-part="seat-avatar"],
+[data-skin="flagship"][data-look="maison"] :is([data-part="seat"], [data-part="hero-seat"]) [class*="avatarChip"] {
+    border-radius: 50% !important;
+    box-shadow:
+        0 0 0 1.5px #cdb07f,
+        0 0 0 3px rgba(23, 10, 15, 0.9) !important;
+}
+
+/* ---------- what a player just did: an ivory card, lower-case italic ---------- */
+[data-skin="flagship"][data-look="maison"] .seat-banner-box:has(.action-display-content) {
+    transform: none;
+    border-radius: 2px !important;
+    background: var(--ms-ivory) !important;
+}
+[data-skin="flagship"][data-look="maison"] .seat-banner-box :is(.action-display-text, .action-display-amount) {
+    color: #1d1a16 !important;
+    font-family: var(--bb-cond) !important;
+    font-weight: 600 !important;
+    font-style: italic;
+    text-transform: lowercase;
+    letter-spacing: 0;
+    font-size: 1.15em;
+}
+
+/* ---------- pot and bets: Cormorant, upright, a gold hairline ---------- */
+[data-skin="flagship"][data-look="maison"] [data-part="pot"] {
+    transform: none;
+    border-left: 0 !important;
+    border: 1px solid rgba(205, 176, 127, 0.45) !important;
+    border-radius: 2px !important;
+    background: rgba(23, 10, 15, 0.82) !important;
+    font-style: normal;
+}
+[data-skin="flagship"][data-look="maison"] [data-part="pot"] .fs-pot-name {
+    font-family: var(--ms-small);
+    font-size: 0.6em;
+    letter-spacing: 0.22em;
+    text-transform: uppercase;
+    color: var(--fs-muted);
+}
+[data-skin="flagship"][data-look="maison"] [data-part="pot"] .fs-pot-value {
+    font-weight: 600;
+    font-style: normal;
+}
+[data-skin="flagship"][data-look="maison"] [class*="bg-[#00000054]"] > span[class*="text-[#dbd3d3]"] {
+    font-weight: 600 !important;
+    font-style: normal;
+    color: var(--ms-ivory) !important;
+}
+
+/* ---------- top bar and street tracker ---------- */
+[data-look="maison"] .fs-topbar-game {
+    font-family: var(--bb-cond) !important;
+    font-style: normal !important;
+    font-weight: 600 !important;
+    letter-spacing: 0.01em;
+}
+[data-skin="flagship"][data-look="maison"] [data-part="street-tracker"] {
+    background: none !important;
+    border: 0 !important;
+    box-shadow: none !important;
+    gap: 2px;
+}
+[data-skin="flagship"][data-look="maison"] [data-part="street-tracker"] span {
+    background: none !important;
+    transform: none !important;
+    font-family: var(--bb-cond) !important;
+    font-weight: 500 !important;
+    font-style: italic;
+    text-transform: none !important;
+    letter-spacing: 0;
+    font-size: 19px;
+    color: var(--fs-faint) !important;
+}
+[data-skin="flagship"][data-look="maison"] [data-part="street-tracker"] span + span::before {
+    content: "◆";
+    margin: 0 10px;
+    font-size: 8px;
+    font-style: normal;
+    vertical-align: middle;
+    color: var(--ms-gold);
+}
+[data-skin="flagship"][data-look="maison"] [data-part="street-tracker"] span[data-state="done"] {
+    color: var(--fs-muted) !important;
+}
+[data-skin="flagship"][data-look="maison"] [data-part="street-tracker"] span[data-state="now"] {
+    color: var(--ms-ivory) !important;
+}
+
+/* ---------- the action panel: Jost small caps, gold hairlines, a gold Raise ---------- */
+[data-skin="flagship"][data-look="maison"] [data-part="action-panel"] {
+    border-radius: 0 !important;
+    background: none !important;
+    border: 0 !important;
+    box-shadow: none !important;
+    backdrop-filter: none;
+}
+/* the dock says whose turn it is */
+[data-skin="flagship"][data-look="maison"] [data-part="bb-panel-head"],
+[data-skin="flagship"][data-look="maison"] [data-part="bb-panel-odds"] {
+    display: none !important;
+}
+[data-skin="flagship"][data-look="maison"] [data-part="action-panel"]:not(:has(button, input)) {
+    display: none !important;
+}
+[data-skin="flagship"][data-look="maison"] :is(.btn-pot, .btn-all-in) {
+    border-radius: 0 !important;
+    background: transparent !important;
+    border: 1px solid rgba(205, 176, 127, 0.35) !important;
+    color: var(--fs-muted) !important;
+    font-family: var(--ms-small) !important;
+    font-weight: 500 !important;
+    font-size: 12px !important;
+    letter-spacing: 0.04em;
+    text-transform: none;
+}
+[data-skin="flagship"][data-look="maison"] :is(.btn-pot, .btn-all-in):not(:disabled):hover {
+    color: var(--ms-ivory) !important;
+    border-color: var(--ms-gold) !important;
+}
+[data-skin="flagship"][data-look="maison"] [data-part="raise-slider"] input:not([type="range"]) {
+    border-radius: 0 !important;
+    background: transparent !important;
+    border: 0 !important;
+    border-bottom: 1px solid var(--ms-gold) !important;
+    font-family: var(--bb-cond) !important;
+    font-weight: 600;
+    font-style: normal;
+    color: var(--ms-ivory) !important;
+}
+[data-skin="flagship"][data-look="maison"] [data-part="raise-slider"] .btn-slider {
+    border-radius: 0 !important;
+    background: transparent !important;
+    border: 1px solid rgba(205, 176, 127, 0.4) !important;
+    color: var(--ms-gold) !important;
+}
+[data-skin="flagship"][data-look="maison"] :is(.btn-fold, .btn-check, .btn-call, .btn-raise, .btn-deal, .btn-small-blind, .btn-big-blind) {
+    border-radius: 0 !important;
+    font-family: var(--ms-small) !important;
+    font-weight: 500 !important;
+    font-style: normal;
+    font-size: 15px !important;
+    letter-spacing: 0.24em;
+}
+[data-skin="flagship"][data-look="maison"] :is(.btn-fold, .btn-check, .btn-call, .btn-raise) :is(span, small) {
+    font-family: var(--bb-cond) !important;
+    font-weight: 600 !important;
+    font-size: 16px !important;
+    letter-spacing: 0;
+}
+[data-skin="flagship"][data-look="maison"] .btn-fold {
+    background: transparent !important;
+    border: 1px solid rgba(205, 176, 127, 0.4) !important;
+    color: var(--fs-muted) !important;
+}
+[data-skin="flagship"][data-look="maison"] :is(.btn-check, .btn-call, .btn-small-blind, .btn-big-blind) {
+    background: transparent !important;
+    border: 1.5px solid var(--ms-ivory) !important;
+    color: var(--ms-ivory) !important;
+}
+[data-skin="flagship"][data-look="maison"] :is(.btn-raise, .btn-deal),
+[data-skin="flagship"][data-look="maison"] :is(.btn-raise, .btn-deal) * {
+    color: #1d1a16 !important;
+}
+[data-skin="flagship"][data-look="maison"] :is(.btn-raise, .btn-deal) {
+    background: linear-gradient(180deg, #e8d3a6, #b8925a) !important;
+    box-shadow: 0 10px 26px -12px rgba(205, 176, 127, 0.8) !important;
+}
+
+/* ---------- the flat chip (BadBeatChip, look "maison"): its colour, a gold ring, a fine inner ring ---------- */
+[data-look="maison"] .bb-chip {
+    background:
+        radial-gradient(circle, transparent 0 46%, var(--slash) 46% 49%, transparent 49%),
+        radial-gradient(circle, var(--c) 0 72%, var(--slash) 72% 82%, var(--c) 82%);
+}
+[data-look="maison"] .bb-chip::after {
+    content: none;
+}
+
+/* =====================================================================
+ * Layout A: the concept's dock (MaisonDock) with the action panel at its end
+ * ===================================================================== */
+
+/* big screen: a full-width bar along the bottom (stageGeometry MAISON_DOCK_HEIGHT) */
+[data-skin="flagship"][data-look="maison"] [data-part="maison-dock"] {
+    position: fixed;
+    z-index: 40;
+    left: 0;
+    right: 0;
+    bottom: 0;
+    height: calc(156px + env(safe-area-inset-bottom));
+    padding: 0 calc(env(safe-area-inset-right) + 24px) env(safe-area-inset-bottom) calc(env(safe-area-inset-left) + 24px);
+    display: flex;
+    align-items: center;
+    gap: 22px;
+    background: linear-gradient(180deg, #24111a, #1a0b11);
+    border-top: 1px solid rgba(205, 176, 127, 0.45);
+    box-shadow: 0 -20px 40px -20px #000;
+    pointer-events: none;
+}
+[data-skin="flagship"][data-look="maison"] [data-part="maison-hero-cards"] {
+    display: flex;
+    gap: 6px;
+}
+[data-skin="flagship"][data-look="maison"] .maison-hero-card {
+    width: 78px;
+}
+[data-skin="flagship"][data-look="maison"] .maison-hero-card:first-child {
+    transform: rotate(-3deg);
+}
+[data-skin="flagship"][data-look="maison"] .maison-hero-card + .maison-hero-card {
+    transform: rotate(3deg);
+}
+[data-skin="flagship"][data-look="maison"] [data-part="maison-dock"][data-folded] [data-part="maison-hero-cards"] {
+    opacity: 0.35;
+    filter: grayscale(1);
+}
+[data-skin="flagship"][data-look="maison"] [data-part="maison-you"] {
+    display: flex;
+    flex-direction: column;
+    padding-left: 20px;
+    border-left: 1px solid rgba(205, 176, 127, 0.4);
+    color: var(--fs-fg);
+    white-space: nowrap;
+}
+[data-skin="flagship"][data-look="maison"] .maison-eyebrow {
+    font-family: var(--ms-small);
+    font-size: 11px;
+    letter-spacing: 0.24em;
+    text-transform: uppercase;
+    color: var(--fs-muted);
+}
+[data-skin="flagship"][data-look="maison"] [data-part="maison-you"] b {
+    font-family: var(--bb-cond);
+    font-weight: 600;
+    font-size: 32px;
+    line-height: 1.1;
+}
+[data-skin="flagship"][data-look="maison"] [data-part="maison-you"] i {
+    font-family: var(--bb-cond);
+    font-size: 18px;
+    color: var(--fs-muted);
+}
+[data-skin="flagship"][data-look="maison"] [data-part="maison-status"] {
+    font-family: var(--bb-cond);
+    font-size: 28px;
+    color: var(--ms-ivory);
+    white-space: nowrap;
+}
+[data-skin="flagship"][data-look="maison"] [data-part="maison-status"] b {
+    font-weight: 500;
+}
+[data-skin="flagship"][data-look="maison"] [data-part="maison-status"] span {
+    font-style: italic;
+    color: var(--ms-gold);
+}
+[data-skin="flagship"][data-look="maison"] [data-part="maison-dock"][data-mine] [data-part="maison-status"] b {
+    color: var(--ms-gold);
+}
+/* the panel at the dock's right end, inside the bar */
+[data-skin="flagship"][data-look="maison"] [data-part="footer"] {
+    z-index: 45 !important;
+    right: calc(env(safe-area-inset-right) + 24px);
+    bottom: calc(env(safe-area-inset-bottom) + 10px) !important;
+    width: 560px !important;
+}
+[data-skin="flagship"][data-look="maison"] [data-part="action-panel"] {
+    gap: 8px;
+    padding: 0;
+}
+[data-skin="flagship"][data-look="maison"] :is(.btn-fold, .btn-check, .btn-call, .btn-raise) {
+    height: 46px !important;
+}
+[data-skin="flagship"][data-look="maison"] :is(.btn-pot, .btn-all-in) {
+    height: 28px !important;
+}
+[data-skin="flagship"][data-look="maison"] [data-part="side-actions"]:has([data-part="top-up"]) {
+    bottom: calc(env(safe-area-inset-bottom) + 172px) !important;
+}
+
+/* upright phone: a block along the bottom (stageGeometry MAISON_PORTRAIT_DOCK) — your cards, stack and whose turn in one row, then the panel */
+[data-skin="flagship"][data-look="maison"][data-orient="portrait"] [data-part="maison-dock"] {
+    height: calc(200px + env(safe-area-inset-bottom));
+    align-items: flex-start;
+    gap: 10px;
+    padding: 8px 14px env(safe-area-inset-bottom);
+}
+[data-skin="flagship"][data-look="maison"][data-orient="portrait"] .maison-hero-card {
+    width: 38px;
+}
+[data-skin="flagship"][data-look="maison"][data-orient="portrait"] [data-part="maison-you"] {
+    padding-left: 10px;
+}
+[data-skin="flagship"][data-look="maison"][data-orient="portrait"] .maison-eyebrow {
+    font-size: 9.5px;
+}
+[data-skin="flagship"][data-look="maison"][data-orient="portrait"] [data-part="maison-you"] b {
+    font-size: 21px;
+    line-height: 1;
+}
+[data-skin="flagship"][data-look="maison"][data-orient="portrait"] [data-part="maison-you"] i {
+    font-size: 13.5px;
+    line-height: 1.1;
+}
+/* in the top row beside your stack, not centred on the whole block */
+[data-skin="flagship"][data-look="maison"][data-orient="portrait"] [data-part="maison-status"] {
+    margin-left: auto;
+    font-size: 18px;
+    align-self: flex-start;
+    padding-top: 16px;
+}
+[data-skin="flagship"][data-look="maison"][data-orient="portrait"] [data-part="footer"] {
+    left: 0 !important;
+    right: 0;
+    width: auto !important;
+    bottom: 0 !important;
+    padding: 0 12px calc(env(safe-area-inset-bottom) + 10px) !important;
+}
+[data-skin="flagship"][data-look="maison"][data-orient="portrait"] [data-part="action-panel"] {
+    gap: 7px;
+    padding: 0;
+}
+[data-skin="flagship"][data-look="maison"][data-orient="portrait"] :is(.btn-fold, .btn-check, .btn-call, .btn-raise) {
+    height: 42px !important;
+    font-size: 13px !important;
+}
+[data-skin="flagship"][data-look="maison"][data-orient="portrait"] :is(.btn-pot, .btn-all-in) {
+    height: 26px !important;
+    font-size: 11px !important;
+}
+[data-skin="flagship"][data-look="maison"][data-orient="portrait"] [data-part="raise-slider"] :is(.btn-slider, input:not([type="range"])) {
+    height: 30px !important;
+}
+
+/* phone held sideways: a column on the right (stageGeometry MAISON_SIDE_COLUMN), under the tools */
+@media (orientation: landscape) and (max-height: 500px) {
+    [data-skin="flagship"][data-look="maison"] [data-part="maison-dock"] {
+        left: auto;
+        top: calc(env(safe-area-inset-top) + 84px);
+        width: calc(290px + env(safe-area-inset-right));
+        height: auto;
+        padding: 10px calc(env(safe-area-inset-right) + 12px) 10px 12px;
+        flex-wrap: wrap;
+        align-content: flex-start;
+        align-items: center;
+        gap: 8px 12px;
+        border-top: 0;
+        border-left: 1px solid rgba(205, 176, 127, 0.45);
+    }
+    [data-skin="flagship"][data-look="maison"] .maison-hero-card {
+        width: 46px;
+    }
+    [data-skin="flagship"][data-look="maison"] [data-part="maison-you"] {
+        padding-left: 12px;
+    }
+    [data-skin="flagship"][data-look="maison"] [data-part="maison-you"] b {
+        font-size: 24px;
+    }
+    [data-skin="flagship"][data-look="maison"] [data-part="maison-you"] i {
+        font-size: 14px;
+    }
+    [data-skin="flagship"][data-look="maison"] [data-part="maison-status"] {
+        flex-basis: 100%;
+        font-size: 20px;
+    }
+    [data-skin="flagship"][data-look="maison"] [data-part="footer"] {
+        right: calc(env(safe-area-inset-right) + 12px);
+        bottom: 10px !important;
+        width: 266px !important;
+    }
+    [data-skin="flagship"][data-look="maison"] :is(.btn-fold, .btn-check, .btn-call, .btn-raise) {
+        height: 40px !important;
+        font-size: 12px !important;
+        letter-spacing: 0.16em;
+    }
+    /* the street tracker stays under the title, over the room */
+    [data-skin="flagship"][data-look="maison"] [data-part="street-tracker"] {
+        top: calc(env(safe-area-inset-top) + 56px);
+        left: calc(env(safe-area-inset-left) + 12px);
+        right: auto;
+    }
+    [data-skin="flagship"][data-look="maison"] [data-part="street-tracker"] span {
+        padding: 0;
+        font-size: 15px;
+    }
+}

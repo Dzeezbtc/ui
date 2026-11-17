@@ -36,3 +36,13 @@ describe("flatChipStack", () => {
         expect(s.height).toBe(46);
     });
 });
+
+describe("badBeatChipColor for Maison 52", () => {
+    it("runs ivory, navy, green, bordeaux, black up the values, gold marks on the dark chips", () => {
+        expect(badBeatChipColor(1, "maison")).toEqual({ color: "#f4eee2", slash: "#6b4f2a" });
+        expect(badBeatChipColor(5, "maison").color).toBe("#22427a");
+        expect(badBeatChipColor(25, "maison").color).toBe("#0f3b2e");
+        expect(badBeatChipColor(100, "maison").color).toBe("#6e1f2b");
+        expect(badBeatChipColor(500, "maison")).toEqual({ color: "#1d1a16", slash: "#cdb07f" });
+    });
+});

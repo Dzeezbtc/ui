@@ -82,11 +82,13 @@ import { CardBackStyle } from "../../utils/cardImages";
 import { useClubLook } from "../../hooks/club/useClubLook";
 import { TableRadio } from "./TableRadio";
 import { tableStyleForLook } from "../../utils/clubLook";
-import { TABLE_STYLE_LABELS, TableStyle, nextTableStyle, skinAttrFor, stageShapeFor, tableStyleFromEnv, usesFlagshipLayout } from "../../utils/tableStyle";
+import { TABLE_STYLE_LABELS, TableStyle, isThreeTableStyle, nextTableStyle, skinAttrFor, stageShapeFor, tableStyleFromEnv, usesFlagshipLayout } from "../../utils/tableStyle";
 import { TableStyleProvider } from "../../context/TableStyleContext";
 import "./skins/chipchair.css";
 import "./skins/flagship.css";
+import "./skins/three-table.css";
 import "./skins/badbeat.css";
+import "./skins/maison.css";
 import { cssVars } from "../../utils/cssVars";
 import { ANIMATION_CSS_VARS } from "../../bus/timing";
 
@@ -140,6 +142,7 @@ import LiveHandStrengthDisplay from "./LiveHandStrengthDisplay";
 import { TurnStatusLabel } from "./TurnStatusLabel";
 import { StreetTracker } from "./StreetTracker";
 import { BadBeatHeroDock } from "./BadBeatHeroDock";
+import { MaisonDock } from "./MaisonDock";
 import { BadBeatShowCards } from "./BadBeat3D/BadBeatShowCards";
 // Bad Beat's 3D table brings three.js: only a Bad Beat table downloads it (ui#36)
 const BadBeatTable3D = React.lazy(() => import("./BadBeat3D/BadBeatTable3D").then(m => ({ default: m.BadBeatTable3D })));
@@ -1364,7 +1367,7 @@ const Table = React.memo(({ tableId }: TableProps = {}) => {
     return (
         <SitOutIntentProvider tableId={id} network={currentNetwork} pendingSitOut={pendingSitOut} legalActions={playerLegalActions}>
         <TableStyleProvider value={tableStyle}>
-        <div className="table-container" data-connection={connection.status} data-skin={skinAttrFor(tableStyle)} data-look={tableStyle} data-orient={isMobilePortrait ? "portrait" : "landscape"}>
+        <div className="table-container" data-connection={connection.status} data-skin={skinAttrFor(tableStyle)} data-look={tableStyle} data-three={isThreeTableStyle(tableStyle) ? "true" : undefined} data-orient={isMobilePortrait ? "portrait" : "landscape"}>
             {/* Connection freshness (ui#613): shown whenever the live socket is not live */}
             {!isReplayMode && id && (
                 <ConnectionBanner
@@ -1553,10 +1556,11 @@ const Table = React.memo(({ tableId }: TableProps = {}) => {
             <div ref={tableContainerRef} className="flex-grow relative overflow-visible">
                 {/* Background layers */}
                 {tableStyle !== "nouns" && tableStyle !== "chipchair" && !usesFlagshipLayout(tableStyle) && <HexagonPattern patternId="hexagons-table" />}
-                {/* Bad Beat: the concept's 3D table, under everything that sits on it (ui#36) */}
-                {tableStyle === "badbeat" && tableLayout.positions.seatAngles ? (
+                {/* A 3D table (Bad Beat, Maison 52): the concept's table, under everything that sits on it (ui#36, #38) */}
+                {isThreeTableStyle(tableStyle) && tableLayout.positions.seatAngles ? (
                     <React.Suspense fallback={<div className="flagship-background" />}>
                         <BadBeatTable3D
+                            look={tableStyle}
                             seatAngles={tableLayout.positions.seatAngles}
                             tableSize={(tableSize || 9) as 2 | 4 | 6 | 9}
                             startIndex={startIndex}
@@ -1665,8 +1669,8 @@ const Table = React.memo(({ tableId }: TableProps = {}) => {
                                 })}
                         </div>
 
-                        {/* Bad Beat: a shown hand lifts off the felt, big and flat (ui#36) */}
-                        {tableStyle === "badbeat" && tableLayout.positions.feltCards && (
+                        {/* A 3D table: a shown hand lifts off the felt, big and flat (ui#36) */}
+                        {isThreeTableStyle(tableStyle) && tableLayout.positions.feltCards && (
                             <BadBeatShowCards spots={tableLayout.positions.feltCards} tableSize={tableSize} startIndex={startIndex} dealerSeat={dealerSeat} />
                         )}
 
@@ -1704,8 +1708,9 @@ const Table = React.memo(({ tableId }: TableProps = {}) => {
                 {/* Live Hand Strength Display */}
                 <LiveHandStrengthDisplay />
                 {usesFlagshipLayout(tableStyle) && <TurnStatusLabel nextToAct={nextToAct} mySeat={currentUserSeat} />}
-                {tableStyle === "badbeat" && <StreetTracker round={gameState?.round} />}
+                {isThreeTableStyle(tableStyle) && <StreetTracker round={gameState?.round} />}
                 {tableStyle === "badbeat" && <BadBeatHeroDock />}
+                {tableStyle === "maison" && <MaisonDock />}
             </div>
 
             {/*//! FOOTER — hidden in replay mode (read-only).

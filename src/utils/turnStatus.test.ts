@@ -1,4 +1,4 @@
-import { turnStatus } from "./turnStatus";
+import { turnStatus, whoseTurn } from "./turnStatus";
 
 describe("turnStatus", () => {
     it("says when it is your turn", () => {
@@ -14,5 +14,11 @@ describe("turnStatus", () => {
         expect(turnStatus(-1, 1)).toBeNull();
         expect(turnStatus(4, 0)).toBeNull();
         expect(turnStatus(4, -1)).toBeNull();
+    });
+});
+
+describe("whoseTurn", () => {
+    it("names the seat to act, plain", () => {
+        expect(whoseTurn(5)).toBe("Seat 5's turn");
     });
 });
