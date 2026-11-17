@@ -110,7 +110,7 @@ export const TableRadio: React.FC<{ stations: { name: string; url: string }[] }>
                 className={styles.badge}
                 data-testid="table-radio"
                 data-playing={playing ? "true" : undefined}
-                style={playing ? { borderColor: "var(--accent-success)" } : undefined}
+                style={playing ? { borderColor: "#a78bfa" } : undefined}
             >
                 <FaMusic size={12} className={`${styles.badgeIcon} ${playing ? "animate-pulse" : ""}`} />
             </button>
@@ -129,7 +129,7 @@ export const TableRadio: React.FC<{ stations: { name: string; url: string }[] }>
                                 type="button"
                                 role="menuitem"
                                 onClick={() => play(s.url)}
-                                className={`flex w-full items-center justify-between rounded-lg px-3 py-2 text-left text-sm ${playing === s.url ? "bg-emerald-500/15 text-emerald-200" : "text-white hover:bg-white/10"}`}
+                                className={`flex w-full items-center justify-between rounded-lg px-3 py-2 text-left text-sm ${playing === s.url ? "bg-violet-500/20 text-violet-200" : "text-white hover:bg-white/10"}`}
                             >
                                 <span>
                                     {s.name}
@@ -152,7 +152,7 @@ export const TableRadio: React.FC<{ stations: { name: string; url: string }[] }>
                                     if (audio.current) audio.current.volume = v;
                                     saveRadioPrefs({ url: playing ?? last, volume: v });
                                 }}
-                                className="flex-1"
+                                className="flex-1 accent-violet-400"
                                 aria-label={t("club.radioVolume")}
                             />
                         </label>
