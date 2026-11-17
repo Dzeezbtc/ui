@@ -1,4 +1,4 @@
-import { BB_TABLE, betLabelPoint, chipStack, badBeatScene, boardZ, chipPiles, inFrontOf, fitBadBeatCamera, projectPoint, ringPoint, seatAngle, BB_RINGS, type Vec3 } from "./badBeatScene";
+import { BB_TABLE, betLabelPoint, betLabelPoints, labelGap, chipStack, badBeatScene, boardZ, chipPiles, inFrontOf, fitBadBeatCamera, projectPoint, ringPoint, seatAngle, BB_RINGS, type Vec3 } from "./badBeatScene";
 
 // The flagship ring's seat angles for n evenly spaced seats, you at the bottom.
 const ring = (n: number) => Array.from({ length: n }, (_, i) => Math.PI / 2 + (i * 2 * Math.PI) / n);
@@ -159,5 +159,22 @@ describe("betLabelPoint", () => {
         expect(end[2]).toBe(0.3);
         // upright, never beside: the felt is too narrow
         expect(betLabelPoint([0.9, 0.2, 0.3], [3, 0.5, 0.4], true)[0]).toBe(0.9);
+    });
+});
+
+describe("betLabelPoints", () => {
+    it("never lays two seats' amounts on top of each other", () => {
+        const problems: string[] = [];
+        for (const [w, h] of [
+            [1000, 500],
+            [654, 960]
+        ]) {
+            for (const n of [2, 4, 6, 9]) {
+                const { world, portrait } = badBeatScene(ring(n), w, h);
+                const labels = betLabelPoints(world.bets, world.plates, world.holes, portrait);
+                labels.forEach((a, i) => labels.forEach((b, j) => j > i && labelGap(a, b, portrait ? 1.2 : 1.5, 0.5) < 1 && problems.push(`${w}x${h} ${n}: ${i} on ${j}`)));
+            }
+        }
+        expect(problems).toEqual([]);
     });
 });

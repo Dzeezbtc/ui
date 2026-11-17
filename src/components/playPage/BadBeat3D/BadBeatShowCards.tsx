@@ -5,7 +5,7 @@ import { useBadBeatTable } from "../../../hooks/game/useBadBeatTable";
 import { FlagshipCard } from "../Card/FlagshipCard";
 
 interface ShownHandsProps {
-    /** Per table position, where its cards lie on the felt (stageGeometry feltCards). */
+    /** Per table position, where a shown hand stands up (stageGeometry feltCards). */
     spots: Position[];
     state: BadBeatTableState;
 }

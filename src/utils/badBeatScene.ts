@@ -34,7 +34,7 @@ export const BB_RINGS = {
  * bet further in. (The concept's ellipses only had seats at the corners; a seat
  * at the top or bottom would put its cards under the rail.)
  */
-export const BB_INSETS = { hole: 0.55, bet: 1.1, dealer: 0.55 } as const;
+export const BB_INSETS = { hole: 0.55, bet: 1.1, dealer: 0.55, shown: 1.0 } as const;
 /** The dealer disc lies beside its seat's two cards, this far along the rail. */
 export const BB_DEALER_ALONG = 0.62;
 /** The pot's chips sit this far behind the board's middle. */
@@ -209,6 +209,59 @@ export function betLabelPoint(bet: Vec3, plate: Vec3, portrait: boolean): Vec3 {
     return [bet[0], bet[1], bet[2] + towards * BB_BET_LABEL_GAP];
 }
 
+/** A wide amount ("$1310.00") across the table, in world units. */
+export const BB_LABEL_WIDTH = { landscape: 1.5, portrait: 1.2 } as const;
+
+/**
+ * How close two things are for an amount label (1 = just touching): an
+ * amount is wide and short, so it is measured as an ellipse.
+ */
+export function labelGap(a: Vec3, b: Vec3, halfWidth = 1.05, halfDepth = 0.32): number {
+    return Math.hypot((a[0] - b[0]) / halfWidth, (a[2] - b[2]) / halfDepth);
+}
+
+/**
+ * Every seat's amount, placed together: each takes its usual spot
+ * ({@link betLabelPoint}) unless that runs into another seat's amount, chips
+ * or cards, when it moves to whichever of above, below or beside its chips
+ * leaves the most room.
+ */
+export function betLabelPoints(bets: Vec3[], plates: Vec3[], holes: Vec3[], portrait: boolean): Vec3[] {
+    const chosen = bets.map((b, i) => betLabelPoint(b, plates[i], portrait));
+    // an amount's width in world units: upright the table is drawn bigger, so the same text spans less of it
+    const wide = portrait ? BB_LABEL_WIDTH.portrait : BB_LABEL_WIDTH.landscape;
+    const room = (p: Vec3, i: number) => {
+        let best = Infinity;
+        chosen.forEach((q, j) => j !== i && (best = Math.min(best, labelGap(p, q, wide, 0.5))));
+        bets.forEach((q, j) => j !== i && (best = Math.min(best, labelGap(p, q, 0.95, 0.4))));
+        holes.forEach((q, j) => j !== i && (best = Math.min(best, labelGap(p, q, 1.1, 0.55))));
+        return best;
+    };
+    for (let pass = 0; pass < 2; pass++) {
+        bets.forEach((b, i) => {
+            if (room(chosen[i], i) >= 1) return;
+            const toward = b[0] > 0 ? -1 : 1;
+            const options: Vec3[] = [
+                [b[0], b[1], b[2] - BB_BET_LABEL_GAP],
+                [b[0], b[1], b[2] + BB_BET_LABEL_GAP],
+                // upright the felt is narrow: beside, but only half as far
+                [b[0] + toward * BB_BET_LABEL_GAP_SIDE * (portrait ? 0.6 : 1), b[1], b[2]] as Vec3
+            ];
+            let pick = chosen[i];
+            let most = room(pick, i);
+            for (const o of options) {
+                const r = room(o, i);
+                if (r > most + 1e-6) {
+                    most = r;
+                    pick = o;
+                }
+            }
+            chosen[i] = pick;
+        });
+    }
+    return chosen;
+}
+
 export interface BadBeatScene {
     portrait: boolean;
     /** What must show (the plates with room round them, and the rail), in frame px. */
@@ -227,6 +280,8 @@ export interface BadBeatScene {
         plates: [number, number][];
         betLabels: [number, number][];
         holes: [number, number][];
+        /** Where a shown hand stands up: a little in from the seat's cards, clear of its plate. */
+        shown: [number, number][];
         pot: [number, number];
         board: [number, number];
     };
@@ -278,8 +333,9 @@ export function badBeatScene(angles: number[], width: number, height: number): B
         screen: {
             plates: plates.map(proj),
             // each amount right by its chips, on the side facing the middle
-            betLabels: bets.map((b, i) => proj(betLabelPoint(b, plates[i], portrait))),
+            betLabels: betLabelPoints(bets, plates, holes, portrait).map(proj),
             holes: holes.map(proj),
+            shown: plates.map(p => proj(inFrontOf(p, BB_INSETS.shown, 0.215, portrait))),
             pot: proj([pot[0], pot[1] + 0.45, pot[2]]),
             board: proj([BB_BOARD[0], BB_BOARD[1], bz])
         }

@@ -789,7 +789,7 @@ export interface PositionArrays {
     winAnimations: Position[];
     /** Bad Beat only: per seat, its angle round the 3D table (utils/badBeatScene). */
     seatAngles?: number[];
-    /** Bad Beat only: per seat, where its two cards lie on the felt (table-div px). */
+    /** Bad Beat only: per seat, where a shown hand stands up (table-div px), just in from its cards. */
     feltCards?: Position[];
     /** Bad Beat only: where the board's middle card lies (table-div px). */
     boardCentre?: Position;
@@ -1092,7 +1092,7 @@ export function badBeatPositions(positions: PositionArrays, tableWidth: number, 
         deck: at(scene.screen.pot),
         chips,
         seatAngles,
-        feltCards: scene.screen.holes.map(pt => at(pt)),
+        feltCards: scene.screen.shown.map(pt => at(pt)),
         boardCentre: at(scene.screen.board)
     };
 }

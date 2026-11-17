@@ -962,10 +962,11 @@
 /* a shown hand: two big flat cards where the player's cards lay */
 [data-skin="flagship"][data-look="badbeat"] [data-part="bb-show-cards"] {
     position: absolute;
-    z-index: 30;
+    /* over the plates, so a shown hand is never cut off */
+    z-index: 60;
     display: flex;
     gap: 6px;
-    transform: translate(-50%, -62%);
+    transform: translate(-50%, -50%);
     pointer-events: none;
 }
 [data-skin="flagship"][data-look="badbeat"] .bb-show-card {
