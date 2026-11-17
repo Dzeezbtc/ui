@@ -5,6 +5,7 @@
  * with singleton pattern for the frontend.
  */
 
+import { custodialSigningClient, getCustodySession } from "../custody/session";
 import { CosmosClient, SigningCosmosClient, createSigningClientFromMnemonic, getDefaultCosmosConfig as getDefaultCosmosConfigSDK, COSMOS_CONSTANTS } from "@block52/poker-vm-sdk";
 import { getCosmosAddress, getCosmosMnemonic } from "./storage";
 import { getCosmosUrls, type NetworkEndpoints } from "./urls";
@@ -151,6 +152,10 @@ let signingClientCache: {
  * @throws Error if Cosmos wallet is not initialized (no mnemonic or address)
  */
 export async function getSigningClient(network: NetworkEndpoints): Promise<SigningClientResult> {
+    // A club account: the club service signs the four game messages, nothing is signed in the browser.
+    const custody = getCustodySession();
+    if (custody) return { signingClient: custodialSigningClient() as SigningCosmosClient, userAddress: custody.address };
+
     const userAddress = getCosmosAddress();
     const mnemonic = getCosmosMnemonic();
 

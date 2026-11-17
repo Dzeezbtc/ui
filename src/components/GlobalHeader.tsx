@@ -6,6 +6,7 @@ import { getCosmosClient } from "../utils/cosmos/client";
 import { ProfileAvatarButton } from "./profile";
 import { hasElements } from "../utils/guards";
 import styles from "./GlobalHeader.module.css";
+import { features } from "../config/features";
 import { LanguagePicker } from "./LanguagePicker";
 import { useLanguage } from "../i18n/useLanguage";
 
@@ -46,7 +47,8 @@ const LogoComponent: React.FC = React.memo(() => {
 });
 
 // Reusable component for network status and selector (extracted to avoid recreation on every render)
-const NetworkStatusAndSelector: React.FC<{ latestBlockHeight: string | null; hasError: boolean }> = ({ latestBlockHeight, hasError }) => (
+const NetworkStatusAndSelector: React.FC<{ latestBlockHeight: string | null; hasError: boolean }> = ({ latestBlockHeight, hasError }) =>
+    !features.nodeSelector ? null : (
     <>
         {/* Block Height Indicator - clickable link to block explorer */}
         {latestBlockHeight && (
@@ -63,7 +65,7 @@ const NetworkStatusAndSelector: React.FC<{ latestBlockHeight: string | null; has
 
         <NetworkSelector />
     </>
-);
+    );
 
 export const GlobalHeader: React.FC = () => {
     const location = useLocation();
@@ -83,7 +85,7 @@ export const GlobalHeader: React.FC = () => {
         // Hidden on this route — the poll would fetch, setState and re-render for
         // a header that renders null. The early `return null` below is AFTER this
         // effect, so without this guard /table/:id polls RPC for the whole session.
-        if (shouldHide) {
+        if (shouldHide || !features.nodeSelector) {
             return;
         }
 
@@ -180,7 +182,7 @@ export const GlobalHeader: React.FC = () => {
                     {/* Right: Club login + Admin + Network Status & Selector */}
                     <div className="flex items-center gap-4 flex-shrink-0">
                         <LanguagePicker variant="icon" />
-                        {clubConsoleUrl && (
+                        {features.clubLogin && clubConsoleUrl && (
                             <a href={`${clubConsoleUrl}/login`} className={`px-3 py-2 rounded-lg text-sm font-medium hover:opacity-80 ${styles.navItemInactive}`} title="For club owners, staff and agents">
                                 Club login
                             </a>
@@ -212,9 +214,11 @@ export const GlobalHeader: React.FC = () => {
                         <div className="hidden md:flex items-center gap-4">
                             <NetworkStatusAndSelector latestBlockHeight={latestBlockHeight} hasError={hasError} />
                         </div>
-                        <div className="md:hidden">
-                            <NetworkSelector />
-                        </div>
+                        {features.nodeSelector && (
+                            <div className="md:hidden">
+                                <NetworkSelector />
+                            </div>
+                        )}
 
                         <LanguagePicker variant="icon" />
 

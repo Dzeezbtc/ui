@@ -8,6 +8,7 @@ import App from "./App";
 import { initLanguage } from "./i18n";
 import { Profiler } from "react";
 import { NetworkProvider } from "./context/NetworkContext";
+import { isCustodial, restoreWalletIfClubAccountsOff } from "./utils/custody/session";
 import { getCosmosMnemonic, setCosmosMnemonic, setCosmosAddress } from "./utils/cosmos/storage";
 
 
@@ -21,7 +22,10 @@ if (!projectId) {
 // other consumer that only reads localStorage on mount) sees the new
 // mnemonic. Doing this inside a component is a race: the hook's mount
 // effect would already have read null by the time generation finished.
-if (!getCosmosMnemonic()) {
+restoreWalletIfClubAccountsOff();
+
+// A club account has no mnemonic here, and must not get a built-in wallet made behind its back.
+if (!getCosmosMnemonic() && !isCustodial()) {
     try {
         // ui#779: import cosmjs proto-signing only on first visit (when there is
         // no stored mnemonic). Returning users — the common case — never pull
