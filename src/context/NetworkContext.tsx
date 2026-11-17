@@ -1,3 +1,4 @@
+import { features } from "../config/features";
 import React, { createContext, useCallback, useContext, useEffect, useMemo, useState, ReactNode } from "react";
 import { STORAGE_KEYS } from "../constants/storageKeys";
 
@@ -138,6 +139,10 @@ const DISCOVERED_NETWORKS_KEY = "discoveredNetworks";
 export const NetworkProvider: React.FC<{ children: ReactNode }> = ({ children }) => {
     // Initialize network from localStorage or default to Block52
     const [currentNetwork, setCurrentNetwork] = useState<NetworkEndpoints>(() => {
+        // With the node selector switched off (VITE_FEATURE_NODE_SELECTOR) nobody can change the node, so a network saved
+        // earlier (say Localhost, picked when the dropdown was there) must not strand the app on a node that isn't there.
+        // Use the default, and leave the saved choice alone for when the selector is back.
+        if (!features.nodeSelector) return NETWORK_PRESETS[0]; // Block52
         // Try to load user's saved network preference from localStorage
         const saved = localStorage.getItem(STORAGE_KEYS.selectedNetwork);
         if (saved) {
@@ -172,6 +177,7 @@ export const NetworkProvider: React.FC<{ children: ReactNode }> = ({ children })
 
     // Save to localStorage whenever network changes
     useEffect(() => {
+        if (!features.nodeSelector) return; // the default is not a choice: don't overwrite the saved one
         localStorage.setItem(STORAGE_KEYS.selectedNetwork, JSON.stringify(currentNetwork));
     }, [currentNetwork]);
 

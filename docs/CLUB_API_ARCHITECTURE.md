@@ -1,7 +1,8 @@
-# Data flow: the app talks to the club API only
+# Data flow: the app talks to the club API, and the Go function for game actions
 
 Decided in Dzeezbtc/block52-club#54. The full version lives in that repo's `docs/ARCHITECTURE.md`; this is what it means
-for this app.
+for this app. It is the target with the feature switches below **on**; with them off the app is as it was, reading the node
+and signing with the built-in wallet.
 
 ```
                 ┌──REST──► club API (TypeScript)   everything that is not a game action:
@@ -34,8 +35,8 @@ When you add the next piece (table state through the API, say), give it a switch
 
 - **New code reads through the club API** (`VITE_CLUB_SERVICE_URLS`, first entry), not the node. No new direct use of
   `currentNetwork`, `getCosmosClient` or the node's REST or RPC.
-- **No node or network selector.** The header's node dropdown and block-height poll are gone.
-- **Two ways in** (`/signin`):
+- **No node or network selector** with `VITE_FEATURE_NODE_SELECTOR=false`: the header's node dropdown and block-height poll are hidden (they show by default).
+- **Two ways in** (`/signin`, present with `VITE_FEATURE_CLUB_ACCOUNTS=true`):
   - the **built-in wallet** (key in this browser): unchanged, still talks to the node directly for now;
   - a **club account** (username and password): Block52 holds the key. Sign-in goes to the club API, which returns a
     player token. Game actions, join, leave, top-up and the table WebSocket signature go **straight to the Go function**
@@ -46,8 +47,8 @@ When you add the next piece (table state through the API, say), give it a switch
 - **Known gap:** the club's network and location seat check (`seatRefusal`) needs a signature from the seed phrase, so it is
   skipped for club accounts. The club's rule check (`canSit`) and deposit limits still apply. Tracked in
   block52-club#59.
-- **The browser holds only a player token.** Never put the signer's admin token or any key material in the app: the
-  admin token makes accounts and freezes them, and only the club API holds it.
+- **The browser holds only a player token.** Never put a key, a seed phrase or the signer's KEK in the app. Making,
+  freezing and limiting accounts is the club API's job (it seals the keys); the Go function only reads them and signs.
 
 ## How a table action reaches the Go function
 
@@ -69,6 +70,7 @@ node accepted the transaction, not that the game did; the table state shows the 
 | Recent transactions | `GET /chain/transactions/:address` |
 | Tables (the lobby list, table picker, table admin) | `GET /chain/tables`: `{ games: GameListItem[] }`, each with `currentPlayers` (`useFindGames`) |
 
+The API also has staff routes for freezing an account and setting its limits; the app does not use them.
 
 ## Still read from the node directly (to move, one at a time; about 48 files)
 
