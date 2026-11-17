@@ -9,6 +9,7 @@
  */
 
 import React, { useMemo } from "react";
+import { TableStyle } from "../../../../utils/tableStyle";
 import { getCardImageUrl, getCardBackUrl, CardBackStyle } from "../../../../utils/cardImages";
 import { PotDisplayValues } from "../../../../utils/potDisplayUtils";
 import { useCardAnimations } from "../../../../hooks/animations/useCardAnimations";
@@ -18,7 +19,6 @@ import { TotalPotDisplay } from "./TotalPotDisplay";
 import { MainPotDisplay } from "./MainPotDisplay";
 import { NounsGlasses } from "./NounsGlasses";
 
-export type TableTheme = "modern" | "classic" | "nouns";
 
 export interface TableBoardProps {
     // Display data
@@ -31,7 +31,7 @@ export interface TableBoardProps {
 
     // Styling
     cardBackStyle: CardBackStyle;
-    tableTheme?: TableTheme;
+    tableTheme?: TableStyle;
 
     // Winning hand cards — cards in this set get the lift animation
     winnerCards?: Set<string>;

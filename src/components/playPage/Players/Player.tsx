@@ -122,6 +122,7 @@ const Player: React.FC<PlayerProps & { uiPosition?: number }> = memo(
         return (
             <div
                 key={index}
+                data-part="hero-seat"
                 className={`${opacityClass} absolute flex flex-col justify-center w-[160px] h-[140px] transform -translate-x-1/2 -translate-y-1/2 cursor-pointer ${styles.secondaryText} ${styles.positionTransition}`}
                 style={containerStyle}
             >

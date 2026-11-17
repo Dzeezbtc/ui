@@ -41,6 +41,7 @@ export const RaiseSlider: React.FC<RaiseSliderProps> = ({
 
     return (
         <div
+            data-part="raise-slider"
             className={`flex items-center bg-[#0f172a40] backdrop-blur-sm rounded-lg border border-[#3a546d]/50 shadow-inner ${
                 isMobileLandscape ? "gap-1 px-1 py-0.5 h-8" : "space-x-2 lg:space-x-4 p-2 lg:p-3"
             }`}

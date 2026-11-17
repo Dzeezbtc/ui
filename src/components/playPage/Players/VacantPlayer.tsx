@@ -263,7 +263,7 @@ const VacantPlayer: React.FC<VacantPlayerProps & { uiPosition?: number }> = memo
         }, []);
         return (
             <>
-                <div className="absolute transform -translate-x-1/2 -translate-y-1/2" style={containerStyle} data-testid={`vacant-seat-${index}`}>
+                <div className="absolute transform -translate-x-1/2 -translate-y-1/2" style={containerStyle} data-testid={`vacant-seat-${index}`} data-part="vacant-seat">
                     {/* Development Mode Debug Info */}
                     {viteEnv.VITE_NODE_ENV === "development" && (
                         <div className="absolute top-[-50px] left-1/2 transform -translate-x-1/2 bg-gray-600 bg-opacity-80 text-white px-2 py-1 rounded text-[10px] whitespace-nowrap z-50 border border-gray-400">

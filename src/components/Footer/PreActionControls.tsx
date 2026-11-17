@@ -44,7 +44,7 @@ export const PreActionControls: React.FC<PreActionControlsProps> = ({ buttons, a
     if (isEmpty(buttons)) return null;
 
     return (
-        <div className="flex justify-center gap-2">
+        <div data-part="pre-actions" className="flex justify-center gap-2">
             {buttons.map(action => {
                 const isArmed = armed === action;
                 const label = action === "call-exact" ? t("pre.callAmount", { amount: callAmountLabel }) : t(LABELS[action]);

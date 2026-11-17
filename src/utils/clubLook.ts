@@ -1,6 +1,9 @@
 import { isString } from "./guards";
+import { TableStyle, skinForTheme } from "./tableStyle";
 /** How a club looks to players (block52-club#39), as the club service sends it. */
 export interface ClubLook {
+    /** The club's theme (setting profile.theme), e.g. "block52" or "chipandachair". */
+    theme: string;
     logo: string | null;
     primaryColor: string | null;
     accentColor: string | null;
@@ -26,6 +29,7 @@ export function safeLook(raw: Partial<ClubLook> | null | undefined): ClubLook | 
         logo: isHttps(raw.logo) ? raw.logo : null,
         primaryColor: isColor(raw.primaryColor) ? raw.primaryColor : null,
         accentColor: isColor(raw.accentColor) ? raw.accentColor : null,
+        theme: isString(raw.theme) ? raw.theme : "block52",
         felt: raw.felt === "dark" || raw.felt === "logo" ? raw.felt : "classic",
         cardBack: named || isHttps(raw.cardBack) ? (raw.cardBack as string) : "default",
         language: isString(raw.language) ? raw.language : "en",
@@ -36,6 +40,13 @@ export function safeLook(raw: Partial<ClubLook> | null | undefined): ClubLook | 
 
 /** The table style a club's felt choice maps to. A player can still switch it themselves. */
 export const tableStyleFor = (felt: string): "classic" | "modern" => (felt === "classic" ? "classic" : "modern");
+
+/**
+ * The table style a club table starts in: the club theme's own skin when it has
+ * one (Chip and a Chair), otherwise whatever its felt choice maps to.
+ * A player can still switch it themselves.
+ */
+export const tableStyleForLook = (look: Pick<ClubLook, "theme" | "felt">): TableStyle => skinForTheme(look.theme) ?? tableStyleFor(look.felt);
 
 /** A social link's short name, from its address. */
 export const socialLabel = (url: string): string => {

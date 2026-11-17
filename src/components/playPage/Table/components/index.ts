@@ -8,10 +8,10 @@ export { TableHeader } from "./TableHeader";
 export type { TableHeaderProps } from "./TableHeader";
 
 export { MobileTableHeader } from "./MobileTableHeader";
-export type { MobileTableHeaderProps, TableStyleOption } from "./MobileTableHeader";
+export type { MobileTableHeaderProps } from "./MobileTableHeader";
 
 export { TableBoard } from "./TableBoard";
-export type { TableBoardProps, TableTheme } from "./TableBoard";
+export type { TableBoardProps } from "./TableBoard";
 
 export { TablePanel, TablePanelExpandTab } from "./TablePanel";
 export type { TablePanelProps, TablePanelTab } from "./TablePanel";
