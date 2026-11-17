@@ -559,6 +559,7 @@
 }
 [data-skin="flagship"] [data-part="seat"] > div:last-child > div.absolute {
     top: 56px;
+    z-index: 5;
 }
 [data-skin="flagship"] [data-part="seat"] .badge-container {
     flex-direction: column;
@@ -997,4 +998,106 @@
     box-shadow:
         0 0 0 1.5px var(--fs-vi),
         0 0 22px rgba(124, 58, 237, 0.6);
+}
+
+/* other players: the cube clock tucks into the plate (no seconds line), so it
+   never hangs over their bet */
+[data-skin="flagship"] [data-part="seat"] [data-part="turn-clock-seconds"] {
+    display: none;
+}
+[data-skin="flagship"] [data-part="seat"] .badge-container {
+    padding-bottom: 14px;
+}
+/* the cube clock and the FOLD / ALL IN / SEATED words sit inside the bottom of the plate */
+[data-skin="flagship"] [data-part="seat"] .seat-banner-shell:has([data-part="turn-clock"], .seat-banner-content-inner > span.seat-banner-text) {
+    top: auto;
+    bottom: 5px;
+    margin-top: 0;
+    height: auto;
+    z-index: 3;
+    left: 14px;
+    right: 14px;
+}
+[data-skin="flagship"] [data-part="seat"] .seat-banner-shell:has(.seat-banner-content-inner > span.seat-banner-text) {
+    bottom: -2px;
+}
+[data-skin="flagship"] [data-part="seat"] .seat-banner-box:has([data-part="turn-clock"]) [data-part="turn-clock"] {
+    margin: 0 !important;
+}
+[data-skin="flagship"] [data-part="seat"] .seat-banner-box:has(.seat-banner-content-inner > span.seat-banner-text) {
+    background: transparent !important;
+    border: 0 !important;
+    box-shadow: none;
+    backdrop-filter: none;
+    padding: 0;
+    height: auto;
+    min-height: 0;
+}
+[data-skin="flagship"] [data-part="seat"] .seat-banner-content-inner > span.seat-banner-text {
+    height: auto;
+    margin: 0;
+    font-size: 9px;
+    letter-spacing: 0.12em;
+    color: var(--fs-faint) !important;
+}
+[data-skin="flagship"] [data-part="seat"] .seat-banner-box:has([data-part="turn-clock"]) {
+    background: transparent !important;
+    border: 0 !important;
+    box-shadow: none;
+    backdrop-filter: none;
+    padding: 0;
+    height: auto;
+    min-height: 0;
+}
+
+/* ---------- what a player just did ("Call", "Check", "Raise $60"): the concept's
+   white tag on top of their avatar, not a box under the plate ---------- */
+[data-skin="flagship"] [data-part="seat"] .seat-banner-shell:has(.action-display-content) {
+    top: auto;
+    bottom: calc(100% + 46px);
+    left: 50%;
+    right: auto;
+    width: max-content;
+    height: auto;
+    margin: 0;
+    z-index: 6;
+    overflow: visible;
+    transform: translateX(-50%);
+}
+[data-skin="flagship"] [data-part="hero-seat"] .seat-banner-shell:has(.action-display-content) {
+    top: auto;
+    bottom: calc(100% + 8px);
+    left: 50%;
+    right: auto;
+    width: max-content;
+    height: auto;
+    margin: 0;
+    z-index: 6;
+    overflow: visible;
+    transform: translateX(-50%);
+}
+[data-skin="flagship"] .seat-banner-box:has(.action-display-content) {
+    height: auto;
+    min-height: 0;
+    padding: 3px 12px 4px;
+    border: 0 !important;
+    border-radius: 999px;
+    background: var(--fs-fg) !important;
+    box-shadow: 0 6px 14px -6px #000;
+    backdrop-filter: none;
+}
+[data-skin="flagship"] .seat-banner-box :is(.action-display-text, .action-display-amount) {
+    color: #0d0b17 !important;
+    font-family: var(--fs-sans);
+    font-weight: 700;
+    font-size: 13px;
+    line-height: 1.2;
+    text-transform: capitalize;
+    white-space: nowrap;
+}
+[data-skin="flagship"] .seat-banner-box .action-display-content {
+    display: flex;
+    gap: 5px;
+    align-items: center;
+    justify-content: center;
 }

@@ -105,11 +105,18 @@ describe("placeBetSpotsToward", () => {
         expect(spot.side).toBe("left");
     });
 
+    it("puts your bet beside your cards, not under them", () => {
+        const [you] = placeBetSpotsToward([seat(500, 560)], 1000, 500, [], 0.38);
+        expect(parseFloat(you.left)).toBe(665);
+        expect(parseFloat(you.top ?? "")).toBe(490);
+    });
+
     it("slides a bet that lands on the board up or down until it clears", () => {
         const board = [{ x: 500, y: 250, hw: 200, hy: 60 }];
-        const [above, below] = placeBetSpotsToward([seat(500, -40), seat(500, 560)], 1000, 500, board, 0.34);
+        const [above, below] = placeBetSpotsToward([seat(500, -40), seat(560, 560)], 1000, 500, board, 0.34);
         expect(parseFloat(above.top ?? "")).toBeLessThanOrEqual(250 - 60 - 16);
         expect(parseFloat(below.top ?? "")).toBeGreaterThanOrEqual(250 + 60 + 16);
         expect(parseFloat(above.left)).toBe(500);
+        expect(parseFloat(below.left)).toBeLessThan(560);
     });
 });

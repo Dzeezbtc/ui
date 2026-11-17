@@ -904,12 +904,16 @@ export function placeBetSpots(
  * until it clears it. Pixels are table-div pixels; the bet group is centred
  * on (left, top).
  */
+/** Your bet, beside your big cards: right of them and up a little (table-div px). */
+const YOUR_BET_DX = 165;
+const YOUR_BET_DY = 70;
+
 export function placeBetSpotsToward(
     players: Position[],
     tableWidth: number,
     tableHeight: number,
     board: BetObstacle[] = [],
-    reach = 0.34,
+    reach = 0.38,
     groupW = 110,
     groupHalfH = 16
 ): ChipPosition[] {
@@ -919,8 +923,11 @@ export function placeBetSpotsToward(
     return players.map(seat => {
         const sx = parseFloat(seat.left);
         const sy = parseFloat(seat.top);
-        const x = sx + (cx - sx) * reach;
-        let y = sy + (cy - sy) * reach;
+        // You (alone at the bottom centre) have your big cards in front of you,
+        // so your bet sits beside them, to the right, not under them.
+        const isYouAtBottom = Math.abs(sx - cx) < tableWidth * 0.05 && sy > cy;
+        const x = isYouAtBottom ? sx + YOUR_BET_DX : sx + (cx - sx) * reach;
+        let y = isYouAtBottom ? sy - YOUR_BET_DY : sy + (cy - sy) * reach;
         for (const o of board) {
             const overlapsX = Math.abs(x - o.x) < o.hw + groupW / 2;
             const overlapsY = Math.abs(y - o.y) < o.hy + groupHalfH;
@@ -982,7 +989,7 @@ export function withBetSpots(positions: PositionArrays, tableSize: TableSize, mo
     const board = betBoardFor(tableSize, portrait, dims.tableWidth, dims.tableHeight);
     if (stageShape === "flagship") {
         // The flagship board (five 85px cards and the pot pill) is the same size on every screen.
-        const flagshipBoard = { x: dims.tableWidth / 2, y: dims.tableHeight / 2 - 15, hw: 240, hy: 105 };
+        const flagshipBoard = { x: dims.tableWidth / 2, y: dims.tableHeight / 2 - 15, hw: 240, hy: 95 };
         return { ...positions, chips: placeBetSpotsToward(positions.players, dims.tableWidth, dims.tableHeight, [flagshipBoard]) };
     }
     return {
