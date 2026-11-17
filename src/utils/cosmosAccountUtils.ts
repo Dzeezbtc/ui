@@ -7,6 +7,7 @@ import { getCosmosClient } from "./cosmos/client";
 import type { NetworkEndpoints } from "./cosmos/urls";
 import { truncateMiddle } from "./stringUtils";
 import { STORAGE_KEYS } from "../constants/storageKeys";
+import { clubApiBase, fetchUsdcBalance } from "./clubApi/chain";
 
 /**
  * Get the user's Cosmos address from the initialized client
@@ -61,6 +62,15 @@ export const hasCosmosWallet = (): boolean => {
  * @throws Error if wallet is not connected or fetch fails
  */
 export const getCosmosBalance = async (network: NetworkEndpoints, denom: string = "usdc"): Promise<string> => {
+    // Through the club API when API reads are on (VITE_FEATURE_API_READS): the table header and the table page read the
+    // same balance as the Game Wallet panel, from the same place. Only USDC is served there; any other denom, and an app
+    // with the switch off, reads the node directly as before.
+    const apiBase = clubApiBase();
+    if (apiBase && denom === "usdc") {
+        const address = getCosmosAddressSync();
+        if (!address) throw new Error("No Block52 address found. Please create or import a wallet first.");
+        return fetchUsdcBalance(address);
+    }
     const client = getCosmosClient(network);
 
     if (!client) {

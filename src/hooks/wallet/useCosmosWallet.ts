@@ -31,6 +31,9 @@ interface UseCosmosWalletReturn {
     sendTokens: (recipient: string, amount: bigint | string, denom?: string) => Promise<string>;
 }
 
+/** How often the wallet balance is re-read while the page is open. */
+export const BALANCE_POLL_MS = 10_000;
+
 export const useCosmosWallet = (): UseCosmosWalletReturn => {
     const { currentNetwork } = useNetwork();
     const [address, setAddress] = useState<string | null>(null);
@@ -65,41 +68,63 @@ export const useCosmosWallet = (): UseCosmosWalletReturn => {
         loadAddress();
     }, []);
 
-    // Refresh balance
-    const refreshBalance = useCallback(async () => {
-        if (!address) return;
+    // Read the balance. `quiet` is for the background poll: it does not flash the loading state, and a failed poll keeps the
+    // last balance on screen instead of clearing it (the next poll, or the refresh button, tries again).
+    const loadBalance = useCallback(
+        async (quiet: boolean) => {
+            if (!address) return;
 
-        setIsLoading(true);
-        setError(null);
-
-        try {
-            // Through the club API when this app has one (the API reads the node); the direct node client only remains
-            // for an app with no club service configured.
-            if (clubApiBase()) {
-                setBalance([{ denom: "usdc", amount: await fetchUsdcBalance(address) }]);
-                return;
-            }
-            const client = getCosmosClient(currentNetwork);
-            if (!client) {
-                throw new Error("Block52 client not initialized");
+            if (!quiet) {
+                setIsLoading(true);
+                setError(null);
             }
 
-            const balances = await client.getAllBalances(address);
-            setBalance(balances);
-        } catch (err) {
-            console.error("Error fetching balance:", err);
-            setError(err instanceof Error ? err.message : "Failed to fetch balance");
-        } finally {
-            setIsLoading(false);
-        }
-    }, [address, currentNetwork]);
+            try {
+                // Through the club API when this app has one (the API reads the node); the direct node client only remains
+                // for an app with no club service configured.
+                if (clubApiBase()) {
+                    setBalance([{ denom: "usdc", amount: await fetchUsdcBalance(address) }]);
+                    setError(null);
+                    return;
+                }
+                const client = getCosmosClient(currentNetwork);
+                if (!client) {
+                    throw new Error("Block52 client not initialized");
+                }
 
-    // Auto-refresh balance when address changes
+                const balances = await client.getAllBalances(address);
+                setBalance(balances);
+                setError(null);
+            } catch (err) {
+                if (!quiet) {
+                    console.error("Error fetching balance:", err);
+                    setError(err instanceof Error ? err.message : "Failed to fetch balance");
+                }
+            } finally {
+                if (!quiet) setIsLoading(false);
+            }
+        },
+        [address, currentNetwork]
+    );
+
+    // The refresh button and everything that asks for a fresh balance.
+    const refreshBalance = useCallback(() => loadBalance(false), [loadBalance]);
+
+    // Load when the address changes, then keep it current while the tab is visible, so USDC sent to this address shows up
+    // without a click: every BALANCE_POLL_MS, and straight away when the tab comes back to the front.
     useEffect(() => {
-        if (address) {
-            refreshBalance();
-        }
-    }, [address, refreshBalance]);
+        if (!address) return;
+        void loadBalance(false);
+        const tick = () => {
+            if (!document.hidden) void loadBalance(true);
+        };
+        const id = setInterval(tick, BALANCE_POLL_MS);
+        document.addEventListener("visibilitychange", tick);
+        return () => {
+            clearInterval(id);
+            document.removeEventListener("visibilitychange", tick);
+        };
+    }, [address, loadBalance]);
 
     // Import seed phrase
     const importSeedPhrase = useCallback(async (mnemonic: string) => {
