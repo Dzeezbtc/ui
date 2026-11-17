@@ -151,7 +151,7 @@ export const STAGE_DIMS: Record<StageOrientation, StageDims> = {
  * wide oval on phones. Landscape is the same for both. Set by the table when
  * its style changes ({@link setStageShape}); the layout cache is keyed on it.
  */
-export type StageShape = "standard" | "flagship";
+export type StageShape = "standard" | "flagship" | "badbeat";
 let stageShape: StageShape = "standard";
 
 /** Switch the stage shape. Returns true when it changed (the caller re-lays out). */
@@ -180,8 +180,26 @@ export const FLAGSHIP_PORTRAIT_DIMS: StageDims = {
     originY: 250
 };
 
+/** True on the flagship's shapes: the flagship itself and Bad Beat (the same table, its own fit on phones). */
+function isFlagshipShape(): boolean {
+    return stageShape !== "standard";
+}
+
 function isFlagshipPortrait(): boolean {
-    return stageShape === "flagship" && getStageOrientation() === "portrait";
+    return isFlagshipShape() && getStageOrientation() === "portrait";
+}
+
+/**
+ * Bad Beat on a phone held sideways: the bet buttons sit in a column down the
+ * right ({@link BADBEAT_SIDE_COLUMN} px), so the table fills the height and the
+ * width left of it instead of sitting small above a full-width button bar.
+ */
+export const BADBEAT_SIDE_COLUMN = 290;
+/** Bad Beat on an upright phone: the table rises this far (px) into the gap under the top bar. */
+export const BADBEAT_PORTRAIT_LIFT = 40;
+
+function isBadBeatSideColumn(mode: ViewportMode): boolean {
+    return stageShape === "badbeat" && mode === "mobile-landscape";
 }
 
 export function getStageOrientation(): StageOrientation {
@@ -339,7 +357,7 @@ const FLAGSHIP_LANDSCAPE_SEAT_COORDS: Record<number, [number, number][]> = {
 /** Seat coordinates for the current orientation's stage. */
 export function getSeatCoords(tableSize: TableSize): [number, number][] {
     if (isFlagshipPortrait()) return FLAGSHIP_PORTRAIT_SEAT_COORDS[tableSize];
-    if (stageShape === "flagship") return FLAGSHIP_LANDSCAPE_SEAT_COORDS[tableSize];
+    if (isFlagshipShape()) return FLAGSHIP_LANDSCAPE_SEAT_COORDS[tableSize];
     return getStageOrientation() === "portrait" ? PORTRAIT_SEAT_COORDS[tableSize] : SEAT_COORDS[tableSize];
 }
 
@@ -1031,7 +1049,7 @@ export function withBetSpots(positions: PositionArrays, tableSize: TableSize, mo
     const portrait = mode === "mobile-portrait";
     const mobile = mode === "mobile-portrait" || mode === "mobile-landscape";
     const board = betBoardFor(tableSize, portrait, dims.tableWidth, dims.tableHeight);
-    if (stageShape === "flagship") {
+    if (isFlagshipShape()) {
         return { ...positions, chips: placeBetSpotsInFront(positions.players, dims.tableWidth, dims.tableHeight, portrait ? FLAGSHIP_YOUR_BOX_PORTRAIT : FLAGSHIP_YOUR_BOX) };
     }
     return {
@@ -1156,7 +1174,7 @@ export function getContentBounds(tableSize: TableSize): ContentBounds {
     const mode = getViewportMode();
     // The flagship phone table keeps the concept's breathing room either side
     // (the table fills ~3/4 of the width, not edge to edge).
-    const pad = isFlagshipPortrait() ? FLAGSHIP_PORTRAIT_PADDING : stageShape === "flagship" && mode === "desktop" ? FLAGSHIP_DESKTOP_PADDING : PLAYER_UI_PADDING[mode];
+    const pad = isFlagshipPortrait() ? FLAGSHIP_PORTRAIT_PADDING : isFlagshipShape() && mode === "desktop" ? FLAGSHIP_DESKTOP_PADDING : PLAYER_UI_PADDING[mode];
     const coords = getSeatCoords(tableSize);
     let minX = Infinity, maxX = -Infinity, minY = Infinity, maxY = -Infinity;
     for (const [x, y] of coords) {
@@ -1194,8 +1212,9 @@ export function calculateZoom(
     // Usable space = container minus any fixed overlay minus breathing room.
     // Portrait needs no axis swap: the portrait stage is already vertical, so
     // its content bounds are taller than wide and fit the viewport directly.
-    const usableWidth = containerWidth - params.paddingH;
-    const usableHeight = containerHeight - params.footerOverlay - params.paddingV;
+    const side = isBadBeatSideColumn(mode);
+    const usableWidth = containerWidth - params.paddingH - (side ? BADBEAT_SIDE_COLUMN : 0);
+    const usableHeight = containerHeight - (side ? 0 : params.footerOverlay) - params.paddingV;
 
     const scaleByWidth = usableWidth / bounds.width;
     const scaleByHeight = usableHeight / bounds.height;
@@ -1203,7 +1222,7 @@ export function calculateZoom(
 
     // Across a big screen the flagship's side seats push their cards outward,
     // so it sits a touch smaller to keep them clear of the side panel.
-    const shapeScale = stageShape === "flagship" && mode === "desktop" ? FLAGSHIP_DESKTOP_SCALE : 1;
+    const shapeScale = isFlagshipShape() && mode === "desktop" ? FLAGSHIP_DESKTOP_SCALE : 1;
     const result = Math.max(MIN_SCALE, Math.min(fitScale * shapeScale, MAX_GLOBAL_SCALE));
 
     return result;
@@ -1225,8 +1244,10 @@ export function getTableTransform(
     const bounds = getContentBounds(tableSize);
 
     // Center of the usable area within the container
-    const usableCenterX = containerWidth / 2;
-    const usableCenterY = (containerHeight - params.footerOverlay) / 2;
+    const side = isBadBeatSideColumn(mode);
+    const usableCenterX = (containerWidth - (side ? BADBEAT_SIDE_COLUMN : 0)) / 2;
+    const lift = stageShape === "badbeat" && mode === "mobile-portrait" ? BADBEAT_PORTRAIT_LIFT : 0;
+    const usableCenterY = (containerHeight - (side ? 0 : params.footerOverlay)) / 2 - lift;
 
     // Content center after scaling (transform-origin: 0 0).
     // Portrait needs no special case: the portrait stage is natively vertical

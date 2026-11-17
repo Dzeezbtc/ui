@@ -5,6 +5,7 @@ import { getChipImageUrl } from "../../../utils/cardImages";
 import { getChipSet } from "../../../constants/chips";
 import { useChipStyle } from "../../../context/GameSettingsContext";
 import { useTableStyle } from "../../../context/TableStyleContext";
+import { usesFlagshipLayout } from "../../../utils/tableStyle";
 import { B52Chip } from "./B52Chip";
 
 /** Vertical offset per chip for same-denomination vertical stacking (px). */
@@ -103,7 +104,7 @@ const Chip: React.FC<ChipProps> = React.memo(({ amount, isTournament, caption })
     // chosen in Settings (marble by default, or flat notched) (ui#842).
     const chipStyle = useChipStyle();
     // The Block52 flagship draws its own neon chips (same denominations, same breakdown).
-    const flagship = useTableStyle() === "flagship";
+    const flagship = usesFlagshipLayout(useTableStyle());
     const allStacks = decomposeAmount(dollarAmount, getChipSet(chipStyle, !!isTournament));
 
     const isMobile = window.innerWidth <= 768 || window.innerHeight <= 500;

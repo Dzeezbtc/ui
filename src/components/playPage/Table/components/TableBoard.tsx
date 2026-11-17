@@ -9,7 +9,7 @@
  */
 
 import React, { useMemo } from "react";
-import { TableStyle } from "../../../../utils/tableStyle";
+import { TableStyle, usesFlagshipLayout } from "../../../../utils/tableStyle";
 import { getCardImageUrl, getCardBackUrl, CardBackStyle } from "../../../../utils/cardImages";
 import { PotDisplayValues } from "../../../../utils/potDisplayUtils";
 import { useCardAnimations } from "../../../../hooks/animations/useCardAnimations";
@@ -93,7 +93,7 @@ export const TableBoard: React.FC<TableBoardProps> = ({
                         key={`${idx}-${card}`}
                         className={`card animate-fall${isWinCard ? " animate-win-card" : ""}${shouldMute ? " opacity-40" : ""}`}
                     >
-                        {tableTheme === "flagship" ? (
+                        {usesFlagshipLayout(tableTheme) ? (
                             <FlagshipCard code={card} className="fs-board" />
                         ) : (
                             <OppositePlayerCards frontSrc={getCardImageUrl(card)} backSrc={getCardBackUrl(cardBackStyle)} flipped />
@@ -116,7 +116,14 @@ export const TableBoard: React.FC<TableBoardProps> = ({
     return (
         <>
             {/* Club Logo */}
-            {tableTheme === "flagship" ? (
+            {tableTheme === "badbeat" ? (
+                // Bad Beat's felt: the broadcast wordmark, slanted, "BEAT" in crimson.
+                <div className="table-logo fs-logo bb-logo" aria-hidden="true">
+                    <span className="bb-wordmark">
+                        <span>BAD</span> <b>BEAT</b>
+                    </span>
+                </div>
+            ) : tableTheme === "flagship" ? (
                 // The Block52 flagship felt: the wordmark across the table, the
                 // mark alone on the upright phone table (the skin picks one).
                 <div className="table-logo fs-logo" aria-hidden="true">

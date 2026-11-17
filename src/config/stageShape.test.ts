@@ -1,4 +1,8 @@
 import {
+    BADBEAT_PORTRAIT_LIFT,
+    BADBEAT_SIDE_COLUMN,
+    calculateZoom,
+    getTableTransform,
     FLAGSHIP_PORTRAIT_DIMS,
     FLAGSHIP_PORTRAIT_PADDING,
     getContentBounds,
@@ -168,5 +172,49 @@ describe("flagship bets", () => {
         expect(nx).toBeCloseTo(1);
         expect(ny).toBeCloseTo(0);
         expect(inwardNormal(0, 400, 500, 1000)).toEqual([1, 0]);
+    });
+});
+
+describe("Bad Beat stage shape", () => {
+    afterEach(() => {
+        setStageShape("standard");
+        clearLayoutCache();
+    });
+
+    const parse = (t: string) => {
+        const m = /translate\(([-\d.]+)px, ([-\d.]+)px\) scale\(([\d.]+)\)/.exec(t);
+        if (!m) throw new Error(`unexpected transform ${t}`);
+        return { tx: +m[1], ty: +m[2], zoom: +m[3] };
+    };
+
+    it("lays out on the flagship's seats, phone table and bets", () => {
+        setViewport(390, 844);
+        setStageShape("badbeat");
+        expect(getStageDims()).toBe(FLAGSHIP_PORTRAIT_DIMS);
+        const badbeat = getLayoutPositions(9, "mobile-portrait");
+        setStageShape("flagship");
+        expect(getLayoutPositions(9, "mobile-portrait").players).toEqual(badbeat.players);
+    });
+
+    it("on a phone held sideways, grows the table and sits it left of the button column", () => {
+        setViewport(844, 390);
+        setStageShape("flagship");
+        const flagship = parse(getTableTransform(calculateZoom(9, 844, 340), 9, 844, 340));
+        setStageShape("badbeat");
+        const badbeat = parse(getTableTransform(calculateZoom(9, 844, 340), 9, 844, 340));
+        expect(badbeat.zoom).toBeGreaterThan(flagship.zoom);
+        // the table's centre is left of the screen's centre, clear of the column
+        const bounds = getContentBounds(9);
+        expect(badbeat.tx + bounds.centerX * badbeat.zoom).toBeCloseTo((844 - BADBEAT_SIDE_COLUMN) / 2, 0);
+    });
+
+    it("on an upright phone, lifts the table into the gap under the top bar", () => {
+        setViewport(390, 844);
+        setStageShape("flagship");
+        const flagship = parse(getTableTransform(calculateZoom(9, 390, 790), 9, 390, 790));
+        setStageShape("badbeat");
+        const badbeat = parse(getTableTransform(calculateZoom(9, 390, 790), 9, 390, 790));
+        expect(badbeat.zoom).toBe(flagship.zoom);
+        expect(flagship.ty - badbeat.ty).toBeCloseTo(BADBEAT_PORTRAIT_LIFT, 1);
     });
 });

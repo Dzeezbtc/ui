@@ -340,6 +340,7 @@ export const TableSettingsMenu: React.FC<TableSettingsMenuProps> = props => {
                         role="dialog"
                         aria-label={tk("settingsMenu.open")}
                         className="fs-settings-panel"
+                        data-look={props.tableStyle}
                         style={{ left: at.left, top: at.top, width: WIDTH, maxHeight: at.maxHeight }}
                         data-testid="table-settings-panel"
                     >

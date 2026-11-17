@@ -1,0 +1,422 @@
+/*
+ * Bad Beat — a full table skin (table style "badbeat") on the Block52
+ * Flagship's layout (Dzeezbtc/ui#36).
+ *
+ * The table root carries data-skin="flagship" (so the flagship's layout, seats,
+ * bets, top bar and tools apply as they are) and data-look="badbeat"; this
+ * sheet only changes the look: graphite and steel with one signal crimson, a
+ * padded graphite rail on a steel-blue felt, sports-broadcast type (Barlow
+ * Condensed italic numbers, slanted tags), the BAD BEAT wordmark on the felt,
+ * crisp white cards with a crimson hatched back, and the Pre / Flop / Turn /
+ * River tracker. Same components, same controls, same behaviour.
+ */
+@import url("https://fonts.googleapis.com/css2?family=Barlow+Condensed:ital,wght@0,600;0,700;0,800;1,700;1,800;1,900&family=IBM+Plex+Mono:wght@400;500;600&display=swap");
+
+/* ---------- palette: the flagship's variables, Bad Beat's values ---------- */
+[data-look="badbeat"] {
+    --fs-bg: #0a0c0f;
+    --fs-bg-rgb: 10, 12, 15;
+    --fs-bg2: #111419;
+    --fs-bg3-rgb: 24, 28, 34;
+    --fs-glass-rgb: 17, 20, 25;
+    --fs-line: rgba(220, 228, 240, 0.09);
+    --fs-line2: rgba(220, 228, 240, 0.18);
+    --fs-fg: #eef1f5;
+    --fs-muted: #8d96a3;
+    --fs-faint: #5a626e;
+    --fs-vi: #ff2d55;
+    --fs-vi-rgb: 255, 45, 85;
+    --fs-vi-soft: #ff5c7a;
+    --fs-vi-mid: #ff5c7a;
+    --fs-mag: #ff2d55;
+    --fs-mag-rgb: 255, 45, 85;
+    --fs-blue: #ff5c7a;
+    --fs-blue-rgb: 255, 92, 122;
+    --fs-cyan: #9fd8ff;
+    --fs-cyan2: #ff5c7a;
+    --fs-cyan-rgb: 159, 216, 255;
+    --fs-hot: #ff5c7a;
+    --fs-hot-rgb: 255, 92, 122;
+    --fs-gold: #f5c542;
+    --fs-good: #2ee59d;
+    --fs-room: #16202a;
+    --fs-felt1: #2a4a62;
+    --fs-felt2: #1b3144;
+    --fs-felt3: #0d1820;
+    --fs-rail1: #2b3038;
+    --fs-rail2: #14171c;
+    --fs-grad: linear-gradient(120deg, #ff2d55, #ff4167);
+    --fs-disp: "Barlow Condensed", ui-sans-serif, system-ui, sans-serif;
+    --fs-mono: "IBM Plex Mono", ui-monospace, Menlo, monospace;
+    --bb-cond: "Barlow Condensed", ui-sans-serif, system-ui, sans-serif;
+    --bb-red: #ff2d55;
+}
+
+/* ---------- room: graphite, a cool lift behind the table ---------- */
+[data-skin="flagship"][data-look="badbeat"] .flagship-background {
+    background:
+        radial-gradient(70% 70% at 50% 45%, #16202a 0%, transparent 75%),
+        radial-gradient(50% 30% at 50% 100%, rgba(255, 45, 85, 0.07), transparent 70%),
+        var(--fs-bg);
+}
+
+/* ---------- table: padded graphite rail, crimson pin-line, steel-blue felt ---------- */
+[data-skin="flagship"][data-look="badbeat"] [data-part="rail"] {
+    background: linear-gradient(180deg, #343a43 0%, #1d2127 55%, #121418 100%) !important;
+    border: 1px solid rgba(255, 255, 255, 0.06) !important;
+    box-shadow:
+        inset 0 2px 0 rgba(255, 255, 255, 0.08),
+        inset 0 -10px 24px rgba(0, 0, 0, 0.5),
+        0 0 70px rgba(255, 45, 85, 0.16),
+        0 40px 90px -30px #000 !important;
+}
+[data-skin="flagship"][data-look="badbeat"] [data-part="felt"] {
+    background:
+        radial-gradient(ellipse at 50% 40%, rgba(255, 255, 255, 0.07), transparent 60%),
+        repeating-radial-gradient(circle at 30% 30%, rgba(255, 255, 255, 0.012) 0 1px, transparent 1px 3px),
+        radial-gradient(ellipse at 50% 45%, var(--fs-felt1) 0%, var(--fs-felt2) 50%, var(--fs-felt3) 100%) !important;
+    box-shadow:
+        inset 0 0 0 1px rgba(0, 0, 0, 0.6),
+        inset 0 0 70px rgba(0, 0, 0, 0.65) !important;
+}
+/* the rim: one steady crimson pin-line, no spinning gradient */
+[data-skin="flagship"][data-look="badbeat"] [data-part="felt"]::before {
+    inset: -3px;
+    padding: 2px;
+    background: linear-gradient(180deg, rgba(255, 45, 85, 0.85), rgba(255, 45, 85, 0.35));
+    filter: drop-shadow(0 0 8px rgba(255, 45, 85, 0.45));
+    animation: none;
+}
+[data-skin="flagship"][data-look="badbeat"] [data-part="felt"]::after {
+    border: 1.5px dashed rgba(220, 228, 240, 0.12);
+}
+/* phone: the same table tipped back (the flagship draws it on the rail) */
+[data-skin="flagship"][data-look="badbeat"][data-orient="portrait"] [data-part="rail"] {
+    background: linear-gradient(180deg, #343a43 0%, #1d2127 55%, #121418 100%) !important;
+}
+[data-skin="flagship"][data-look="badbeat"][data-orient="portrait"] [data-part="rail"]::before {
+    background: linear-gradient(180deg, rgba(255, 45, 85, 0.9), rgba(255, 45, 85, 0.4));
+    animation: none;
+    box-shadow: 0 0 30px rgba(255, 45, 85, 0.35);
+}
+[data-skin="flagship"][data-look="badbeat"][data-orient="portrait"] [data-part="rail"]::after {
+    background:
+        radial-gradient(ellipse at 50% 38%, rgba(255, 255, 255, 0.07), transparent 60%),
+        radial-gradient(ellipse at 50% 45%, var(--fs-felt1) 0%, var(--fs-felt2) 50%, var(--fs-felt3) 100%);
+}
+
+/* ---------- felt wordmark: BAD in steel, BEAT in crimson, slanted ---------- */
+[data-skin="flagship"][data-look="badbeat"] .bb-logo .bb-wordmark {
+    position: absolute;
+    left: 50%;
+    top: 72%;
+    transform: translate(-50%, -50%);
+    font-family: var(--bb-cond);
+    font-weight: 900;
+    font-style: italic;
+    font-size: 64px;
+    line-height: 1;
+    letter-spacing: 0.01em;
+    white-space: nowrap;
+    color: #5d6b7a;
+    opacity: 0.85;
+    text-shadow: 0 2px 0 rgba(0, 0, 0, 0.35);
+}
+[data-skin="flagship"][data-look="badbeat"] .bb-logo .bb-wordmark b {
+    font-weight: 900;
+    color: var(--bb-red);
+}
+[data-skin="flagship"][data-look="badbeat"][data-orient="portrait"] .bb-logo .bb-wordmark {
+    top: 76%;
+    font-size: 52px;
+}
+
+/* ---------- cards: crisp white, condensed italic ranks, crimson hatched back ---------- */
+[data-look="badbeat"] .fs-card {
+    background: linear-gradient(170deg, #ffffff, #eef1f5);
+    color: #0a0c0f;
+    font-family: var(--bb-cond);
+    border-radius: 10% / 7%;
+}
+[data-look="badbeat"] .fs-card.fs-red {
+    color: #e0123e;
+}
+[data-look="badbeat"] .fs-card::after {
+    content: none;
+}
+[data-look="badbeat"] .fs-card .fs-r {
+    font-weight: 800;
+    font-style: italic;
+    font-size: 44cqw;
+    letter-spacing: -0.02em;
+    top: 3%;
+}
+[data-look="badbeat"] .fs-card .fs-s {
+    top: calc(6% + 44cqw);
+}
+[data-look="badbeat"] .fs-card.fs-back {
+    background:
+        repeating-linear-gradient(135deg, rgba(255, 255, 255, 0.12) 0 2px, transparent 2px 7px),
+        linear-gradient(160deg, #ff4167, #d81b45);
+    box-shadow:
+        inset 0 0 0 3px #f6f7f9,
+        0 6px 12px -4px rgba(0, 0, 0, 0.6);
+}
+[data-look="badbeat"] .fs-card.fs-back::after {
+    content: "BB";
+    display: grid;
+    place-items: center;
+    background: none;
+    opacity: 1;
+    color: #fff;
+    font-family: var(--bb-cond);
+    font-weight: 900;
+    font-style: italic;
+    font-size: 40cqw;
+    letter-spacing: -0.04em;
+    text-shadow: 0 1px 0 rgba(0, 0, 0, 0.25);
+}
+
+/* ---------- seats: squircle avatars, broadcast plates ---------- */
+[data-skin="flagship"][data-look="badbeat"] [data-part="seat"] [data-part="seat-avatar"],
+[data-skin="flagship"][data-look="badbeat"] [data-part="seat"] [class*="avatarChip"] {
+    border-radius: 16px;
+    border-color: #111419;
+}
+[data-skin="flagship"][data-look="badbeat"] :is([data-part="seat"], [data-part="hero-seat"]) .badge-container {
+    border-radius: 12px !important;
+    background: rgba(17, 20, 25, 0.9) !important;
+    border: 1px solid var(--fs-line2) !important;
+}
+[data-skin="flagship"][data-look="badbeat"] :is([data-part="seat"], [data-part="hero-seat"]) .badge-value {
+    font-family: var(--bb-cond) !important;
+    font-weight: 800 !important;
+    font-style: italic;
+    font-size: 21px;
+    letter-spacing: 0.01em;
+}
+[data-skin="flagship"][data-look="badbeat"] [data-part="hero-seat"] .badge-container {
+    border-color: rgba(255, 45, 85, 0.75) !important;
+    box-shadow: 0 0 24px -6px rgba(255, 45, 85, 0.55) !important;
+}
+[data-skin="flagship"][data-look="badbeat"] [data-part="hero-seat"] .badge-value {
+    font-size: 24px;
+}
+[data-skin="flagship"][data-look="badbeat"] [data-part="hero-seat"] .badge-value::before {
+    font-style: normal;
+}
+/* the last action: a slanted white broadcast tag */
+[data-skin="flagship"][data-look="badbeat"] .action-display-box {
+    border-radius: 0 !important;
+    transform: skewX(-12deg);
+    background: var(--fs-fg) !important;
+    color: #0a0c0f !important;
+    font-family: var(--bb-cond) !important;
+    font-weight: 800 !important;
+    font-style: italic;
+    text-transform: uppercase;
+    letter-spacing: 0.04em;
+}
+/* whose turn: a crimson glow, not violet */
+[data-skin="flagship"][data-look="badbeat"] .turn-animation-ring {
+    background: radial-gradient(closest-side, rgba(255, 45, 85, 0.42), rgba(255, 45, 85, 0.12) 60%, transparent);
+}
+[data-skin="flagship"][data-look="badbeat"] [data-part="seat-dealer"] {
+    font-family: var(--bb-cond) !important;
+    font-style: italic;
+    font-weight: 900 !important;
+}
+
+/* ---------- pot and bets: slanted broadcast labels ---------- */
+[data-skin="flagship"][data-look="badbeat"] .pot-display {
+    border-radius: 0 !important;
+    border: 0 !important;
+    border-left: 3px solid var(--bb-red) !important;
+    background: rgba(10, 12, 15, 0.78) !important;
+    transform: skewX(-12deg);
+    font-family: var(--bb-cond) !important;
+    font-style: italic;
+}
+[data-skin="flagship"][data-look="badbeat"] .pot-display :is(.fs-pot-value, b) {
+    font-weight: 800;
+    font-size: 1.15em;
+}
+[data-skin="flagship"][data-look="badbeat"] :is(.pot-pill-label, .chip-caption) {
+    border-radius: 0 !important;
+    border: 0 !important;
+    background: none !important;
+    font-family: var(--bb-cond) !important;
+    font-weight: 800;
+    font-style: italic;
+    font-size: 1.15em;
+    text-shadow: 0 2px 6px #000;
+}
+
+/* ---------- action bar: graphite buttons, crimson raise ---------- */
+[data-skin="flagship"][data-look="badbeat"] :is(.btn-fold, .btn-check, .btn-call, .btn-raise, .btn-all-in, .btn-deal, .btn-small-blind, .btn-big-blind) {
+    border-radius: 12px !important;
+    font-family: var(--bb-cond) !important;
+    font-weight: 800 !important;
+    font-style: italic;
+    text-transform: uppercase;
+    letter-spacing: 0.03em;
+}
+[data-skin="flagship"][data-look="badbeat"] .btn-fold {
+    background: #181c22 !important;
+    border: 1px solid var(--fs-line2) !important;
+    color: #c7cdd5 !important;
+}
+[data-skin="flagship"][data-look="badbeat"] :is(.btn-check, .btn-call, .btn-small-blind, .btn-big-blind) {
+    background: #262b33 !important;
+    border: 1px solid var(--fs-line2) !important;
+}
+[data-skin="flagship"][data-look="badbeat"] :is(.btn-raise, .btn-deal) {
+    box-shadow: 0 10px 30px -12px rgba(255, 45, 85, 0.9) !important;
+}
+[data-skin="flagship"][data-look="badbeat"] .btn-all-in {
+    background: linear-gradient(120deg, #ff2d55, #b5103a) !important;
+}
+[data-skin="flagship"][data-look="badbeat"] :is(.btn-fold, .btn-check, .btn-call, .btn-raise, .btn-all-in) :is(span, small) {
+    font-family: var(--bb-cond) !important;
+    font-style: italic;
+    font-weight: 700;
+    text-transform: none;
+}
+[data-skin="flagship"][data-look="badbeat"] .btn-pot {
+    border-radius: 8px !important;
+    font-family: var(--fs-sans);
+}
+
+/* ---------- top bar: the game in condensed italic caps ---------- */
+[data-look="badbeat"] .fs-topbar-game {
+    font-family: var(--bb-cond);
+    font-weight: 800;
+    font-style: italic;
+    text-transform: uppercase;
+    letter-spacing: 0.03em;
+}
+[data-look="badbeat"] .fs-topbar-balance {
+    font-family: var(--bb-cond);
+    font-style: italic;
+}
+
+/* ---------- turn status ---------- */
+[data-skin="flagship"][data-look="badbeat"] [data-part="turn-status"] b {
+    font-family: var(--bb-cond);
+    font-style: italic;
+    font-weight: 800;
+    text-transform: uppercase;
+    letter-spacing: 0.03em;
+}
+
+/* ---------- street tracker: PRE / FLOP / TURN / RIVER under the top bar ---------- */
+[data-skin="flagship"][data-look="badbeat"] [data-part="street-tracker"] {
+    /* under the game title, clear of the tools (right) and the top seats */
+    top: calc(env(safe-area-inset-top) + 60px);
+    left: calc(env(safe-area-inset-left) + 14px);
+    transform: none;
+    display: flex;
+    gap: 3px;
+    padding: 3px;
+    border-radius: 10px;
+    background: rgba(17, 20, 25, 0.82);
+    border: 1px solid var(--fs-line);
+    backdrop-filter: blur(8px);
+    pointer-events: none;
+}
+[data-skin="flagship"][data-look="badbeat"] [data-part="street-tracker"] span {
+    padding: 2px 12px;
+    transform: skewX(-12deg);
+    font-family: var(--bb-cond);
+    font-weight: 800;
+    font-style: italic;
+    font-size: 15px;
+    text-transform: uppercase;
+    letter-spacing: 0.05em;
+    color: var(--fs-faint);
+}
+[data-skin="flagship"][data-look="badbeat"] [data-part="street-tracker"] span[data-state="done"] {
+    color: var(--fs-muted);
+}
+[data-skin="flagship"][data-look="badbeat"] [data-part="street-tracker"] span[data-state="now"] {
+    background: var(--bb-red);
+    color: #fff;
+}
+[data-skin="flagship"][data-look="badbeat"][data-orient="portrait"] [data-part="street-tracker"] {
+    top: calc(env(safe-area-inset-top) + 54px);
+    left: calc(env(safe-area-inset-left) + 10px);
+}
+[data-skin="flagship"][data-look="badbeat"][data-orient="portrait"] [data-part="street-tracker"] span {
+    padding: 1px 9px;
+    font-size: 12px;
+}
+
+/* ---------- portaled panels (settings, radio) in graphite ---------- */
+.fs-radio-panel[data-look="badbeat"] {
+    background: rgba(17, 20, 25, 0.6) !important;
+}
+
+/* ---------- phone held sideways: the bet buttons in a column on the right ----------
+ * The stage leaves BADBEAT_SIDE_COLUMN (290px) free on the right (stageGeometry),
+ * so the table fills the height and sits left; the buttons stack in that column. */
+@media (orientation: landscape) and (max-height: 500px) {
+    [data-skin="flagship"][data-look="badbeat"] [data-part="footer"] {
+        left: auto !important;
+        width: calc(290px + env(safe-area-inset-right));
+        top: calc(env(safe-area-inset-top) + 92px);
+        display: flex;
+        flex-direction: column;
+        justify-content: flex-end;
+        padding: 0 8px 8px 0;
+        background: none !important;
+    }
+    [data-skin="flagship"][data-look="badbeat"] [data-part="footer"] > div {
+        position: relative !important;
+    }
+    /* the street, whose turn and the hand strength stack down the column, over the buttons */
+    [data-skin="flagship"][data-look="badbeat"] [data-part="street-tracker"] {
+        top: calc(env(safe-area-inset-top) + 92px);
+        left: auto;
+        right: calc(env(safe-area-inset-right) + 8px);
+    }
+    [data-skin="flagship"][data-look="badbeat"] [data-part="turn-status"] {
+        left: auto !important;
+        right: calc(env(safe-area-inset-right) + 8px);
+        top: calc(env(safe-area-inset-top) + 132px);
+        bottom: auto !important;
+    }
+    [data-skin="flagship"][data-look="badbeat"] [data-part="hand-strength"] {
+        right: auto !important;
+        left: calc(100vw - 290px - env(safe-area-inset-right));
+        top: calc(env(safe-area-inset-top) + 132px);
+        bottom: auto !important;
+    }
+    [data-skin="flagship"][data-look="badbeat"] :is(.btn-fold, .btn-check, .btn-call, .btn-raise, .btn-all-in) {
+        font-size: 15px !important;
+        white-space: nowrap;
+    }
+    [data-skin="flagship"][data-look="badbeat"] [data-part="raise-slider"] > div:first-child:has(> span) {
+        display: none;
+    }
+    [data-skin="flagship"][data-look="badbeat"] [data-part="action-panel"] {
+        gap: 6px;
+        padding: 10px;
+        border-radius: 14px;
+        background: rgba(17, 20, 25, 0.86);
+        border: 1px solid var(--fs-line2);
+    }
+}
+
+/* the raise slider's thumb in crimson */
+[data-skin="flagship"][data-look="badbeat"] [data-part="raise-slider"] input[type="range"] {
+    accent-color: var(--bb-red);
+}
+[data-skin="flagship"][data-look="badbeat"] [data-part="raise-slider"] input[type="range"]::-webkit-slider-thumb {
+    background: var(--bb-red) !important;
+    border-color: #fff !important;
+    box-shadow: 0 0 12px rgba(255, 45, 85, 0.6) !important;
+}
+[data-skin="flagship"][data-look="badbeat"] [data-part="raise-slider"] input[type="range"]::-moz-range-thumb {
+    background: var(--bb-red) !important;
+    border-color: #fff !important;
+}
