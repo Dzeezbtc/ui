@@ -4,6 +4,8 @@ import { decomposeAmount } from "../../../utils/chipBreakdown";
 import { getChipImageUrl } from "../../../utils/cardImages";
 import { getChipSet } from "../../../constants/chips";
 import { useChipStyle } from "../../../context/GameSettingsContext";
+import { useTableStyle } from "../../../context/TableStyleContext";
+import { B52Chip } from "./B52Chip";
 
 /** Vertical offset per chip for same-denomination vertical stacking (px). */
 const STACK_OFFSET_Y = 4;
@@ -11,6 +13,8 @@ const STACK_OFFSET_Y = 4;
 /** Size of each chip image (px). */
 const CHIP_SIZE = 28;
 const CHIP_SIZE_MOBILE = 32;
+/** How much bigger the Block52 flagship chips are drawn (px). */
+const FLAGSHIP_CHIP_EXTRA = 6;
 
 type ChipProps = {
     amount: string | bigint;
@@ -98,10 +102,13 @@ const Chip: React.FC<ChipProps> = React.memo(({ amount, isTournament, caption })
     // Cash games show $/¢ chips; SNG/tournaments show point chips, in the style
     // chosen in Settings (marble by default, or flat notched) (ui#842).
     const chipStyle = useChipStyle();
+    // The Block52 flagship draws its own neon chips (same denominations, same breakdown).
+    const flagship = useTableStyle() === "flagship";
     const allStacks = decomposeAmount(dollarAmount, getChipSet(chipStyle, !!isTournament));
 
     const isMobile = window.innerWidth <= 768 || window.innerHeight <= 500;
-    const chipSize = isMobile ? CHIP_SIZE_MOBILE : CHIP_SIZE;
+    // The flagship's neon chips are drawn a size up, so their faces read on a big screen.
+    const chipSize = (isMobile ? CHIP_SIZE_MOBILE : CHIP_SIZE) + (flagship ? FLAGSHIP_CHIP_EXTRA : 0);
 
     const maxVisibleCount = Math.max(1, ...allStacks.map(s => s.visibleCount));
     const bounds = getClusterBounds(allStacks.length, chipSize, maxVisibleCount);
@@ -133,7 +140,15 @@ const Chip: React.FC<ChipProps> = React.memo(({ amount, isTournament, caption })
             >
                 {allStacks.map((stack, si) => {
                     const pos = getClusterPosition(si, allStacks.length, chipSize);
-                    return Array.from({ length: stack.visibleCount }).map((_, ci) => (
+                    return Array.from({ length: stack.visibleCount }).map((_, ci) => flagship ? (
+                        <B52Chip
+                            key={`s${si}-c${ci}`}
+                            value={stack.value}
+                            isTournament={!!isTournament}
+                            size={chipSize}
+                            style={{ left: `${pos.x}px`, bottom: `${pos.y + ci * STACK_OFFSET_Y}px`, zIndex: si * 10 + ci }}
+                        />
+                    ) : (
                         <img
                             key={`s${si}-c${ci}`}
                             src={getChipImageUrl(stack.file)}

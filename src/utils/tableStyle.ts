@@ -1,4 +1,5 @@
 import { isString } from "./guards";
+import type { StageShape } from "../config/stageGeometry";
 
 /**
  * The table's look. "modern", "classic" and "nouns" restyle the felt and rail;
@@ -40,3 +41,6 @@ const THEME_SKINS: Record<string, TableStyle> = {
 
 /** The table skin a club theme brings, or null when the theme only styles the lobby. */
 export const skinForTheme = (theme: string): TableStyle | null => THEME_SKINS[theme] ?? null;
+
+/** The stage shape a style lays out on: the flagship has its own phone table (a wide oval). */
+export const stageShapeFor = (style: TableStyle): StageShape => (style === "flagship" ? "flagship" : "standard");

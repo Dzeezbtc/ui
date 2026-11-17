@@ -145,11 +145,51 @@ export const STAGE_DIMS: Record<StageOrientation, StageDims> = {
     }
 };
 
+/**
+ * The stage's shape. "standard" is every table style's ring; "flagship" (the
+ * Block52 Flagship skin) swaps the tall 1:2 portrait pill for the flagship's
+ * wide oval on phones. Landscape is the same for both. Set by the table when
+ * its style changes ({@link setStageShape}); the layout cache is keyed on it.
+ */
+export type StageShape = "standard" | "flagship";
+let stageShape: StageShape = "standard";
+
+/** Switch the stage shape. Returns true when it changed (the caller re-lays out). */
+export function setStageShape(shape: StageShape): boolean {
+    if (shape === stageShape) return false;
+    stageShape = shape;
+    return true;
+}
+
+export function getStageShape(): StageShape {
+    return stageShape;
+}
+
+/** The flagship's phone stage: the concept's table exactly — a 0.7 (714×1020)
+ *  rail tipped back 12° under a perspective of 1.45× its width (the skin
+ *  draws it) — on a 900×1460 stage. You sit low enough that the rim runs
+ *  through the middle of your cards. */
+export const FLAGSHIP_PORTRAIT_DIMS: StageDims = {
+    stageWidth: 900,
+    stageHeight: 1460,
+    tableWidth: 654,
+    tableHeight: 960,
+    centerX: 450,
+    centerY: 730,
+    originX: 123,
+    originY: 250
+};
+
+function isFlagshipPortrait(): boolean {
+    return stageShape === "flagship" && getStageOrientation() === "portrait";
+}
+
 export function getStageOrientation(): StageOrientation {
     return getViewportMode() === "mobile-portrait" ? "portrait" : "landscape";
 }
 
 export function getStageDims(): StageDims {
+    if (isFlagshipPortrait()) return FLAGSHIP_PORTRAIT_DIMS;
     return STAGE_DIMS[getStageOrientation()];
 }
 
@@ -257,8 +297,49 @@ const PORTRAIT_SEAT_COORDS: Record<number, [number, number][]> = {
     ]
 };
 
+// Flagship seats: spaced EVENLY along the rim (across the TV, pulled in 5%
+// sideways so the side seats' cards clear the history panel; you sit low
+// enough that your cards stay clear of the felt logo) (equal arc length between
+// neighbours, you alone at 6 o'clock), each avatar sitting on the rim. On the
+// phone the rim is the tilted one the skin draws, so these are its projected
+// points. Generated, then the engine's SEAT_SPREAD pulls each 30px inward.
+const FLAGSHIP_PORTRAIT_SEAT_COORDS: Record<number, [number, number][]> = {
+    2: [[450, 1361], [450, 314.2]],
+    4: [[450, 1361], [79.6, 770.2], [450, 314.2], [820.4, 770.2]],
+    6: [[450, 1361], [82.1, 1012], [108.8, 545.3], [450, 314.2], [791.2, 545.3], [817.9, 1012]],
+    9: [
+        [450, 1361],
+        [152.6, 1162.2],
+        [75.7, 849.8],
+        [108.8, 545.3],
+        [307.6, 342.2],
+        [592.4, 342.2],
+        [791.2, 545.3],
+        [824.3, 849.8],
+        [747.4, 1162.2]
+    ]
+};
+const FLAGSHIP_LANDSCAPE_SEAT_COORDS: Record<number, [number, number][]> = {
+    2: [[800, 871], [800, 292]],
+    4: [[800, 871], [296.6, 574.2], [800, 292], [1303.4, 574.2]],
+    6: [[800, 871], [382, 775.3], [380.2, 372.7], [800, 292], [1219.8, 372.7], [1218, 775.3]],
+    9: [
+        [800, 871],
+        [508.5, 840.6],
+        [306.8, 648.9],
+        [380.2, 372.7],
+        [648.5, 297.1],
+        [951.5, 297.1],
+        [1219.8, 372.7],
+        [1293.2, 648.9],
+        [1091.5, 840.6]
+    ]
+};
+
 /** Seat coordinates for the current orientation's stage. */
 export function getSeatCoords(tableSize: TableSize): [number, number][] {
+    if (isFlagshipPortrait()) return FLAGSHIP_PORTRAIT_SEAT_COORDS[tableSize];
+    if (stageShape === "flagship") return FLAGSHIP_LANDSCAPE_SEAT_COORDS[tableSize];
     return getStageOrientation() === "portrait" ? PORTRAIT_SEAT_COORDS[tableSize] : SEAT_COORDS[tableSize];
 }
 
@@ -331,6 +412,7 @@ const PORTRAIT_DECK_ORIGIN: Position = { left: "250px", top: "360px" };
 
 /** The deck origin for the current orientation's felt. */
 export function getDeckOrigin(): Position {
+    if (isFlagshipPortrait()) return { left: "320px", top: "350px" };
     return getStageOrientation() === "portrait" ? PORTRAIT_DECK_ORIGIN : DECK_ORIGIN;
 }
 
@@ -757,6 +839,18 @@ export function betSideFor(x: number, y: number, tableWidth: number, tableHeight
     return nx < 0 ? "left" : "right";
 }
 
+/**
+ * Which way a seat's face-down cards stick out on the flagship table, away from
+ * the felt: seats left of centre push them left, right of centre right, and the
+ * seats near the middle (top and bottom) push them up. `left` is the seat's x in
+ * table-div pixels.
+ */
+export function holeCardSideFor(left: string, tableWidth: number): "left" | "right" | "up" {
+    const nx = (parseFloat(left) - tableWidth / 2) / (tableWidth / 2);
+    if (Math.abs(nx) < 0.15) return "up";
+    return nx < 0 ? "left" : "right";
+}
+
 /** Keep-out rectangle (centre and half sizes) in table-div pixels. */
 export interface BetObstacle {
     x: number;
@@ -803,6 +897,39 @@ export function placeBetSpots(
     });
 }
 
+/**
+ * The flagship's bet spots (the concept's): each bet sits in front of its
+ * player, `reach` of the way from the seat toward the felt's centre. A spot
+ * that lands on the board slides straight up or down, whichever is nearer,
+ * until it clears it. Pixels are table-div pixels; the bet group is centred
+ * on (left, top).
+ */
+export function placeBetSpotsToward(
+    players: Position[],
+    tableWidth: number,
+    tableHeight: number,
+    board: BetObstacle[] = [],
+    reach = 0.34,
+    groupW = 110,
+    groupHalfH = 16
+): ChipPosition[] {
+    const r = (n: number) => `${Math.round(n * 10) / 10}px`;
+    const cx = tableWidth / 2;
+    const cy = tableHeight / 2;
+    return players.map(seat => {
+        const sx = parseFloat(seat.left);
+        const sy = parseFloat(seat.top);
+        const x = sx + (cx - sx) * reach;
+        let y = sy + (cy - sy) * reach;
+        for (const o of board) {
+            const overlapsX = Math.abs(x - o.x) < o.hw + groupW / 2;
+            const overlapsY = Math.abs(y - o.y) < o.hy + groupHalfH;
+            if (overlapsX && overlapsY) y = y < o.y ? o.y - o.hy - groupHalfH - 4 : o.y + o.hy + groupHalfH + 4;
+        }
+        return { left: r(x), top: r(y), bottom: r(tableHeight - y), side: betSideFor(sx, sy, tableWidth, tableHeight) };
+    });
+}
+
 /** The button goes on the chips' left (toward the centre for right-arc seats),
  *  except on the left arc, where the table interior is to the right. */
 export function dealerSideFor(side: BetSide | undefined): "left" | "right" {
@@ -833,7 +960,7 @@ export function betBoardFor(tableSize: number, portrait: boolean, tableWidth: nu
  */
 const layoutCache = new Map<string, PositionArrays>();
 export function getLayoutPositions(tableSize: TableSize, mode: ViewportMode): PositionArrays {
-    const key = `${mode}|${tableSize}`;
+    const key = `${stageShape}|${mode}|${tableSize}`;
     let hit = layoutCache.get(key);
     if (!hit) {
         hit = withBetSpots(getAllPositions(tableSize), tableSize, mode);
@@ -853,6 +980,11 @@ export function withBetSpots(positions: PositionArrays, tableSize: TableSize, mo
     const portrait = mode === "mobile-portrait";
     const mobile = mode === "mobile-portrait" || mode === "mobile-landscape";
     const board = betBoardFor(tableSize, portrait, dims.tableWidth, dims.tableHeight);
+    if (stageShape === "flagship") {
+        // The flagship board (five 85px cards and the pot pill) is the same size on every screen.
+        const flagshipBoard = { x: dims.tableWidth / 2, y: dims.tableHeight / 2 - 15, hw: 240, hy: 105 };
+        return { ...positions, chips: placeBetSpotsToward(positions.players, dims.tableWidth, dims.tableHeight, [flagshipBoard]) };
+    }
     return {
         ...positions,
         chips: placeBetSpots(positions.players, seatEnvelope(mobile), dims.tableWidth, dims.tableHeight, board)
@@ -955,6 +1087,13 @@ export const PLAYER_UI_PADDING: Record<ViewportMode, { x: number; top: number; b
     "mobile-portrait":  { x: 70, top: 90, bottom: 90 },    // symmetric — vertical stadium, hero at the bottom
 };
 
+/** Room around the flagship phone table's seats ({@link getContentBounds}). */
+export const FLAGSHIP_PORTRAIT_PADDING = { x: 110, top: 90, bottom: 90 };
+/** Across a big screen the flagship seats' cards stick out sideways, so leave them room. */
+export const FLAGSHIP_DESKTOP_PADDING = { x: 135, top: 90, bottom: 90 };
+/** The flagship table's size across a big screen, relative to a full fit. */
+export const FLAGSHIP_DESKTOP_SCALE = 0.93;
+
 export interface ContentBounds {
     width: number;
     height: number;
@@ -966,7 +1105,9 @@ export interface ContentBounds {
  *  Uses per-viewport padding — desktop gets full room, mobile gets tighter fit. */
 export function getContentBounds(tableSize: TableSize): ContentBounds {
     const mode = getViewportMode();
-    const pad = PLAYER_UI_PADDING[mode];
+    // The flagship phone table keeps the concept's breathing room either side
+    // (the table fills ~3/4 of the width, not edge to edge).
+    const pad = isFlagshipPortrait() ? FLAGSHIP_PORTRAIT_PADDING : stageShape === "flagship" && mode === "desktop" ? FLAGSHIP_DESKTOP_PADDING : PLAYER_UI_PADDING[mode];
     const coords = getSeatCoords(tableSize);
     let minX = Infinity, maxX = -Infinity, minY = Infinity, maxY = -Infinity;
     for (const [x, y] of coords) {
@@ -1011,7 +1152,10 @@ export function calculateZoom(
     const scaleByHeight = usableHeight / bounds.height;
     const fitScale = Math.min(scaleByWidth, scaleByHeight);
 
-    const result = Math.max(MIN_SCALE, Math.min(fitScale, MAX_GLOBAL_SCALE));
+    // Across a big screen the flagship's side seats push their cards outward,
+    // so it sits a touch smaller to keep them clear of the side panel.
+    const shapeScale = stageShape === "flagship" && mode === "desktop" ? FLAGSHIP_DESKTOP_SCALE : 1;
+    const result = Math.max(MIN_SCALE, Math.min(fitScale * shapeScale, MAX_GLOBAL_SCALE));
 
     return result;
 }

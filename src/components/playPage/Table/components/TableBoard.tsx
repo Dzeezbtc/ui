@@ -18,6 +18,9 @@ import OppositePlayerCards from "../../Card/OppositePlayerCards";
 import { TotalPotDisplay } from "./TotalPotDisplay";
 import { MainPotDisplay } from "./MainPotDisplay";
 import { NounsGlasses } from "./NounsGlasses";
+import { FlagshipCard } from "../../Card/FlagshipCard";
+import flagshipMark from "../../../../assets/flagship/mark.svg";
+import flagshipWordmark from "../../../../assets/flagship/wordmark.png";
 
 
 export interface TableBoardProps {
@@ -90,27 +93,41 @@ export const TableBoard: React.FC<TableBoardProps> = ({
                         key={`${idx}-${card}`}
                         className={`card animate-fall${isWinCard ? " animate-win-card" : ""}${shouldMute ? " opacity-40" : ""}`}
                     >
-                        <OppositePlayerCards frontSrc={getCardImageUrl(card)} backSrc={getCardBackUrl(cardBackStyle)} flipped />
+                        {tableTheme === "flagship" ? (
+                            <FlagshipCard code={card} className="fs-board" />
+                        ) : (
+                            <OppositePlayerCards frontSrc={getCardImageUrl(card)} backSrc={getCardBackUrl(cardBackStyle)} flipped />
+                        )}
                     </div>
                 );
             } else {
                 return (
                     <div
                         key={idx}
+                        data-part="board-slot"
                         className="w-[85px] h-[127px] aspect-square border-[0.5px] border-dashed border-white rounded-[5px] "
                         style={{ borderColor: "rgba(255,255,255,0.35)" }}
                     />
                 );
             }
         });
-    }, [communityCards, cardBackStyle, winnerCards, revealedSlots]);
+    }, [communityCards, cardBackStyle, winnerCards, revealedSlots, tableTheme]);
 
     return (
         <>
             {/* Club Logo */}
-            <div className={`table-logo ${tableTheme === "nouns" ? "table-logo-nouns" : ""}`}>
-                {tableTheme === "nouns" ? <NounsGlasses width={300} className="nouns-glasses-logo" /> : <img src={clubLogo} alt="Club Logo" />}
-            </div>
+            {tableTheme === "flagship" ? (
+                // The Block52 flagship felt: the wordmark across the table, the
+                // mark alone on the upright phone table (the skin picks one).
+                <div className="table-logo fs-logo" aria-hidden="true">
+                    <span className="fs-wordmark" style={{ WebkitMaskImage: `url(${flagshipWordmark})`, maskImage: `url(${flagshipWordmark})` }} />
+                    <img className="fs-mark" src={flagshipMark} alt="" />
+                </div>
+            ) : (
+                <div className={`table-logo ${tableTheme === "nouns" ? "table-logo-nouns" : ""}`}>
+                    {tableTheme === "nouns" ? <NounsGlasses width={300} className="nouns-glasses-logo" /> : <img src={clubLogo} alt="Club Logo" />}
+                </div>
+            )}
 
             {/* Central Display Area */}
             <div className="flex flex-col items-center justify-center -mt-8">

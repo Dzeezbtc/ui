@@ -22,6 +22,7 @@ import { hasElements } from "../../../utils/guards";
 import { getSeatOpacityClass } from "../../../utils/seatOpacity";
 import styles from "./PlayersCommon.module.css";
 import { NftAvatarImage } from "../../profile/NftAvatarImage";
+import { seatGradient } from "../../../utils/cardFace";
 
 const Player: React.FC<PlayerProps & { uiPosition?: number }> = memo(
     ({ left, top, index, currentIndex: _currentIndex, color, status: _status, uiPosition }) => {
@@ -94,6 +95,7 @@ const Player: React.FC<PlayerProps & { uiPosition?: number }> = memo(
                     cards={holeCards.map((card, i) => ({
                         key: `${i}-${card}`,
                         src: getCardImageUrl(card),
+                        code: card,
                         alt: `Card ${i + 1}`,
                         highlight: winnerCardHighlight(card, isWinner, winnerCards),
                         onError: () => console.error(`❌ Player ${index} card${i + 1} failed to load:`, getCardImageUrl(card))
@@ -137,8 +139,12 @@ const Player: React.FC<PlayerProps & { uiPosition?: number }> = memo(
                         <div className="text-orange-300">Addr: ...{playerData?.address ? playerData.address.slice(-3) : "N/A"}</div>
                     </div>
                 )}
-                <div className="flex justify-center gap-1">{renderCards()}</div>
+                <div className="flex justify-center gap-1" data-part="hole-cards">{renderCards()}</div>
                 <div className="relative flex flex-col justify-end mt-[-6px] mx-1">
+                    {/* Flagship skin only: the round gradient avatar (its stylesheet shows it) */}
+                    <span data-part="seat-avatar" aria-hidden="true" style={{ background: seatGradient(index) }} />
+                    {/* Flagship skin only: the dealer button sits on your plate */}
+                    {isDealer && <span data-part="seat-dealer" aria-label="Dealer">D</span>}
                     {selectedAvatarUrl && (
                         <NftAvatarImage
                             src={selectedAvatarUrl}

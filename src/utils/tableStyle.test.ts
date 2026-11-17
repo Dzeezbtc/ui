@@ -1,4 +1,4 @@
-import { TABLE_STYLES, TABLE_STYLE_LABELS, isTableStyle, nextTableStyle, skinForTheme, tableStyleFromEnv } from "./tableStyle";
+import { TABLE_STYLES, TABLE_STYLE_LABELS, isTableStyle, nextTableStyle, skinForTheme, stageShapeFor, tableStyleFromEnv } from "./tableStyle";
 
 describe("tableStyle", () => {
     it("knows every style and names each one", () => {
@@ -38,5 +38,11 @@ describe("tableStyle", () => {
         expect(skinForTheme("block52")).toBeNull();
         expect(skinForTheme("maison")).toBeNull();
         expect(skinForTheme("")).toBeNull();
+    });
+
+    it("lays the flagship out on its own stage shape", () => {
+        expect(stageShapeFor("flagship")).toBe("flagship");
+        expect(stageShapeFor("modern")).toBe("standard");
+        expect(stageShapeFor("chipchair")).toBe("standard");
     });
 });
