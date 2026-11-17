@@ -1101,3 +1101,12 @@
     align-items: center;
     justify-content: center;
 }
+
+/* bet amounts: a size that keeps even a "$12,345.67" bet inside its spot */
+[data-skin="flagship"] .chip-position :is(.text-2xl, .text-4xl) {
+    font-size: 17px !important;
+    line-height: 1.2;
+}
+[data-skin="flagship"][data-orient="portrait"] .chip-position :is(.text-2xl, .text-4xl) {
+    font-size: 22px !important;
+}

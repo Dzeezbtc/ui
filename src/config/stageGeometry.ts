@@ -320,11 +320,11 @@ const FLAGSHIP_PORTRAIT_SEAT_COORDS: Record<number, [number, number][]> = {
     ]
 };
 const FLAGSHIP_LANDSCAPE_SEAT_COORDS: Record<number, [number, number][]> = {
-    2: [[800, 871], [800, 292]],
-    4: [[800, 871], [296.6, 574.2], [800, 292], [1303.4, 574.2]],
-    6: [[800, 871], [382, 775.3], [380.2, 372.7], [800, 292], [1219.8, 372.7], [1218, 775.3]],
+    2: [[800, 886], [800, 292]],
+    4: [[800, 886], [296.6, 574.2], [800, 292], [1303.4, 574.2]],
+    6: [[800, 886], [382, 775.3], [380.2, 372.7], [800, 292], [1219.8, 372.7], [1218, 775.3]],
     9: [
-        [800, 871],
+        [800, 886],
         [508.5, 840.6],
         [306.8, 648.9],
         [380.2, 372.7],
@@ -897,41 +897,83 @@ export function placeBetSpots(
     });
 }
 
-/**
- * The flagship's bet spots (the concept's): each bet sits in front of its
- * player, `reach` of the way from the seat toward the felt's centre. A spot
- * that lands on the board slides straight up or down, whichever is nearer,
- * until it clears it. Pixels are table-div pixels; the bet group is centred
- * on (left, top).
- */
-/** Your bet, beside your big cards: right of them and up a little (table-div px). */
-const YOUR_BET_DX = 165;
-const YOUR_BET_DY = 70;
+/** A seat's footprint on the flagship table, around its coordinate (table-div px). */
+export interface FlagshipSeatBox {
+    halfW: number;
+    up: number;
+    down: number;
+}
+/** Another player: avatar and cards above the coordinate, the plate below it. */
+export const FLAGSHIP_SEAT_BOX: FlagshipSeatBox = { halfW: 72, up: 84, down: 52 };
+/** You: your two big cards stand above your plate. */
+export const FLAGSHIP_YOUR_BOX: FlagshipSeatBox = { halfW: 92, up: 156, down: 52 };
+/** The widest bet group the flagship draws (chips plus "$12,345.67"), and half its height. */
+export const FLAGSHIP_BET_HALF_W = 78;
+export const FLAGSHIP_BET_HALF_H = 17;
+const BET_GAP = 8;
 
-export function placeBetSpotsToward(
-    players: Position[],
-    tableWidth: number,
-    tableHeight: number,
-    board: BetObstacle[] = [],
-    reach = 0.38,
-    groupW = 110,
-    groupHalfH = 16
-): ChipPosition[] {
+/**
+ * The flagship board's keep-out, relative to the felt's centre: the five 85px
+ * community cards plus the pot pill above them (table-div px).
+ */
+export function flagshipBoardKeepOut(tableWidth: number, tableHeight: number): BetObstacle {
+    return { x: tableWidth / 2, y: tableHeight / 2 - 25, hw: 232, hy: 85 };
+}
+
+/**
+ * The way "in front" points from a seat on the flagship's stadium felt: straight
+ * off the rim toward the felt, along the rim's inward normal. On the straight
+ * sides that is straight across; on the round ends it points at that end's
+ * centre. (x, y) and the felt size are table-div pixels.
+ */
+export function inwardNormal(x: number, y: number, tableWidth: number, tableHeight: number): [number, number] {
+    const horizontal = tableWidth >= tableHeight;
+    const r = (horizontal ? tableHeight : tableWidth) / 2;
+    let cx: number;
+    let cy: number;
+    if (horizontal) {
+        cy = r;
+        cx = Math.min(Math.max(x, r), tableWidth - r);
+    } else {
+        cx = r;
+        cy = Math.min(Math.max(y, r), tableHeight - r);
+    }
+    const dx = cx - x;
+    const dy = cy - y;
+    const len = Math.hypot(dx, dy);
+    return len === 0 ? [0, -1] : [dx / len, dy / len];
+}
+
+/**
+ * The flagship's bet spots: every bet goes straight out in front of its player
+ * (along the rim's inward normal), just far enough to clear that player's own
+ * avatar, cards and plate, for the widest bet. You are the seat alone at the
+ * bottom centre, and your bet goes straight up past your big cards. The spot is
+ * the centre of the bet group, in table-div pixels.
+ */
+export function placeBetSpotsInFront(players: Position[], tableWidth: number, tableHeight: number): ChipPosition[] {
     const r = (n: number) => `${Math.round(n * 10) / 10}px`;
     const cx = tableWidth / 2;
-    const cy = tableHeight / 2;
     return players.map(seat => {
         const sx = parseFloat(seat.left);
         const sy = parseFloat(seat.top);
-        // You (alone at the bottom centre) have your big cards in front of you,
-        // so your bet sits beside them, to the right, not under them.
-        const isYouAtBottom = Math.abs(sx - cx) < tableWidth * 0.05 && sy > cy;
-        const x = isYouAtBottom ? sx + YOUR_BET_DX : sx + (cx - sx) * reach;
-        let y = isYouAtBottom ? sy - YOUR_BET_DY : sy + (cy - sy) * reach;
-        for (const o of board) {
-            const overlapsX = Math.abs(x - o.x) < o.hw + groupW / 2;
-            const overlapsY = Math.abs(y - o.y) < o.hy + groupHalfH;
-            if (overlapsX && overlapsY) y = y < o.y ? o.y - o.hy - groupHalfH - 4 : o.y + o.hy + groupHalfH + 4;
+        const isYou = Math.abs(sx - cx) < tableWidth * 0.05 && sy > tableHeight / 2;
+        const box = isYou ? FLAGSHIP_YOUR_BOX : FLAGSHIP_SEAT_BOX;
+        const [nx, ny] = isYou ? [0, -1] : inwardNormal(sx, sy, tableWidth, tableHeight);
+        // Separate the bet from the seat along whichever axis takes the shorter move.
+        const across = Math.abs(nx) > 1e-6 ? (box.halfW + FLAGSHIP_BET_HALF_W + BET_GAP) / Math.abs(nx) : Infinity;
+        const vertical = ny < 0 ? box.up : box.down;
+        const along = Math.abs(ny) > 1e-6 ? (vertical + FLAGSHIP_BET_HALF_H + BET_GAP) / Math.abs(ny) : Infinity;
+        const d = Math.min(across, along);
+        const x = sx + nx * d;
+        let y = sy + ny * d;
+        // A side seat level with the board: slide the bet straight up or down,
+        // whichever is shorter, until it clears the board.
+        const board = flagshipBoardKeepOut(tableWidth, tableHeight);
+        if (Math.abs(x - board.x) < board.hw + FLAGSHIP_BET_HALF_W && Math.abs(y - board.y) < board.hy + FLAGSHIP_BET_HALF_H) {
+            const above = board.y - board.hy - FLAGSHIP_BET_HALF_H - BET_GAP / 2;
+            const below = board.y + board.hy + FLAGSHIP_BET_HALF_H + BET_GAP / 2;
+            y = Math.abs(y - above) <= Math.abs(y - below) ? above : below;
         }
         return { left: r(x), top: r(y), bottom: r(tableHeight - y), side: betSideFor(sx, sy, tableWidth, tableHeight) };
     });
@@ -988,9 +1030,7 @@ export function withBetSpots(positions: PositionArrays, tableSize: TableSize, mo
     const mobile = mode === "mobile-portrait" || mode === "mobile-landscape";
     const board = betBoardFor(tableSize, portrait, dims.tableWidth, dims.tableHeight);
     if (stageShape === "flagship") {
-        // The flagship board (five 85px cards and the pot pill) is the same size on every screen.
-        const flagshipBoard = { x: dims.tableWidth / 2, y: dims.tableHeight / 2 - 15, hw: 240, hy: 95 };
-        return { ...positions, chips: placeBetSpotsToward(positions.players, dims.tableWidth, dims.tableHeight, [flagshipBoard]) };
+        return { ...positions, chips: placeBetSpotsInFront(positions.players, dims.tableWidth, dims.tableHeight) };
     }
     return {
         ...positions,

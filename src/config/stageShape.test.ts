@@ -2,7 +2,12 @@ import {
     FLAGSHIP_PORTRAIT_DIMS,
     FLAGSHIP_PORTRAIT_PADDING,
     getContentBounds,
-    placeBetSpotsToward,
+    FLAGSHIP_BET_HALF_H,
+    FLAGSHIP_BET_HALF_W,
+    FLAGSHIP_SEAT_BOX,
+    FLAGSHIP_YOUR_BOX,
+    inwardNormal,
+    flagshipBoardKeepOut,
     STAGE_DIMS,
     clearLayoutCache,
     getLayoutPositions,
@@ -95,28 +100,67 @@ describe("holeCardSideFor", () => {
     });
 });
 
-describe("placeBetSpotsToward", () => {
-    const seat = (left: number, top: number) => ({ left: `${left}px`, top: `${top}px` });
+describe("flagship bets", () => {
+    type Rect = { x0: number; x1: number; y0: number; y1: number; what: string };
+    const overlaps = (a: Rect, b: Rect) => a.x0 < b.x1 && b.x0 < a.x1 && a.y0 < b.y1 && b.y0 < a.y1;
 
-    it("puts each bet a third of the way from its seat to the centre", () => {
-        const [spot] = placeBetSpotsToward([seat(0, 250)], 1000, 500, [], 0.34);
-        expect(parseFloat(spot.left)).toBeCloseTo(170, 0);
-        expect(parseFloat(spot.top ?? "")).toBeCloseTo(250, 0);
-        expect(spot.side).toBe("left");
+    const layout = (width: number, height: number, size: 2 | 4 | 6 | 9) => {
+        setViewport(width, height);
+        setStageShape("flagship");
+        clearLayoutCache();
+        const mode = width > height ? "desktop" : "mobile-portrait";
+        const { players, chips } = getLayoutPositions(size, mode);
+        const { tableWidth, tableHeight } = getStageDims();
+        return { players, chips, tableWidth, tableHeight };
+    };
+
+    it("puts every bet straight out in front of its player, clear of every bet, every seat and the board", () => {
+        for (const [w, h] of [[1920, 1080], [390, 844]]) {
+            for (const size of [2, 4, 6, 9] as const) {
+                const { players, chips, tableWidth, tableHeight } = layout(w, h, size);
+                const seatRects: Rect[] = players.map((p, i) => {
+                    const x = parseFloat(p.left);
+                    const y = parseFloat(p.top);
+                    const box = i === 0 ? FLAGSHIP_YOUR_BOX : FLAGSHIP_SEAT_BOX;
+                    return { x0: x - box.halfW, x1: x + box.halfW, y0: y - box.up, y1: y + box.down, what: `seat ${i + 1}` };
+                });
+                const betRects: Rect[] = chips.map((c, i) => {
+                    const x = parseFloat(c.left);
+                    const y = parseFloat(c.top ?? "");
+                    return { x0: x - FLAGSHIP_BET_HALF_W, x1: x + FLAGSHIP_BET_HALF_W, y0: y - FLAGSHIP_BET_HALF_H, y1: y + FLAGSHIP_BET_HALF_H, what: `bet ${i + 1}` };
+                });
+                const k = flagshipBoardKeepOut(tableWidth, tableHeight);
+                const board: Rect = { x0: k.x - k.hw, x1: k.x + k.hw, y0: k.y - k.hy, y1: k.y + k.hy, what: "board" };
+                const where = `${w}x${h} ${size}-max`;
+                betRects.forEach((b, i) => {
+                    seatRects.forEach(s => expect(`${where} ${b.what} on ${s.what}: ${overlaps(b, s)}`).toBe(`${where} ${b.what} on ${s.what}: false`));
+                    betRects.forEach((o, j) => {
+                        if (j > i) expect(`${where} ${b.what} on ${o.what}: ${overlaps(b, o)}`).toBe(`${where} ${b.what} on ${o.what}: false`);
+                    });
+                    expect(`${where} ${b.what} on board: ${overlaps(b, board)}`).toBe(`${where} ${b.what} on board: false`);
+                    // in front of its own player: closer to the middle of the felt than the seat is
+                    const sx = parseFloat(players[i].left) - tableWidth / 2;
+                    const sy = parseFloat(players[i].top) - tableHeight / 2;
+                    const bx = (b.x0 + b.x1) / 2 - tableWidth / 2;
+                    const by = (b.y0 + b.y1) / 2 - tableHeight / 2;
+                    expect(Math.hypot(bx, by)).toBeLessThan(Math.hypot(sx, sy));
+                });
+            }
+        }
     });
 
-    it("puts your bet beside your cards, not under them", () => {
-        const [you] = placeBetSpotsToward([seat(500, 560)], 1000, 500, [], 0.38);
-        expect(parseFloat(you.left)).toBe(665);
-        expect(parseFloat(you.top ?? "")).toBe(490);
+    it("sends your bet straight up from your seat", () => {
+        const { players, chips } = layout(1920, 1080, 9);
+        expect(parseFloat(chips[0].left)).toBeCloseTo(parseFloat(players[0].left), 0);
+        expect(parseFloat(chips[0].top ?? "")).toBeLessThan(parseFloat(players[0].top) - FLAGSHIP_YOUR_BOX.up);
     });
 
-    it("slides a bet that lands on the board up or down until it clears", () => {
-        const board = [{ x: 500, y: 250, hw: 200, hy: 60 }];
-        const [above, below] = placeBetSpotsToward([seat(500, -40), seat(560, 560)], 1000, 500, board, 0.34);
-        expect(parseFloat(above.top ?? "")).toBeLessThanOrEqual(250 - 60 - 16);
-        expect(parseFloat(below.top ?? "")).toBeGreaterThanOrEqual(250 + 60 + 16);
-        expect(parseFloat(above.left)).toBe(500);
-        expect(parseFloat(below.left)).toBeLessThan(560);
+    it("points straight across on the sides and at the end's centre on the round ends", () => {
+        expect(inwardNormal(500, 0, 1000, 500)).toEqual([0, 1]);
+        expect(inwardNormal(500, 500, 1000, 500)).toEqual([0, -1]);
+        const [nx, ny] = inwardNormal(0, 250, 1000, 500);
+        expect(nx).toBeCloseTo(1);
+        expect(ny).toBeCloseTo(0);
+        expect(inwardNormal(0, 400, 500, 1000)).toEqual([1, 0]);
     });
 });
