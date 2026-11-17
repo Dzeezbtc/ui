@@ -139,6 +139,8 @@ import { PlayerDTO, PlayerStatus } from "@block52/poker-vm-sdk";
 import LiveHandStrengthDisplay from "./LiveHandStrengthDisplay";
 import { TurnStatusLabel } from "./TurnStatusLabel";
 import { StreetTracker } from "./StreetTracker";
+import { BadBeatHeroDock } from "./BadBeatHeroDock";
+import { BadBeatFeltCards } from "./BadBeatFeltCards";
 import { radioStationsFor } from "../../utils/radioStations";
 import { ProvablyFairBadge } from "./ProvablyFair/ProvablyFairBadge";
 import { FlagshipTopBar } from "./Table/components/FlagshipTopBar";
@@ -1571,6 +1573,7 @@ const Table = React.memo(({ tableId }: TableProps = {}) => {
                         Also the root for the card-animation durations (src/bus/timing.ts → CSS custom properties). */}
                     <div
                         ref={tableDivRef}
+                        data-part="table-plane"
                         className="absolute"
                         style={{
                             width: `${stageDims.tableWidth}px`,
@@ -1644,6 +1647,10 @@ const Table = React.memo(({ tableId }: TableProps = {}) => {
                                         />
                                     );
                                 })}
+                            {/* Bad Beat: each seat's cards lie on the felt in front of it */}
+                            {tableStyle === "badbeat" && tableLayout.positions.feltCards && (
+                                <BadBeatFeltCards spots={tableLayout.positions.feltCards} tableSize={tableSize} startIndex={startIndex} dealerSeat={dealerSeat} />
+                            )}
                         </div>
 
                         {/* Last-pot winner banner (ui#848) */}
@@ -1681,6 +1688,7 @@ const Table = React.memo(({ tableId }: TableProps = {}) => {
                 <LiveHandStrengthDisplay />
                 {usesFlagshipLayout(tableStyle) && <TurnStatusLabel nextToAct={nextToAct} mySeat={currentUserSeat} />}
                 {tableStyle === "badbeat" && <StreetTracker round={gameState?.round} />}
+                {tableStyle === "badbeat" && <BadBeatHeroDock />}
             </div>
 
             {/*//! FOOTER — hidden in replay mode (read-only).

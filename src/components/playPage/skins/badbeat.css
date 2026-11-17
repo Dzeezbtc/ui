@@ -1,24 +1,28 @@
 /*
- * Bad Beat — a full table skin (table style "badbeat") on the Block52
- * Flagship's layout (Dzeezbtc/ui#36).
+ * Bad Beat — a full table skin (table style "badbeat", Dzeezbtc/ui#36), drawn
+ * from the Bad Beat concept (design/concepts/09-bad-beat).
  *
- * The table root carries data-skin="flagship" (so the flagship's layout, seats,
- * bets, top bar and tools apply as they are) and data-look="badbeat"; this
- * sheet only changes the look: graphite and steel with one signal crimson, a
- * padded graphite rail on a steel-blue felt, sports-broadcast type (Barlow
- * Condensed italic numbers, slanted tags), the BAD BEAT wordmark on the felt,
- * crisp white cards with a crimson hatched back, and the Pre / Flop / Turn /
- * River tracker. Same components, same controls, same behaviour.
+ * The table root carries data-skin="flagship" and data-look="badbeat": the
+ * flagship sheet supplies only the shared plumbing (the clean top bar, the
+ * tools under the balance, the settings cog, seat and bet positions, banners
+ * and clocks), and everything you see is redrawn here in the concept's look:
+ * a thick graphite rail tipped back on a steel-blue felt, broadcast plates
+ * (square avatar inside, stack in condensed italic), the face-down crimson
+ * "BB" cards over each plate, a white D disc, slanted pot and action tags,
+ * your cards big at the bottom with "You $412.50 · Pair of queens", and the
+ * action panel as one card: "Your turn · $10 to call", presets, slider and
+ * amount, pot odds, then Fold / Call / Raise. Same controls, same behaviour.
  */
 @import url("https://fonts.googleapis.com/css2?family=Barlow+Condensed:ital,wght@0,600;0,700;0,800;1,700;1,800;1,900&family=IBM+Plex+Mono:wght@400;500;600&display=swap");
 
-/* ---------- palette: the flagship's variables, Bad Beat's values ---------- */
+/* ---------- palette ---------- */
 [data-look="badbeat"] {
     --fs-bg: #0a0c0f;
     --fs-bg-rgb: 10, 12, 15;
     --fs-bg2: #111419;
     --fs-bg3-rgb: 24, 28, 34;
     --fs-glass-rgb: 17, 20, 25;
+    --fs-glass: rgba(17, 20, 25, 0.88);
     --fs-line: rgba(220, 228, 240, 0.09);
     --fs-line2: rgba(220, 228, 240, 0.18);
     --fs-fg: #eef1f5;
@@ -39,128 +43,220 @@
     --fs-hot-rgb: 255, 92, 122;
     --fs-gold: #f5c542;
     --fs-good: #2ee59d;
-    --fs-room: #16202a;
-    --fs-felt1: #2a4a62;
-    --fs-felt2: #1b3144;
-    --fs-felt3: #0d1820;
-    --fs-rail1: #2b3038;
-    --fs-rail2: #14171c;
     --fs-grad: linear-gradient(120deg, #ff2d55, #ff4167);
     --fs-disp: "Barlow Condensed", ui-sans-serif, system-ui, sans-serif;
     --fs-mono: "IBM Plex Mono", ui-monospace, Menlo, monospace;
     --bb-cond: "Barlow Condensed", ui-sans-serif, system-ui, sans-serif;
     --bb-red: #ff2d55;
+    --bb-bg3: #181c22;
+    --bb-steel: #262b33;
 }
 
-/* ---------- room: graphite, a cool lift behind the table ---------- */
+/* ---------- room ---------- */
 [data-skin="flagship"][data-look="badbeat"] .flagship-background {
-    background:
-        radial-gradient(70% 70% at 50% 45%, #16202a 0%, transparent 75%),
-        radial-gradient(50% 30% at 50% 100%, rgba(255, 45, 85, 0.07), transparent 70%),
-        var(--fs-bg);
+    background: radial-gradient(70% 70% at 50% 45%, #16202a, #0a0c0f 75%);
 }
 
-/* ---------- table: padded graphite rail, crimson pin-line, steel-blue felt ---------- */
+/* ---------- the table: a thick graphite rail tipped back, steel-blue felt ----------
+ * The rail draws the whole table (rail, crimson pin-line, felt) and is tipped
+ * back like the concept's camera; the felt element goes clear so the board,
+ * pot and bets on it stay flat and readable. */
 [data-skin="flagship"][data-look="badbeat"] [data-part="rail"] {
-    background: linear-gradient(180deg, #343a43 0%, #1d2127 55%, #121418 100%) !important;
-    border: 1px solid rgba(255, 255, 255, 0.06) !important;
+    border: 0 !important;
+    border-radius: 9999px !important;
+    background: linear-gradient(180deg, #3a4049 0%, #272c33 40%, #1a1d22 100%) !important;
     box-shadow:
-        inset 0 2px 0 rgba(255, 255, 255, 0.08),
-        inset 0 -10px 24px rgba(0, 0, 0, 0.5),
-        0 0 70px rgba(255, 45, 85, 0.16),
-        0 40px 90px -30px #000 !important;
+        inset 0 2px 0 rgba(255, 255, 255, 0.1),
+        inset 0 -6px 18px rgba(0, 0, 0, 0.45),
+        0 34px 0 -6px #0d0f12,
+        0 34px 0 -5px rgba(255, 45, 85, 0.25),
+        0 0 60px rgba(255, 45, 85, 0.18),
+        0 60px 90px -30px #000 !important;
+    transform: none !important;
 }
-[data-skin="flagship"][data-look="badbeat"] [data-part="felt"] {
+[data-skin="flagship"][data-look="badbeat"] [data-part="rail"]::before {
+    content: "";
+    position: absolute;
+    inset: 7.5% 4.6%;
+    border-radius: 9999px;
+    background: linear-gradient(180deg, rgba(255, 45, 85, 0.75), rgba(255, 45, 85, 0.3));
+    box-shadow: 0 0 22px rgba(255, 45, 85, 0.3);
+    animation: none;
+}
+[data-skin="flagship"][data-look="badbeat"] [data-part="rail"]::after {
+    content: "";
+    position: absolute;
+    inset: calc(7.5% + 3px) calc(4.6% + 3px);
+    border-radius: 9999px;
     background:
-        radial-gradient(ellipse at 50% 40%, rgba(255, 255, 255, 0.07), transparent 60%),
-        repeating-radial-gradient(circle at 30% 30%, rgba(255, 255, 255, 0.012) 0 1px, transparent 1px 3px),
-        radial-gradient(ellipse at 50% 45%, var(--fs-felt1) 0%, var(--fs-felt2) 50%, var(--fs-felt3) 100%) !important;
+        radial-gradient(ellipse at 50% 40%, rgba(80, 140, 190, 0.22), transparent 62%),
+        repeating-radial-gradient(circle at 30% 30%, rgba(255, 255, 255, 0.014) 0 1px, transparent 1px 3px),
+        radial-gradient(ellipse at 50% 45%, #284a64 0%, #1a3043 52%, #0d1820 100%);
     box-shadow:
         inset 0 0 0 1px rgba(0, 0, 0, 0.6),
-        inset 0 0 70px rgba(0, 0, 0, 0.65) !important;
+        inset 0 10px 40px rgba(0, 0, 0, 0.55);
 }
-/* the rim: one steady crimson pin-line, no spinning gradient */
+[data-skin="flagship"][data-look="badbeat"] [data-part="felt"] {
+    background: transparent !important;
+    border: 0 !important;
+    box-shadow: none !important;
+}
 [data-skin="flagship"][data-look="badbeat"] [data-part="felt"]::before {
-    inset: -3px;
-    padding: 2px;
-    background: linear-gradient(180deg, rgba(255, 45, 85, 0.85), rgba(255, 45, 85, 0.35));
-    filter: drop-shadow(0 0 8px rgba(255, 45, 85, 0.45));
-    animation: none;
+    display: none;
 }
 [data-skin="flagship"][data-look="badbeat"] [data-part="felt"]::after {
-    border: 1.5px dashed rgba(220, 228, 240, 0.12);
+    inset: 14% 10%;
+    border: 1.5px dashed rgba(220, 228, 240, 0.13);
 }
-/* phone: the same table tipped back (the flagship draws it on the rail) */
+/* phone: the same table, upright */
 [data-skin="flagship"][data-look="badbeat"][data-orient="portrait"] [data-part="rail"] {
-    background: linear-gradient(180deg, #343a43 0%, #1d2127 55%, #121418 100%) !important;
+    background: linear-gradient(180deg, #3a4049 0%, #272c33 40%, #1a1d22 100%) !important;
+    transform: none !important;
 }
 [data-skin="flagship"][data-look="badbeat"][data-orient="portrait"] [data-part="rail"]::before {
-    background: linear-gradient(180deg, rgba(255, 45, 85, 0.9), rgba(255, 45, 85, 0.4));
+    inset: 4.4% 6.6%;
     animation: none;
-    box-shadow: 0 0 30px rgba(255, 45, 85, 0.35);
+    background: linear-gradient(180deg, rgba(255, 45, 85, 0.8), rgba(255, 45, 85, 0.3));
+    box-shadow: 0 0 22px rgba(255, 45, 85, 0.3);
 }
 [data-skin="flagship"][data-look="badbeat"][data-orient="portrait"] [data-part="rail"]::after {
+    inset: calc(4.4% + 3px) calc(6.6% + 3px);
     background:
-        radial-gradient(ellipse at 50% 38%, rgba(255, 255, 255, 0.07), transparent 60%),
-        radial-gradient(ellipse at 50% 45%, var(--fs-felt1) 0%, var(--fs-felt2) 50%, var(--fs-felt3) 100%);
+        radial-gradient(ellipse at 50% 40%, rgba(80, 140, 190, 0.22), transparent 62%),
+        radial-gradient(ellipse at 50% 45%, #284a64 0%, #1a3043 52%, #0d1820 100%);
+}
+
+/* ---------- the camera: the whole table plane tipped back in real 3D ----------
+ * Rail, felt, the cards and chips lying on it all tip together, so they
+ * foreshorten like the concept. The seats stand back up (rotated the other
+ * way about their bottom edge), so plates, stacks and tags face you. */
+[data-skin="flagship"][data-look="badbeat"] [data-part="table-plane"] {
+    transform: perspective(var(--bb-persp, 1800px)) rotateX(var(--bb-tilt, 38deg));
+    transform-origin: 50% 50%;
+    transform-style: preserve-3d;
+}
+[data-skin="flagship"][data-look="badbeat"][data-orient="portrait"] [data-part="table-plane"] {
+    --bb-persp: 2200px;
+    --bb-tilt: 26deg;
+}
+[data-skin="flagship"][data-look="badbeat"] [data-part="table-plane"] > div,
+[data-skin="flagship"][data-look="badbeat"] [data-part="table-plane"] > div > div {
+    transform-style: preserve-3d;
+}
+[data-skin="flagship"][data-look="badbeat"] :is([data-part="seat"], [data-part="hero-seat"]),
+[data-skin="flagship"][data-look="badbeat"] [data-testid^="vacant-seat-"] {
+    transform: translate(-50%, -50%) translateZ(2px) rotateX(calc(-1 * var(--bb-tilt, 38deg))) !important;
+    transform-origin: 50% 100%;
+}
+[data-skin="flagship"][data-look="badbeat"][data-orient="portrait"] :is([data-part="seat"], [data-part="hero-seat"]),
+[data-skin="flagship"][data-look="badbeat"][data-orient="portrait"] [data-testid^="vacant-seat-"] {
+    transform: translate(-50%, -50%) translateZ(2px) rotateX(-26deg) !important;
+}
+/* the seats' own card rows give way to the cards on the felt */
+[data-skin="flagship"][data-look="badbeat"] :is([data-part="seat"], [data-part="hero-seat"]) [data-part="hole-cards"],
+[data-skin="flagship"][data-look="badbeat"] [data-part="seat-dealer"] {
+    display: none !important;
+}
+/* cards on the felt: two, side by side, lying flat */
+[data-skin="flagship"][data-look="badbeat"] [data-part="bb-felt-cards"] {
+    position: absolute;
+    z-index: 3;
+    display: flex;
+    align-items: center;
+    gap: 4px;
+    transform: translate(-50%, -50%);
+    pointer-events: none;
+}
+[data-skin="flagship"][data-look="badbeat"] .bb-felt-card {
+    width: 44px;
+}
+[data-skin="flagship"][data-look="badbeat"] .bb-felt-card:first-child {
+    transform: rotate(-4deg);
+}
+[data-skin="flagship"][data-look="badbeat"] .bb-felt-card + .bb-felt-card {
+    transform: rotate(5deg);
+}
+[data-skin="flagship"][data-look="badbeat"] [data-part="bb-dealer"] {
+    position: absolute;
+    left: calc(100% + 8px);
+    top: 50%;
+    width: 34px;
+    height: 34px;
+    margin-top: -17px;
+    display: grid;
+    place-items: center;
+    border-radius: 50%;
+    background: radial-gradient(circle at 40% 35%, #ffffff, #d9dde3);
+    box-shadow:
+        0 0 0 2px #0a0c0f,
+        0 4px 0 #9aa1ab,
+        0 8px 12px -4px #000;
+    font-family: var(--bb-cond);
+    font-weight: 900;
+    font-style: italic;
+    font-size: 20px;
+    color: #0a0c0f;
 }
 
 /* ---------- felt wordmark: BAD in steel, BEAT in crimson, slanted ---------- */
 [data-skin="flagship"][data-look="badbeat"] .bb-logo .bb-wordmark {
     position: absolute;
     left: 50%;
-    top: 72%;
+    top: 74%;
     transform: translate(-50%, -50%);
     font-family: var(--bb-cond);
     font-weight: 900;
     font-style: italic;
-    font-size: 64px;
+    font-size: 66px;
     line-height: 1;
-    letter-spacing: 0.01em;
     white-space: nowrap;
     color: #5d6b7a;
-    opacity: 0.85;
-    text-shadow: 0 2px 0 rgba(0, 0, 0, 0.35);
+    opacity: 0.8;
 }
 [data-skin="flagship"][data-look="badbeat"] .bb-logo .bb-wordmark b {
     font-weight: 900;
     color: var(--bb-red);
 }
 [data-skin="flagship"][data-look="badbeat"][data-orient="portrait"] .bb-logo .bb-wordmark {
-    top: 76%;
-    font-size: 52px;
+    font-size: 54px;
 }
 
-/* ---------- cards: crisp white, condensed italic ranks, crimson hatched back ---------- */
+/* ---------- cards: white, condensed italic ranks; backs pink hatched "BB" ---------- */
 [data-look="badbeat"] .fs-card {
-    background: linear-gradient(170deg, #ffffff, #eef1f5);
+    background: #fff;
     color: #0a0c0f;
     font-family: var(--bb-cond);
-    border-radius: 10% / 7%;
+    border-radius: 11% / 8%;
+    box-shadow: 0 10px 18px -8px rgba(0, 0, 0, 0.8);
 }
 [data-look="badbeat"] .fs-card.fs-red {
-    color: #e0123e;
+    color: #e3123f;
 }
 [data-look="badbeat"] .fs-card::after {
     content: none;
 }
 [data-look="badbeat"] .fs-card .fs-r {
-    font-weight: 800;
-    font-style: italic;
-    font-size: 44cqw;
-    letter-spacing: -0.02em;
+    left: 11%;
     top: 3%;
+    font-weight: 800;
+    font-size: 48cqw;
+    letter-spacing: -0.02em;
 }
 [data-look="badbeat"] .fs-card .fs-s {
-    top: calc(6% + 44cqw);
+    left: 13%;
+    top: calc(5% + 48cqw);
+    font-size: 24cqw;
+}
+[data-look="badbeat"] .fs-card .fs-pip {
+    font-size: 46cqw;
 }
 [data-look="badbeat"] .fs-card.fs-back {
     background:
-        repeating-linear-gradient(135deg, rgba(255, 255, 255, 0.12) 0 2px, transparent 2px 7px),
-        linear-gradient(160deg, #ff4167, #d81b45);
+        repeating-linear-gradient(135deg, rgba(255, 255, 255, 0.16) 0 2px, transparent 2px 7px),
+        linear-gradient(160deg, #ff8aa1, #ff4f74);
     box-shadow:
-        inset 0 0 0 3px #f6f7f9,
-        0 6px 12px -4px rgba(0, 0, 0, 0.6);
+        inset 0 0 0 2px #fff,
+        0 8px 14px -6px rgba(0, 0, 0, 0.7);
 }
 [data-look="badbeat"] .fs-card.fs-back::after {
     content: "BB";
@@ -168,48 +264,152 @@
     place-items: center;
     background: none;
     opacity: 1;
-    color: #fff;
+    color: #3a0d18;
     font-family: var(--bb-cond);
     font-weight: 900;
     font-style: italic;
-    font-size: 40cqw;
-    letter-spacing: -0.04em;
-    text-shadow: 0 1px 0 rgba(0, 0, 0, 0.25);
+    font-size: 34cqw;
+    letter-spacing: -0.06em;
 }
 
-/* ---------- seats: squircle avatars, broadcast plates ---------- */
-[data-skin="flagship"][data-look="badbeat"] [data-part="seat"] [data-part="seat-avatar"],
-[data-skin="flagship"][data-look="badbeat"] [data-part="seat"] [class*="avatarChip"] {
-    border-radius: 16px;
-    border-color: #111419;
-}
+/* ---------- seats: the concept's broadcast plate ----------
+ * [square avatar | "Seat 6" over the stack], one row, 150px wide. The round
+ * avatar above the plate is gone; the avatar sits inside the plate's left. */
 [data-skin="flagship"][data-look="badbeat"] :is([data-part="seat"], [data-part="hero-seat"]) .badge-container {
+    position: relative;
+    flex-direction: column !important;
+    align-items: flex-start !important;
+    justify-content: center;
+    gap: 0 !important;
+    width: 150px !important;
+    min-width: 0 !important;
+    margin: 0 auto;
+    padding: 6px 12px 6px 52px !important;
     border-radius: 12px !important;
-    background: rgba(17, 20, 25, 0.9) !important;
+    background: rgba(17, 20, 25, 0.88) !important;
     border: 1px solid var(--fs-line2) !important;
+    box-shadow: 0 14px 30px -14px #000 !important;
+    backdrop-filter: blur(10px);
+}
+[data-skin="flagship"][data-look="badbeat"] :is([data-part="seat"], [data-part="hero-seat"]) .badge-number {
+    display: block !important;
+    width: auto;
+    height: auto;
+    min-width: 0;
+    padding: 0;
+    background: none !important;
+    box-shadow: none !important;
+    color: var(--fs-muted) !important;
+    font-family: var(--fs-sans) !important;
+    font-weight: 500 !important;
+    font-size: 12px !important;
+    line-height: 1.2;
+}
+[data-skin="flagship"][data-look="badbeat"] [data-part="seat"] .badge-number::before {
+    content: "Seat\00a0";
+}
+[data-skin="flagship"][data-look="badbeat"] [data-part="hero-seat"] .badge-number {
+    font-size: 0 !important;
+}
+[data-skin="flagship"][data-look="badbeat"] [data-part="hero-seat"] .badge-number::before {
+    content: "You";
+    font-size: 12px;
+    color: var(--bb-red);
+    font-weight: 700;
 }
 [data-skin="flagship"][data-look="badbeat"] :is([data-part="seat"], [data-part="hero-seat"]) .badge-value {
     font-family: var(--bb-cond) !important;
     font-weight: 800 !important;
     font-style: italic;
-    font-size: 21px;
+    font-size: 21px !important;
+    line-height: 1.05;
     letter-spacing: 0.01em;
 }
-[data-skin="flagship"][data-look="badbeat"] [data-part="hero-seat"] .badge-container {
-    border-color: rgba(255, 45, 85, 0.75) !important;
-    box-shadow: 0 0 24px -6px rgba(255, 45, 85, 0.55) !important;
-}
-[data-skin="flagship"][data-look="badbeat"] [data-part="hero-seat"] .badge-value {
-    font-size: 24px;
-}
 [data-skin="flagship"][data-look="badbeat"] [data-part="hero-seat"] .badge-value::before {
-    font-style: normal;
+    content: none;
 }
-/* the last action: a slanted white broadcast tag */
-[data-skin="flagship"][data-look="badbeat"] .action-display-box {
+[data-skin="flagship"][data-look="badbeat"] [data-part="hero-seat"] .badge-container {
+    border-color: rgba(255, 45, 85, 0.8) !important;
+    box-shadow:
+        0 0 0 1px rgba(255, 45, 85, 0.5),
+        0 0 26px rgba(255, 45, 85, 0.35) !important;
+}
+/* the avatar: a 36px rounded square inside the plate's left */
+[data-skin="flagship"][data-look="badbeat"] :is([data-part="seat"], [data-part="hero-seat"]) [data-part="seat-avatar"],
+[data-skin="flagship"][data-look="badbeat"] :is([data-part="seat"], [data-part="hero-seat"]) [class*="avatarChip"] {
+    display: block !important;
+    position: absolute !important;
+    z-index: 6 !important;
+    top: 0 !important;
+    left: calc(50% - 75px + 8px) !important;
+    right: auto !important;
+    width: 36px !important;
+    height: 36px !important;
+    margin: 0 !important;
+    transform: none !important;
+    border: 0 !important;
+    border-radius: 9px !important;
+    box-shadow: none !important;
+}
+/* the plate sits where the avatar's circle was */
+[data-skin="flagship"][data-look="badbeat"] :is([data-part="seat"], [data-part="hero-seat"]) > div:last-child > div.absolute {
+    top: -8px !important;
+    z-index: 5;
+}
+[data-skin="flagship"][data-look="badbeat"] :is([data-part="seat"], [data-part="hero-seat"]) > div:last-child > div.h-\[55px\] {
+    height: 44px !important;
+}
+/* their two face-down cards sit side by side over the plate, a little fanned */
+[data-skin="flagship"][data-look="badbeat"] :is([data-part="seat"], [data-part="hero-seat"]) [data-part="hole-cards"] {
+    position: relative !important;
+    left: auto !important;
+    right: auto !important;
+    top: auto !important;
+    bottom: auto !important;
+    transform: none !important;
+    flex-direction: row !important;
+    justify-content: center;
+    align-items: flex-end;
+    gap: 3px !important;
+    height: 56px;
+    margin-bottom: 2px;
+    z-index: 0;
+}
+[data-skin="flagship"][data-look="badbeat"] :is([data-part="seat"], [data-part="hero-seat"]) [data-part="hole-cards"] .fs-card {
+    width: 38px !important;
+    height: auto !important;
+    margin: 0 !important;
+    opacity: 1 !important;
+    transform-origin: 50% 100%;
+}
+[data-skin="flagship"][data-look="badbeat"] :is([data-part="seat"], [data-part="hero-seat"]) [data-part="hole-cards"] .fs-card:first-child {
+    transform: rotate(-5deg) !important;
+}
+[data-skin="flagship"][data-look="badbeat"] :is([data-part="seat"], [data-part="hero-seat"]) [data-part="hole-cards"] .fs-card + .fs-card {
+    margin: 0 !important;
+    transform: rotate(5deg) !important;
+}
+/* your two at your seat: face up, the same size as everyone's */
+[data-skin="flagship"][data-look="badbeat"] [data-part="hero-seat"] [data-part="hole-cards"] .fs-card {
+    width: 40px !important;
+}
+/* shown at showdown: a size up, still over the plate */
+[data-skin="flagship"][data-look="badbeat"] [data-part="seat"] [data-part="hole-cards"][data-shown] .fs-card {
+    width: 46px !important;
+}
+[data-skin="flagship"][data-look="badbeat"] :is([data-part="seat"], [data-part="hero-seat"]) [data-part="hole-cards"] > div:not(.fs-card) {
+    display: none;
+}
+
+/* ---------- what a player just did: a slanted white tag ---------- */
+[data-skin="flagship"][data-look="badbeat"] .seat-banner-box:has(.action-display-content) {
     border-radius: 0 !important;
     transform: skewX(-12deg);
     background: var(--fs-fg) !important;
+    border: 0 !important;
+    box-shadow: 0 6px 14px -6px #000 !important;
+}
+[data-skin="flagship"][data-look="badbeat"] .seat-banner-box :is(.action-display-text, .action-display-amount) {
     color: #0a0c0f !important;
     font-family: var(--bb-cond) !important;
     font-weight: 800 !important;
@@ -217,18 +417,45 @@
     text-transform: uppercase;
     letter-spacing: 0.04em;
 }
-/* whose turn: a crimson glow, not violet */
+
+/* ---------- whose turn on the table ---------- */
 [data-skin="flagship"][data-look="badbeat"] .turn-animation-ring {
-    background: radial-gradient(closest-side, rgba(255, 45, 85, 0.42), rgba(255, 45, 85, 0.12) 60%, transparent);
+    background: radial-gradient(closest-side, rgba(255, 45, 85, 0.35), rgba(255, 45, 85, 0.1) 60%, transparent);
+}
+[data-skin="flagship"][data-look="badbeat"] [data-part="turn-clock-fill"] {
+    background: var(--bb-red) !important;
+}
+
+/* ---------- dealer: a white "D" disc on the plate's top corner ---------- */
+[data-skin="flagship"][data-look="badbeat"] [data-part="seat-dealer"] {
+    width: 30px !important;
+    height: 30px !important;
+    top: -12px !important;
+    left: calc(50% + 60px) !important;
+    background: #fff !important;
+    box-shadow:
+        0 0 0 2px #0a0c0f,
+        0 6px 10px -4px #000 !important;
+    font-family: var(--bb-cond) !important;
+    font-weight: 900 !important;
+    font-style: italic;
+    font-size: 18px !important;
+    color: #0a0c0f !important;
+}
+[data-skin="flagship"][data-look="badbeat"] [data-part="seat"]:is([data-card-side="left"], [data-card-side="up"]) [data-part="seat-dealer"],
+[data-skin="flagship"][data-look="badbeat"] [data-part="hero-seat"] [data-part="seat-dealer"] {
+    top: -12px !important;
+    left: calc(50% + 60px) !important;
 }
 [data-skin="flagship"][data-look="badbeat"] [data-part="seat-dealer"] {
-    font-family: var(--bb-cond) !important;
-    font-style: italic;
-    font-weight: 900 !important;
+    z-index: 8 !important;
+}
+[data-skin="flagship"][data-look="badbeat"] [data-part="seat-dealer"]::after {
+    content: none;
 }
 
 /* ---------- pot and bets: slanted broadcast labels ---------- */
-[data-skin="flagship"][data-look="badbeat"] .pot-display {
+[data-skin="flagship"][data-look="badbeat"] [data-part="pot"] {
     border-radius: 0 !important;
     border: 0 !important;
     border-left: 3px solid var(--bb-red) !important;
@@ -236,10 +463,16 @@
     transform: skewX(-12deg);
     font-family: var(--bb-cond) !important;
     font-style: italic;
+    font-size: 18px !important;
 }
-[data-skin="flagship"][data-look="badbeat"] .pot-display :is(.fs-pot-value, b) {
+[data-skin="flagship"][data-look="badbeat"] [data-part="pot"] .fs-pot-name {
+    font-family: var(--bb-cond);
+    color: var(--fs-muted);
+}
+[data-skin="flagship"][data-look="badbeat"] [data-part="pot"] .fs-pot-value {
+    font-family: var(--bb-cond);
     font-weight: 800;
-    font-size: 1.15em;
+    font-size: 1.2em;
 }
 [data-skin="flagship"][data-look="badbeat"] :is(.pot-pill-label, .chip-caption) {
     border-radius: 0 !important;
@@ -248,91 +481,59 @@
     font-family: var(--bb-cond) !important;
     font-weight: 800;
     font-style: italic;
+    text-shadow: 0 2px 6px #000;
+}
+/* a bet: the chips and the amount in condensed italic, no pill behind them */
+[data-skin="flagship"][data-look="badbeat"] [class*="bg-[#00000054]"] {
+    background: none !important;
+}
+[data-skin="flagship"][data-look="badbeat"] [class*="bg-[#00000054]"] > span[class*="text-[#dbd3d3]"] {
+    color: #fff !important;
+    font-family: var(--bb-cond);
+    font-weight: 800 !important;
+    font-style: italic;
     font-size: 1.15em;
     text-shadow: 0 2px 6px #000;
 }
-
-/* ---------- action bar: graphite buttons, crimson raise ---------- */
-[data-skin="flagship"][data-look="badbeat"] :is(.btn-fold, .btn-check, .btn-call, .btn-raise, .btn-all-in, .btn-deal, .btn-small-blind, .btn-big-blind) {
-    border-radius: 12px !important;
-    font-family: var(--bb-cond) !important;
-    font-weight: 800 !important;
-    font-style: italic;
-    text-transform: uppercase;
-    letter-spacing: 0.03em;
-}
-[data-skin="flagship"][data-look="badbeat"] .btn-fold {
-    background: #181c22 !important;
-    border: 1px solid var(--fs-line2) !important;
-    color: #c7cdd5 !important;
-}
-[data-skin="flagship"][data-look="badbeat"] :is(.btn-check, .btn-call, .btn-small-blind, .btn-big-blind) {
-    background: #262b33 !important;
-    border: 1px solid var(--fs-line2) !important;
-}
-[data-skin="flagship"][data-look="badbeat"] :is(.btn-raise, .btn-deal) {
-    box-shadow: 0 10px 30px -12px rgba(255, 45, 85, 0.9) !important;
-}
-[data-skin="flagship"][data-look="badbeat"] .btn-all-in {
-    background: linear-gradient(120deg, #ff2d55, #b5103a) !important;
-}
-[data-skin="flagship"][data-look="badbeat"] :is(.btn-fold, .btn-check, .btn-call, .btn-raise, .btn-all-in) :is(span, small) {
-    font-family: var(--bb-cond) !important;
-    font-style: italic;
-    font-weight: 700;
-    text-transform: none;
-}
-[data-skin="flagship"][data-look="badbeat"] .btn-pot {
-    border-radius: 8px !important;
-    font-family: var(--fs-sans);
+[data-skin="flagship"][data-look="badbeat"] [data-part="board-slot"] {
+    border-radius: 9px !important;
+    background: rgba(255, 255, 255, 0.025);
+    box-shadow: inset 0 0 0 1px rgba(220, 228, 240, 0.1);
 }
 
-/* ---------- top bar: the game in condensed italic caps ---------- */
+/* ---------- top bar ---------- */
 [data-look="badbeat"] .fs-topbar-game {
     font-family: var(--bb-cond);
     font-weight: 800;
     font-style: italic;
-    text-transform: uppercase;
-    letter-spacing: 0.03em;
-}
-[data-look="badbeat"] .fs-topbar-balance {
-    font-family: var(--bb-cond);
-    font-style: italic;
-}
-
-/* ---------- turn status ---------- */
-[data-skin="flagship"][data-look="badbeat"] [data-part="turn-status"] b {
-    font-family: var(--bb-cond);
-    font-style: italic;
-    font-weight: 800;
+    font-size: 1.15em;
     text-transform: uppercase;
     letter-spacing: 0.03em;
 }
 
-/* ---------- street tracker: PRE / FLOP / TURN / RIVER under the top bar ---------- */
+/* ---------- street tracker: under the game title ---------- */
 [data-skin="flagship"][data-look="badbeat"] [data-part="street-tracker"] {
-    /* under the game title, clear of the tools (right) and the top seats */
     top: calc(env(safe-area-inset-top) + 60px);
     left: calc(env(safe-area-inset-left) + 14px);
     transform: none;
     display: flex;
     gap: 3px;
-    padding: 3px;
-    border-radius: 10px;
-    background: rgba(17, 20, 25, 0.82);
+    padding: 4px;
+    border-radius: 12px;
+    background: rgba(17, 20, 25, 0.85);
     border: 1px solid var(--fs-line);
-    backdrop-filter: blur(8px);
     pointer-events: none;
 }
 [data-skin="flagship"][data-look="badbeat"] [data-part="street-tracker"] span {
-    padding: 2px 12px;
+    padding: 3px 11px;
     transform: skewX(-12deg);
+    background: var(--bb-bg3);
     font-family: var(--bb-cond);
     font-weight: 800;
     font-style: italic;
     font-size: 15px;
     text-transform: uppercase;
-    letter-spacing: 0.05em;
+    letter-spacing: 0.04em;
     color: var(--fs-faint);
 }
 [data-skin="flagship"][data-look="badbeat"] [data-part="street-tracker"] span[data-state="done"] {
@@ -347,76 +548,397 @@
     left: calc(env(safe-area-inset-left) + 10px);
 }
 [data-skin="flagship"][data-look="badbeat"][data-orient="portrait"] [data-part="street-tracker"] span {
-    padding: 1px 9px;
+    padding: 2px 8px;
     font-size: 12px;
 }
 
-/* ---------- portaled panels (settings, radio) in graphite ---------- */
-.fs-radio-panel[data-look="badbeat"] {
-    background: rgba(17, 20, 25, 0.6) !important;
+/* ---------- you, big at the bottom: your cards and "You $412.50 · Pair of queens" ---------- */
+[data-skin="flagship"][data-look="badbeat"] [data-part="bb-hero-dock"] {
+    position: fixed;
+    z-index: 40;
+    left: 50%;
+    bottom: calc(env(safe-area-inset-bottom) + 18px);
+    transform: translateX(-50%);
+    display: flex;
+    align-items: flex-end;
+    gap: 14px;
+    pointer-events: none;
+}
+[data-skin="flagship"][data-look="badbeat"] [data-part="bb-hero-cards"] {
+    display: flex;
+    gap: 8px;
+}
+[data-skin="flagship"][data-look="badbeat"] .bb-hero-card {
+    width: 84px;
+    box-shadow: 0 18px 30px -10px rgba(0, 0, 0, 0.8);
+}
+[data-skin="flagship"][data-look="badbeat"] .bb-hero-card:first-child {
+    transform: rotate(-4deg);
+}
+[data-skin="flagship"][data-look="badbeat"] .bb-hero-card + .bb-hero-card {
+    transform: rotate(4deg);
+}
+[data-skin="flagship"][data-look="badbeat"] [data-part="bb-hero-info"] {
+    display: flex;
+    align-items: center;
+    gap: 10px;
+    margin-bottom: 8px;
+    padding: 7px 16px;
+    border-radius: 10px;
+    background: rgba(17, 20, 25, 0.92);
+    border: 1px solid var(--fs-line2);
+    white-space: nowrap;
+}
+[data-skin="flagship"][data-look="badbeat"] [data-part="bb-hero-info"] span {
+    font-size: 13px;
+    color: var(--fs-muted);
+}
+[data-skin="flagship"][data-look="badbeat"] [data-part="bb-hero-info"] b {
+    font-family: var(--bb-cond);
+    font-weight: 800;
+    font-style: italic;
+    font-size: 24px;
+    color: var(--fs-fg);
+}
+[data-skin="flagship"][data-look="badbeat"] [data-part="bb-hero-info"] .bb-hero-strength {
+    color: var(--fs-fg);
+    font-weight: 600;
+}
+[data-skin="flagship"][data-look="badbeat"] [data-part="bb-hero-dock"][data-mine] [data-part="bb-hero-info"] {
+    border-color: var(--bb-red);
+    box-shadow: 0 0 24px rgba(255, 45, 85, 0.35);
+}
+[data-skin="flagship"][data-look="badbeat"] [data-part="bb-hero-dock"][data-folded] [data-part="bb-hero-cards"] {
+    opacity: 0.3;
+    filter: grayscale(1);
+}
+/* the dock says the hand strength; the panel says it is your turn */
+[data-skin="flagship"][data-look="badbeat"] [data-part="hand-strength"],
+[data-skin="flagship"][data-look="badbeat"] [data-part="turn-status"][data-mine] {
+    display: none;
 }
 
-/* ---------- phone held sideways: the bet buttons in a column on the right ----------
- * The stage leaves BADBEAT_SIDE_COLUMN (290px) free on the right (stageGeometry),
- * so the table fills the height and sits left; the buttons stack in that column. */
+/* ---------- the action panel: one card, bottom right ---------- */
+[data-skin="flagship"][data-look="badbeat"] [data-part="footer"] {
+    left: auto !important;
+    right: calc(env(safe-area-inset-right) + 18px);
+    bottom: calc(env(safe-area-inset-bottom) + 18px) !important;
+    width: 430px !important;
+    height: auto !important;
+    background: none !important;
+    backdrop-filter: none !important;
+}
+[data-skin="flagship"][data-look="badbeat"] [data-part="footer"] > div,
+[data-skin="flagship"][data-look="badbeat"] [data-part="footer"] > div > div:not([data-part]) {
+    position: relative !important;
+    height: auto !important;
+    max-width: none !important;
+    padding: 0 !important;
+    bottom: auto !important;
+}
+[data-skin="flagship"][data-look="badbeat"] [data-part="action-panel"] {
+    display: flex !important;
+    flex-direction: column;
+    gap: 10px;
+    width: 100% !important;
+    margin: 0 !important;
+    padding: 14px;
+    border-radius: 16px !important;
+    background: rgba(17, 20, 25, 0.9) !important;
+    border: 1px solid var(--fs-line2);
+    backdrop-filter: blur(16px);
+    box-shadow: 0 30px 60px -20px #000;
+}
+[data-skin="flagship"][data-look="badbeat"] [data-part="action-panel"] > * {
+    margin: 0 !important;
+}
+/* the concept's order: header, presets, slider + amount, pot odds, then the buttons */
+[data-skin="flagship"][data-look="badbeat"] [data-part="bb-panel-head"] {
+    order: 0;
+    display: flex;
+    justify-content: space-between;
+    align-items: center;
+    font-size: 13px;
+    color: var(--fs-muted);
+}
+[data-skin="flagship"][data-look="badbeat"] [data-part="bb-panel-head"] b {
+    color: var(--bb-red);
+    font-weight: 600;
+}
+[data-skin="flagship"][data-look="badbeat"] [data-part="action-panel"] > :has(> .btn-pot) {
+    order: 1;
+    display: grid !important;
+    grid-auto-flow: column;
+    grid-auto-columns: minmax(0, 1fr);
+    gap: 5px !important;
+}
+[data-skin="flagship"][data-look="badbeat"] [data-part="raise-slider"] {
+    order: 2;
+}
+[data-skin="flagship"][data-look="badbeat"] [data-part="bb-panel-odds"] {
+    order: 3;
+    display: flex;
+    justify-content: space-between;
+    gap: 8px;
+    font-size: 12.5px;
+    color: var(--fs-muted);
+}
+[data-skin="flagship"][data-look="badbeat"] [data-part="bb-panel-odds"] b {
+    color: var(--fs-fg);
+    font-weight: 600;
+}
+[data-skin="flagship"][data-look="badbeat"] [data-part="action-panel"] > :has(> :is(.btn-fold, .btn-check, .btn-call)) {
+    order: 4;
+    display: grid !important;
+    grid-template-columns: 1fr 1fr 1.3fr;
+    gap: 8px !important;
+}
+/* presets: small steel keys */
+[data-skin="flagship"][data-look="badbeat"] :is(.btn-pot, .btn-all-in) {
+    height: 34px !important;
+    padding: 0 !important;
+    border-radius: 8px !important;
+    background: var(--bb-bg3) !important;
+    border: 1px solid var(--fs-line) !important;
+    color: var(--fs-muted) !important;
+    font-family: var(--fs-sans) !important;
+    font-size: 12px !important;
+    font-style: normal !important;
+    font-weight: 600 !important;
+    text-transform: none !important;
+    box-shadow: none !important;
+    transform: none !important;
+}
+[data-skin="flagship"][data-look="badbeat"] .btn-all-in {
+    color: var(--bb-red) !important;
+    border-color: rgba(255, 45, 85, 0.45) !important;
+}
+/* slider + amount */
+[data-skin="flagship"][data-look="badbeat"] [data-part="raise-slider"] {
+    padding: 0 !important;
+    gap: 10px;
+    background: none !important;
+    border: 0 !important;
+    box-shadow: none !important;
+    backdrop-filter: none !important;
+}
+[data-skin="flagship"][data-look="badbeat"] [data-part="raise-slider"] > * {
+    margin-left: 0 !important;
+    margin-right: 0 !important;
+}
+[data-skin="flagship"][data-look="badbeat"] [data-part="raise-slider"] .btn-slider {
+    width: 30px !important;
+    height: 30px !important;
+    padding: 0 !important;
+    border-radius: 8px !important;
+    background: var(--bb-bg3) !important;
+    border: 1px solid var(--fs-line) !important;
+    color: var(--fs-muted) !important;
+}
+[data-skin="flagship"][data-look="badbeat"] [data-part="raise-slider"] input[type="range"] {
+    flex: 1;
+    accent-color: var(--bb-red);
+}
+[data-skin="flagship"][data-look="badbeat"] [data-part="raise-slider"] input[type="range"]::-webkit-slider-thumb {
+    width: 18px !important;
+    height: 18px !important;
+    border-radius: 5px !important;
+    background: #fff !important;
+    border: 0 !important;
+    box-shadow: 0 0 0 3px var(--bb-red) !important;
+}
+[data-skin="flagship"][data-look="badbeat"] [data-part="raise-slider"] input[type="range"]::-moz-range-thumb {
+    border-radius: 5px !important;
+    background: #fff !important;
+    box-shadow: 0 0 0 3px var(--bb-red) !important;
+}
+[data-skin="flagship"][data-look="badbeat"] [data-part="raise-slider"] input:not([type="range"]) {
+    width: 110px !important;
+    height: 40px !important;
+    padding: 0 10px !important;
+    border-radius: 9px !important;
+    background: #0a0c0f !important;
+    border: 1px solid var(--fs-line2) !important;
+    font-family: var(--bb-cond) !important;
+    font-weight: 800;
+    font-style: italic;
+    font-size: 22px !important;
+    text-align: right;
+}
+/* Fold / Call / Raise */
+[data-skin="flagship"][data-look="badbeat"] :is(.btn-fold, .btn-check, .btn-call, .btn-raise, .btn-deal, .btn-small-blind, .btn-big-blind) {
+    height: 52px !important;
+    min-height: 0 !important;
+    padding: 0 6px !important;
+    flex-direction: column;
+    gap: 2px !important;
+    border-radius: 12px !important;
+    font-family: var(--bb-cond) !important;
+    font-weight: 800 !important;
+    font-style: italic;
+    font-size: 22px !important;
+    line-height: 1 !important;
+    text-transform: uppercase;
+    letter-spacing: 0.02em;
+    white-space: nowrap;
+    transform: none !important;
+}
+[data-skin="flagship"][data-look="badbeat"] :is(.btn-fold, .btn-check, .btn-call, .btn-raise) :is(span, small) {
+    font-family: var(--fs-sans) !important;
+    font-style: normal;
+    font-weight: 600 !important;
+    font-size: 12px !important;
+    text-transform: none;
+    letter-spacing: 0;
+    opacity: 0.85;
+}
+[data-skin="flagship"][data-look="badbeat"] .btn-fold {
+    background: var(--bb-bg3) !important;
+    border: 1px solid var(--fs-line2) !important;
+    color: var(--fs-muted) !important;
+}
+[data-skin="flagship"][data-look="badbeat"] :is(.btn-check, .btn-call, .btn-small-blind, .btn-big-blind) {
+    background: var(--bb-steel) !important;
+    border: 1px solid var(--fs-line2) !important;
+    color: var(--fs-fg) !important;
+}
+[data-skin="flagship"][data-look="badbeat"] :is(.btn-raise, .btn-deal) {
+    background: var(--bb-red) !important;
+    border: 0 !important;
+    color: #fff !important;
+    box-shadow: 0 12px 30px -10px rgba(255, 45, 85, 0.9) !important;
+}
+
+/* ---------- top-up sits over "Seat me" on the left, clear of the panel ---------- */
+[data-skin="flagship"][data-look="badbeat"] [data-part="side-actions"]:has([data-part="top-up"]) {
+    left: calc(env(safe-area-inset-left) + 18px) !important;
+    right: auto !important;
+    top: auto !important;
+    bottom: calc(env(safe-area-inset-bottom) + 140px) !important;
+    transform: none !important;
+}
+
+/* ---------- the turn label (while you wait) ---------- */
+[data-skin="flagship"][data-look="badbeat"] [data-part="turn-status"] {
+    border-radius: 10px;
+}
+[data-skin="flagship"][data-look="badbeat"] [data-part="turn-status"] b {
+    font-family: var(--bb-cond);
+    font-style: italic;
+    font-weight: 800;
+    text-transform: uppercase;
+    letter-spacing: 0.03em;
+}
+
+/* ---------- upright phone: the panel full width at the bottom, no dock ---------- */
+[data-skin="flagship"][data-look="badbeat"][data-orient="portrait"] [data-part="footer"] {
+    left: 0 !important;
+    right: 0;
+    bottom: 0 !important;
+    width: auto !important;
+    padding: 0 8px calc(env(safe-area-inset-bottom) + 8px) !important;
+}
+[data-skin="flagship"][data-look="badbeat"][data-orient="portrait"] [data-part="action-panel"] {
+    gap: 8px;
+    padding: 10px;
+}
+[data-skin="flagship"][data-look="badbeat"][data-orient="portrait"] :is(.btn-fold, .btn-check, .btn-call, .btn-raise) {
+    height: 46px !important;
+    font-size: 19px !important;
+}
+[data-skin="flagship"][data-look="badbeat"][data-orient="portrait"] [data-part="bb-hero-dock"] {
+    display: none;
+}
+
+/* ---------- phone held sideways: the panel in a column on the right ----------
+ * The stage leaves BADBEAT_SIDE_COLUMN (290px) on the right (stageGeometry). */
 @media (orientation: landscape) and (max-height: 500px) {
     [data-skin="flagship"][data-look="badbeat"] [data-part="footer"] {
-        left: auto !important;
-        width: calc(290px + env(safe-area-inset-right));
-        top: calc(env(safe-area-inset-top) + 92px);
-        display: flex;
-        flex-direction: column;
-        justify-content: flex-end;
-        padding: 0 8px 8px 0;
-        background: none !important;
-    }
-    [data-skin="flagship"][data-look="badbeat"] [data-part="footer"] > div {
-        position: relative !important;
-    }
-    /* the street, whose turn and the hand strength stack down the column, over the buttons */
-    [data-skin="flagship"][data-look="badbeat"] [data-part="street-tracker"] {
-        top: calc(env(safe-area-inset-top) + 92px);
-        left: auto;
         right: calc(env(safe-area-inset-right) + 8px);
+        bottom: 8px !important;
+        width: 276px !important;
     }
-    [data-skin="flagship"][data-look="badbeat"] [data-part="turn-status"] {
-        left: auto !important;
-        right: calc(env(safe-area-inset-right) + 8px);
-        top: calc(env(safe-area-inset-top) + 132px);
-        bottom: auto !important;
-    }
-    [data-skin="flagship"][data-look="badbeat"] [data-part="hand-strength"] {
-        right: auto !important;
-        left: calc(100vw - 290px - env(safe-area-inset-right));
-        top: calc(env(safe-area-inset-top) + 132px);
-        bottom: auto !important;
-    }
-    [data-skin="flagship"][data-look="badbeat"] :is(.btn-fold, .btn-check, .btn-call, .btn-raise, .btn-all-in) {
-        font-size: 15px !important;
-        white-space: nowrap;
+    [data-skin="flagship"][data-look="badbeat"] [data-part="action-panel"] {
+        gap: 6px;
+        padding: 9px;
     }
     [data-skin="flagship"][data-look="badbeat"] [data-part="raise-slider"] > div:first-child:has(> span) {
         display: none;
     }
-    [data-skin="flagship"][data-look="badbeat"] [data-part="action-panel"] {
+    [data-skin="flagship"][data-look="badbeat"] [data-part="raise-slider"] input:not([type="range"]) {
+        width: 76px !important;
+        height: 30px !important;
+        font-size: 17px !important;
+    }
+    [data-skin="flagship"][data-look="badbeat"] :is(.btn-fold, .btn-check, .btn-call, .btn-raise) {
+        height: 40px !important;
+        font-size: 16px !important;
+    }
+    [data-skin="flagship"][data-look="badbeat"] :is(.btn-pot, .btn-all-in) {
+        height: 26px !important;
+        font-size: 10.5px !important;
+    }
+    [data-skin="flagship"][data-look="badbeat"] [data-part="bb-panel-odds"] span + span {
+        display: none;
+    }
+    /* your big cards and "You" box top right, as in the concept */
+    [data-skin="flagship"][data-look="badbeat"] [data-part="bb-hero-dock"] {
+        left: auto;
+        right: calc(env(safe-area-inset-right) + 8px);
+        top: calc(env(safe-area-inset-top) + 86px);
+        bottom: auto;
+        transform: none;
+        align-items: center;
+        gap: 8px;
+    }
+    [data-skin="flagship"][data-look="badbeat"] .bb-hero-card {
+        width: 56px;
+    }
+    [data-skin="flagship"][data-look="badbeat"] [data-part="bb-hero-info"] {
+        margin: 0;
+        padding: 6px 10px;
         gap: 6px;
-        padding: 10px;
-        border-radius: 14px;
-        background: rgba(17, 20, 25, 0.86);
-        border: 1px solid var(--fs-line2);
+    }
+    [data-skin="flagship"][data-look="badbeat"] [data-part="bb-hero-info"] b {
+        font-size: 19px;
+    }
+    [data-skin="flagship"][data-look="badbeat"] [data-part="bb-hero-info"] span {
+        font-size: 11.5px;
+    }
+    /* the street tracker between your cards and the panel */
+    [data-skin="flagship"][data-look="badbeat"] [data-part="street-tracker"] {
+        top: calc(env(safe-area-inset-top) + 178px);
+        left: auto;
+        right: calc(env(safe-area-inset-right) + 8px);
+    }
+    [data-skin="flagship"][data-look="badbeat"] [data-part="street-tracker"] span {
+        padding: 2px 9px;
+        font-size: 13px;
+    }
+    /* "Waiting (Seat N's turn)" in the bottom-left corner, clear of the table */
+    [data-skin="flagship"][data-look="badbeat"] [data-part="turn-status"] {
+        left: calc(env(safe-area-inset-left) + 8px) !important;
+        right: auto;
+        top: auto;
+        bottom: calc(env(safe-area-inset-bottom) + 8px) !important;
     }
 }
 
-/* the raise slider's thumb in crimson */
-[data-skin="flagship"][data-look="badbeat"] [data-part="raise-slider"] input[type="range"] {
-    accent-color: var(--bb-red);
+/* ---------- portaled panels ---------- */
+.fs-radio-panel[data-look="badbeat"] {
+    background: rgba(17, 20, 25, 0.6) !important;
 }
-[data-skin="flagship"][data-look="badbeat"] [data-part="raise-slider"] input[type="range"]::-webkit-slider-thumb {
-    background: var(--bb-red) !important;
-    border-color: #fff !important;
-    box-shadow: 0 0 12px rgba(255, 45, 85, 0.6) !important;
+
+/* ---------- bets: plain white chip discs, as in the concept ---------- */
+[data-look="badbeat"] .b52-chip {
+    background: radial-gradient(circle at 45% 38%, #ffffff 0%, #eef0f3 55%, #c9ced6 100%) !important;
+    box-shadow:
+        0 0 0 1px rgba(0, 0, 0, 0.35),
+        0 3px 0 #9aa1ab,
+        0 6px 8px -3px rgba(0, 0, 0, 0.85) !important;
 }
-[data-skin="flagship"][data-look="badbeat"] [data-part="raise-slider"] input[type="range"]::-moz-range-thumb {
-    background: var(--bb-red) !important;
-    border-color: #fff !important;
+[data-look="badbeat"] .b52-chip::before,
+[data-look="badbeat"] .b52-chip::after,
+[data-look="badbeat"] .b52-chip > * {
+    display: none !important;
 }
