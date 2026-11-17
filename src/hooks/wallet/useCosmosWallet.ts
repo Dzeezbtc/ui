@@ -11,6 +11,7 @@ import { useState, useEffect, useCallback } from "react";
 import { getCosmosClient, getSigningClient } from "../../utils/cosmos/client";
 import { getCosmosMnemonic, getCosmosAddress, setCosmosMnemonic, setCosmosAddress } from "../../utils/cosmos/storage";
 import { getAddressFromMnemonic } from "@block52/poker-vm-sdk";
+import { getCustodySession } from "../../utils/custody/session";
 import { useNetwork } from "../../context/NetworkContext";
 import { isString } from "../../utils/guards";
 
@@ -39,6 +40,12 @@ export const useCosmosWallet = (): UseCosmosWalletReturn => {
     // Load address from mnemonic
     useEffect(() => {
         const loadAddress = async () => {
+            // A club account has no seed phrase here: its address comes from the sign-in.
+            const custody = getCustodySession();
+            if (custody) {
+                setAddress(custody.address);
+                return;
+            }
             const mnemonic = getCosmosMnemonic();
             if (!mnemonic) {
                 setAddress(null);

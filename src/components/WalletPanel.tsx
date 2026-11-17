@@ -3,6 +3,7 @@ import { useNavigate } from "react-router-dom";
 
 import styles from "./WalletPanel.module.css";
 import { copyToClipboard as copyToClipboardUtil } from "../utils/clipboard";
+import { custodySignOut, getCustodySession } from "../utils/custody/session";
 
 // Copy to clipboard utility
 const copyToClipboard = (text: string, label: string) => copyToClipboardUtil(text, `${label} copied to clipboard!`);
@@ -35,6 +36,8 @@ const WalletPanel: React.FC<WalletPanelProps> = ({
 }) => {
     const navigate = useNavigate();
     const [isRefreshing, setIsRefreshing] = useState(false);
+    // A club account (username and password): Block52 holds the key, so there is no seed to manage, import or send from.
+    const club = getCustodySession();
 
     const handleRefresh = useCallback(async () => {
         if (!onRefresh || isRefreshing) return;
@@ -46,7 +49,7 @@ const WalletPanel: React.FC<WalletPanelProps> = ({
         }
     }, [onRefresh, isRefreshing]);
 
-    if (!cosmosWalletAddress) {
+    if (!cosmosWalletAddress && !club) {
         // No wallet - show create/import options
         return (
             <div className="bg-gray-800 rounded-lg border border-gray-700 overflow-hidden">
@@ -71,6 +74,12 @@ const WalletPanel: React.FC<WalletPanelProps> = ({
                             className="w-full py-3 rounded-lg text-white font-semibold transition-all hover:opacity-90 border border-gray-600 bg-transparent hover:bg-gray-700"
                         >
                             Import Existing Wallet
+                        </button>
+                        <button
+                            onClick={() => navigate("/signin")}
+                            className="w-full py-3 rounded-lg text-gray-300 font-semibold transition-all hover:text-white"
+                        >
+                            Sign in with a club account
                         </button>
                     </div>
                 </div>
@@ -107,27 +116,46 @@ const WalletPanel: React.FC<WalletPanelProps> = ({
                             </svg>
                         </button>
                     )}
-                    {/* Settings Button */}
-                    <button
-                        onClick={() => navigate("/wallet")}
-                        className="p-2 rounded-lg transition-all hover:bg-gray-700 hover:opacity-90"
-                        title="Manage Wallet"
-                    >
-                        <svg className="w-5 h-5 text-gray-400 hover:text-white transition-colors" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-                            <path
-                                strokeLinecap="round"
-                                strokeLinejoin="round"
-                                strokeWidth="2"
-                                d="M10.325 4.317c.426-1.756 2.924-1.756 3.35 0a1.724 1.724 0 002.573 1.066c1.543-.94 3.31.826 2.37 2.37a1.724 1.724 0 001.065 2.572c1.756.426 1.756 2.924 0 3.35a1.724 1.724 0 00-1.066 2.573c.94 1.543-.826 3.31-2.37 2.37a1.724 1.724 0 00-2.572 1.065c-.426 1.756-2.924 1.756-3.35 0a1.724 1.724 0 00-2.573-1.066c-1.543.94-3.31-.826-2.37-2.37a1.724 1.724 0 00-1.065-2.572c-1.756-.426-1.756-2.924 0-3.35a1.724 1.724 0 001.066-2.573c-.94-1.543.826-3.31 2.37-2.37.996.608 2.296.07 2.572-1.065z"
-                            />
-                            <path strokeLinecap="round" strokeLinejoin="round" strokeWidth="2" d="M15 12a3 3 0 11-6 0 3 3 0 016 0z" />
-                        </svg>
-                    </button>
+                    {/* Settings Button (the built-in wallet's seed phrase page; a club account has none) */}
+                    {!club && (
+                        <button
+                            onClick={() => navigate("/wallet")}
+                            className="p-2 rounded-lg transition-all hover:bg-gray-700 hover:opacity-90"
+                            title="Manage Wallet"
+                        >
+                            <svg className="w-5 h-5 text-gray-400 hover:text-white transition-colors" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                                <path
+                                    strokeLinecap="round"
+                                    strokeLinejoin="round"
+                                    strokeWidth="2"
+                                    d="M10.325 4.317c.426-1.756 2.924-1.756 3.35 0a1.724 1.724 0 002.573 1.066c1.543-.94 3.31.826 2.37 2.37a1.724 1.724 0 001.065 2.572c1.756.426 1.756 2.924 0 3.35a1.724 1.724 0 00-1.066 2.573c.94 1.543-.826 3.31-2.37 2.37a1.724 1.724 0 00-2.572 1.065c-.426 1.756-2.924 1.756-3.35 0a1.724 1.724 0 00-2.573-1.066c-1.543.94-3.31-.826-2.37-2.37a1.724 1.724 0 00-1.065-2.572c-1.756-.426-1.756-2.924 0-3.35a1.724 1.724 0 001.066-2.573c-.94-1.543.826-3.31 2.37-2.37.996.608 2.296.07 2.572-1.065z"
+                                />
+                                <path strokeLinecap="round" strokeLinejoin="round" strokeWidth="2" d="M15 12a3 3 0 11-6 0 3 3 0 016 0z" />
+                            </svg>
+                        </button>
+                    )}
                 </div>
             </div>
 
             {/* Content */}
             <div className="p-6">
+                {club && (
+                    <div className="mb-4 flex items-center justify-between">
+                        <div>
+                            <label className="text-gray-400 text-sm">Signed in as</label>
+                            <p className="text-white font-semibold">{club.username}</p>
+                        </div>
+                        <button
+                            onClick={() => {
+                                custodySignOut();
+                                window.location.assign("/");
+                            }}
+                            className="text-sm text-gray-400 hover:text-white"
+                        >
+                            Sign out
+                        </button>
+                    </div>
+                )}
                 {/* Address */}
                 <div className="mb-4">
                     <label className="text-gray-400 text-sm">Address</label>
@@ -167,7 +195,7 @@ const WalletPanel: React.FC<WalletPanelProps> = ({
                     </div>
                 </div>
 
-                {/* Action Buttons */}
+                {/* Action Buttons. A club account can deposit; withdrawing and sending need the key, which Block52 holds. */}
                 <div className="flex gap-2">
                     <button
                         onClick={onDeposit}
@@ -175,18 +203,22 @@ const WalletPanel: React.FC<WalletPanelProps> = ({
                     >
                         Deposit
                     </button>
-                    <button
-                        onClick={onWithdraw}
-                        className={`flex-1 py-3 rounded-lg text-white font-semibold transition-all hover:opacity-90 ${styles.primaryButton}`}
-                    >
-                        Withdraw
-                    </button>
-                    <button
-                        onClick={onTransfer}
-                        className={`flex-1 py-3 rounded-lg text-white font-semibold transition-all hover:opacity-90 ${styles.primaryButton}`}
-                    >
-                        Send
-                    </button>
+                    {!club && (
+                        <>
+                            <button
+                                onClick={onWithdraw}
+                                className={`flex-1 py-3 rounded-lg text-white font-semibold transition-all hover:opacity-90 ${styles.primaryButton}`}
+                            >
+                                Withdraw
+                            </button>
+                            <button
+                                onClick={onTransfer}
+                                className={`flex-1 py-3 rounded-lg text-white font-semibold transition-all hover:opacity-90 ${styles.primaryButton}`}
+                            >
+                                Send
+                            </button>
+                        </>
+                    )}
                 </div>
             </div>
         </div>

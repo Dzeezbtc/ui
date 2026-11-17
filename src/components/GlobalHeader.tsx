@@ -6,7 +6,6 @@ import { getCosmosClient } from "../utils/cosmos/client";
 import { ProfileAvatarButton } from "./profile";
 import { hasElements } from "../utils/guards";
 import styles from "./GlobalHeader.module.css";
-import { AccountBadge } from "./AccountBadge";
 import { LanguagePicker } from "./LanguagePicker";
 import { useLanguage } from "../i18n/useLanguage";
 
@@ -178,7 +177,6 @@ export const GlobalHeader: React.FC = () => {
                     {/* Right: Account + Admin + Network Status & Selector */}
                     <div className="flex items-center gap-4 flex-shrink-0">
                         <LanguagePicker variant="icon" />
-                        <AccountBadge />
                         <NetworkStatusAndSelector latestBlockHeight={latestBlockHeight} hasError={hasError} />
                         {/* Admin icon - discreet access */}
                         <Link
