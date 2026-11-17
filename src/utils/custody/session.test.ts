@@ -1,5 +1,9 @@
 import { custodialSigningClient, custodySignIn, custodySignOut, getCustodySession, isCustodial } from "./session";
 
+beforeAll(() => {
+    process.env.VITE_CLUB_SERVICE_URLS = "http://svc";
+});
+
 const store: Record<string, string> = {};
 beforeEach(() => {
     for (const k of Object.keys(store)) delete store[k];

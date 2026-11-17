@@ -11,6 +11,7 @@ import { useState, useEffect, useCallback } from "react";
 import { getCosmosClient, getSigningClient } from "../../utils/cosmos/client";
 import { getCosmosMnemonic, getCosmosAddress, setCosmosMnemonic, setCosmosAddress } from "../../utils/cosmos/storage";
 import { getAddressFromMnemonic } from "@block52/poker-vm-sdk";
+import { clubApiBase, fetchUsdcBalance } from "../../utils/clubApi/chain";
 import { getCustodySession } from "../../utils/custody/session";
 import { useNetwork } from "../../context/NetworkContext";
 import { isString } from "../../utils/guards";
@@ -72,6 +73,12 @@ export const useCosmosWallet = (): UseCosmosWalletReturn => {
         setError(null);
 
         try {
+            // Through the club API when this app has one (the API reads the node); the direct node client only remains
+            // for an app with no club service configured.
+            if (clubApiBase()) {
+                setBalance([{ denom: "usdc", amount: await fetchUsdcBalance(address) }]);
+                return;
+            }
             const client = getCosmosClient(currentNetwork);
             if (!client) {
                 throw new Error("Block52 client not initialized");

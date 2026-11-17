@@ -30,11 +30,13 @@ this app ──REST──► club API (TypeScript) ──gRPC──► pokerchai
 | Table action, account, WS signature | `POST /custody/Perform`, `GetAccount`, `WsAuth` |
 | Balance | `GET /chain/balance/:address` |
 | Recent transactions | `GET /chain/transactions/:address` |
+| Tables (game list and state), filterable by club | coming: the API serves them so a club can filter; the app does not read tables from the node |
+
 
 ## Still read from the node directly (to move, one at a time; about 48 files)
 
-Game list and table state (including the WebSocket), the explorer, hand history and replay, profiles, and the balance
-in the Game Wallet panel and table header. Track them in block52-club#54. Withdrawals for club accounts are not built.
+The game list and table state (including the WebSocket; these go through the API so clubs can filter), the explorer, hand history and replay, profiles, and the balance
+in the table header (the Game Wallet panel now reads it from the API). Track them in block52-club#54. Withdrawals for club accounts are not built.
 
 When you move a read, add the route to the API first, then switch the hook, and keep the CLAUDE.md type rules: the
 response shapes come from the SDK types, with no defaults added in the app.
