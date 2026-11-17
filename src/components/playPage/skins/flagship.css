@@ -1,0 +1,385 @@
+/*
+ * Block52 Flagship — a full table skin (table style "flagship").
+ *
+ * Violet-black room, a glowing brand-gradient rim, midnight felt, dark glass
+ * plates and panels, and the brand gradient on the primary action. Every rule
+ * is scoped to [data-skin="flagship"] on the table root, so the other styles
+ * are untouched, and it only restyles: same components, same controls, same
+ * behaviour. Parts are found through the table's global classes (btn-*,
+ * badge-*, table-panel, pot-display, sub-header …), the data-part hooks
+ * (rail, felt, header, footer, action-panel, pre-actions, raise-slider, seat,
+ * hero-seat, vacant-seat, side-actions, hand-strength) and the panels'
+ * data-testids.
+ */
+@import url("https://fonts.googleapis.com/css2?family=Unbounded:wght@500;600;700&family=Inter:wght@400;500;600;700&family=Geist+Mono:wght@400;500;600&display=swap");
+
+[data-skin="flagship"] {
+    --fs-bg: #07060d;
+    --fs-bg2: #0d0b17;
+    --fs-glass: rgba(13, 11, 23, 0.88);
+    --fs-panel: rgba(255, 255, 255, 0.035);
+    --fs-panel2: rgba(255, 255, 255, 0.06);
+    --fs-line: rgba(255, 255, 255, 0.08);
+    --fs-line2: rgba(255, 255, 255, 0.15);
+    --fs-fg: #f4f2fa;
+    --fs-muted: #9a95b0;
+    --fs-faint: #5f5a75;
+    --fs-vi: #7c3aed;
+    --fs-hot: #f472b6;
+    --fs-good: #34d399;
+    --fs-grad: linear-gradient(120deg, #c026d3 0%, #7c3aed 50%, #3b82f6 100%);
+    --fs-disp: "Unbounded", ui-sans-serif, system-ui, sans-serif;
+    --fs-sans: "Inter", ui-sans-serif, system-ui, -apple-system, sans-serif;
+    --fs-mono: "Geist Mono", ui-monospace, Menlo, monospace;
+    font-family: var(--fs-sans);
+    background: var(--fs-bg);
+    color: var(--fs-fg);
+}
+
+/* ---------- room ---------- */
+[data-skin="flagship"] .flagship-background {
+    position: absolute;
+    inset: 0;
+    z-index: 0;
+    background:
+        radial-gradient(60% 55% at 50% 50%, #1a1340 0%, transparent 70%),
+        radial-gradient(40% 35% at 15% 85%, rgba(192, 38, 211, 0.12), transparent 70%),
+        radial-gradient(40% 35% at 85% 15%, rgba(59, 130, 246, 0.12), transparent 70%),
+        var(--fs-bg);
+}
+
+/* ---------- table: thin glowing gradient rim on midnight felt ---------- */
+@property --fs-spin {
+    syntax: "<angle>";
+    inherits: false;
+    initial-value: 0deg;
+}
+@keyframes fs-spin {
+    to {
+        --fs-spin: 360deg;
+    }
+}
+[data-skin="flagship"] [data-part="rail"] {
+    background: rgba(255, 255, 255, 0.025) !important;
+    border: 1px solid var(--fs-line) !important;
+    box-shadow:
+        0 0 80px rgba(124, 58, 237, 0.35),
+        0 30px 80px -30px #000 !important;
+}
+[data-skin="flagship"] [data-part="felt"] {
+    background: radial-gradient(ellipse at 50% 45%, #1e1852 0%, #16123f 45%, #06051a 100%) !important;
+    border: 0 !important;
+    box-shadow: inset 0 0 60px rgba(0, 0, 0, 0.6) !important;
+}
+[data-skin="flagship"] [data-part="felt"]::before {
+    content: "";
+    position: absolute;
+    inset: -4px;
+    border-radius: inherit;
+    padding: 4px;
+    background: conic-gradient(from var(--fs-spin), #c026d3, #7c3aed, #3b82f6, #4dd0f8, #7c3aed, #c026d3);
+    -webkit-mask:
+        linear-gradient(#000 0 0) content-box,
+        linear-gradient(#000 0 0);
+    -webkit-mask-composite: xor;
+    mask-composite: exclude;
+    filter: drop-shadow(0 0 10px rgba(124, 58, 237, 0.7));
+    animation: fs-spin 12s linear infinite;
+    pointer-events: none;
+    z-index: 0;
+}
+[data-skin="flagship"] [data-part="felt"]::after {
+    content: "";
+    position: absolute;
+    inset: 12% 9%;
+    border-radius: 9999px;
+    border: 1.5px dashed rgba(255, 255, 255, 0.07);
+    pointer-events: none;
+}
+@media (prefers-reduced-motion: reduce) {
+    [data-skin="flagship"] [data-part="felt"]::before {
+        animation: none;
+    }
+}
+[data-skin="flagship"] .table-logo {
+    opacity: 0.45;
+}
+[data-skin="flagship"] .table-logo img {
+    opacity: 0.5;
+    filter: drop-shadow(0 0 18px rgba(124, 58, 237, 0.55));
+}
+
+/* ---------- header ---------- */
+[data-skin="flagship"] [data-part="header"],
+[data-skin="flagship"] .sub-header,
+[data-skin="flagship"] [class*="subHeaderRoot"] {
+    background: rgba(7, 6, 13, 0.82) !important;
+    backdrop-filter: blur(14px);
+    border-bottom: 1px solid var(--fs-line) !important;
+    box-shadow: none !important;
+    color: var(--fs-fg) !important;
+}
+[data-skin="flagship"] [data-part="header"] :is(button, a):not([role="switch"]),
+[data-skin="flagship"] :is([class*="gameFormatContainer"], [class*="walletInfo"]) {
+    background: var(--fs-panel2) !important;
+    border: 1px solid var(--fs-line) !important;
+    border-radius: 999px !important;
+    color: var(--fs-fg) !important;
+    box-shadow: none !important;
+}
+[data-skin="flagship"] [data-part="header"] :is(button, a) *,
+[data-skin="flagship"] :is([class*="gameFormatContainer"], [class*="walletInfo"]) * {
+    color: var(--fs-fg) !important;
+}
+[data-skin="flagship"] [class*="balanceIcon"] {
+    background: var(--fs-grad) !important;
+}
+[data-skin="flagship"] .sub-header button[class*="badge"] {
+    background: rgba(52, 211, 153, 0.12) !important;
+    border: 1px solid rgba(52, 211, 153, 0.4) !important;
+    border-radius: 999px !important;
+}
+[data-skin="flagship"] .b52-mt-add {
+    background: var(--fs-grad) !important;
+    border: 0 !important;
+    border-radius: 999px !important;
+    color: #fff !important;
+}
+
+/* ---------- seats ---------- */
+[data-skin="flagship"] .badge-container {
+    background: var(--fs-glass);
+    border: 1px solid var(--fs-line2);
+    border-radius: 12px;
+    padding: 4px 12px 4px 4px;
+    box-shadow: 0 14px 30px -14px #000;
+    backdrop-filter: blur(10px);
+}
+[data-skin="flagship"] .badge-number {
+    background: var(--fs-grad) !important;
+    color: #fff;
+    font-family: var(--fs-mono);
+    font-weight: 600;
+    box-shadow: 0 0 0 2px var(--fs-bg2);
+}
+[data-skin="flagship"] .badge-value {
+    font-family: var(--fs-disp);
+    font-weight: 600;
+    letter-spacing: -0.02em;
+    color: var(--fs-fg);
+}
+[data-skin="flagship"] .seat-banner-box {
+    background: var(--fs-glass) !important;
+    border: 1px solid var(--fs-line2) !important;
+    border-radius: 12px 12px 8px 8px;
+    color: var(--fs-fg) !important;
+    backdrop-filter: blur(10px);
+}
+[data-skin="flagship"] .action-display-box {
+    background: var(--fs-fg);
+    color: var(--fs-bg);
+    border-radius: 999px;
+}
+[data-skin="flagship"] :is(.action-display-text, .action-display-amount) {
+    color: var(--fs-bg);
+    font-weight: 700;
+}
+[data-skin="flagship"] .equity-chip {
+    background: var(--fs-grad);
+    color: #fff;
+    border: 0;
+}
+/* your own seat glows */
+[data-skin="flagship"] [data-part="hero-seat"] .badge-container {
+    border-color: transparent;
+    box-shadow:
+        0 0 0 1.5px var(--fs-vi),
+        0 0 34px rgba(124, 58, 237, 0.55);
+}
+/* empty seat */
+[data-skin="flagship"] [data-part="vacant-seat"] button {
+    border: 1.5px dashed var(--fs-line2) !important;
+    background: rgba(0, 0, 0, 0.3) !important;
+    color: var(--fs-muted) !important;
+    box-shadow: none !important;
+}
+[data-skin="flagship"] [data-part="vacant-seat"] button:hover {
+    border-color: transparent !important;
+    box-shadow: 0 0 0 1.5px var(--fs-vi) !important;
+    color: var(--fs-fg) !important;
+}
+[data-skin="flagship"] :is(.card, [data-part="seat"] img, [data-part="hero-seat"] img) {
+    filter: drop-shadow(0 10px 14px rgba(0, 0, 0, 0.55));
+}
+
+/* pot and bets */
+[data-skin="flagship"] .pot-display {
+    background: rgba(0, 0, 0, 0.4) !important;
+    border: 1px solid rgba(255, 255, 255, 0.1);
+    border-radius: 999px;
+    color: var(--fs-fg) !important;
+    font-family: var(--fs-mono);
+}
+[data-skin="flagship"] :is(.pot-pill-label, .chip-caption) {
+    padding: 2px 10px;
+    border-radius: 999px;
+    background: rgba(0, 0, 0, 0.45);
+    border: 1px solid rgba(255, 255, 255, 0.1);
+    color: var(--fs-fg);
+    font-family: var(--fs-mono);
+}
+
+/* ---------- action bar ---------- */
+[data-skin="flagship"] [data-part="footer"] {
+    background: linear-gradient(180deg, transparent, rgba(7, 6, 13, 0.92) 35%) !important;
+    backdrop-filter: none !important;
+}
+[data-skin="flagship"] [data-part="action-panel"] :is(.text-white, .text-gray-300, .text-gray-400) {
+    color: var(--fs-fg) !important;
+}
+[data-skin="flagship"] :is(.btn-fold, .btn-check, .btn-call, .btn-raise, .btn-all-in, .btn-deal, .btn-small-blind, .btn-big-blind) {
+    border-radius: 16px !important;
+    font-family: var(--fs-sans);
+    font-weight: 700 !important;
+    backdrop-filter: none !important;
+    transition: transform 0.12s, box-shadow 0.2s;
+}
+[data-skin="flagship"] .btn-fold {
+    background: var(--fs-panel2) !important;
+    border: 1px solid var(--fs-line) !important;
+    color: var(--fs-muted) !important;
+}
+[data-skin="flagship"] :is(.btn-check, .btn-call, .btn-small-blind, .btn-big-blind) {
+    background: rgba(255, 255, 255, 0.1) !important;
+    border: 1px solid var(--fs-line2) !important;
+    color: var(--fs-fg) !important;
+}
+[data-skin="flagship"] :is(.btn-raise, .btn-deal) {
+    background: var(--fs-grad) !important;
+    border: 0 !important;
+    color: #fff !important;
+    box-shadow:
+        0 12px 30px -10px rgba(124, 58, 237, 0.9),
+        inset 0 1px 0 rgba(255, 255, 255, 0.25) !important;
+}
+[data-skin="flagship"] .btn-all-in {
+    background: linear-gradient(120deg, #f472b6, #c026d3) !important;
+    border: 0 !important;
+    color: #fff !important;
+}
+[data-skin="flagship"] :is(.btn-fold, .btn-check, .btn-call, .btn-raise, .btn-all-in):hover:not(:disabled) {
+    transform: translateY(-1px);
+}
+[data-skin="flagship"] :is(.btn-fold, .btn-check, .btn-call, .btn-raise, .btn-all-in) :is(span, small) {
+    font-family: var(--fs-mono);
+    font-weight: 500;
+    color: inherit !important;
+    opacity: 0.85;
+}
+[data-skin="flagship"] .btn-pot {
+    background: var(--fs-panel2) !important;
+    border: 1px solid var(--fs-line) !important;
+    border-radius: 10px !important;
+    color: var(--fs-muted) !important;
+    font-weight: 600;
+    box-shadow: none !important;
+}
+[data-skin="flagship"] .btn-pot:hover:not(:disabled) {
+    color: var(--fs-fg) !important;
+    border-color: var(--fs-line2) !important;
+}
+
+/* pre-select boxes */
+[data-skin="flagship"] [data-part="pre-actions"] button {
+    background: var(--fs-panel2) !important;
+    border: 1px solid var(--fs-line) !important;
+    border-radius: 12px !important;
+    color: var(--fs-muted) !important;
+    font-weight: 600;
+}
+[data-skin="flagship"] [data-part="pre-actions"] button[aria-checked="true"] {
+    color: var(--fs-fg) !important;
+    border-color: transparent !important;
+    box-shadow:
+        0 0 0 1.5px var(--fs-vi),
+        0 0 22px rgba(124, 58, 237, 0.45);
+}
+[data-skin="flagship"] [data-part="pre-actions"] button[aria-checked="true"] > span:first-child {
+    background: var(--fs-grad) !important;
+    border-color: transparent !important;
+}
+
+/* raise slider */
+[data-skin="flagship"] [data-part="raise-slider"] {
+    background: rgba(13, 11, 23, 0.8) !important;
+    border: 1px solid var(--fs-line) !important;
+    border-radius: 16px !important;
+    box-shadow: none !important;
+}
+[data-skin="flagship"] [data-part="raise-slider"] input[type="range"] {
+    accent-color: var(--fs-vi);
+}
+[data-skin="flagship"] [data-part="raise-slider"] input:not([type="range"]) {
+    background: var(--fs-panel2) !important;
+    border: 1px solid var(--fs-line2) !important;
+    border-radius: 10px;
+    color: var(--fs-fg) !important;
+    font-family: var(--fs-disp);
+    font-weight: 600;
+}
+[data-skin="flagship"] [data-part="raise-slider"] button {
+    background: var(--fs-panel2) !important;
+    border: 1px solid var(--fs-line) !important;
+    border-radius: 9px !important;
+    color: var(--fs-fg) !important;
+}
+
+/* ---------- history + settings panel ---------- */
+[data-skin="flagship"] .table-panel > div {
+    background: rgba(16, 13, 28, 0.94) !important;
+    border: 1px solid var(--fs-line) !important;
+    border-radius: 20px !important;
+    backdrop-filter: blur(24px);
+    box-shadow: 0 40px 90px -30px #000 !important;
+}
+[data-skin="flagship"] .table-panel [role="switch"][aria-checked="true"] {
+    background: var(--fs-grad) !important;
+}
+[data-skin="flagship"] .table-panel-expand {
+    background: var(--fs-glass) !important;
+    border: 1px solid var(--fs-line2) !important;
+    color: var(--fs-fg) !important;
+}
+
+/* side buttons, hand strength */
+[data-skin="flagship"] [data-part="side-actions"] > :is(div, button),
+[data-skin="flagship"] [data-part="hand-strength"] {
+    background: var(--fs-glass) !important;
+    border: 1px solid var(--fs-line2) !important;
+    border-radius: 14px !important;
+    backdrop-filter: blur(12px) !important;
+}
+
+/* ---------- tournaments ---------- */
+[data-skin="flagship"] [data-testid="sng-payout-structure"],
+[data-skin="flagship"] [data-testid="blinds-panel"] {
+    background: rgba(16, 13, 28, 0.94) !important;
+    border: 1px solid var(--fs-line) !important;
+    border-radius: 16px !important;
+    backdrop-filter: blur(20px) !important;
+}
+[data-skin="flagship"] [data-testid="sng-payout-structure"] > div:first-child {
+    background: var(--fs-grad);
+    -webkit-background-clip: text;
+    background-clip: text;
+    color: transparent !important;
+}
+[data-skin="flagship"] [data-testid="blinds-panel-root"] > button {
+    background: var(--fs-glass) !important;
+    border: 1px solid var(--fs-line2) !important;
+    border-radius: 999px !important;
+    color: var(--fs-fg) !important;
+}
+[data-skin="flagship"] [data-testid="blinds-panel"] [class*="rowCurrent"] {
+    background: rgba(124, 58, 237, 0.25) !important;
+}

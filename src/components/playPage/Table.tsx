@@ -84,6 +84,7 @@ import { TableRadio } from "./TableRadio";
 import { tableStyleForLook } from "../../utils/clubLook";
 import { TABLE_STYLE_LABELS, TableStyle, nextTableStyle, tableStyleFromEnv } from "../../utils/tableStyle";
 import "./skins/chipchair.css";
+import "./skins/flagship.css";
 import { cssVars } from "../../utils/cssVars";
 import { ANIMATION_CSS_VARS } from "../../bus/timing";
 
@@ -1490,8 +1491,10 @@ const Table = React.memo(({ tableId }: TableProps = {}) => {
             {/*//! BODY — single flex-grow container, measured by geometry engine */}
             <div ref={tableContainerRef} className="flex-grow relative overflow-visible">
                 {/* Background layers */}
-                {tableStyle !== "nouns" && tableStyle !== "chipchair" && <HexagonPattern patternId="hexagons-table" />}
-                {tableStyle === "chipchair" ? (
+                {tableStyle !== "nouns" && tableStyle !== "chipchair" && tableStyle !== "flagship" && <HexagonPattern patternId="hexagons-table" />}
+                {tableStyle === "flagship" ? (
+                    <div className="flagship-background" />
+                ) : tableStyle === "chipchair" ? (
                     <div className="chipchair-background" />
                 ) : tableStyle === "nouns" ? (
                     <div className="nouns-background" />
