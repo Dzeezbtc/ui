@@ -445,3 +445,71 @@
 [data-skin="chipchair"] [class*="subHeaderRoot"] :is(span, div, a) {
     color: var(--cc-ink);
 }
+
+/* ---------- tournaments ---------- */
+/* payout structure (Sit & Go) */
+[data-skin="chipchair"] [data-testid="sng-payout-structure"] {
+    background: var(--cc-white) !important;
+    border: var(--cc-b) !important;
+    border-radius: 14px !important;
+    box-shadow: var(--cc-sh) !important;
+    backdrop-filter: none !important;
+}
+[data-skin="chipchair"] [data-testid="sng-payout-structure"] > div:first-child {
+    display: inline-block;
+    padding: 0 8px;
+    border: 2.5px solid var(--cc-ink);
+    border-radius: 7px;
+    background: var(--cc-lav);
+    color: var(--cc-ink) !important;
+}
+[data-skin="chipchair"] [data-testid="sng-payout-structure"] li {
+    color: var(--cc-ink) !important;
+    font-weight: 700;
+}
+
+/* blinds tab + panel */
+[data-skin="chipchair"] [data-testid="blinds-panel-root"] > button {
+    background: var(--cc-lav) !important;
+    border: var(--cc-b) !important;
+    border-radius: 12px !important;
+    box-shadow: var(--cc-sh) !important;
+    color: var(--cc-ink) !important;
+    font-weight: 800;
+    backdrop-filter: none !important;
+}
+[data-skin="chipchair"] [data-testid="blinds-panel-root"] > button * {
+    color: var(--cc-ink) !important;
+}
+[data-skin="chipchair"] [data-testid="blinds-panel"] {
+    background: var(--cc-white) !important;
+    border: var(--cc-b) !important;
+    border-radius: 16px !important;
+    box-shadow: 6px 6px 0 var(--cc-ink) !important;
+    color: var(--cc-ink) !important;
+    backdrop-filter: none !important;
+}
+[data-skin="chipchair"] [data-testid="blinds-panel"] * {
+    color: var(--cc-ink) !important;
+    border-color: rgba(14, 14, 16, 0.15) !important;
+}
+[data-skin="chipchair"] [data-testid="blinds-panel"] [class*="hero"]:not([class*="heroTop"]):not([class*="heroLevel"]):not([class*="heroTimer"]):not([class*="heroBlinds"]):not([class*="heroSub"]) {
+    background: var(--cc-yel) !important;
+    border-bottom: var(--cc-b) !important;
+}
+[data-skin="chipchair"] [data-testid="blinds-panel"] [class*="heroBlinds"] {
+    font-family: var(--cc-disp);
+}
+[data-skin="chipchair"] [data-testid="blinds-panel"] [class*="rowStripe"] {
+    background: rgba(14, 14, 16, 0.04) !important;
+}
+[data-skin="chipchair"] [data-testid="blinds-panel"] [class*="rowCurrent"] {
+    background: var(--cc-sky) !important;
+    font-weight: 800;
+}
+[data-skin="chipchair"] [data-testid="blinds-panel"] [class*="rowPast"] {
+    opacity: 0.45;
+}
+[data-skin="chipchair"] [data-testid="blinds-panel"] [class*="countdownOvertime"] {
+    color: var(--cc-red) !important;
+}
