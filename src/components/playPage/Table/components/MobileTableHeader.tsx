@@ -44,6 +44,8 @@ import { useLanguage } from "../../../../i18n/useLanguage";
 export interface MobileTableHeaderProps {
     tableId: string;
     tableName?: string;
+    /** Table radio button, shown beside the provably fair shield (block52-club#46). */
+    radioSlot?: React.ReactNode;
     currentNetwork: NetworkEndpoints;
 
     // Game data
@@ -102,6 +104,7 @@ const menuRowClass =
 export const MobileTableHeader: React.FC<MobileTableHeaderProps> = ({
     tableId,
     tableName,
+    radioSlot,
     currentNetwork,
     gameFormat,
     gameOptions,
@@ -235,6 +238,7 @@ export const MobileTableHeader: React.FC<MobileTableHeaderProps> = ({
                 </span>
                 <span className={`text-[11px] font-semibold whitespace-nowrap ${styles.secondaryText}`}>Hand #{handNumber}</span>
                 <ProvablyFairBadge tableId={tableId} handNumber={handNumber} tableName={tableName} compact />
+                {radioSlot}
                 <span className={`text-[11px] font-semibold whitespace-nowrap ${styles.secondaryText}`}>Next: Seat {nextToAct}</span>
             </div>
 
