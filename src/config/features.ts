@@ -7,6 +7,9 @@
  *   VITE_FEATURE_API_READS      balance and table list come from the club API. Off: the app reads the node directly.
  *   VITE_FEATURE_NODE_SELECTOR  the node dropdown and block height in the header. On by default.
  *   VITE_FEATURE_CLUB_LOGIN     the header's "Club login" link to the admin console (also needs VITE_CLUB_CONSOLE_URLS). On by default.
+ *   VITE_FEATURE_CLUB_AUTH_MODAL  a Sign in / Create account modal in the header that talks to the club API directly (needs
+ *                               VITE_FEATURE_CLUB_ACCOUNTS and VITE_CLUB_SERVICE_URLS). Off by default; when on it replaces the
+ *                               header's "Club login" link to the console.
  *
  * A switch is "on" for true, 1, on or yes (any case); anything else, including unset, falls to its default.
  */
@@ -33,5 +36,8 @@ export const features = {
     },
     get clubLogin() {
         return flag("VITE_FEATURE_CLUB_LOGIN", true);
+    },
+    get clubAuthModal() {
+        return flag("VITE_FEATURE_CLUB_AUTH_MODAL", false);
     }
 };

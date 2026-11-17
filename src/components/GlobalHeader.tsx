@@ -9,6 +9,8 @@ import styles from "./GlobalHeader.module.css";
 import { features } from "../config/features";
 import { LanguagePicker } from "./LanguagePicker";
 import { useLanguage } from "../i18n/useLanguage";
+import ClubAuthModal from "./modals/ClubAuthModal";
+import { custodyBase, custodySignOut, getCustodySession } from "../utils/custody/session";
 
 interface MenuItem {
     path: string;
@@ -137,6 +139,14 @@ export const GlobalHeader: React.FC = () => {
     // User-facing menu items only (admin moved to right side of header)
     const menuItems: MenuItem[] = [...userMenuItems];
     // Club owners, staff and agents sign in to their club console from here (block52-club).
+    // Sign in or create a club account in a modal, against the club API (no hop to the club's site). Replaces the console link.
+    const authModal = features.clubAuthModal && features.clubAccounts && !!custodyBase();
+    const [authOpen, setAuthOpen] = useState(false);
+    const clubSession = authModal ? getCustodySession() : null;
+    const signOutClub = () => {
+        custodySignOut();
+        window.location.reload();
+    };
     const clubConsoleUrl = (import.meta.env.VITE_CLUB_CONSOLE_URLS ?? "").split(",")[0]?.trim().replace(/\/+$/, "");
 
     return (
@@ -182,7 +192,18 @@ export const GlobalHeader: React.FC = () => {
                     {/* Right: Club login + Admin + Network Status & Selector */}
                     <div className="flex items-center gap-4 flex-shrink-0">
                         <LanguagePicker variant="icon" />
-                        {features.clubLogin && clubConsoleUrl && (
+                        {authModal && (
+                            clubSession ? (
+                                <button type="button" onClick={signOutClub} className={`px-3 py-2 rounded-lg text-sm font-medium hover:opacity-80 ${styles.navItemInactive}`} title="Sign out of your club account">
+                                    {clubSession.username} · Sign out
+                                </button>
+                            ) : (
+                                <button type="button" onClick={() => setAuthOpen(true)} className={`px-3 py-2 rounded-lg text-sm font-medium hover:opacity-80 ${styles.navItemInactive}`}>
+                                    Sign in
+                                </button>
+                            )
+                        )}
+                        {!authModal && features.clubLogin && clubConsoleUrl && (
                             <a href={`${clubConsoleUrl}/login`} className={`px-3 py-2 rounded-lg text-sm font-medium hover:opacity-80 ${styles.navItemInactive}`} title="For club owners, staff and agents">
                                 Club login
                             </a>
@@ -265,10 +286,24 @@ export const GlobalHeader: React.FC = () => {
                                     )}
                                 </Link>
                             ))}
+                            {authModal && (
+                                <button
+                                    type="button"
+                                    onClick={() => {
+                                        setIsMenuOpen(false);
+                                        if (clubSession) signOutClub();
+                                        else setAuthOpen(true);
+                                    }}
+                                    className={`px-4 py-3 rounded-lg text-sm font-medium text-left hover:opacity-80 ${styles.navItemInactive}`}
+                                >
+                                    {clubSession ? `${clubSession.username} · Sign out` : "Sign in"}
+                                </button>
+                            )}
                         </div>
                     </nav>
                 )}
             </div>
+            {authModal && <ClubAuthModal isOpen={authOpen} onClose={() => setAuthOpen(false)} />}
         </header>
     );
 };
