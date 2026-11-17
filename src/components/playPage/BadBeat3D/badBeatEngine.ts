@@ -3,6 +3,7 @@ import { BB_TABLE, chipPiles, pileSpots, type BadBeatScene, type Vec3 } from "..
 import type { BadBeatTableState } from "../../../utils/badBeatTableState";
 import { cardFace } from "../../../utils/cardFace";
 import { chipEdge, chipFace } from "./badBeatChips";
+import { isNullish } from "../../../utils/guards";
 
 /**
  * The Bad Beat table in WebGL (Dzeezbtc/ui#36): the concept's three.js scene
@@ -439,7 +440,7 @@ export class BadBeatEngine {
             s.position.set(pot[0], 0.2, pot[2]);
             this.dynamic.add(s);
         }
-        const d = state.dealerPosition === null ? null : dealers[state.dealerPosition];
+        const d = isNullish(state.dealerPosition) ? null : dealers[state.dealerPosition];
         this.dealer.visible = !!d;
         if (d) this.dealer.position.set(d[0], 0.24, d[2]);
     }

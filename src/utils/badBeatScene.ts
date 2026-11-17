@@ -11,6 +11,8 @@
  * the frame is the table div (its width × height); things may project outside it.
  */
 
+import { isEmpty } from "./guards";
+
 export type Vec3 = [number, number, number];
 
 /** The concept's table: rail outside (W × H), felt inside (FW × FH). */
@@ -330,6 +332,6 @@ export function chipPiles(smallBlinds: number): { color: number; count: number }
         if (n > 0) piles.push({ color, count: Math.min(n, 8) });
         if (piles.length > 3) break;
     }
-    if (piles.length === 0 && smallBlinds > 0) piles.push({ color: 0xeef1f5, count: 1 });
+    if (isEmpty(piles) && smallBlinds > 0) piles.push({ color: 0xeef1f5, count: 1 });
     return piles;
 }
