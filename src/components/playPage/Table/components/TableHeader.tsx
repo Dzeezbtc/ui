@@ -126,6 +126,7 @@ export const TableHeader: React.FC<TableHeaderProps> = ({
         <div className="flex-shrink-0">
             {/*//! MAIN HEADER - CASINO STYLE */}
             <div
+                data-part="header"
                 className={`w-full h-[50px] sm:h-[65px] text-center flex items-center justify-between px-2 sm:px-4 z-[100] relative border-b-2 ${styles.headerRoot}`}
             >
                 {/* Subtle animated background */}

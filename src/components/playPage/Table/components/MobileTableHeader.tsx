@@ -12,6 +12,7 @@
  */
 
 import React, { useState } from "react";
+import { TABLE_STYLE_LABELS, TableStyle } from "../../../../utils/tableStyle";
 import { FaBars, FaCopy, FaQrcode, FaRedo, FaShare, FaTimes } from "react-icons/fa";
 import { IoSettingsOutline } from "react-icons/io5";
 import { LuHistory } from "react-icons/lu";
@@ -39,7 +40,6 @@ import { hasValue, isNullish } from "../../../../utils/guards";
 import { useTableHeaderSlot } from "../../../../context/TableHeaderSlotContext";
 import { useLanguage } from "../../../../i18n/useLanguage";
 
-export type TableStyleOption = "modern" | "classic" | "nouns";
 
 export interface MobileTableHeaderProps {
     tableId: string;
@@ -76,7 +76,7 @@ export interface MobileTableHeaderProps {
     walletBalance: string;
 
     // Table style (the fixed bottom-left selector is hidden on mobile)
-    tableStyle: TableStyleOption;
+    tableStyle: TableStyle;
     onCycleTableStyle: () => void;
 
     // Opens the History / Settings panel, which is hidden on phones until asked for
@@ -94,11 +94,6 @@ export interface MobileTableHeaderProps {
     handleShareHand: () => void;
 }
 
-const TABLE_STYLE_LABELS: Record<TableStyleOption, string> = {
-    modern: "Modern",
-    classic: "Classic",
-    nouns: "Nouns"
-};
 
 /** Shared row styling: every drawer item is a ≥44px tap target. */
 const menuRowClass =
@@ -172,6 +167,7 @@ export const MobileTableHeader: React.FC<MobileTableHeaderProps> = ({
                 in landscape, under the notch on one side — the safe-area paddings
                 keep the row's content clear of both. */}
             <div
+                data-part="header"
                 className={`w-full min-h-[44px] flex items-center justify-between pl-3 relative z-[100] border-b-2 ${styles.headerRoot}`}
                 style={{
                     paddingTop: "env(safe-area-inset-top)",

@@ -588,6 +588,7 @@ export const PokerActionPanel: React.FC<PokerActionPanelProps> = ({ tableId, net
             }`}
         >
             <div
+                data-part="action-panel"
                 className={`flex flex-col w-full justify-center rounded-lg relative z-10 ${
                     isMobileLandscape ? "mx-1 space-y-0.5 max-w-full" : "lg:w-[570px] mx-4 lg:mx-0 space-y-2 lg:space-y-3 max-w-full"
                 }`}

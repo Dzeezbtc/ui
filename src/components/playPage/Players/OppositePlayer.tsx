@@ -135,6 +135,7 @@ const OppositePlayer: React.FC<OppositePlayerProps> = React.memo(({ left, top, i
                 tabIndex={0}
                 aria-label={`Player notes for seat ${index}`}
                 data-testid={`opponent-seat-${index}`}
+                data-part="seat"
             >
                 {/* Development Mode Debug Info */}
                 {import.meta.env.VITE_NODE_ENV === "development" && (

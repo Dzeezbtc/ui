@@ -1,8 +1,8 @@
-import { safeLook, socialLabel, tableStyleFor } from "./clubLook";
+import { safeLook, socialLabel, tableStyleFor, tableStyleForLook } from "./clubLook";
 
 describe("safeLook", () => {
     it("keeps what's safe", () => {
-        expect(safeLook({ logo: "https://x.test/l.png", primaryColor: "#112233", accentColor: "#445566", felt: "dark", cardBack: "https://x.test/b.png", language: "es", socials: ["https://t.me/c"] })).toEqual({ logo: "https://x.test/l.png", primaryColor: "#112233", accentColor: "#445566", felt: "dark", cardBack: "https://x.test/b.png", language: "es", socials: ["https://t.me/c"], radio: [] });
+        expect(safeLook({ logo: "https://x.test/l.png", primaryColor: "#112233", accentColor: "#445566", felt: "dark", cardBack: "https://x.test/b.png", language: "es", socials: ["https://t.me/c"] })).toEqual({ theme: "block52", logo: "https://x.test/l.png", primaryColor: "#112233", accentColor: "#445566", felt: "dark", cardBack: "https://x.test/b.png", language: "es", socials: ["https://t.me/c"], radio: [] });
     });
 
     it("drops anything else", () => {
@@ -19,6 +19,17 @@ it("maps a felt to a table style", () => {
     expect(tableStyleFor("classic")).toBe("classic");
     expect(tableStyleFor("dark")).toBe("modern");
     expect(tableStyleFor("logo")).toBe("modern");
+});
+
+it("keeps the club theme", () => {
+    expect(safeLook({ theme: "chipandachair", felt: "dark" })?.theme).toBe("chipandachair");
+    expect(safeLook({ felt: "dark" })?.theme).toBe("block52");
+});
+
+it("starts a club table in its theme's skin, else its felt", () => {
+    expect(tableStyleForLook({ theme: "chipandachair", felt: "classic" })).toBe("chipchair");
+    expect(tableStyleForLook({ theme: "block52", felt: "classic" })).toBe("classic");
+    expect(tableStyleForLook({ theme: "maison", felt: "dark" })).toBe("modern");
 });
 
 it("names social links", () => {

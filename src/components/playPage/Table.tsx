@@ -81,7 +81,9 @@ import { isValidPlayerAddress } from "../../utils/addressUtils";
 import { CardBackStyle } from "../../utils/cardImages";
 import { useClubLook } from "../../hooks/club/useClubLook";
 import { TableRadio } from "./TableRadio";
-import { tableStyleFor } from "../../utils/clubLook";
+import { tableStyleForLook } from "../../utils/clubLook";
+import { TABLE_STYLE_LABELS, TableStyle, nextTableStyle, tableStyleFromEnv } from "../../utils/tableStyle";
+import "./skins/chipchair.css";
 import { cssVars } from "../../utils/cssVars";
 import { ANIMATION_CSS_VARS } from "../../bus/timing";
 
@@ -1081,14 +1083,13 @@ const Table = React.memo(({ tableId }: TableProps = {}) => {
     // Optimize window width detection - only check on resize
     const [isMobile, setIsMobile] = useState(window.innerWidth <= 414);
     const [isMobileLandscape, setIsMobileLandscape] = useState(getViewportMode() === "mobile-landscape");
-    const envTableStyle = import.meta.env.VITE_TABLE_STYLE;
-    const defaultTableStyle: "modern" | "classic" | "nouns" = envTableStyle === "classic" || envTableStyle === "nouns" ? envTableStyle : "modern";
-    const [tableStyle, setTableStyle] = useState<"modern" | "classic" | "nouns">(defaultTableStyle);
-    // A club table starts in the club's felt. The player can still switch it.
+    const [tableStyle, setTableStyle] = useState<TableStyle>(() => tableStyleFromEnv(import.meta.env.VITE_TABLE_STYLE));
+    // A club table starts in the club theme's skin, or its felt. The player can still switch it.
     const clubFelt = clubLook?.felt;
+    const clubTheme = clubLook?.theme;
     useEffect(() => {
-        if (clubFelt) setTableStyle(tableStyleFor(clubFelt));
-    }, [clubFelt]);
+        if (clubFelt && clubTheme) setTableStyle(tableStyleForLook({ theme: clubTheme, felt: clubFelt }));
+    }, [clubFelt, clubTheme]);
 
     // Update viewport mode on window resize
     useEffect(() => {
@@ -1345,7 +1346,7 @@ const Table = React.memo(({ tableId }: TableProps = {}) => {
 
     return (
         <SitOutIntentProvider tableId={id} network={currentNetwork} pendingSitOut={pendingSitOut} legalActions={playerLegalActions}>
-        <div className="table-container" data-connection={connection.status}>
+        <div className="table-container" data-connection={connection.status} data-skin={tableStyle}>
             {/* Connection freshness (ui#613): shown whenever the live socket is not live */}
             {!isReplayMode && id && (
                 <ConnectionBanner
@@ -1385,7 +1386,7 @@ const Table = React.memo(({ tableId }: TableProps = {}) => {
                 never sit above modals/overlays (it used to be 999999 and beat everything). */}
             {!isCompactMobile && (
                 <button
-                    onClick={() => setTableStyle(s => (s === "modern" ? "classic" : s === "classic" ? "nouns" : "modern"))}
+                    onClick={() => setTableStyle(nextTableStyle)}
                     style={{
                         position: "fixed",
                         bottom: 12,
@@ -1402,7 +1403,7 @@ const Table = React.memo(({ tableId }: TableProps = {}) => {
                         cursor: "pointer"
                     }}
                 >
-                    Table: {tableStyle === "modern" ? "Modern" : tableStyle === "classic" ? "Classic" : "Nouns"}
+                    Table: {TABLE_STYLE_LABELS[tableStyle]}
                 </button>
             )}
             <GeometryFixedOverlay
@@ -1439,7 +1440,7 @@ const Table = React.memo(({ tableId }: TableProps = {}) => {
                     maxBuyIn={gameOptions?.maxBuyIn || "0"}
                     walletBalance={accountBalance}
                     tableStyle={tableStyle}
-                    onCycleTableStyle={() => setTableStyle(s => (s === "modern" ? "classic" : s === "classic" ? "nouns" : "modern"))}
+                    onCycleTableStyle={() => setTableStyle(nextTableStyle)}
                     onOpenPanel={tab => {
                         setPanelTab(tab);
                         setMobilePanelOpen(true);
@@ -1489,8 +1490,10 @@ const Table = React.memo(({ tableId }: TableProps = {}) => {
             {/*//! BODY — single flex-grow container, measured by geometry engine */}
             <div ref={tableContainerRef} className="flex-grow relative overflow-visible">
                 {/* Background layers */}
-                {tableStyle !== "nouns" && <HexagonPattern patternId="hexagons-table" />}
-                {tableStyle === "nouns" ? (
+                {tableStyle !== "nouns" && tableStyle !== "chipchair" && <HexagonPattern patternId="hexagons-table" />}
+                {tableStyle === "chipchair" ? (
+                    <div className="chipchair-background" />
+                ) : tableStyle === "nouns" ? (
                     <div className="nouns-background" />
                 ) : (
                     <>
@@ -1518,8 +1521,9 @@ const Table = React.memo(({ tableId }: TableProps = {}) => {
                         }}
                     >
                         {/* Outer rail — Ignition-style 3D depth (modern and nouns) */}
-                        {(tableStyle === "modern" || tableStyle === "nouns") && (
+                        {tableStyle !== "classic" && (
                             <div
+                                data-part="rail"
                                 className="absolute z-10 rounded-[290px]"
                                 style={{
                                     width: `${stageDims.tableWidth + 60}px`,
@@ -1540,6 +1544,7 @@ const Table = React.memo(({ tableId }: TableProps = {}) => {
                         )}
                         {/* Table felt surface */}
                         <div
+                            data-part="felt"
                             className={`table-surface-shadow z-20 relative flex flex-col text-center border-solid rounded-[250px] items-center justify-center ${tableStyle === "nouns" ? "nouns-table-felt border-[3px]" : tableStyle === "classic" ? "border-[3px]" : "border-[2px]"}`}
                             style={{
                                 width: `${stageDims.tableWidth}px`,
@@ -1627,6 +1632,7 @@ const Table = React.memo(({ tableId }: TableProps = {}) => {
             {!isReplayMode &&
                 (isCompactMobile ? (
                     <div
+                        data-part="footer"
                         className="fixed bottom-0 left-0 right-0 z-[10] [&>div]:!bottom-0"
                         style={{
                             paddingBottom: "env(safe-area-inset-bottom)",
@@ -1640,7 +1646,7 @@ const Table = React.memo(({ tableId }: TableProps = {}) => {
                             desktop/landscape below, where there's lateral room for it. */}
                     </div>
                 ) : (
-                    <div className="w-full flex justify-center items-center z-[10] h-[160px] fixed bottom-0 left-0 right-0 bg-black bg-opacity-50 backdrop-blur-sm">
+                    <div data-part="footer" className="w-full flex justify-center items-center z-[10] h-[160px] fixed bottom-0 left-0 right-0 bg-black bg-opacity-50 backdrop-blur-sm">
                         <div className="w-full flex justify-center items-center h-full max-w-[700px]">
                             <PokerActionPanel onTransactionSubmitted={handleTransactionSubmitted} />
                         </div>

@@ -151,7 +151,7 @@ export const PlayerActionButtons: React.FC<PlayerActionButtonsProps> = ({
     // (MobileTableHeader) — the floating button is landscape/desktop only.
     const buyChipsElement =
         !isCompactMobile && isCurrentUserSeated && tableId && !isSNG ? (
-            <div className={`fixed z-30 ${buyChipsPositionClass}`}>
+            <div data-part="side-actions" className={`fixed z-30 ${buyChipsPositionClass}`}>
                 <BuyChipsButton
                     tableId={tableId}
                     currentStack={currentStack}
@@ -199,7 +199,7 @@ export const PlayerActionButtons: React.FC<PlayerActionButtonsProps> = ({
             <>
                 {buyChipsElement}
                 {panel && (
-                    <div className="fixed z-30 left-1/2 -translate-x-1/2" style={opts?.atBar ? compactBarStyle : compactPanelStyle}>
+                    <div data-part="side-actions" className="fixed z-30 left-1/2 -translate-x-1/2" style={opts?.atBar ? compactBarStyle : compactPanelStyle}>
                         {panel}
                     </div>
                 )}
@@ -207,7 +207,7 @@ export const PlayerActionButtons: React.FC<PlayerActionButtonsProps> = ({
         ) : (
             <>
                 {buyChipsElement}
-                <div className={`fixed z-30 ${positionClass} flex flex-col gap-2`}>
+                <div data-part="side-actions" className={`fixed z-30 ${positionClass} flex flex-col gap-2`}>
                     {seatAtBottomToggle}
                     {panel}
                 </div>
@@ -227,7 +227,7 @@ export const PlayerActionButtons: React.FC<PlayerActionButtonsProps> = ({
         return (
             <>
                 {buyChipsElement}
-                <div className="fixed z-30 bottom-8 left-1/2 -translate-x-1/2">
+                <div data-part="side-actions" className="fixed z-30 bottom-8 left-1/2 -translate-x-1/2">
                     <div className={`backdrop-blur-sm rounded-lg shadow-lg border border-white/20 bg-black/60 ${isCompact ? "p-2" : "p-3"}`}>
                         <div className="flex items-center gap-2">
                             <div className="animate-pulse w-2 h-2 rounded-full bg-blue-400" />

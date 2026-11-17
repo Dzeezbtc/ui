@@ -1,0 +1,447 @@
+/*
+ * Chip and a Chair — a full table skin (club theme "chipandachair").
+ *
+ * Every rule is scoped to [data-skin="chipchair"] on the table root, so the
+ * other table styles are untouched. It only restyles: the components, controls
+ * and behaviour are the same as every other style. Parts are found through the
+ * global class names the table already uses (btn-*, badge-*, table-panel,
+ * pot-pill …) and a few data-part hooks (rail, felt, header, footer,
+ * action-panel, pre-actions, raise-slider, seat, hero-seat, vacant-seat).
+ */
+@import url("https://fonts.googleapis.com/css2?family=Dela+Gothic+One&family=DM+Sans:opsz,wght@9..40,400;9..40,500;9..40,700;9..40,800&display=swap");
+
+[data-skin="chipchair"] {
+    --cc-paper: #fbfbf8;
+    --cc-ink: #0e0e10;
+    --cc-muted: #55555e;
+    --cc-white: #ffffff;
+    --cc-yel: #ffd23f;
+    --cc-pink: #ff6fb5;
+    --cc-blue: #3d7bff;
+    --cc-grn: #22c55e;
+    --cc-red: #ff4d3d;
+    --cc-lav: #b9a2ff;
+    --cc-sky: #7fd4ff;
+    --cc-b: 3px solid var(--cc-ink);
+    --cc-sh: 4px 4px 0 var(--cc-ink);
+    --cc-disp: "Dela Gothic One", ui-sans-serif, system-ui, sans-serif;
+    --cc-sans: "DM Sans", ui-sans-serif, system-ui, sans-serif;
+    font-family: var(--cc-sans);
+    background: var(--cc-paper);
+    color: var(--cc-ink);
+}
+
+/* ---------- room ---------- */
+[data-skin="chipchair"] .chipchair-background {
+    position: absolute;
+    inset: 0;
+    z-index: 0;
+    background-color: var(--cc-paper);
+    background-image:
+        linear-gradient(rgba(40, 90, 255, 0.07) 1px, transparent 1px),
+        linear-gradient(90deg, rgba(40, 90, 255, 0.07) 1px, transparent 1px);
+    background-size: 28px 28px;
+}
+
+/* ---------- table: yellow rail, green dotted felt, hard shadow ---------- */
+[data-skin="chipchair"] [data-part="rail"] {
+    background: var(--cc-yel) !important;
+    border: var(--cc-b) !important;
+    box-shadow: 8px 8px 0 var(--cc-ink) !important;
+}
+[data-skin="chipchair"] [data-part="felt"] {
+    background-color: var(--cc-grn) !important;
+    background-image: radial-gradient(rgba(0, 0, 0, 0.12) 1.3px, transparent 1.6px) !important;
+    background-size: 16px 16px !important;
+    border: var(--cc-b) !important;
+    border-color: var(--cc-ink) !important;
+    box-shadow: none !important;
+}
+[data-skin="chipchair"] .table-logo img {
+    opacity: 0.18;
+    filter: grayscale(1) contrast(2);
+}
+
+/* ---------- header ---------- */
+[data-skin="chipchair"] [data-part="header"] {
+    background: var(--cc-paper) !important;
+    border-bottom: var(--cc-b) !important;
+    color: var(--cc-ink) !important;
+    box-shadow: none !important;
+}
+[data-skin="chipchair"] [data-part="header"] :is(.text-white, .text-gray-100, .text-gray-200, .text-gray-300, .text-gray-400) {
+    color: var(--cc-ink) !important;
+}
+[data-skin="chipchair"] [data-part="header"] :is(button, a) {
+    border-radius: 12px;
+}
+
+/* ---------- seats ---------- */
+[data-skin="chipchair"] .badge-container {
+    background: var(--cc-white);
+    border: var(--cc-b);
+    border-radius: 14px;
+    padding: 4px 12px 4px 4px;
+    box-shadow: var(--cc-sh);
+}
+[data-skin="chipchair"] .badge-number {
+    width: 1.75rem;
+    height: 1.75rem;
+    border: 2.5px solid var(--cc-ink);
+    border-radius: 9px;
+    color: var(--cc-ink);
+    font-family: var(--cc-disp);
+    font-weight: 400;
+}
+[data-skin="chipchair"] .badge-value {
+    font-family: var(--cc-disp);
+    font-weight: 400;
+    color: var(--cc-ink);
+    letter-spacing: 0.01em;
+}
+[data-skin="chipchair"] .seat-banner-box {
+    border: var(--cc-b) !important;
+    border-radius: 14px 14px 8px 8px;
+    box-shadow: var(--cc-sh);
+}
+[data-skin="chipchair"] .action-display-box {
+    border: 2.5px solid var(--cc-ink);
+    border-radius: 9px;
+    background: var(--cc-sky);
+    color: var(--cc-ink);
+    box-shadow: 2px 2px 0 var(--cc-ink);
+}
+[data-skin="chipchair"] .action-display-text,
+[data-skin="chipchair"] .action-display-amount {
+    color: var(--cc-ink);
+    font-weight: 800;
+}
+[data-skin="chipchair"] .equity-chip {
+    border: 2px solid var(--cc-ink);
+    background: var(--cc-yel);
+    color: var(--cc-ink);
+}
+
+/* your own seat: sky blue, with a pink "You're here" tag */
+[data-skin="chipchair"] [data-part="hero-seat"] .badge-container {
+    background: var(--cc-sky);
+    box-shadow: 5px 5px 0 var(--cc-ink);
+}
+[data-skin="chipchair"] [data-part="hero-seat"] .badge-container::before {
+    content: "You're here";
+    position: absolute;
+    left: 100%;
+    top: 50%;
+    margin-left: 10px;
+    transform: translateY(-50%) rotate(-3deg);
+    padding: 1px 10px;
+    border: 2.5px solid var(--cc-ink);
+    border-radius: 8px;
+    background: var(--cc-pink);
+    color: var(--cc-ink);
+    font-family: var(--cc-sans);
+    font-weight: 900;
+    font-size: 11px;
+    text-transform: uppercase;
+    letter-spacing: 0.04em;
+    white-space: nowrap;
+    box-shadow: 2px 2px 0 var(--cc-ink);
+    pointer-events: none;
+}
+
+/* empty seat */
+[data-skin="chipchair"] [data-part="vacant-seat"] button {
+    border: 3px dashed var(--cc-ink) !important;
+    border-radius: 14px !important;
+    background: rgba(255, 255, 255, 0.6) !important;
+    color: var(--cc-ink) !important;
+    font-weight: 800;
+    box-shadow: none !important;
+}
+
+/* cards: chunky outline and a hard shadow */
+[data-skin="chipchair"] .card,
+[data-skin="chipchair"] [data-part="hero-seat"] img,
+[data-skin="chipchair"] [data-part="seat"] img {
+    filter: drop-shadow(3px 3px 0 var(--cc-ink));
+}
+
+/* pot and bets */
+[data-skin="chipchair"] .pot-pill-label,
+[data-skin="chipchair"] .chip-caption {
+    padding: 1px 8px;
+    border: 2.5px solid var(--cc-ink);
+    border-radius: 8px;
+    background: var(--cc-yel);
+    color: var(--cc-ink);
+    font-weight: 800;
+    box-shadow: 2px 2px 0 var(--cc-ink);
+}
+
+/* ---------- action bar ---------- */
+[data-skin="chipchair"] [data-part="footer"] {
+    background: var(--cc-paper) !important;
+    border-top: var(--cc-b);
+    backdrop-filter: none !important;
+}
+[data-skin="chipchair"] [data-part="action-panel"] {
+    color: var(--cc-ink);
+}
+[data-skin="chipchair"] [data-part="action-panel"] :is(.text-white, .text-gray-300, .text-gray-400) {
+    color: var(--cc-ink) !important;
+}
+[data-skin="chipchair"] :is(.btn-fold, .btn-check, .btn-call, .btn-raise, .btn-all-in, .btn-deal, .btn-small-blind, .btn-big-blind) {
+    border: var(--cc-b) !important;
+    border-radius: 14px !important;
+    box-shadow: var(--cc-sh) !important;
+    color: var(--cc-ink) !important;
+    font-family: var(--cc-disp);
+    font-weight: 400 !important;
+    text-transform: uppercase;
+    backdrop-filter: none !important;
+    transition: transform 0.08s, box-shadow 0.08s;
+}
+[data-skin="chipchair"] :is(.btn-fold, .btn-check, .btn-call, .btn-raise, .btn-all-in, .btn-deal, .btn-small-blind, .btn-big-blind):hover:not(:disabled) {
+    transform: translate(-1px, -1px);
+    box-shadow: 5px 5px 0 var(--cc-ink) !important;
+}
+[data-skin="chipchair"] :is(.btn-fold, .btn-check, .btn-call, .btn-raise, .btn-all-in, .btn-deal, .btn-small-blind, .btn-big-blind):active:not(:disabled) {
+    transform: translate(4px, 4px);
+    box-shadow: none !important;
+}
+[data-skin="chipchair"] .btn-fold {
+    background: var(--cc-white) !important;
+}
+[data-skin="chipchair"] :is(.btn-check, .btn-call) {
+    background: var(--cc-grn) !important;
+}
+[data-skin="chipchair"] :is(.btn-raise, .btn-deal) {
+    background: var(--cc-yel) !important;
+}
+[data-skin="chipchair"] .btn-all-in {
+    background: var(--cc-pink) !important;
+}
+[data-skin="chipchair"] :is(.btn-small-blind, .btn-big-blind) {
+    background: var(--cc-sky) !important;
+}
+[data-skin="chipchair"] :is(.btn-fold, .btn-check, .btn-call, .btn-raise, .btn-all-in) :is(span, small) {
+    color: var(--cc-ink) !important;
+    font-family: var(--cc-sans);
+    font-weight: 800;
+    text-transform: none;
+}
+[data-skin="chipchair"] .btn-pot {
+    background: var(--cc-white) !important;
+    border: 2.5px solid var(--cc-ink) !important;
+    border-radius: 9px !important;
+    box-shadow: 2px 2px 0 var(--cc-ink) !important;
+    color: var(--cc-ink) !important;
+    font-weight: 800;
+}
+[data-skin="chipchair"] .btn-pot:disabled {
+    opacity: 0.4;
+}
+
+/* pre-select boxes (Check/Fold, Call any …) */
+[data-skin="chipchair"] [data-part="pre-actions"] button {
+    border: var(--cc-b) !important;
+    border-radius: 12px !important;
+    background: var(--cc-white) !important;
+    color: var(--cc-ink) !important;
+    font-weight: 800;
+    box-shadow: 3px 3px 0 var(--cc-ink);
+}
+[data-skin="chipchair"] [data-part="pre-actions"] button[aria-checked="true"] {
+    background: var(--cc-yel) !important;
+}
+[data-skin="chipchair"] [data-part="pre-actions"] button > span:first-child {
+    border: 2.5px solid var(--cc-ink) !important;
+    border-radius: 4px;
+    background: var(--cc-white);
+    color: var(--cc-ink);
+}
+
+/* raise slider */
+[data-skin="chipchair"] [data-part="raise-slider"] {
+    background: var(--cc-white) !important;
+    border: var(--cc-b) !important;
+    border-radius: 14px !important;
+    box-shadow: var(--cc-sh) !important;
+    backdrop-filter: none !important;
+    color: var(--cc-ink);
+}
+[data-skin="chipchair"] [data-part="raise-slider"] input[type="range"] {
+    accent-color: var(--cc-pink);
+}
+[data-skin="chipchair"] [data-part="raise-slider"] input:not([type="range"]) {
+    background: var(--cc-white) !important;
+    border: 2.5px solid var(--cc-ink) !important;
+    border-radius: 9px;
+    color: var(--cc-ink) !important;
+    font-family: var(--cc-disp);
+}
+[data-skin="chipchair"] [data-part="raise-slider"] :is(.text-white, .text-gray-300, .text-gray-400) {
+    color: var(--cc-ink) !important;
+}
+
+/* ---------- history + settings panel ---------- */
+[data-skin="chipchair"] .table-panel {
+    background: var(--cc-white) !important;
+    border: var(--cc-b) !important;
+    border-radius: 16px !important;
+    box-shadow: 6px 6px 0 var(--cc-ink) !important;
+    color: var(--cc-ink) !important;
+    overflow: hidden;
+}
+[data-skin="chipchair"] .table-panel :is(.text-white, .text-gray-100, .text-gray-200, .text-gray-300, .text-gray-400, .text-gray-500) {
+    color: var(--cc-ink) !important;
+}
+[data-skin="chipchair"] .table-panel :is(.border-white\/10, .border-white\/20) {
+    border-color: rgba(14, 14, 16, 0.15) !important;
+}
+[data-skin="chipchair"] .table-panel [role="switch"][aria-checked="true"] {
+    background: var(--cc-grn) !important;
+    border: 2.5px solid var(--cc-ink);
+}
+[data-skin="chipchair"] .table-panel [role="switch"][aria-checked="false"] {
+    background: var(--cc-white) !important;
+    border: 2.5px solid var(--cc-ink);
+}
+[data-skin="chipchair"] .table-panel-expand {
+    background: var(--cc-yel) !important;
+    border: var(--cc-b) !important;
+    color: var(--cc-ink) !important;
+    box-shadow: var(--cc-sh);
+}
+
+/* second header row (stakes, hand, provably fair) */
+[data-skin="chipchair"] .sub-header {
+    background: var(--cc-white) !important;
+    border-bottom: var(--cc-b);
+    color: var(--cc-ink) !important;
+    box-shadow: none !important;
+}
+[data-skin="chipchair"] .sub-header :is(.text-white, .text-gray-300, .text-gray-400, span, a, button) {
+    color: var(--cc-ink) !important;
+}
+[data-skin="chipchair"] [data-part="header"] :is(button, a):not([role="switch"]) {
+    background: var(--cc-white) !important;
+    border: 2.5px solid var(--cc-ink) !important;
+    color: var(--cc-ink) !important;
+    box-shadow: 2px 2px 0 var(--cc-ink);
+    opacity: 1;
+}
+[data-skin="chipchair"] [data-part="header"] :is(button, a) * {
+    color: var(--cc-ink) !important;
+}
+[data-skin="chipchair"] [data-part="header"] :is(button, a):disabled {
+    opacity: 0.45;
+}
+
+/* pot label */
+[data-skin="chipchair"] .pot-display {
+    background: var(--cc-yel) !important;
+    border: var(--cc-b);
+    border-radius: 12px;
+    color: var(--cc-ink) !important;
+    font-family: var(--cc-disp);
+    box-shadow: var(--cc-sh);
+}
+
+/* history + settings panel body */
+[data-skin="chipchair"] .table-panel > div {
+    background: var(--cc-white) !important;
+    border: 0 !important;
+    box-shadow: none !important;
+}
+[data-skin="chipchair"] .table-panel :is(button, h2, h3, h4, p, span, li) {
+    color: var(--cc-ink);
+}
+[data-skin="chipchair"] .table-panel [role="tab"][aria-selected="true"],
+[data-skin="chipchair"] .table-panel button.border-b-2 {
+    border-color: var(--cc-ink) !important;
+}
+
+/* side buttons: seat me, sit in, top up, buy chips */
+[data-skin="chipchair"] [data-part="side-actions"] > div,
+[data-skin="chipchair"] [data-part="side-actions"] > button {
+    background: var(--cc-white) !important;
+    border: var(--cc-b) !important;
+    border-radius: 14px !important;
+    box-shadow: var(--cc-sh) !important;
+    backdrop-filter: none !important;
+    color: var(--cc-ink) !important;
+}
+[data-skin="chipchair"] [data-part="side-actions"] :is(span, label, button, .text-white, .text-amber-300) {
+    color: var(--cc-ink) !important;
+    font-weight: 800;
+}
+[data-skin="chipchair"] [data-part="side-actions"] input[type="checkbox"] {
+    accent-color: var(--cc-ink);
+}
+
+/* hand strength */
+[data-skin="chipchair"] [data-part="hand-strength"] {
+    background: var(--cc-white) !important;
+    border: var(--cc-b) !important;
+    border-radius: 12px !important;
+    box-shadow: var(--cc-sh) !important;
+    backdrop-filter: none !important;
+}
+[data-skin="chipchair"] [data-part="hand-strength"] * {
+    color: var(--cc-ink) !important;
+}
+
+/* raise slider − / + buttons */
+[data-skin="chipchair"] [data-part="raise-slider"] button {
+    background: var(--cc-yel) !important;
+    border: 2.5px solid var(--cc-ink) !important;
+    border-radius: 9px !important;
+    color: var(--cc-ink) !important;
+    box-shadow: 2px 2px 0 var(--cc-ink);
+}
+
+/* the table logo: a faint print on the felt */
+[data-skin="chipchair"] .table-logo {
+    opacity: 0.35;
+    mix-blend-mode: multiply;
+}
+[data-skin="chipchair"] .table-logo img {
+    filter: none;
+    opacity: 0.25;
+}
+
+/* header pills: game type, wallet, provably fair badge, add-a-table */
+[data-skin="chipchair"] :is([class*="gameFormatContainer"], [class*="walletInfo"]) {
+    background: var(--cc-white) !important;
+    border: 2.5px solid var(--cc-ink) !important;
+    border-radius: 12px !important;
+    box-shadow: 2px 2px 0 var(--cc-ink);
+}
+[data-skin="chipchair"] :is([class*="gameFormatContainer"], [class*="walletInfo"]) * {
+    color: var(--cc-ink) !important;
+}
+[data-skin="chipchair"] [class*="balanceIcon"] {
+    background: var(--cc-yel) !important;
+}
+[data-skin="chipchair"] .sub-header button[class*="badge"] {
+    background: var(--cc-grn) !important;
+    border: 2.5px solid var(--cc-ink) !important;
+    border-radius: 10px !important;
+    box-shadow: 2px 2px 0 var(--cc-ink);
+}
+[data-skin="chipchair"] .b52-mt-add {
+    background: var(--cc-yel) !important;
+    border: 2.5px solid var(--cc-ink) !important;
+    border-radius: 10px !important;
+    color: var(--cc-ink) !important;
+    box-shadow: 2px 2px 0 var(--cc-ink);
+}
+[data-skin="chipchair"] [class*="subHeaderRoot"] {
+    background: var(--cc-white) !important;
+    border-bottom: var(--cc-b);
+    box-shadow: none !important;
+}
+[data-skin="chipchair"] [class*="subHeaderRoot"] :is(span, div, a) {
+    color: var(--cc-ink);
+}
