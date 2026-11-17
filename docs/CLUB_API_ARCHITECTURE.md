@@ -24,8 +24,21 @@ this app ───────┤                 └─gRPC──► pokerchain
     nothing is signed in the browser (`src/utils/custody/session.ts`).
 - **The Game Wallet panel** is where the account shows: username, address, USDC balance, Deposit and Sign out. A club
   account has no seed phrase, so it shows no create, import, seed settings, withdraw or send.
+- **Known gap:** the club's network and location seat check (`seatRefusal`) needs a signature from the seed phrase, so it is
+  skipped for club accounts. The club's rule check (`canSit`) and deposit limits still apply. Tracked in
+  block52-club#59.
 - **The browser holds only a player token.** Never put the signer's admin token or any key material in the app: the
   admin token makes accounts and freezes them, and only the club API holds it.
+
+## How a table action reaches the Go function
+
+Poker actions (`performActionSync`), join, leave and top-up all go through `getSigningClient`, which for a club account
+returns the client in `src/utils/custody/session.ts`: one `POST {VITE_SIGNER_URL}/Perform` with the player token and a
+`requestId`. The function claims the request id, so **a retry with the same id returns the first result and never
+broadcasts twice**: the client makes the id once per action and reuses it (up to 2 retries) when the function was
+unreachable, a duplicate is in flight, or the chain could not be reached (`chain-unavailable`). Policy and chain
+rejections (a limit, a frozen account, a table rule) are final and are shown as the function's message. `txHash` means the
+node accepted the transaction, not that the game did; the table state shows the result.
 
 ## Already on the API
 

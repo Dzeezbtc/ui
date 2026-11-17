@@ -40,17 +40,36 @@ export const getCustodySession = (): CustodySession | null => {
 
 export const isCustodial = (): boolean => getCustodySession() !== null;
 
+/** An error from the club API or the signer: the HTTP status (0 = never reached) and the signer's rule code, if it sent one. */
+export class CustodyError extends Error {
+    constructor(
+        message: string,
+        public status: number,
+        public code?: string
+    ) {
+        super(message);
+    }
+}
+
 const post = async <T>(base: string | null, what: string, path: string, body: unknown, token?: string): Promise<T> => {
-    if (!base) throw new Error(`No ${what} is configured.`);
-    const res = await fetch(`${base}${path}`, {
-        method: "POST",
-        headers: { "content-type": "application/json", ...(token ? { authorization: `Bearer ${token}` } : {}) },
-        body: JSON.stringify(body)
-    });
-    const json = (await res.json().catch(() => ({}))) as { error?: string | { message?: string } };
+    if (!base) throw new CustodyError(`No ${what} is configured.`, 0);
+    let res: Response;
+    try {
+        res = await fetch(`${base}${path}`, {
+            method: "POST",
+            headers: { "content-type": "application/json", ...(token ? { authorization: `Bearer ${token}` } : {}) },
+            body: JSON.stringify(body)
+        });
+    } catch {
+        // The words "fetch" and "network" are left out on purpose: the app's money-mover retry re-sends on messages that
+        // contain them, and a re-send here must reuse the request id (see perform), not start a new action.
+        throw new CustodyError(`Couldn't reach the ${what}. Try again in a moment.`, 0, "unreachable");
+    }
+    const json = (await res.json().catch(() => ({}))) as { error?: string | { code?: string; message?: string } };
     if (!res.ok) {
         const e = json.error;
-        throw new Error((typeof e === "string" ? e : e?.message) ?? `${res.status} ${res.statusText}`);
+        const message = (typeof e === "string" ? e : e?.message) ?? `${res.status} ${res.statusText}`;
+        throw new CustodyError(message, res.status, typeof e === "object" ? e?.code : undefined);
     }
     return json as T;
 };
@@ -91,9 +110,32 @@ const authed = <T>(path: string, body: unknown): Promise<T> => {
     return post<T>(signerBase(), "signer (VITE_SIGNER_URL)", path, body, s.token);
 };
 
+/**
+ * Whether the same action may be sent again with the same request id: the function never saw it, or is still on it, or
+ * could not tell whether the chain took it. The function claims the request id, so a repeat returns the first result and
+ * never broadcasts twice. Policy and chain rejections are final and are not retried.
+ */
+const retryable = (e: unknown): boolean => e instanceof CustodyError && (e.code === "unreachable" || e.code === "in-flight" || e.code === "chain-unavailable");
+
+const RETRIES = 2;
+const pause = (ms: number) => new Promise(resolve => setTimeout(resolve, ms));
+
+/** One game action. The request id is made once, so every retry of this action carries the same id. */
 const perform = async (payload: Record<string, unknown>): Promise<string> => {
-    const r = await authed<{ txHash: string }>("/Perform", { requestId: crypto.randomUUID(), ...payload });
-    return r.txHash;
+    const requestId = crypto.randomUUID();
+    for (let attempt = 0; ; attempt++) {
+        try {
+            return (await authed<{ txHash: string }>("/Perform", { requestId, ...payload })).txHash;
+        } catch (e) {
+            if (attempt >= RETRIES || !retryable(e)) throw e;
+            await pause(RETRY_PAUSE_MS * (attempt + 1));
+        }
+    }
+};
+let RETRY_PAUSE_MS = 400;
+/** For tests. */
+export const setRetryPause = (ms: number) => {
+    RETRY_PAUSE_MS = ms;
 };
 
 /**
