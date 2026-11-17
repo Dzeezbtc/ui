@@ -1,10 +1,6 @@
-import React, { useState, useEffect } from "react";
+import React, { useState } from "react";
 import { useLocation, Link } from "react-router-dom";
-import { NetworkSelector } from "./NetworkSelector";
-import { useNetwork } from "../context/NetworkContext";
-import { getCosmosClient } from "../utils/cosmos/client";
 import { ProfileAvatarButton } from "./profile";
-import { hasElements } from "../utils/guards";
 import styles from "./GlobalHeader.module.css";
 import { LanguagePicker } from "./LanguagePicker";
 import { useLanguage } from "../i18n/useLanguage";
@@ -45,72 +41,15 @@ const LogoComponent: React.FC = React.memo(() => {
     );
 });
 
-// Reusable component for network status and selector (extracted to avoid recreation on every render)
-const NetworkStatusAndSelector: React.FC<{ latestBlockHeight: string | null; hasError: boolean }> = ({ latestBlockHeight, hasError }) => (
-    <>
-        {/* Block Height Indicator - clickable link to block explorer */}
-        {latestBlockHeight && (
-            <Link
-                to={`/explorer/block/${latestBlockHeight}`}
-                className={`flex items-center gap-2 px-3 py-1.5 rounded-lg hover:opacity-80 transition-opacity ${styles.blockHeightLink}`}
-            >
-                <div className={`w-2 h-2 rounded-full animate-pulse ${hasError ? "bg-red-400" : "bg-green-400"}`}></div>
-                <span className={`text-sm font-mono ${styles.blockHeightText}`}>
-                    #{latestBlockHeight}
-                </span>
-            </Link>
-        )}
-
-        <NetworkSelector />
-    </>
-);
-
 export const GlobalHeader: React.FC = () => {
     const location = useLocation();
     const { t } = useLanguage();
     const [isMenuOpen, setIsMenuOpen] = useState(false);
-    const { currentNetwork } = useNetwork();
-    const [latestBlockHeight, setLatestBlockHeight] = useState<string | null>(null);
-    const [hasError, setHasError] = useState(false);
 
     // Don't show header on game table pages (they have their own layout)
     // But DO show it on /table/admin
     const hideOnPaths = ["/table/"];
     const shouldHide = hideOnPaths.some(path => location.pathname.startsWith(path)) && location.pathname !== "/table/admin";
-
-    // Fetch latest block height
-    useEffect(() => {
-        // Hidden on this route — the poll would fetch, setState and re-render for
-        // a header that renders null. The early `return null` below is AFTER this
-        // effect, so without this guard /table/:id polls RPC for the whole session.
-        if (shouldHide) {
-            return;
-        }
-
-        const fetchBlockHeight = async () => {
-            try {
-                const cosmosClient = getCosmosClient({
-                    rpc: currentNetwork.rpc,
-                    rest: currentNetwork.rest
-                });
-
-                if (!cosmosClient) return;
-
-                const blocks = await cosmosClient.getLatestBlocks(1);
-                if (hasElements(blocks)) {
-                    setLatestBlockHeight(blocks[0].block.header.height);
-                    setHasError(false);
-                }
-            } catch {
-                setHasError(true);
-            }
-        };
-
-        fetchBlockHeight();
-        const interval = setInterval(fetchBlockHeight, 10000); // Update every 10 seconds
-
-        return () => clearInterval(interval);
-    }, [currentNetwork, shouldHide]);
 
     if (shouldHide) {
         return null;
@@ -174,10 +113,9 @@ export const GlobalHeader: React.FC = () => {
                         </nav>
                     </div>
 
-                    {/* Right: Account + Admin + Network Status & Selector */}
+                    {/* Right: Account + Admin */}
                     <div className="flex items-center gap-4 flex-shrink-0">
                         <LanguagePicker variant="icon" />
-                        <NetworkStatusAndSelector latestBlockHeight={latestBlockHeight} hasError={hasError} />
                         {/* Admin icon - discreet access */}
                         <Link
                             to="/admin"
@@ -199,15 +137,8 @@ export const GlobalHeader: React.FC = () => {
                         <LogoComponent />
                     </Link>
 
-                    {/* Right side - Network Selector & Mobile Menu */}
+                    {/* Right side - Mobile Menu */}
                     <div className="flex items-center gap-4">
-                        <div className="hidden md:flex items-center gap-4">
-                            <NetworkStatusAndSelector latestBlockHeight={latestBlockHeight} hasError={hasError} />
-                        </div>
-                        <div className="md:hidden">
-                            <NetworkSelector />
-                        </div>
-
                         <LanguagePicker variant="icon" />
 
                         {/* Mobile Menu Button */}
