@@ -50,6 +50,7 @@ const BuyChipsButton: React.FC<BuyChipsButtonProps> = ({
     return (
         <>
             <button
+                data-part="top-up"
                 onClick={() => !disabled && setShowModal(true)}
                 disabled={disabled}
                 className={`px-4 py-2 rounded-lg font-medium text-white shadow-md transition-all duration-200 ${
@@ -57,7 +58,7 @@ const BuyChipsButton: React.FC<BuyChipsButtonProps> = ({
                 }`}
                 title={disabled ? disabledReason || "You can top up between hands, not while you're in the hand" : "Add chips for the next hand"}
             >
-                💰 {t("felt.topUp")}
+                <span data-part="top-up-icon" aria-hidden="true">💰</span> {t("felt.topUp")}
             </button>
 
             {showModal && (

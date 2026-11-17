@@ -137,6 +137,10 @@ import { useNetwork } from "../../context/NetworkContext";
 import { PlayerDTO, PlayerStatus } from "@block52/poker-vm-sdk";
 import LiveHandStrengthDisplay from "./LiveHandStrengthDisplay";
 import { TurnStatusLabel } from "./TurnStatusLabel";
+import { TableCornerInfo } from "./Table/components/TableCornerInfo";
+import { FlagshipTopBar } from "./Table/components/FlagshipTopBar";
+import { TableSettingsMenu } from "./Table/components/TableSettingsMenu";
+import { blindsLabel } from "../../utils/blindsLabel";
 import { useGameStateSounds } from "../../hooks/notifications/useGameStateSounds";
 import NoWalletOverlay from "./NoWalletOverlay";
 import SngPayoutPanel from "./SngPayoutPanel";
@@ -1391,7 +1395,7 @@ const Table = React.memo(({ tableId }: TableProps = {}) => {
             {/* Table style toggle — on phones (either orientation) this lives in
                 the hamburger menu instead. z-index is deliberately modest: this must
                 never sit above modals/overlays (it used to be 999999 and beat everything). */}
-            {!isCompactMobile && (
+            {!isCompactMobile && tableStyle !== "flagship" && (
                 <button
                     onClick={() => setTableStyle(nextTableStyle)}
                     style={{
@@ -1422,7 +1426,17 @@ const Table = React.memo(({ tableId }: TableProps = {}) => {
 
             {/*//! HEADER - CASINO STYLE — phones (both orientations) get the
                 collapsed one-row header + hamburger */}
-            {isCompactMobile ? (
+            {tableStyle === "flagship" ? (
+                <FlagshipTopBar
+                    gameFormat={gameFormat || null}
+                    gameVariant={gameVariant}
+                    gameOptions={gameOptions}
+                    isBalanceLoading={isBalanceLoading}
+                    balanceFormatted={balanceFormatted}
+                    handleLobbyClick={handleLobbyClick}
+                    fetchAccountBalance={fetchAccountBalance}
+                />
+            ) : isCompactMobile ? (
                 <MobileTableHeader
                     tableId={id || ""}
                     tableName={gameName}
@@ -1553,6 +1567,40 @@ const Table = React.memo(({ tableId }: TableProps = {}) => {
                                 }}
                             />
                         )}
+                        {/* Flagship: blinds and the provably-fair shield, quiet, under the table on the right */}
+                        {tableStyle === "flagship" && id && (
+                            <TableCornerInfo
+                                blinds={blindsLabel(formattedValues.smallBlindFormatted, formattedValues.bigBlindFormatted, formattedValues.isTournamentStyle)}
+                                tableId={id}
+                                handNumber={handNumber}
+                                tableName={gameName}
+                            >
+                                {radioSlot}
+                                <TableSettingsMenu
+                                    tableId={id}
+                                    handNumber={handNumber}
+                                    tableStyle={tableStyle}
+                                    onCycleTableStyle={() => setTableStyle(nextTableStyle)}
+                                    currentNetwork={currentNetwork}
+                                    publicKey={publicKey}
+                                    formattedAddress={formattedAddress}
+                                    isCurrentUserSeated={isCurrentUserSeated}
+                                    canLeave={!!currentPlayerData && !formattedValues.isTournamentStyle}
+                                    showTopUpEntry={isCurrentUserSeated && !formattedValues.isTournamentStyle}
+                                    legalActions={playerLegalActions}
+                                    currentStack={currentPlayerData?.stack || "0"}
+                                    minBuyIn={gameOptions?.minBuyIn || "0"}
+                                    maxBuyIn={gameOptions?.maxBuyIn || "0"}
+                                    walletBalance={accountBalance}
+                                    replayHand={replayHand}
+                                    handleOpenReplay={isReplayMode ? undefined : handleOpenReplay}
+                                    handleCopyTableLink={handleCopyTableLink}
+                                    handleShareHand={handleShareHand}
+                                    handleLeaveTableClick={handleLeaveTableClick}
+                                    copyToClipboard={copyToClipboard}
+                                />
+                            </TableCornerInfo>
+                        )}
                         {/* Table felt surface */}
                         <div
                             data-part="felt"
@@ -1671,7 +1719,7 @@ const Table = React.memo(({ tableId }: TableProps = {}) => {
 
             {/*//! FLOATING PANEL — History + Settings tabs (ui#752). Always visible on
                 desktop; on phones it opens from the hamburger menu and closes itself. */}
-            {isCompactMobile ? (
+            {tableStyle === "flagship" ? null : isCompactMobile ? (
                 mobilePanelOpen && <TablePanel activeTab={panelTab} onSelectTab={setPanelTab} onClose={() => setMobilePanelOpen(false)} />
             ) : desktopPanelCollapsed ? (
                 <TablePanelExpandTab onExpand={() => setDesktopPanelCollapsedPersisted(false)} />

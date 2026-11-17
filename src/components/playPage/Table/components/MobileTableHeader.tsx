@@ -38,6 +38,7 @@ import styles from "./TableHeader.module.css";
 import { ProvablyFairBadge } from "../../ProvablyFair/ProvablyFairBadge";
 import { hasValue, isNullish } from "../../../../utils/guards";
 import { useTableHeaderSlot } from "../../../../context/TableHeaderSlotContext";
+import { useTableStyle } from "../../../../context/TableStyleContext";
 import { useLanguage } from "../../../../i18n/useLanguage";
 
 
@@ -139,6 +140,7 @@ export const MobileTableHeader: React.FC<MobileTableHeaderProps> = ({
     const blindLevel = useBlindLevel();
     const [menuOpen, setMenuOpen] = useState(false);
     const headerSlot = useTableHeaderSlot();
+    const flagship = useTableStyle() === "flagship";
     const [showQR, setShowQR] = useState(false);
     const [showTopUp, setShowTopUp] = useState(false);
     const tableUrl = `${window.location.origin}/table/${tableId}`;
@@ -179,14 +181,16 @@ export const MobileTableHeader: React.FC<MobileTableHeaderProps> = ({
                 }}
             >
                 <button
+                    data-part="header-title"
                     className="text-white text-sm font-bold cursor-pointer truncate min-w-0 flex-1 min-h-[44px] text-left"
                     onClick={handleLobbyClick}
                 >
                     {tableName ? tableName : `Table ${tableId ? tableId.slice(-5) : ""}`}
                 </button>
-                <div className="flex items-center flex-shrink-0">
+                <div className="flex items-center flex-shrink-0" data-part="header-actions">
                     {/* Balance — money on the table, wanted at a glance; tap to refresh */}
                     <button
+                        data-part="header-balance"
                         onClick={fetchAccountBalance}
                         disabled={isBalanceLoading}
                         className="min-h-[44px] flex items-center px-2 disabled:opacity-50"
@@ -202,6 +206,7 @@ export const MobileTableHeader: React.FC<MobileTableHeaderProps> = ({
                         )}
                     </button>
                     <button
+                        data-part="header-menu"
                         onClick={() => setMenuOpen(true)}
                         className="w-11 h-11 flex items-center justify-center text-white hover:opacity-80"
                         title="Menu"
@@ -214,6 +219,7 @@ export const MobileTableHeader: React.FC<MobileTableHeaderProps> = ({
 
             {/* Status strip — text only, no controls. No action count on mobile. */}
             <div
+                data-part="header-status"
                 className={`w-full flex items-center justify-center gap-3 px-2 h-[22px] sub-header z-[1] ${styles.subHeaderRoot}`}
                 style={{ paddingLeft: "env(safe-area-inset-left)", paddingRight: "env(safe-area-inset-right)" }}
             >
@@ -246,6 +252,7 @@ export const MobileTableHeader: React.FC<MobileTableHeaderProps> = ({
                 row on phones — the status strip above is too short for it. */}
             {headerSlot && (
                 <div
+                    data-part="header-tables"
                     className={`w-full flex items-center justify-center px-2 py-1 ${styles.subHeaderRoot}`}
                     style={{ paddingLeft: "env(safe-area-inset-left)", paddingRight: "env(safe-area-inset-right)" }}
                 >
@@ -258,6 +265,7 @@ export const MobileTableHeader: React.FC<MobileTableHeaderProps> = ({
                 <>
                     <div className="fixed inset-0 z-[1999] bg-black/60" onClick={() => setMenuOpen(false)} />
                     <div
+                        data-part="menu-drawer"
                         className={`fixed top-0 right-0 bottom-0 z-[2000] w-[290px] max-w-[85vw] flex flex-col overflow-y-auto border-l-2 ${styles.headerRoot}`}
                         style={{
                             // Leave Table (the drawer's last row) must clear the home
@@ -277,6 +285,14 @@ export const MobileTableHeader: React.FC<MobileTableHeaderProps> = ({
                                 <FaTimes size={16} />
                             </button>
                         </div>
+
+                        {/* Flagship: the status strip is hidden, so the hand and whose turn live here */}
+                        {flagship && (
+                            <div className="px-4 py-2 border-b border-white/10 flex items-center gap-3" data-part="menu-hand">
+                                <span className={`text-xs font-semibold ${styles.secondaryText}`}>Hand #{handNumber}</span>
+                                <span className={`text-xs ${styles.secondaryText}`}>Next: Seat {nextToAct}</span>
+                            </div>
+                        )}
 
                         {/* Game info (read-only) */}
                         {gameOptions && (

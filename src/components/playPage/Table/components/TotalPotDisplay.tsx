@@ -1,5 +1,6 @@
 import React from "react";
-import { formatPotLabel } from "../../../../utils/potTextUtils";
+import { formatPotLabel, potLabelParts } from "../../../../utils/potTextUtils";
+import { useTableStyle } from "../../../../context/TableStyleContext";
 import { PotPill } from "./PotPill";
 import { useLanguage } from "../../../../i18n/useLanguage";
 
@@ -17,10 +18,20 @@ interface TotalPotDisplayProps {
 
 export const TotalPotDisplay: React.FC<TotalPotDisplayProps> = ({ amount, rawAmount, isTournamentStyle, hasMainPot, asChips }) => {
     useLanguage();
+    const flagship = useTableStyle() === "flagship";
     if (asChips) {
         return (
             <div className="pot-chips">
                 <PotPill amount={rawAmount} label={hasMainPot ? "Total Pot" : "Pot"} isTournament={isTournamentStyle} />
+            </div>
+        );
+    }
+    if (flagship) {
+        // The flagship's pill: a quiet "Pot" (or "Total Pot" beside a main pot) and the amount.
+        const { name, value } = potLabelParts(hasMainPot ? "Total Pot" : "Pot", amount, isTournamentStyle);
+        return (
+            <div className="pot-display" data-part="pot">
+                <span className="fs-pot-name">{name}</span> <b className="fs-pot-value">{value}</b>
             </div>
         );
     }
