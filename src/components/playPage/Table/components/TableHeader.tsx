@@ -14,6 +14,7 @@ import { RxExit } from "react-icons/rx";
 import { QRCodeSVG } from "qrcode.react";
 import { Modal } from "../../../common/Modal";
 import { NetworkSelector } from "../../../NetworkSelector";
+import { features } from "../../../../config/features";
 import { ProfileAvatarButton } from "../../../profile";
 import { formatGameFormatDisplay, formatTableGameDisplay, isTournamentFormat } from "../../../../utils/gameFormatUtils";
 import { displayGameFormat } from "../../../../utils/createGameType";
@@ -144,7 +145,7 @@ export const TableHeader: React.FC<TableHeaderProps> = ({
                         {/* Named tables (poker-vm#337) show their name; unnamed fall back to the truncated id. */}
                         {tableName ? tableName : `Table ${tableId ? tableId.slice(-5) : ""}`}
                     </span>
-                    <NetworkSelector />
+                    {features.nodeSelector && <NetworkSelector />}
                     {/* Copy Table Link Button */}
                     <button
                         onClick={handleCopyTableLink}

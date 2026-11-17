@@ -19,6 +19,7 @@ import { RxExit } from "react-icons/rx";
 import { QRCodeSVG } from "qrcode.react";
 import { Modal } from "../../../common/Modal";
 import { NetworkSelector } from "../../../NetworkSelector";
+import { features } from "../../../../config/features";
 import { ProfileAvatarButton } from "../../../profile";
 import { TopUpModal } from "../../../modals";
 import { formatGameFormatDisplay, isTournamentFormat } from "../../../../utils/gameFormatUtils";
@@ -290,11 +291,13 @@ export const MobileTableHeader: React.FC<MobileTableHeaderProps> = ({
                             </div>
                         )}
 
-                        {/* Network */}
-                        <div className="px-4 py-2 flex items-center gap-3 border-b border-white/10">
-                            <span className="text-xs text-gray-400">{t("table.network")}</span>
-                            <NetworkSelector />
-                        </div>
+                        {/* Network (hidden with VITE_FEATURE_NODE_SELECTOR=false: club mode talks to the club API) */}
+                        {features.nodeSelector && (
+                            <div className="px-4 py-2 flex items-center gap-3 border-b border-white/10">
+                                <span className="text-xs text-gray-400">{t("table.network")}</span>
+                                <NetworkSelector />
+                            </div>
+                        )}
 
                         {/* Wallet address (tap to copy) + avatar */}
                         <button className={menuRowClass} onClick={() => copyToClipboard(publicKey || "")} title="Copy full address">

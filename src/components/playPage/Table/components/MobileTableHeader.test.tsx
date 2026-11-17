@@ -33,7 +33,7 @@ jest.mock("../../../../hooks/game/useTableTopUp", () => ({
 }));
 // Modal pulls colorConfig, which reads import.meta.env — unavailable under Jest.
 jest.mock("../../../common/Modal", () => ({ Modal: ({ children }: { children?: React.ReactNode }) => <div>{children}</div> }));
-jest.mock("../../../NetworkSelector", () => ({ NetworkSelector: () => <div /> }));
+jest.mock("../../../NetworkSelector", () => ({ NetworkSelector: () => <div data-testid="network-selector" /> }));
 jest.mock("../../../profile", () => ({ ProfileAvatarButton: () => <div /> }));
 jest.mock("../../../modals", () => ({ TopUpModal: () => <div /> }));
 
@@ -88,6 +88,26 @@ describe("MobileTableHeader drawer (ui#684)", () => {
         const row = screen.getByRole("switch", { name: /Seat me at 6/ });
         fireEvent.click(row);
         expect(mockToggleSeatAtBottom).toHaveBeenCalledTimes(1);
+    });
+
+    describe("the node dropdown (VITE_FEATURE_NODE_SELECTOR)", () => {
+        afterEach(() => {
+            delete process.env.VITE_FEATURE_NODE_SELECTOR;
+        });
+
+        it("is in the drawer by default", () => {
+            renderHeader();
+            openMenu();
+            expect(screen.getByTestId("network-selector")).toBeInTheDocument();
+        });
+
+        it("is not shown in club mode, with the switch off", () => {
+            process.env.VITE_FEATURE_NODE_SELECTOR = "false";
+            renderHeader();
+            openMenu();
+            expect(screen.queryByTestId("network-selector")).not.toBeInTheDocument();
+            expect(screen.queryByText("Network")).not.toBeInTheDocument();
+        });
     });
 
     it("opens the History / Settings panel from the drawer and closes the drawer", () => {
