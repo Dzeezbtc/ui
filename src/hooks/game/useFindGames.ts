@@ -1,6 +1,7 @@
 import { useState, useEffect, useCallback } from "react";
 import { GameListItem } from "@block52/poker-vm-sdk";
 import { getCosmosClient } from "../../utils/cosmos/client";
+import { clubApiBase, fetchTables } from "../../utils/clubApi/chain";
 import { useNetwork } from "../../context/NetworkContext";
 import { GameWithFormat, convertGameList } from "../../utils/convertUtils";
 
@@ -30,13 +31,18 @@ export const useFindGames = (): FindGamesReturn => {
         setError(null);
 
         try {
-            const cosmosClient = getCosmosClient(currentNetwork);
-            if (!cosmosClient) {
-                throw new Error("Block52 client not initialized. Please create or import a Block52 wallet first.");
+            // Through the club API when this app has one (the API reads the node); the direct node client only
+            // remains for an app with no club service configured.
+            let cosmosGames: GameListItem[];
+            if (clubApiBase()) {
+                cosmosGames = await fetchTables();
+            } else {
+                const cosmosClient = getCosmosClient(currentNetwork);
+                if (!cosmosClient) {
+                    throw new Error("Block52 client not initialized. Please create or import a Block52 wallet first.");
+                }
+                cosmosGames = await cosmosClient.findGames();
             }
-
-            // Fetch all games from Cosmos REST API
-            const cosmosGames: GameListItem[] = await cosmosClient.findGames();
 
             // Convert SDK types to UI types, filtering out invalid entries
             const availableGames: GameWithFormat[] = convertGameList(cosmosGames);
