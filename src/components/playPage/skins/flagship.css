@@ -1471,3 +1471,184 @@
 [data-skin="flagship"] [data-part="menu-drawer"] button:hover {
     background: var(--fs-panel2) !important;
 }
+
+/* ---------- Clean top bar (Dzeezbtc/ui#31): back, the game, tables, balance ---------- */
+.fs-topbar {
+    position: relative;
+    z-index: 100;
+    display: flex;
+    align-items: center;
+    gap: 12px;
+    min-height: 48px;
+    padding: env(safe-area-inset-top) calc(env(safe-area-inset-right) + 14px) 0 calc(env(safe-area-inset-left) + 8px);
+    background: rgba(7, 6, 13, 0.82);
+    backdrop-filter: blur(14px);
+    border-bottom: 1px solid rgba(255, 255, 255, 0.08);
+    color: #f4f2fa;
+    font-family: Inter, system-ui, sans-serif;
+}
+.fs-topbar-back {
+    width: 36px;
+    height: 36px;
+    flex-shrink: 0;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    border-radius: 999px;
+    color: #9a95b0;
+    transition: background-color 0.15s ease, color 0.15s ease;
+}
+.fs-topbar-back:hover {
+    background: rgba(255, 255, 255, 0.06);
+    color: #f4f2fa;
+}
+.fs-topbar-title {
+    font-family: Unbounded, Inter, sans-serif;
+    font-size: 14px;
+    font-weight: 600;
+    letter-spacing: 0.01em;
+    white-space: nowrap;
+    overflow: hidden;
+    text-overflow: ellipsis;
+    min-width: 0;
+}
+.fs-topbar-slot {
+    flex: 1;
+    min-width: 0;
+    display: flex;
+    justify-content: center;
+}
+.fs-topbar-balance {
+    flex-shrink: 0;
+    font-family: "Geist Mono", ui-monospace, Menlo, monospace;
+    font-size: 13px;
+    font-weight: 600;
+    padding: 6px 12px;
+    border-radius: 999px;
+    background: rgba(255, 255, 255, 0.035);
+    border: 1px solid rgba(255, 255, 255, 0.08);
+}
+.fs-topbar-balance:disabled {
+    opacity: 0.6;
+}
+.fs-topbar-unit {
+    margin-left: 4px;
+    font-size: 9px;
+    color: #9a95b0;
+}
+@media (max-width: 600px) {
+    .fs-topbar {
+        gap: 6px;
+        min-height: 44px;
+    }
+    .fs-topbar-title {
+        font-size: 12px;
+    }
+    .fs-topbar-title {
+        flex: 1 1 auto;
+    }
+    .fs-topbar-slot {
+        flex: 0 0 auto;
+    }
+}
+
+/* ---------- Radio and settings cog beside the shield ---------- */
+.fs-corner-btn {
+    display: inline-flex;
+    align-items: center;
+    justify-content: center;
+    padding: 0.2rem 0.55rem;
+    color: #34d399;
+    cursor: pointer;
+    line-height: 1.05;
+}
+[data-skin="flagship"][data-orient="portrait"] [data-part="table-corner"] button svg {
+    width: 26px;
+    height: 26px;
+}
+
+/* ---------- Settings panel: small, categories first, a section drops down inside ---------- */
+.fs-settings-panel {
+    position: fixed;
+    z-index: 10000;
+    display: flex;
+    flex-direction: column;
+    overflow: hidden;
+    border-radius: 16px;
+    background: rgba(13, 11, 23, 0.94);
+    border: 1px solid rgba(255, 255, 255, 0.15);
+    box-shadow: 0 24px 60px -18px #000;
+    backdrop-filter: blur(16px);
+    color: #f4f2fa;
+    font-family: Inter, system-ui, sans-serif;
+}
+.fs-settings-list {
+    padding: 8px;
+    overflow-y: auto;
+}
+.fs-settings-title {
+    padding: 6px 12px 8px;
+    font-size: 11px;
+    font-weight: 600;
+    letter-spacing: 0.08em;
+    text-transform: uppercase;
+    color: #9a95b0;
+}
+.fs-settings-icon {
+    width: 26px;
+    height: 26px;
+    flex-shrink: 0;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    border-radius: 8px;
+    background: rgba(255, 255, 255, 0.06);
+    color: #c4b5fd;
+}
+.fs-settings-section {
+    display: flex;
+    flex-direction: column;
+    min-height: 0;
+    animation: fs-settings-drop 0.18s ease-out;
+}
+@keyframes fs-settings-drop {
+    from {
+        opacity: 0;
+        transform: translateY(-8px);
+    }
+    to {
+        opacity: 1;
+        transform: translateY(0);
+    }
+}
+.fs-settings-head {
+    display: flex;
+    align-items: center;
+    gap: 8px;
+    min-height: 44px;
+    padding: 0 14px;
+    font-size: 14px;
+    font-weight: 600;
+    text-align: left;
+    border-bottom: 1px solid rgba(255, 255, 255, 0.08);
+}
+.fs-settings-head:hover {
+    background: rgba(255, 255, 255, 0.04);
+}
+.fs-settings-body {
+    flex: 1;
+    min-height: 0;
+    overflow-y: auto;
+    padding: 6px 8px 10px;
+}
+.fs-settings-log {
+    max-height: 320px;
+    overflow-y: auto;
+}
+/* Short and easy to read: just each setting's name, no paragraph under it. */
+.fs-settings-body p + p {
+    display: none;
+}
+.fs-settings-body [role="radiogroup"] {
+    margin-top: 6px;
+}

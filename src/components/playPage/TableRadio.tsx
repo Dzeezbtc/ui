@@ -1,4 +1,5 @@
 import React, { useCallback, useEffect, useRef, useState } from "react";
+import { createPortal } from "react-dom";
 import { FaMusic, FaStop } from "react-icons/fa";
 import { useLanguage } from "../../i18n/useLanguage";
 import { hasValue, isNumber, isString } from "../../utils/guards";
@@ -113,50 +114,52 @@ export const TableRadio: React.FC<{ stations: { name: string; url: string }[] }>
             >
                 <FaMusic size={12} className={`${styles.badgeIcon} ${playing ? "animate-pulse" : ""}`} />
             </button>
-            {panelAt && (
-                <div
-                    ref={panelRef}
-                    className="fixed z-[10000] w-56 rounded-xl border border-white/10 bg-gray-900/95 p-2 shadow-xl"
-                    style={{ top: panelAt.top, left: panelAt.left }}
-                    role="menu"
-                    data-testid="table-radio-menu"
-                >
-                    {stations.map(s => (
-                        <button
-                            key={s.url}
-                            type="button"
-                            role="menuitem"
-                            onClick={() => play(s.url)}
-                            className={`flex w-full items-center justify-between rounded-lg px-3 py-2 text-left text-sm ${playing === s.url ? "bg-emerald-500/15 text-emerald-200" : "text-white hover:bg-white/10"}`}
-                        >
-                            <span>
-                                {s.name}
-                                {!playing && last === s.url && <span className="ml-1 text-xs text-white/40">{t("club.radioLast")}</span>}
-                            </span>
-                            {playing === s.url && <FaStop size={10} />}
-                        </button>
-                    ))}
-                    <label className="mt-1 flex items-center gap-2 px-3 py-1 text-xs text-white/60">
-                        {t("club.volume")}
-                        <input
-                            type="range"
-                            min={0}
-                            max={1}
-                            step={0.05}
-                            value={volume}
-                            onChange={e => {
-                                const v = Number(e.target.value);
-                                setVolume(v);
-                                if (audio.current) audio.current.volume = v;
-                                saveRadioPrefs({ url: playing ?? last, volume: v });
-                            }}
-                            className="flex-1"
-                            aria-label={t("club.radioVolume")}
-                        />
-                    </label>
-                    {error && <p className="px-3 pb-1 text-xs text-red-300">{error}</p>}
-                </div>
-            )}
+            {panelAt &&
+                createPortal(
+                    <div
+                        ref={panelRef}
+                        className="fixed z-[10000] w-56 rounded-xl border border-white/10 bg-gray-900/95 p-2 shadow-xl"
+                        style={{ top: panelAt.top, left: panelAt.left }}
+                        role="menu"
+                        data-testid="table-radio-menu"
+                    >
+                        {stations.map(s => (
+                            <button
+                                key={s.url}
+                                type="button"
+                                role="menuitem"
+                                onClick={() => play(s.url)}
+                                className={`flex w-full items-center justify-between rounded-lg px-3 py-2 text-left text-sm ${playing === s.url ? "bg-emerald-500/15 text-emerald-200" : "text-white hover:bg-white/10"}`}
+                            >
+                                <span>
+                                    {s.name}
+                                    {!playing && last === s.url && <span className="ml-1 text-xs text-white/40">{t("club.radioLast")}</span>}
+                                </span>
+                                {playing === s.url && <FaStop size={10} />}
+                            </button>
+                        ))}
+                        <label className="mt-1 flex items-center gap-2 px-3 py-1 text-xs text-white/60">
+                            {t("club.volume")}
+                            <input
+                                type="range"
+                                min={0}
+                                max={1}
+                                step={0.05}
+                                value={volume}
+                                onChange={e => {
+                                    const v = Number(e.target.value);
+                                    setVolume(v);
+                                    if (audio.current) audio.current.volume = v;
+                                    saveRadioPrefs({ url: playing ?? last, volume: v });
+                                }}
+                                className="flex-1"
+                                aria-label={t("club.radioVolume")}
+                            />
+                        </label>
+                        {error && <p className="px-3 pb-1 text-xs text-red-300">{error}</p>}
+                    </div>,
+                    document.body
+                )}
         </>
     );
 };

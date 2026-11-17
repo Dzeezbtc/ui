@@ -27,7 +27,7 @@ interface ToggleRowProps {
     onToggle: () => void;
 }
 
-const ToggleRow: React.FC<ToggleRowProps> = ({ label, description, checked, onToggle }) => {
+export const ToggleRow: React.FC<ToggleRowProps> = ({ label, description, checked, onToggle }) => {
     const { t } = useLanguage();
     return (
         <div className="flex items-start justify-between py-3 border-b border-white/10 last:border-0">
@@ -63,7 +63,7 @@ interface ChoiceRowProps {
 }
 
 /** A setting with a few named options, shown as a segmented control. */
-const ChoiceRow: React.FC<ChoiceRowProps> = ({ label, description, options, value, onChange }) => (
+export const ChoiceRow: React.FC<ChoiceRowProps> = ({ label, description, options, value, onChange }) => (
     <div className="py-3 border-b border-white/10 last:border-0">
         <p className="text-white text-xs font-semibold leading-tight">{label}</p>
         <p className="text-gray-400 text-[10px] mt-0.5 leading-snug">{description}</p>
