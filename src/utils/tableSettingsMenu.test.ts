@@ -28,8 +28,9 @@ describe("table settings menu", () => {
         expect(settingsMenuPosition({ left: 360, right: 390, top: 700, bottom: 730 }, 300, 440, { width: 390, height: 844 }).left).toBe(78);
     });
 
-    it("titles the top bar with the format and the game", () => {
-        expect(flagshipGameTitle("Cash", "Pot-Limit Omaha")).toBe("Cash · Pot-Limit Omaha");
-        expect(flagshipGameTitle(undefined, "Texas Hold'em")).toBe("Texas Hold'em");
+    it("titles the top bar with the format, the game and the stakes", () => {
+        expect(flagshipGameTitle("Cash", "Pot-Limit Omaha", "$10 / $20")).toBe("Cash · Pot-Limit Omaha · $10 / $20");
+        expect(flagshipGameTitle(undefined, "Texas Hold'em", "100 / 200")).toBe("Texas Hold'em · 100 / 200");
+        expect(flagshipGameTitle("Cash", "Texas Hold'em", "")).toBe("Cash · Texas Hold'em");
     });
 });

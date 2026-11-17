@@ -1,3 +1,5 @@
+import { hasContent } from "./guards";
+
 /**
  * The Block52 Flagship's table settings menu (Dzeezbtc/ui#31): one small cog
  * under the table that holds everything the top bar and side panel used to show.
@@ -42,5 +44,6 @@ export function settingsMenuPosition(
     return { left, top: anchor.bottom + GAP, maxHeight };
 }
 
-/** The flagship top bar's one line: "Cash · Pot-Limit Omaha", or just the game. */
-export const flagshipGameTitle = (format: string | undefined, game: string): string => (format ? `${format} · ${game}` : game);
+/** The flagship top bar's one line: "Cash · Pot-Limit Omaha · $10 / $20". */
+export const flagshipGameTitle = (format: string | undefined, game: string, stakes: string): string =>
+    [format, game, stakes].filter(part => hasContent(part)).join(" · ");

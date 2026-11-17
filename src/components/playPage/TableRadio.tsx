@@ -118,7 +118,7 @@ export const TableRadio: React.FC<{ stations: { name: string; url: string }[] }>
                 createPortal(
                     <div
                         ref={panelRef}
-                        className="fixed z-[10000] w-56 rounded-xl border border-white/10 bg-gray-900/95 p-2 shadow-xl"
+                        className="fixed z-[10000] w-56 rounded-xl border border-white/10 bg-[rgba(13,11,23,0.55)] p-2 shadow-xl backdrop-blur-[3px]"
                         style={{ top: panelAt.top, left: panelAt.left }}
                         role="menu"
                         data-testid="table-radio-menu"

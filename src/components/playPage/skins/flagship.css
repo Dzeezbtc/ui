@@ -1327,40 +1327,6 @@
 }
 
 /* the corner under the table, on the right: blinds and the shield */
-[data-skin="flagship"] [data-part="table-corner"] {
-    position: absolute;
-    z-index: 30;
-    right: -20px;
-    top: calc(100% + 128px);
-    display: flex;
-    align-items: center;
-    gap: 10px;
-    padding: 4px 6px 4px 14px;
-    border-radius: 999px;
-    background: rgba(13, 11, 23, 0.6);
-    border: 1px solid var(--fs-line);
-    font-family: var(--fs-mono);
-    font-size: 15px;
-    color: var(--fs-muted);
-    white-space: nowrap;
-}
-[data-skin="flagship"][data-orient="portrait"] [data-part="table-corner"] {
-    right: -80px;
-    top: calc(100% + 70px);
-    font-size: 22px;
-    gap: 16px;
-    padding: 6px 10px 6px 22px;
-}
-[data-skin="flagship"][data-orient="portrait"] [data-part="table-corner"] svg {
-    width: 26px;
-    height: 26px;
-}
-[data-skin="flagship"] [data-part="table-corner"] button {
-    background: rgba(52, 211, 153, 0.12) !important;
-    border: 1px solid rgba(52, 211, 153, 0.4) !important;
-    border-radius: 999px !important;
-}
-
 /* ---------- "Seat me at 6 o'clock" and "Top up chips", in Block52 glass ---------- */
 [data-skin="flagship"] [data-part="seat-at-bottom"] {
     background: var(--fs-glass) !important;
@@ -1552,19 +1518,67 @@
     }
 }
 
-/* ---------- Radio and settings cog beside the shield ---------- */
-.fs-corner-btn {
-    display: inline-flex;
+/* ---------- Shield, radio and settings under the balance ---------- */
+.fs-topbar-right {
+    position: relative;
+    flex-shrink: 0;
+}
+.fs-topbar-tools {
+    position: absolute;
+    top: calc(100% + 8px);
+    right: 0;
+    display: flex;
+    gap: 8px;
+}
+.fs-topbar-tools > button {
+    width: 38px;
+    height: 30px;
+    padding: 0 !important;
+    display: inline-flex !important;
     align-items: center;
     justify-content: center;
-    padding: 0.2rem 0.55rem;
-    color: #34d399;
-    cursor: pointer;
-    line-height: 1.05;
+    border-radius: 999px !important;
+    background: rgba(13, 11, 23, 0.72) !important;
+    border: 1px solid rgba(52, 211, 153, 0.4) !important;
+    color: #34d399 !important;
+    backdrop-filter: blur(8px);
 }
-[data-skin="flagship"][data-orient="portrait"] [data-part="table-corner"] button svg {
-    width: 26px;
-    height: 26px;
+.fs-topbar-tools > button:hover {
+    border-color: #34d399 !important;
+}
+.fs-topbar-tools > button svg {
+    color: #34d399 !important;
+}
+.fs-topbar-title {
+    display: flex;
+    align-items: baseline;
+    gap: 10px;
+}
+.fs-topbar-game {
+    overflow: hidden;
+    text-overflow: ellipsis;
+    min-width: 0;
+}
+.fs-topbar-stakes {
+    flex-shrink: 0;
+    font-family: "Geist Mono", ui-monospace, Menlo, monospace;
+    font-size: 13px;
+    font-weight: 500;
+    color: #9a95b0;
+}
+@media (max-width: 600px) {
+    .fs-topbar-title {
+        flex-direction: column;
+        align-items: flex-start;
+        gap: 0;
+        line-height: 1.15;
+    }
+    .fs-topbar-game {
+        max-width: 100%;
+    }
+    .fs-topbar-stakes {
+        font-size: 11px;
+    }
 }
 
 /* ---------- Settings panel: small, categories first, a section drops down inside ---------- */
@@ -1575,10 +1589,12 @@
     flex-direction: column;
     overflow: hidden;
     border-radius: 16px;
-    background: rgba(13, 11, 23, 0.94);
+    /* See-through, so the hand stays visible behind it. */
+    background: rgba(13, 11, 23, 0.55);
     border: 1px solid rgba(255, 255, 255, 0.15);
-    box-shadow: 0 24px 60px -18px #000;
-    backdrop-filter: blur(16px);
+    box-shadow: 0 24px 60px -18px rgba(0, 0, 0, 0.7);
+    backdrop-filter: blur(3px);
+    text-shadow: 0 1px 2px rgba(0, 0, 0, 0.8);
     color: #f4f2fa;
     font-family: Inter, system-ui, sans-serif;
 }
