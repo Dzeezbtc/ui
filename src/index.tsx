@@ -8,7 +8,7 @@ import App from "./App";
 import { initLanguage } from "./i18n";
 import { Profiler } from "react";
 import { NetworkProvider } from "./context/NetworkContext";
-import { isCustodial } from "./utils/custody/session";
+import { isCustodial, restoreWalletIfClubAccountsOff } from "./utils/custody/session";
 import { getCosmosMnemonic, setCosmosMnemonic, setCosmosAddress } from "./utils/cosmos/storage";
 
 
@@ -22,6 +22,8 @@ if (!projectId) {
 // other consumer that only reads localStorage on mount) sees the new
 // mnemonic. Doing this inside a component is a race: the hook's mount
 // effect would already have read null by the time generation finished.
+restoreWalletIfClubAccountsOff();
+
 // A club account has no mnemonic here, and must not get a built-in wallet made behind its back.
 if (!getCosmosMnemonic() && !isCustodial()) {
     try {

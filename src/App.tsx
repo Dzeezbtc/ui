@@ -1,4 +1,5 @@
 import { SignInPage } from "./pages/SignInPage";
+import { features } from "./config/features";
 import { BrowserRouter as Router, Route, Routes, useLocation } from "react-router-dom";
 import { createAppKit } from "@reown/appkit/react";
 import { WagmiProvider } from "wagmi";
@@ -137,7 +138,7 @@ function AppContent() {
                 <Route path="/table/:id" element={<MultiTableRoute />} />
                 <Route path="/table/admin" element={<TableAdminPage />} /> {/* Legacy - keep for backwards compat */}
                 <Route path="/wallet" element={<CosmosWalletPage />} />
-                <Route path="/signin" element={<SignInPage />} />
+                {features.clubAccounts && <Route path="/signin" element={<SignInPage />} />}
                 <Route path="/club-login" element={<ClubLoginPage />} />
                 <Route path="/club/:handle" element={<ClubPage />} />
                 <Route path="/club/:handle/proof" element={<ClubProofPage />} />

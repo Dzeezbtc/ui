@@ -8,6 +8,7 @@ const reply = (ok: boolean, status: number, body: unknown) => {
 describe("fetchUsdcBalance", () => {
     beforeAll(() => {
         process.env.VITE_CLUB_SERVICE_URLS = "http://api";
+        process.env.VITE_FEATURE_API_READS = "true";
     });
 
     it("asks the club API for the address's usdc and returns the micro-amount", async () => {
@@ -26,6 +27,7 @@ describe("fetchUsdcBalance", () => {
 describe("fetchTables", () => {
     beforeAll(() => {
         process.env.VITE_CLUB_SERVICE_URLS = "http://api";
+        process.env.VITE_FEATURE_API_READS = "true";
     });
     it("lists the tables from the club API", async () => {
         const f = reply(true, 200, { games: [{ gameId: "0xa", currentPlayers: "3" }] });

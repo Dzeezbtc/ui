@@ -8,6 +8,7 @@
  * built-in wallet's mnemonic and address aside (it is not deleted); signing out puts them back.
  */
 import { parseAllowList } from "../clubLogin";
+import { features } from "../../config/features";
 import { viteEnv } from "../viteEnv";
 import { STORAGE_COSMOS_ADDRESS, STORAGE_COSMOS_MNEMONIC } from "../cosmos/storage";
 
@@ -28,6 +29,9 @@ export const custodyBase = (): string | null => parseAllowList(viteEnv.VITE_CLUB
 export const signerBase = (): string | null => parseAllowList(viteEnv.VITE_SIGNER_URL)[0] ?? null;
 
 export const getCustodySession = (): CustodySession | null => {
+    // Switched off (VITE_FEATURE_CLUB_ACCOUNTS): there is no club account, whatever is stored. Every caller then takes
+    // the built-in wallet path.
+    if (!features.clubAccounts) return null;
     try {
         const raw = localStorage.getItem(SESSION_KEY);
         if (!raw) return null;
@@ -88,6 +92,19 @@ export async function custodySignIn(username: string, password: string): Promise
     localStorage.setItem(STORAGE_COSMOS_ADDRESS, s.address);
     localStorage.setItem(SESSION_KEY, JSON.stringify(s));
     return s;
+}
+
+/**
+ * Run at start-up. If club accounts were switched off while someone was signed in to one, put their built-in wallet back
+ * (it was set aside, not deleted) so the app is not left with a club address and no key. Nothing to do otherwise.
+ */
+export function restoreWalletIfClubAccountsOff(): void {
+    if (features.clubAccounts) return;
+    try {
+        if (localStorage.getItem(SESSION_KEY)) custodySignOut();
+    } catch {
+        // private mode: nothing was kept
+    }
 }
 
 /** Back to the built-in wallet (the one set aside at sign-in), or none if there wasn't one. */

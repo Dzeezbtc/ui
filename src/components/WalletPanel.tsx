@@ -3,6 +3,7 @@ import { useNavigate } from "react-router-dom";
 
 import styles from "./WalletPanel.module.css";
 import { copyToClipboard as copyToClipboardUtil } from "../utils/clipboard";
+import { features } from "../config/features";
 import { custodySignOut, getCustodySession } from "../utils/custody/session";
 
 // Copy to clipboard utility
@@ -75,12 +76,14 @@ const WalletPanel: React.FC<WalletPanelProps> = ({
                         >
                             Import Existing Wallet
                         </button>
-                        <button
-                            onClick={() => navigate("/signin")}
-                            className="w-full py-3 rounded-lg text-gray-300 font-semibold transition-all hover:text-white"
-                        >
-                            Sign in with a club account
-                        </button>
+                        {features.clubAccounts && (
+                            <button
+                                onClick={() => navigate("/signin")}
+                                className="w-full py-3 rounded-lg text-gray-300 font-semibold transition-all hover:text-white"
+                            >
+                                Sign in with a club account
+                            </button>
+                        )}
                     </div>
                 </div>
             </div>

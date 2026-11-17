@@ -3,10 +3,14 @@
  * it can). New reads go here, not to the node.
  */
 import type { GameListItem } from "@block52/poker-vm-sdk";
+import { features } from "../../config/features";
 import { custodyBase } from "../custody/session";
 
-/** The club API's base URL, or null when this app has none configured (VITE_CLUB_SERVICE_URLS). */
-export const clubApiBase = (): string | null => custodyBase();
+/**
+ * The club API's base URL for chain reads, or null when this app has none configured (VITE_CLUB_SERVICE_URLS) or the
+ * switch is off (VITE_FEATURE_API_READS). Null means the caller reads the node directly, as the app always did.
+ */
+export const clubApiBase = (): string | null => (features.apiReads ? custodyBase() : null);
 
 /** The address's USDC balance in micro-units, as a string. Throws when the API can't answer: nothing is guessed. */
 export async function fetchUsdcBalance(address: string): Promise<string> {

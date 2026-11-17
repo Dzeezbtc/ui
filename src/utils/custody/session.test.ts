@@ -2,6 +2,7 @@ import { custodialSigningClient, custodySignIn, custodySignOut, getCustodySessio
 
 beforeAll(() => {
     process.env.VITE_CLUB_SERVICE_URLS = "http://svc";
+    process.env.VITE_FEATURE_CLUB_ACCOUNTS = "true";
     process.env.VITE_SIGNER_URL = "http://signer";
 });
 

@@ -1,5 +1,6 @@
 import React, { useState } from "react";
 import { Link, useNavigate } from "react-router-dom";
+import { features } from "../config/features";
 import { custodyBase, custodySignIn } from "../utils/custody/session";
 
 /**
@@ -15,7 +16,7 @@ export const SignInPage: React.FC = () => {
     const [password, setPassword] = useState("");
     const [busy, setBusy] = useState(false);
     const [error, setError] = useState("");
-    const clubConfigured = !!custodyBase();
+    const clubConfigured = features.clubAccounts && !!custodyBase();
 
     const submit = async (e: React.FormEvent) => {
         e.preventDefault();

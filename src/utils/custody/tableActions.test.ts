@@ -24,6 +24,7 @@ const hash = (h: string): Reply => ({ ok: true, status: 200, body: { txHash: h, 
 const refuse = (status: number, code: string): Reply => ({ ok: false, status, body: { error: { code, message: `refused: ${code}` } } });
 
 beforeAll(() => {
+    process.env.VITE_FEATURE_CLUB_ACCOUNTS = "true";
     process.env.VITE_SIGNER_URL = "http://signer";
     process.env.VITE_CLUB_SERVICE_URLS = "http://api";
     setRetryPause(0);

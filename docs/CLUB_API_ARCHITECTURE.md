@@ -11,6 +11,25 @@ this app ───────┤                 └─gRPC──► pokerchain
                 └──REST──► Go functions (signer)   game actions only: signs, then broadcasts to the node over gRPC
 ```
 
+## Feature switches: none of this is a one-way door
+
+Each part of this work has its own build-time switch (`src/config/features.ts`, set in `.env`). **Unset is the app as it was
+before**, so a build with no switches behaves exactly as it always did, and any part can be turned back off by editing
+`.env` and restarting; no code change and no data migration.
+
+| Switch | On (this stack) | Off / unset |
+|---|---|---|
+| `VITE_FEATURE_CLUB_ACCOUNTS` | club username and password sign-in; game actions through the Go function | built-in wallet only; no `/signin`; a stored club session is ignored and the wallet that was set aside at sign-in is put back at the next start |
+| `VITE_FEATURE_API_READS` | the Game Wallet balance and the table list come from the club API | the app reads the node directly, as before |
+| `VITE_FEATURE_NODE_SELECTOR` | (default **on**) node dropdown and block height in the header | hidden; no block-height polling |
+| `VITE_FEATURE_CLUB_LOGIN` | (default **on**) the header "Club login" link, when `VITE_CLUB_CONSOLE_URLS` is set | hidden |
+
+Values: `true`, `1`, `on`, `yes` / `false`, `0`, `off`, `no` (any case); anything else is the default. Turning club accounts off
+while someone is signed in to one is safe: their built-in wallet was only set aside, not deleted. The server side is
+reversible too: the club API's routes are additions, and the Go function is only called when club accounts are on.
+
+When you add the next piece (table state through the API, say), give it a switch the same way.
+
 ## What changes for this app
 
 - **New code reads through the club API** (`VITE_CLUB_SERVICE_URLS`, first entry), not the node. No new direct use of
