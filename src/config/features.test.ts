@@ -73,3 +73,14 @@ describe("API reads", () => {
         expect(clubApiBase()).toBeNull();
     });
 });
+
+describe("clubAuthModal", () => {
+    afterEach(() => {
+        delete process.env.VITE_FEATURE_CLUB_AUTH_MODAL;
+    });
+    it("is off unless switched on", () => {
+        expect(features.clubAuthModal).toBe(false);
+        process.env.VITE_FEATURE_CLUB_AUTH_MODAL = "true";
+        expect(features.clubAuthModal).toBe(true);
+    });
+});

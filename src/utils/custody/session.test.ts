@@ -80,3 +80,37 @@ describe("the club account signing client", () => {
         await expect(c.initiateWithdrawal()).rejects.toThrow();
     });
 });
+
+describe("club account registration", () => {
+    it("posts to /auth/register and signs in as the new account, putting the built-in wallet aside", async () => {
+        store.user_cosmos_mnemonic = "word ".repeat(12).trim();
+        store.user_cosmos_address = "b521builtin";
+        const calls = mockFetch([{ ok: true, body: { token: "t", username: "bob", address: "b521new" } }]);
+        const { custodyRegister } = await import("./session");
+        await custodyRegister("bob", "pw");
+        expect(calls[0].url).toBe("http://svc/auth/register");
+        expect(JSON.parse(String(calls[0].init.body))).toEqual({ username: "bob", password: "pw" });
+        expect(isCustodial()).toBe(true);
+        expect(store.user_cosmos_address).toBe("b521new");
+        expect(store.user_cosmos_mnemonic).toBeUndefined();
+    });
+
+    it("sends a pasted seed phrase or key as secret, trimmed, and nothing when it is blank", async () => {
+        const calls = mockFetch([
+            { ok: true, body: { token: "t", username: "a", address: "b521a" } },
+            { ok: true, body: { token: "t", username: "b", address: "b521b" } }
+        ]);
+        const { custodyRegister } = await import("./session");
+        await custodyRegister("a", "pw", "  abandon ability able  ");
+        await custodyRegister("b", "pw", "   ");
+        expect(JSON.parse(String(calls[0].init.body)).secret).toBe("abandon ability able");
+        expect("secret" in JSON.parse(String(calls[1].init.body))).toBe(false);
+    });
+
+    it("surfaces the API's refusal (name taken, bad seed) and stays signed out", async () => {
+        mockFetch([{ ok: false, status: 409, body: { error: "That username is taken." } }]);
+        const { custodyRegister } = await import("./session");
+        await expect(custodyRegister("bob", "pw")).rejects.toThrow("That username is taken.");
+        expect(isCustodial()).toBe(false);
+    });
+});

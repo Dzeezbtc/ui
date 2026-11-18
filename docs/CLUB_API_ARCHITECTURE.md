@@ -24,6 +24,7 @@ before**, so a build with no switches behaves exactly as it always did, and any 
 | `VITE_FEATURE_API_READS` | the Game Wallet balance and the table list come from the club API | the app reads the node directly, as before |
 | `VITE_FEATURE_NODE_SELECTOR` | (default **on**) node dropdown and block height in the header | hidden; no block-height polling |
 | `VITE_FEATURE_CLUB_LOGIN` | (default **on**) the header "Club login" link, when `VITE_CLUB_CONSOLE_URLS` is set | hidden |
+| `VITE_FEATURE_CLUB_AUTH_MODAL` | (default **off**) the header "Sign in" button: a Sign in / Create account modal that talks to the club API directly (`/auth/password`, `/auth/register`, with the Advanced seed/key paste). Needs `VITE_FEATURE_CLUB_ACCOUNTS` and `VITE_CLUB_SERVICE_URLS`. When on it replaces the "Club login" link to the console | the console link (if on) |
 
 Values: `true`, `1`, `on`, `yes` / `false`, `0`, `off`, `no` (any case); anything else is the default. Turning club accounts off
 while someone is signed in to one is safe: their built-in wallet was only set aside, not deleted. The server side is

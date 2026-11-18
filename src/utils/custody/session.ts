@@ -78,9 +78,8 @@ const post = async <T>(base: string | null, what: string, path: string, body: un
     return json as T;
 };
 
-/** Signs in with the club username and password. Replaces the stored wallet identity until sign-out. */
-export async function custodySignIn(username: string, password: string): Promise<CustodySession> {
-    const s = await post<CustodySession>(custodyBase(), "club service (VITE_CLUB_SERVICE_URLS)", "/auth/password", { username, password });
+/** Keeps a club account as this browser's identity. The built-in wallet is set aside (once), not deleted, until sign-out. */
+function adoptSession(s: CustodySession): CustodySession {
     const previousMnemonic = localStorage.getItem(STORAGE_COSMOS_MNEMONIC);
     // Only back up a built-in wallet once: signing in again as another player must not overwrite it with a custodial address.
     if (!getCustodySession() && previousMnemonic) {
@@ -92,6 +91,21 @@ export async function custodySignIn(username: string, password: string): Promise
     localStorage.setItem(STORAGE_COSMOS_ADDRESS, s.address);
     localStorage.setItem(SESSION_KEY, JSON.stringify(s));
     return s;
+}
+
+/** Signs in with the club username and password. Replaces the stored wallet identity until sign-out. */
+export async function custodySignIn(username: string, password: string): Promise<CustodySession> {
+    return adoptSession(await post<CustodySession>(custodyBase(), "club service (VITE_CLUB_SERVICE_URLS)", "/auth/password", { username, password }));
+}
+
+/**
+ * Makes a club account (the API's POST /auth/register) and signs in as it. `secret` is the optional "Advanced" paste: a seed
+ * phrase or a private key, which the API tells apart by shape; left out, the API makes a new key.
+ */
+export async function custodyRegister(username: string, password: string, secret?: string): Promise<CustodySession> {
+    const body: Record<string, string> = { username, password };
+    if (secret?.trim()) body.secret = secret.trim();
+    return adoptSession(await post<CustodySession>(custodyBase(), "club service (VITE_CLUB_SERVICE_URLS)", "/auth/register", body));
 }
 
 /**

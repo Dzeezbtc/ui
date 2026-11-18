@@ -7,6 +7,7 @@
 
 // Component exports
 export { default as TopUpModal } from "./TopUpModal";
+export { default as ClubAuthModal } from "./ClubAuthModal";
 export { default as USDCDepositModal } from "./USDCDepositModal";
 export { default as WithdrawalModal } from "./WithdrawalModal";
 export { default as BuyInModal } from "./BuyInModal";
