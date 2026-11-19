@@ -2,7 +2,7 @@ import { Secp256k1HdWallet } from "@cosmjs/amino";
 import { Secp256k1, Secp256k1Signature, sha256 } from "@cosmjs/crypto";
 import { fromBase64 } from "@cosmjs/encoding";
 import { signedBytes } from "./clubLogin";
-import { keyBytes, chatRefusal, protect, protectionText, payoutLabel, referralLink, newNotifications, saveNotifications, type NotificationApi, canSubmitJoin, claimBonus, clubAsksForKyc, offerText, type ClaimApi, joinButtonLabel, joinClub, joiningText, membershipText, seatRefusal, depositRefusal, submitKyc, tableSummary, type ClubTerms, type JoinApi, type KycApi, type PublicClubTable, type SeatApi } from "./clubService";
+import { keyBytes, chatRefusal, protect, protectionText, payoutLabel, referralLink, newNotifications, saveNotifications, type NotificationApi, canSubmitJoin, claimBonus, clubAsksForKyc, offerText, type ClaimApi, joinButtonLabel, joinClub, joiningText, membershipText, seatRefusal, seatProofFrom, depositRefusal, submitKyc, tableSummary, type ClubTerms, type JoinApi, type KycApi, type PublicClubTable, type SeatApi } from "./clubService";
 
 // The standard BIP-39 test phrase: a throwaway wallet, never funded.
 const MNEMONIC = "abandon abandon abandon abandon abandon abandon abandon abandon abandon abandon abandon about";
@@ -172,6 +172,12 @@ describe("seat rules", () => {
         });
         expect(await seatRefusal(refusing, "0x1", "b521a", { accountToken: "tok" })).toBe("Same network.");
         expect(calls).toEqual([{ token: "tok", body: { club: "block52", gameId: "0x1" } }]);
+    });
+
+    it("sends a club account's token, else the wallet's seed phrase", () => {
+        expect(seatProofFrom({ token: "tok" }, MNEMONIC)).toEqual({ accountToken: "tok" });
+        expect(seatProofFrom(null, MNEMONIC)).toBe(MNEMONIC);
+        expect(seatProofFrom(null, null)).toBeNull();
     });
 
     it("asks a club account for its location when the club needs it", async () => {

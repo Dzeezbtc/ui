@@ -1,6 +1,6 @@
 import { signChallenge } from "./clubLogin";
 import type { ClubLook } from "./clubLook";
-import { hasValue } from "./guards";
+import { hasValue, isString } from "./guards";
 import { t } from "../i18n";
 
 /** A club as the lobby sees it (the club service's /public/clubs/:handle). */
@@ -149,6 +149,9 @@ export interface SeatApi {
 /** How a player proves who they are for the seat check: a wallet's seed phrase signs, a club account sends its player token. */
 export type SeatProof = string | { accountToken: string } | null | undefined;
 
+/** The proof to send: a signed-in club account's player token wins over any seed phrase (block52-club#59). */
+export const seatProofFrom = (account: { token: string } | null, mnemonic: string | null): SeatProof => (account ? { accountToken: account.token } : mnemonic);
+
 /** How the lobby asks for a player's location. Null if they say no or it can't be found. */
 export type GetLocation = () => Promise<{ lat: number; lon: number } | null>;
 
@@ -178,7 +181,7 @@ export async function seatRefusal(api: SeatApi | null, gameId: string | undefine
         if (!proof) return null;
         // Same network or place at this table. Location is only asked for if the club needs it.
         const ask = async (where?: { lat: number; lon: number }) => {
-            if (typeof proof !== "string") return api.checkSeatAsAccount(proof.accountToken, { club: club.handle, gameId, ...where });
+            if (!isString(proof)) return api.checkSeatAsAccount(proof.accountToken, { club: club.handle, gameId, ...where });
             const ch = await api.getSeatChallenge(address, club.handle);
             const signed = await signChallenge(proof, ch.text);
             return api.checkSeat({ address, club: club.handle, gameId, nonce: ch.nonce, signature: signed.signature, pubkey: signed.pubkey, ...where });

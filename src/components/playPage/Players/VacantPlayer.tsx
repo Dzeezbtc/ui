@@ -41,14 +41,8 @@ import { USDCDepositModal } from "../../modals";
 import { useLanguage } from "../../../i18n/useLanguage";
 import { useClubApi } from "../../../context/ClubApiContext";
 import { getCosmosAddress, getCosmosMnemonic } from "../../../utils/cosmos/storage";
-import { depositRefusal, seatRefusal, type SeatProof } from "../../../utils/clubService";
+import { depositRefusal, seatProofFrom, seatRefusal } from "../../../utils/clubService";
 import { getCustodySession } from "../../../utils/custody/session";
-
-/** A club account proves who it is with its player token; a wallet signs with its seed phrase (block52-club#59). */
-const seatProof = (): SeatProof => {
-    const account = getCustodySession();
-    return account ? { accountToken: account.token } : getCosmosMnemonic();
-};
 
 const VacantPlayer: React.FC<VacantPlayerProps & { uiPosition?: number }> = memo(
     ({ left, top, index, onJoin, uiPosition }) => {
@@ -108,7 +102,7 @@ const VacantPlayer: React.FC<VacantPlayerProps & { uiPosition?: number }> = memo
 
         const handleSeatClick = useCallback(async () => {
             if (!isUserAlreadyPlaying && canJoinThisSeat) {
-                const refused = await seatRefusal(clubApi, tableId, getCosmosAddress(), seatProof());
+                const refused = await seatRefusal(clubApi, tableId, getCosmosAddress(), seatProofFrom(getCustodySession(), getCosmosMnemonic()));
                 if (refused) {
                     setSeatRefused(refused);
                     return;
