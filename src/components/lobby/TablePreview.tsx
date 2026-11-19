@@ -1,4 +1,5 @@
 import React, { useEffect } from "react";
+import { createPortal } from "react-dom";
 import type { GameWithFormat } from "../../utils/convertUtils";
 import { isCashFormat, isTournamentFormat, formatTableGameDisplay, toGameVariant, formatGameFormatDisplay } from "../../utils/gameFormatUtils";
 import { displayGameFormat } from "../../utils/createGameType";
@@ -6,6 +7,7 @@ import { truncateMiddle } from "../../utils/stringUtils";
 import { copyToClipboard } from "../../utils/clipboard";
 import { lobbyBuyInLabel, lobbyPhase, lobbyScheduleLabel, lobbyStakesLabel, openSeats, tableSizeLabel } from "../../utils/lobbyLayout";
 import { useLanguage } from "../../i18n/useLanguage";
+import { hasContent, hasElements } from "../../utils/guards";
 import MiniTable from "./MiniTable";
 import styles from "./Lobby.module.css";
 
@@ -15,6 +17,9 @@ interface TablePreviewProps {
     isCreator: boolean;
     nowMs: number;
     busy: boolean;
+    /** The other tables at the same stake level, shown under the details. */
+    others: GameWithFormat[];
+    onPick: (gameId: string) => void;
     onClose: () => void;
     onDelete: (gameId: string) => void;
     onForceClose: (game: GameWithFormat) => void;
@@ -27,7 +32,7 @@ interface TablePreviewProps {
  * table's creator also gets Delete (empty table) or Close and refund (cash
  * table with players); tournaments can't be force-closed (poker-vm#2173).
  */
-const TablePreview: React.FC<TablePreviewProps> = ({ game, clubName, isCreator, nowMs, busy, onClose, onDelete, onForceClose }) => {
+const TablePreview: React.FC<TablePreviewProps> = ({ game, clubName, isCreator, nowMs, busy, others, onPick, onClose, onDelete, onForceClose }) => {
     const { t } = useLanguage();
     const tournament = isTournamentFormat(game.gameFormat);
     const open = openSeats(game);
@@ -46,8 +51,9 @@ const TablePreview: React.FC<TablePreviewProps> = ({ game, clubName, isCreator, 
         return () => window.removeEventListener("keydown", onKey);
     }, [onClose]);
 
-    return (
-        <>
+    // Rendered on <body> so the panel sits above the site header (the lobby is its own stacking layer).
+    return createPortal(
+        <div className={styles.portal}>
             <div className={styles.scrim} onClick={onClose} />
             <aside className={`${styles.sheet} lobby-sheet`} role="dialog" aria-modal="true" aria-label={name}>
                 <div className={styles.sheetHead}>
@@ -56,7 +62,8 @@ const TablePreview: React.FC<TablePreviewProps> = ({ game, clubName, isCreator, 
                             {gameLabel} · {tableSizeLabel(game.maxPlayers)}
                         </div>
                         <div className={styles.sheetTitle}>
-                            {name} <span className={styles.gradText}>{tournament ? lobbyBuyInLabel(game) : lobbyStakesLabel(game)}</span>
+                            <span className={styles.gradText}>{tournament ? lobbyBuyInLabel(game) : lobbyStakesLabel(game)}</span>
+                            {hasContent(game.name) ? ` ${game.name}` : ""}
                         </div>
                     </div>
                     <button type="button" className={styles.close} onClick={onClose} aria-label={t("table.close")}>
@@ -108,6 +115,25 @@ const TablePreview: React.FC<TablePreviewProps> = ({ game, clubName, isCreator, 
                             </button>
                         </div>
                     </div>
+                    {hasElements(others) ? (
+                        <div className={styles.levelList}>
+                            <div className={styles.eyebrow}>{t("lobby.moreTables", { count: others.length })}</div>
+                            {others.map(o => (
+                                <button key={o.gameId} type="button" className={styles.levelRow} onClick={() => onPick(o.gameId)}>
+                                    <span className={styles.levelThumb}>
+                                        <MiniTable maxPlayers={o.maxPlayers} currentPlayers={o.currentPlayers} label={`${o.currentPlayers} of ${o.maxPlayers} seats taken`} />
+                                    </span>
+                                    <span className={styles.levelName}>{o.name ?? truncateMiddle(o.gameId, 4, 4)}</span>
+                                    <span className={`${styles.mono} ${styles.muted}`}>
+                                        {o.currentPlayers}/{o.maxPlayers}
+                                    </span>
+                                    <span className={openSeats(o) > 0 ? styles.open : `${styles.open} ${styles.openFull}`}>
+                                        {openSeats(o) > 0 ? t("lobby.openShort", { count: openSeats(o) }) : t("lobby.full")}
+                                    </span>
+                                </button>
+                            ))}
+                        </div>
+                    ) : null}
                     {isCreator ? (
                         <div className={styles.ownerTools}>
                             <span className={styles.muted} style={{ fontSize: 13, marginRight: "auto" }}>
@@ -144,7 +170,8 @@ const TablePreview: React.FC<TablePreviewProps> = ({ game, clubName, isCreator, 
                     </a>
                 </div>
             </aside>
-        </>
+        </div>,
+        document.body
     );
 };
 

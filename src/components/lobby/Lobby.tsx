@@ -6,11 +6,17 @@ import { useForceCloseGame } from "../../hooks/game/useForceCloseGame";
 import {
     SIZE_BANDS,
     STAKE_BANDS,
+    activeFilterCount,
     filterLobbyGames,
+    hasBalance,
     firstSectionOf,
+    groupLevels,
     groupLobbySections,
+    isListedTable,
     isTableCreator,
     isTreasuryTable,
+    lobbyBalanceLabel,
+    othersAtLevel,
     sectionAnchorId,
     sectionCount,
     seatedTotal,
@@ -47,17 +53,17 @@ const SORT_KEYS = { "stakes-up": "lobby.sortStakesUp", "stakes-down": "lobby.sor
 const DEFAULT_CLUB_NAME = import.meta.env.VITE_CLUB_NAME || "Texas Hodl";
 
 /**
- * Lobby — the Block52 home page lobby (redesign). Every table is a card with
- * a picture of the felt, grouped by game: each cash game, then Sit & Go, then
- * Tournaments. Filters: stakes, table size, treasury tables only, search by
- * name / ID / club. Tapping a table opens a preview with Join (and the
- * creator's Delete / Close and refund). Phones get sideways-swipe rows of two
- * small cards per game; "See all" opens a section as a grid.
+ * Lobby — the Block52 home page lobby (redesign). One card per stake level:
+ * every table with the same game, stakes and size collapses into one card that
+ * leads with the busiest table with a free seat; the rest are listed in the
+ * preview ("+N more"). Sections: each cash game, then Sit & Go, then
+ * Tournaments. A one-line heading with your balance, a slim Quick seat bar,
+ * and a Filters button keep the tables near the top of the screen.
  */
 const Lobby: React.FC<LobbyProps> = ({ balance, address, onDeposit, onCreateTable, walletSlot }) => {
     const { t } = useLanguage();
     const tableClubs = useTableClubs();
-    const { games: rawGames, isLoading, error, refetch } = useFindGames();
+    const { games: allGames, isLoading, error, refetch } = useFindGames();
     const { deleteGame, isDeleting } = useDeleteGame();
     const { forceCloseGame, isClosing } = useForceCloseGame();
 
@@ -66,6 +72,7 @@ const Lobby: React.FC<LobbyProps> = ({ balance, address, onDeposit, onCreateTabl
     const [size, setSize] = useState<SizeBand>("all");
     const [sort, setSort] = useState<LobbySort>("stakes-up");
     const [treasuryOnly, setTreasuryOnly] = useState<boolean>(hasContent(treasuryAddress));
+    const [filtersOpen, setFiltersOpen] = useState(false);
     const [expanded, setExpanded] = useState<Record<string, boolean>>({});
     const [previewId, setPreviewId] = useState<string | null>(null);
     const [deleteId, setDeleteId] = useState<string | null>(null);
@@ -78,15 +85,16 @@ const Lobby: React.FC<LobbyProps> = ({ balance, address, onDeposit, onCreateTabl
         return () => clearInterval(id);
     }, []);
 
+    const rawGames = useMemo(() => allGames.filter(g => isListedTable(g, nowMs)), [allGames, nowMs]);
     const clubNames = useMemo(() => Object.fromEntries(Object.entries(tableClubs).map(([id, c]) => [id, c.name])), [tableClubs]);
     const games = useMemo(
         () => filterLobbyGames(rawGames, { query, stake, size, treasuryOnly, treasuryAddress, clubNames }),
         [rawGames, query, stake, size, treasuryOnly, clubNames]
     );
-    const sections = useMemo(() => groupLobbySections(games, sort), [games, sort]);
+    const sections = useMemo(() => groupLobbySections(games, sort).map(s => ({ ...s, levels: groupLevels(s.games) })), [games, sort]);
     const cashSections = useMemo(() => groupLobbySections(rawGames, "stakes-up").filter(s => s.kind === "cash"), [rawGames]);
     const preview = hasContent(previewId) ? rawGames.find(g => g.gameId === previewId) : undefined;
-    const filtersOn = hasContent(query) || stake !== "all" || size !== "all";
+    const filterCount = activeFilterCount({ query, stake, size });
 
     const clubOf = useCallback((gameId: string) => tableClubs[gameId]?.name ?? DEFAULT_CLUB_NAME, [tableClubs]);
     const jump = (kind: "cash" | "sit-and-go" | "tournament") => {
@@ -115,36 +123,42 @@ const Lobby: React.FC<LobbyProps> = ({ balance, address, onDeposit, onCreateTabl
         }
     }, [forceCloseTarget, forceCloseGame, refetch]);
 
+    const hasFunds = hasBalance(balance);
+
     return (
         <div className={styles.lobby}>
+            <div className={styles.backdrop} aria-hidden="true">
+                <i />
+                <i />
+                <i />
+            </div>
+
             <div className={styles.hello}>
-                <div>
-                    <div className={styles.live}>
+                <h1 className={styles.h1}>
+                    {t("lobby.heading")} <span className={styles.gradText}>{t("lobby.headingAccent")}</span>
+                </h1>
+                <div className={styles.ticker}>
+                    <span className={styles.live}>
                         <span className={styles.dot} />
                         {t("lobby.liveNow")}
-                    </div>
-                    <h1 className={styles.h1}>
-                        {t("lobby.heading")} <span className={styles.gradText}>{t("lobby.headingAccent")}</span>
-                    </h1>
-                </div>
-                <div className={styles.ticker}>
+                    </span>
                     <span>{t("lobby.tablesRunning", { count: rawGames.length })}</span>
                     <span>{t("lobby.playersSeated", { count: seatedTotal(rawGames) })}</span>
                 </div>
+                <div className={styles.balancePill}>
+                    <button type="button" className={styles.balanceText} onClick={() => document.getElementById("lobby-wallet")?.scrollIntoView({ behavior: "smooth", block: "start" })}>
+                        <small>{t("lobby.balance")}</small>
+                        <b className={styles.mono}>{lobbyBalanceLabel(balance)}</b>
+                    </button>
+                    <button type="button" className={`${styles.btn} ${styles.btnSm} ${styles.btnGrad}`} onClick={onDeposit} disabled={!hasContent(address)} title={hasContent(address) ? "" : t("lobby.noWallet")}>
+                        {hasFunds ? t("lobby.deposit") : t("lobby.addFunds")}
+                    </button>
+                </div>
             </div>
 
-            <LobbyHero
-                games={rawGames}
-                cashSections={cashSections}
-                balance={balance}
-                address={address}
-                onDeposit={onDeposit}
-                onWallet={() => document.getElementById("lobby-wallet")?.scrollIntoView({ behavior: "smooth", block: "start" })}
-                onOpenTable={setPreviewId}
-                onCreateTable={onCreateTable}
-            />
+            <LobbyHero games={rawGames} cashSections={cashSections} onOpenTable={setPreviewId} onCreateTable={onCreateTable} />
 
-            <div>
+            <div className={styles.toolbarWrap}>
                 <div className={styles.toolbar}>
                     <div className={styles.seg}>
                         <button type="button" onClick={() => jump("cash")} disabled={sectionCount(sections, "cash") === 0}>
@@ -165,7 +179,44 @@ const Lobby: React.FC<LobbyProps> = ({ balance, address, onDeposit, onCreateTabl
                             </svg>
                             <input value={query} onChange={e => setQuery(e.target.value)} placeholder={t("lobby.search")} aria-label={t("lobby.search")} />
                         </div>
-                        <div className={styles.sel} style={{ width: 180 }}>
+                        <button
+                            type="button"
+                            className={`${styles.btn} ${styles.btnGhost} ${filtersOpen ? styles.btnOn : ""}`}
+                            onClick={() => setFiltersOpen(v => !v)}
+                            aria-expanded={filtersOpen}
+                        >
+                            <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" aria-hidden="true">
+                                <path d="M4 6h16M7 12h10M10 18h4" />
+                            </svg>
+                            {t("lobby.filters")}
+                            {filterCount > 0 ? <span className={styles.badgeCount}>{filterCount}</span> : null}
+                        </button>
+                        {onCreateTable ? (
+                            <button type="button" className={`${styles.btn} ${styles.btnGhost} ${styles.hidePhone}`} onClick={onCreateTable}>
+                                {t("lobby.createTable")}
+                            </button>
+                        ) : null}
+                    </div>
+                </div>
+                {filtersOpen ? (
+                    <div className={styles.filters}>
+                        <div className={styles.chips}>
+                            <span className={styles.chipLabel}>{t("lobby.stakes")}</span>
+                            {STAKE_BANDS.map(b => (
+                                <button key={b} type="button" className={`${styles.chip} ${stake === b ? styles.chipOn : ""}`} onClick={() => setStake(b)} aria-pressed={stake === b}>
+                                    {b === "all" ? t("lobby.all") : STAKE_NAMES[b]}
+                                </button>
+                            ))}
+                        </div>
+                        <div className={styles.chips}>
+                            <span className={styles.chipLabel}>{t("lobby.seats")}</span>
+                            {SIZE_BANDS.map(b => (
+                                <button key={b} type="button" className={`${styles.chip} ${size === b ? styles.chipOn : ""}`} onClick={() => setSize(b)} aria-pressed={size === b}>
+                                    {b === "all" ? t("lobby.all") : SIZE_NAMES[b]}
+                                </button>
+                            ))}
+                        </div>
+                        <div className={styles.sel} style={{ width: 190 }}>
                             <select value={sort} onChange={e => setSort(toLobbySort(e.target.value) ?? sort)} aria-label="Sort tables">
                                 {SORTS.map(s => (
                                     <option key={s} value={s}>
@@ -174,40 +225,22 @@ const Lobby: React.FC<LobbyProps> = ({ balance, address, onDeposit, onCreateTabl
                                 ))}
                             </select>
                         </div>
+                        {hasContent(treasuryAddress) ? (
+                            <button type="button" role="switch" aria-checked={treasuryOnly} className={`${styles.switch} ${treasuryOnly ? styles.switchOn : ""}`} onClick={() => setTreasuryOnly(v => !v)}>
+                                <i />
+                                {t("lobby.treasuryOnly")}
+                            </button>
+                        ) : null}
                         {onCreateTable ? (
-                            <button type="button" className={`${styles.btn} ${styles.btnGhost}`} onClick={onCreateTable}>
+                            <button type="button" className={`${styles.btn} ${styles.btnSm} ${styles.btnGhost} ${styles.showPhone}`} onClick={onCreateTable}>
                                 {t("lobby.createTable")}
                             </button>
                         ) : null}
                     </div>
-                </div>
-                <div className={styles.filters}>
-                    <div className={styles.chips}>
-                        <span className={styles.chipLabel}>{t("lobby.stakes")}</span>
-                        {STAKE_BANDS.map(b => (
-                            <button key={b} type="button" className={`${styles.chip} ${stake === b ? styles.chipOn : ""}`} onClick={() => setStake(b)} aria-pressed={stake === b}>
-                                {b === "all" ? t("lobby.all") : STAKE_NAMES[b]}
-                            </button>
-                        ))}
-                    </div>
-                    <div className={styles.chips}>
-                        <span className={styles.chipLabel}>{t("lobby.seats")}</span>
-                        {SIZE_BANDS.map(b => (
-                            <button key={b} type="button" className={`${styles.chip} ${size === b ? styles.chipOn : ""}`} onClick={() => setSize(b)} aria-pressed={size === b}>
-                                {b === "all" ? t("lobby.all") : SIZE_NAMES[b]}
-                            </button>
-                        ))}
-                    </div>
-                    {hasContent(treasuryAddress) ? (
-                        <button type="button" role="switch" aria-checked={treasuryOnly} className={`${styles.switch} ${treasuryOnly ? styles.switchOn : ""}`} onClick={() => setTreasuryOnly(v => !v)}>
-                            <i />
-                            {t("lobby.treasuryOnly")}
-                        </button>
-                    ) : null}
-                </div>
+                ) : null}
             </div>
 
-            {isLoading && isEmpty(rawGames) ? (
+            {isLoading && isEmpty(allGames) ? (
                 <div className={`${styles.box} ${styles.state}`}>
                     <div className={styles.spinner} />
                     <p>{t("lobby.loading")}</p>
@@ -221,8 +254,8 @@ const Lobby: React.FC<LobbyProps> = ({ balance, address, onDeposit, onCreateTabl
                 </div>
             ) : !hasElements(sections) ? (
                 <div className={`${styles.box} ${styles.state}`}>
-                    <p style={{ color: "var(--fg)", fontWeight: 600 }}>{filtersOn ? t("lobby.noMatchFilters") : t("lobby.noTables")}</p>
-                    {filtersOn ? (
+                    <p style={{ color: "var(--fg)", fontWeight: 600 }}>{filterCount > 0 ? t("lobby.noMatchFilters") : t("lobby.noTables")}</p>
+                    {filterCount > 0 ? (
                         <button type="button" className={`${styles.btn} ${styles.btnGhost}`} onClick={clearFilters}>
                             {t("lobby.clearFilters")}
                         </button>
@@ -239,7 +272,6 @@ const Lobby: React.FC<LobbyProps> = ({ balance, address, onDeposit, onCreateTabl
                 </div>
             ) : (
                 sections.map(section => {
-                    const open = totalOpenSeats(section.games);
                     const title = section.kind === "cash" ? section.title : section.kind === "sit-and-go" ? t("lobby.sitAndGo") : t("lobby.tournaments");
                     const all = expanded[section.key] === true;
                     return (
@@ -247,17 +279,24 @@ const Lobby: React.FC<LobbyProps> = ({ balance, address, onDeposit, onCreateTabl
                             <div className={styles.sectionHead}>
                                 <div>
                                     <h2>{title}</h2>
-                                    <small>{t("lobby.sectionCount", { count: section.games.length, open })}</small>
+                                    <small>{t("lobby.sectionCount", { count: section.games.length, open: totalOpenSeats(section.games) })}</small>
                                 </div>
-                                {section.games.length > 2 ? (
+                                {section.levels.length > 2 ? (
                                     <button type="button" className={`${styles.linkBtn} ${styles.seeAll}`} onClick={() => setExpanded(e => ({ ...e, [section.key]: !all }))}>
                                         {all ? t("lobby.showLess") : t("lobby.seeAll")}
                                     </button>
                                 ) : null}
                             </div>
                             <div className={`${styles.grid} ${all ? styles.gridAll : ""}`}>
-                                {section.games.map(g => (
-                                    <TableCard key={g.gameId} game={g} clubName={clubOf(g.gameId)} isTreasury={isTreasuryTable(g, treasuryAddress)} nowMs={nowMs} onOpen={setPreviewId} />
+                                {section.levels.map(level => (
+                                    <TableCard
+                                        key={level.key}
+                                        level={level}
+                                        clubName={clubOf(level.lead.gameId)}
+                                        isTreasury={isTreasuryTable(level.lead, treasuryAddress)}
+                                        nowMs={nowMs}
+                                        onOpen={setPreviewId}
+                                    />
                                 ))}
                             </div>
                         </section>
@@ -279,6 +318,8 @@ const Lobby: React.FC<LobbyProps> = ({ balance, address, onDeposit, onCreateTabl
                     isCreator={isTableCreator(preview, address)}
                     nowMs={nowMs}
                     busy={isDeleting || isClosing}
+                    others={othersAtLevel(rawGames, preview)}
+                    onPick={setPreviewId}
                     onClose={() => setPreviewId(null)}
                     onDelete={setDeleteId}
                     onForceClose={setForceCloseTarget}

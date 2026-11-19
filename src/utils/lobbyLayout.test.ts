@@ -17,6 +17,14 @@ import {
     sectionAnchorId,
     svgSafeId,
     lobbyPhase,
+    hasBalance,
+    othersAtLevel,
+    activeFilterCount,
+    groupLevels,
+    levelKeyOf,
+    pickLead,
+    isListedTable,
+    isInPlay,
     sectionCount,
     firstSectionOf,
     totalOpenSeats,
@@ -314,5 +322,69 @@ describe("section helpers", () => {
     it("accepts only known sorts", () => {
         expect(toLobbySort("most-open")).toBe("most-open");
         expect(toLobbySort("nope")).toBeUndefined();
+    });
+});
+
+describe("stake levels", () => {
+    it("puts tables with the same blinds and size in one level", () => {
+        expect(levelKeyOf(cash("a", 1, 2, 0, 9))).toBe(levelKeyOf(cash("b", 1, 2, 5, 9)));
+        expect(levelKeyOf(cash("a", 1, 2, 0, 9))).not.toBe(levelKeyOf(cash("c", 1, 2, 0, 6)));
+        expect(levelKeyOf(cash("a", 1, 2, 0, 9))).not.toBe(levelKeyOf(cash("d", 2, 5, 0, 9)));
+        expect(levelKeyOf(sng("s", 0, 6))).toBe(levelKeyOf(sng("t", 3, 6)));
+    });
+
+    it("leads with the busiest table that still has a seat", () => {
+        expect(pickLead([cash("a", 1, 2, 0, 9), cash("b", 1, 2, 9, 9), cash("c", 1, 2, 4, 9)]).gameId).toBe("c");
+    });
+
+    it("leads with the busiest table when every one is full", () => {
+        expect(pickLead([cash("a", 1, 2, 6, 6), cash("b", 1, 2, 6, 6)]).gameId).toBe("a");
+    });
+
+    it("breaks ties by the earliest scheduled start", () => {
+        expect(pickLead([sng("late", 1, 9, { scheduledStartTime: 2000 }), sng("soon", 1, 9, { scheduledStartTime: 1000 })]).gameId).toBe("soon");
+    });
+
+    it("collapses identical tables into one level, keeping the first-seen order", () => {
+        const levels = groupLevels([cash("a", 0.01, 0.02, 0, 9), cash("b", 0.01, 0.02, 1, 9), cash("c", 1, 2, 3, 9), cash("d", 0.01, 0.02, 0, 9)]);
+        expect(levels).toHaveLength(2);
+        expect(levels[0].lead.gameId).toBe("b");
+        expect(levels[0].tables.map(t => t.gameId)).toEqual(["b", "a", "d"]);
+        expect(levels[0].seated).toBe(1);
+        expect(levels[0].open).toBe(26);
+        expect(levels[1].lead.gameId).toBe("c");
+    });
+
+    it("lists everything except cancelled scheduled tournaments", () => {
+        const now = 1_800_000_000_000;
+        expect(isListedTable(cash("a", 1, 2, 0, 9), now)).toBe(true);
+        expect(isListedTable(sng("t", 1, 9, { scheduledStartTime: now - 3_600_000, minPlayers: 4 }), now)).toBe(false);
+        expect(isListedTable(sng("t", 1, 9, { scheduledStartTime: now + 3_600_000, minPlayers: 4 }), now)).toBe(true);
+    });
+
+    it("calls a table in play from two players", () => {
+        expect(isInPlay({ currentPlayers: 1 })).toBe(false);
+        expect(isInPlay({ currentPlayers: 2 })).toBe(true);
+    });
+});
+
+describe("othersAtLevel and activeFilterCount", () => {
+    it("lists the other tables at the same stakes and size, open seats first", () => {
+        const a = cash("a", 1, 2, 3, 9);
+        const games = [a, cash("b", 1, 2, 9, 9), cash("c", 1, 2, 1, 9), cash("d", 1, 2, 1, 6), cash("e", 2, 5, 1, 9)];
+        expect(othersAtLevel(games, a).map(g => g.gameId)).toEqual(["c", "b"]);
+    });
+
+    it("counts set filters", () => {
+        expect(activeFilterCount({ query: " ", stake: "all", size: "all" })).toBe(0);
+        expect(activeFilterCount({ query: "neon", stake: "low", size: "6-max" })).toBe(3);
+    });
+});
+
+describe("hasBalance", () => {
+    it("is true only above zero", () => {
+        expect(hasBalance("0.00")).toBe(false);
+        expect(hasBalance("0.000001")).toBe(true);
+        expect(hasBalance("12.5")).toBe(true);
     });
 });

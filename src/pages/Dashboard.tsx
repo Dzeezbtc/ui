@@ -1274,16 +1274,6 @@ const Dashboard: React.FC = () => {
 
                     {/* Reset blockchain button was here, now commented out by user */}
 
-                    {/* Powered by Block52 — fixed on large screens only */}
-                    <div className="hidden lg:flex fixed bottom-4 left-4 items-center z-10 opacity-30">
-                        <div className="flex flex-col items-start bg-transparent px-3 py-2 rounded-lg backdrop-blur-sm border-0">
-                            <div className="text-left mb-1">
-                                <span className="text-xs text-white font-medium tracking-wide">POWERED BY</span>
-                            </div>
-                            <img src="/block52.png" alt="Block52 Logo" className="h-6 w-auto object-contain interaction-none" />
-                        </div>
-                    </div>
-
                     {showWithdrawalModal && (
                         <WithdrawalModal
                             isOpen={showWithdrawalModal}

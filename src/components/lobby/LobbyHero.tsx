@@ -1,36 +1,31 @@
 import React, { useEffect, useMemo, useState } from "react";
 import type { GameWithFormat } from "../../utils/convertUtils";
 import type { LobbySection } from "../../utils/lobbyLayout";
-import { lobbyBalanceLabel, openSeats, pickQuickSeat, stakeOptions } from "../../utils/lobbyLayout";
+import { openSeats, pickQuickSeat, stakeOptions } from "../../utils/lobbyLayout";
 import { cashBlind } from "../../utils/blindsLabel";
 import { formatMicroAsUsdc } from "../../constants/currency";
 import { useSngSchedule } from "../../hooks/useSngSchedule";
-import { formatCountdown, formatLocalLabel, formatUtcLabel, getUpcomingSngs } from "../../utils/sngSchedule";
+import { formatCountdown, formatLocalLabel, getUpcomingSngs } from "../../utils/sngSchedule";
 import { hasContent, hasElements, hasValue } from "../../utils/guards";
-import { truncateMiddle } from "../../utils/stringUtils";
 import { useLanguage } from "../../i18n/useLanguage";
 import styles from "./Lobby.module.css";
 
 interface LobbyHeroProps {
     games: GameWithFormat[];
     cashSections: LobbySection[];
-    balance: string;
-    address: string | null;
-    onDeposit: () => void;
-    onWallet: () => void;
     onOpenTable: (gameId: string) => void;
     onCreateTable?: () => void;
 }
 
 /**
- * LobbyHero — the three cards at the top of the lobby: your balance with
- * Deposit, Quick seat (pick a game and stake, get the liveliest open table),
- * and the next scheduled Sit & Go with a live countdown (from the same
- * remote schedule the welcome pop-up uses).
+ * LobbyHero — one slim bar above the tables: Quick seat (pick a game and
+ * stake, open the liveliest table with a free seat) and the next scheduled
+ * Sit & Go with a live countdown (the same remote schedule as the welcome
+ * pop-up).
  */
-const LobbyHero: React.FC<LobbyHeroProps> = ({ games, cashSections, balance, address, onDeposit, onWallet, onOpenTable, onCreateTable }) => {
+const LobbyHero: React.FC<LobbyHeroProps> = ({ games, cashSections, onOpenTable, onCreateTable }) => {
     const { t } = useLanguage();
-    // A one-second tick for the Sit & Go countdown, kept here so only this card re-renders each second.
+    // A one-second tick for the Sit & Go countdown, kept here so only this bar re-renders each second.
     const [nowMs, setNowMs] = useState<number>(() => Date.now());
     useEffect(() => {
         const id = setInterval(() => setNowMs(Date.now()), 1000);
@@ -47,118 +42,58 @@ const LobbyHero: React.FC<LobbyHeroProps> = ({ games, cashSections, balance, add
     const next = useMemo(() => (hasElements(tournaments) ? getUpcomingSngs(tournaments, new Date(), 1)[0] : undefined), [tournaments]);
 
     return (
-        <div className={styles.hero}>
-            <div className={`${styles.box} ${styles.hcard}`}>
-                <div className={styles.hrow}>
-                    <span className={styles.eyebrow}>{t("lobby.balance")}</span>
-                    <span className={`${styles.pill} ${styles.pillCy}`}>USDC</span>
+        <div className={styles.quickBar}>
+            <div className={`${styles.box} ${styles.quick}`}>
+                <span className={styles.quickLabel}>
+                    <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" aria-hidden="true">
+                        <path d="M13 2L4 14h7l-1 8 9-12h-7z" />
+                    </svg>
+                    {t("lobby.quickSeat")}
+                </span>
+                <div className={styles.sel}>
+                    <select value={activeKey} onChange={e => setSectionKey(e.target.value)} disabled={!hasElements(cashSections)} aria-label={t("lobby.game")}>
+                        {cashSections.map(s => (
+                            <option key={s.key} value={s.key}>
+                                {s.title}
+                            </option>
+                        ))}
+                    </select>
                 </div>
-                <div className={`${styles.bigNum} ${styles.mono}`}>{lobbyBalanceLabel(balance)}</div>
-                {hasContent(address) ? (
-                    <div className={styles.address}>
-                        <span>{address}</span>
-                    </div>
-                ) : (
-                    <p className={styles.result} style={{ margin: 0 }}>
-                        {t("lobby.noWallet")}
-                    </p>
-                )}
-                <div className={styles.actions}>
-                    <button type="button" className={`${styles.btn} ${styles.btnGrad}`} onClick={onDeposit} disabled={!hasContent(address)}>
-                        {t("lobby.deposit")}
+                <div className={styles.sel}>
+                    <select value={activeStake} onChange={e => setBigBlind(e.target.value)} disabled={!hasElements(stakes)} aria-label={t("lobby.stakes")}>
+                        {stakes.map(bb => (
+                            <option key={bb} value={bb}>
+                                {cashBlind(formatMicroAsUsdc(bb, 2))} BB
+                            </option>
+                        ))}
+                    </select>
+                </div>
+                {hasValue(match) ? (
+                    <button type="button" className={`${styles.btn} ${styles.btnGrad}`} onClick={() => onOpenTable(match.gameId)} title={t("lobby.openShort", { count: openSeats(match) })}>
+                        {t("lobby.findSeat")}
                     </button>
-                    <button type="button" className={`${styles.btn} ${styles.btnGhost}`} onClick={onWallet}>
-                        {t("lobby.wallet")}
+                ) : onCreateTable ? (
+                    <button type="button" className={`${styles.btn} ${styles.btnGhost}`} onClick={onCreateTable} title={t("lobby.noMatch")}>
+                        {t("lobby.createTable")}
                     </button>
-                </div>
+                ) : null}
             </div>
-
-            <div className={`${styles.box} ${styles.hcard}`}>
-                <div className={styles.hrow}>
-                    <span className={styles.eyebrow}>{t("lobby.quickSeat")}</span>
-                </div>
-                <div style={{ fontWeight: 600, fontSize: 17 }}>{t("lobby.quickSeatTitle")}</div>
-                <div className={styles.two}>
-                    <div>
-                        <label className={styles.fieldLabel} htmlFor="qs-game">
-                            {t("lobby.game")}
-                        </label>
-                        <div className={styles.sel}>
-                            <select id="qs-game" value={activeKey} onChange={e => setSectionKey(e.target.value)} disabled={!hasElements(cashSections)}>
-                                {cashSections.map(s => (
-                                    <option key={s.key} value={s.key}>
-                                        {s.title}
-                                    </option>
-                                ))}
-                            </select>
+            {hasValue(next) ? (
+                <div className={`${styles.box} ${styles.nextSng}`}>
+                    <div style={{ minWidth: 0 }}>
+                        <div className={styles.eyebrow} style={{ fontSize: 10.5 }}>
+                            {t("lobby.nextSng")} · {next.buyIn}
+                        </div>
+                        <div className={styles.nextName} title={t("lobby.yourTime", { time: formatLocalLabel(next.nextStart) })}>
+                            {next.name}
                         </div>
                     </div>
-                    <div>
-                        <label className={styles.fieldLabel} htmlFor="qs-stake">
-                            {t("lobby.stakes")}
-                        </label>
-                        <div className={styles.sel}>
-                            <select id="qs-stake" value={activeStake} onChange={e => setBigBlind(e.target.value)} disabled={!hasElements(stakes)}>
-                                {stakes.map(bb => (
-                                    <option key={bb} value={bb}>
-                                        {cashBlind(formatMicroAsUsdc(bb, 2))} BB
-                                    </option>
-                                ))}
-                            </select>
-                        </div>
-                    </div>
+                    <div className={styles.countdownSm}>{formatCountdown(next.nextStart.getTime() - nowMs)}</div>
+                    <a className={`${styles.btn} ${styles.btnSm} ${styles.btnGhost}`} href={next.link}>
+                        {t("lobby.register")}
+                    </a>
                 </div>
-                <div className={styles.result}>
-                    {hasValue(match) ? (
-                        t("lobby.bestMatch", { table: match.name ?? truncateMiddle(match.gameId, 4, 4), open: openSeats(match) })
-                    ) : (
-                        t("lobby.noMatch")
-                    )}
-                </div>
-                <div className={styles.actions}>
-                    {hasValue(match) ? (
-                        <button type="button" className={`${styles.btn} ${styles.btnGrad}`} onClick={() => onOpenTable(match.gameId)}>
-                            {t("lobby.findSeat")}
-                        </button>
-                    ) : onCreateTable ? (
-                        <button type="button" className={`${styles.btn} ${styles.btnGhost}`} onClick={onCreateTable}>
-                            {t("lobby.createTable")}
-                        </button>
-                    ) : null}
-                </div>
-            </div>
-
-            <div className={`${styles.box} ${styles.hcard}`}>
-                <div className={styles.hrow}>
-                    <span className={styles.eyebrow}>{t("lobby.nextSng")}</span>
-                    {hasValue(next) ? <span className={`${styles.pill} ${styles.pillGold}`}>{next.buyIn}</span> : null}
-                </div>
-                {hasValue(next) ? (
-                    <>
-                        <div style={{ fontWeight: 600, fontSize: 17 }}>{next.name}</div>
-                        <div className={styles.muted} style={{ fontSize: 13, lineHeight: 1.5 }}>
-                            {formatUtcLabel(next.nextStart)}
-                            <br />
-                            {t("lobby.yourTime", { time: formatLocalLabel(next.nextStart) })}
-                        </div>
-                        <div>
-                            <div className={styles.eyebrow} style={{ fontSize: 10.5 }}>
-                                {t("lobby.startsIn")}
-                            </div>
-                            <div className={styles.countdown}>{formatCountdown(next.nextStart.getTime() - nowMs)}</div>
-                        </div>
-                        <div className={styles.actions}>
-                            <a className={`${styles.btn} ${styles.btnGhost}`} href={next.link}>
-                                {t("lobby.register")} · {next.buyIn}
-                            </a>
-                        </div>
-                    </>
-                ) : (
-                    <p className={styles.result} style={{ margin: 0 }}>
-                        {t("lobby.noSchedule")}
-                    </p>
-                )}
-            </div>
+            ) : null}
         </div>
     );
 };

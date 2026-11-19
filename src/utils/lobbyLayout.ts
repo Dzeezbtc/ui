@@ -16,7 +16,7 @@ import { hasValue } from "./guards";
 import { formatMicroAsUsdc, microToUsdc } from "../constants/currency";
 import { computeSngEntryBreakdown } from "./buyInUtils";
 import { cashBlind } from "./blindsLabel";
-import { hasContent } from "./guards";
+import { hasContent, hasElements } from "./guards";
 
 /** A lobby section: one per cash game (by name), plus Sit & Go and Tournaments. */
 export interface LobbySection {
@@ -233,3 +233,64 @@ export const totalOpenSeats = (games: Pick<GameWithFormat, "maxPlayers" | "curre
 /** The sort a <select> value names, or undefined for anything else. */
 export const toLobbySort = (value: string): LobbySort | undefined =>
     value === "stakes-up" || value === "stakes-down" || value === "most-players" || value === "most-open" ? value : undefined;
+
+/**
+ * One stake level: every table in a section with the same blinds (cash) or the
+ * same buy-in (Sit & Go / tournament) and the same table size. The lobby shows
+ * one card per level (its lead table) and the rest one tap away, so a row of
+ * identical empty tables collapses into a single card.
+ */
+export interface StakeLevel {
+    key: string;
+    /** The table the card shows and Join opens. */
+    lead: GameWithFormat;
+    /** Every table at this level, the lead first. */
+    tables: GameWithFormat[];
+    seated: number;
+    open: number;
+}
+
+/** Which level a table belongs to: section + blinds (cash) or buy-in (tournaments) + table size. */
+export const levelKeyOf = (game: GameWithFormat): string =>
+    isCashTable(game) ? `${sectionKeyOf(game)}|${game.smallBlind}|${game.bigBlind}|${game.maxPlayers}` : `${sectionKeyOf(game)}|${game.minBuyIn}|${game.maxPlayers}`;
+
+/** A table the lobby lists: everything except a scheduled tournament that was cancelled for too few players. */
+export const isListedTable = (game: GameWithFormat, nowMs: number): boolean => lobbyPhase(game, nowMs) !== "cancelled";
+
+/**
+ * The table a level's card leads with: one you can sit at (open seat) with the
+ * most players already there, earliest scheduled start breaking ties; if every
+ * table is full, the one with the most players.
+ */
+export const pickLead = (tables: GameWithFormat[]): GameWithFormat => {
+    const byBusy = (a: GameWithFormat, b: GameWithFormat) =>
+        b.currentPlayers - a.currentPlayers || (a.scheduledStartTime ?? 0) - (b.scheduledStartTime ?? 0) || a.gameId.localeCompare(b.gameId);
+    const open = tables.filter(t => openSeats(t) > 0).sort(byBusy);
+    return hasElements(open) ? open[0] : [...tables].sort(byBusy)[0];
+};
+
+/** Collapse a section's (already sorted) tables into stake levels, in the order each level first appears. */
+export const groupLevels = (games: GameWithFormat[]): StakeLevel[] => {
+    const map = new Map<string, GameWithFormat[]>();
+    for (const g of games) map.set(levelKeyOf(g), [...(map.get(levelKeyOf(g)) ?? []), g]);
+    return [...map.entries()].map(([key, tables]) => {
+        const lead = pickLead(tables);
+        return { key, lead, tables: [lead, ...tables.filter(t => t !== lead)], seated: seatedTotal(tables), open: totalOpenSeats(tables) };
+    });
+};
+
+/** A table is "in play" when at least two players are seated. */
+export const isInPlay = (game: Pick<GameWithFormat, "currentPlayers">): boolean => game.currentPlayers >= 2;
+
+/** The other tables at the same stake level as `game`, busiest with a free seat first. */
+export const othersAtLevel = (games: GameWithFormat[], game: GameWithFormat): GameWithFormat[] =>
+    games
+        .filter(g => g.gameId !== game.gameId && levelKeyOf(g) === levelKeyOf(game))
+        .sort((a, b) => Number(openSeats(b) > 0) - Number(openSeats(a) > 0) || b.currentPlayers - a.currentPlayers || a.gameId.localeCompare(b.gameId));
+
+/** How many lobby filters are set (search counts as one), for the Filters button badge. */
+export const activeFilterCount = (f: { query: string; stake: StakeBand; size: SizeBand }): number =>
+    Number(hasContent(f.query.trim())) + Number(f.stake !== "all") + Number(f.size !== "all");
+
+/** True when a USDC balance (decimal string) is above zero. */
+export const hasBalance = (usdc: string): boolean => Number(usdc) > 0;
