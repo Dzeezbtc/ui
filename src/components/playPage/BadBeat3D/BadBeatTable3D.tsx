@@ -40,7 +40,10 @@ export const BadBeatTable3D: React.FC<BadBeatTable3DProps> = ({ look, seatAngles
             console.error("Bad Beat: no WebGL for the 3D table", err);
         }
         setEngine(made);
-        return () => made?.dispose();
+        return () => {
+            made?.dispose();
+            setEngine(cur => (cur === made ? null : cur));
+        };
     }, [look]);
 
     useEffect(() => {
@@ -63,5 +66,8 @@ export const BadBeatTable3D: React.FC<BadBeatTable3DProps> = ({ look, seatAngles
         engine?.setState(state);
     }, [engine, state]);
 
-    return <canvas ref={canvasRef} data-part="bb-3d" className="absolute inset-0 w-full h-full" aria-hidden="true" />;
+    // A canvas keeps one WebGL context for life, and the old engine's dispose()
+    // loses it — so a new look gets a new canvas (key), or its engine would draw
+    // into the dead context and the room stays blank (Bad Beat <-> Maison live switch).
+    return <canvas key={look} ref={canvasRef} data-part="bb-3d" className="absolute inset-0 w-full h-full" aria-hidden="true" />;
 };
