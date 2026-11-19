@@ -3,6 +3,7 @@ import { useFindGames, treasuryAddress, type GameWithFormat } from "../../hooks/
 import { useTableClubs } from "../../hooks/club/useTableClubs";
 import { useDeleteGame } from "../../hooks/game/useDeleteGame";
 import { useForceCloseGame } from "../../hooks/game/useForceCloseGame";
+import { useLobbyPrefs } from "../../hooks/lobby/useLobbyPrefs";
 import {
     SIZE_BANDS,
     STAKE_BANDS,
@@ -17,12 +18,19 @@ import {
     isTreasuryTable,
     lobbyBalanceLabel,
     othersAtLevel,
+    occupiedTables,
+    inPlayTables,
+    similarOpenTable,
+    toggleBand,
+    lobbyStakesLabel,
+    lobbyBuyInLabel,
+    tableSizeLabel,
+    isCashTable,
     sectionAnchorId,
     sectionCount,
     seatedTotal,
     toLobbySort,
     totalOpenSeats,
-    type LobbySort,
     type SizeBand,
     type StakeBand
 } from "../../utils/lobbyLayout";
@@ -46,7 +54,7 @@ interface LobbyProps {
 
 const STAKE_NAMES: Record<StakeBand, string> = { all: "", micro: "Micro", low: "Low", mid: "Mid", high: "High" };
 const SIZE_NAMES: Record<SizeBand, string> = { all: "", "heads-up": "Heads-up", "6-max": "6-max", "9-max": "9-max" };
-const SORTS: readonly LobbySort[] = ["stakes-up", "stakes-down", "most-players", "most-open"];
+const SORTS: readonly ("stakes-up" | "stakes-down" | "most-players" | "most-open")[] = ["stakes-up", "stakes-down", "most-players", "most-open"];
 const SORT_KEYS = { "stakes-up": "lobby.sortStakesUp", "stakes-down": "lobby.sortStakesDown", "most-players": "lobby.sortMostPlayers", "most-open": "lobby.sortMostOpen" } as const;
 
 /** Clubs that don't come from the club service use the build's club name, as the old table list did. */
@@ -68,12 +76,10 @@ const Lobby: React.FC<LobbyProps> = ({ balance, address, onDeposit, onCreateTabl
     const { forceCloseGame, isClosing } = useForceCloseGame();
 
     const [query, setQuery] = useState("");
-    const [stake, setStake] = useState<StakeBand>("all");
-    const [size, setSize] = useState<SizeBand>("all");
-    const [sort, setSort] = useState<LobbySort>("stakes-up");
-    const [treasuryOnly, setTreasuryOnly] = useState<boolean>(hasContent(treasuryAddress));
+    // Stakes, sizes, sort and treasury-only are remembered between visits; search is not.
+    const [prefs, setPrefs] = useLobbyPrefs({ stakes: [], sizes: [], sort: "stakes-up", treasuryOnly: hasContent(treasuryAddress) });
+    const { stakes, sizes, sort, treasuryOnly } = prefs;
     const [filtersOpen, setFiltersOpen] = useState(false);
-    const [expanded, setExpanded] = useState<Record<string, boolean>>({});
     const [previewId, setPreviewId] = useState<string | null>(null);
     const [deleteId, setDeleteId] = useState<string | null>(null);
     const [forceCloseTarget, setForceCloseTarget] = useState<GameWithFormat | null>(null);
@@ -88,13 +94,13 @@ const Lobby: React.FC<LobbyProps> = ({ balance, address, onDeposit, onCreateTabl
     const rawGames = useMemo(() => allGames.filter(g => isListedTable(g, nowMs)), [allGames, nowMs]);
     const clubNames = useMemo(() => Object.fromEntries(Object.entries(tableClubs).map(([id, c]) => [id, c.name])), [tableClubs]);
     const games = useMemo(
-        () => filterLobbyGames(rawGames, { query, stake, size, treasuryOnly, treasuryAddress, clubNames }),
-        [rawGames, query, stake, size, treasuryOnly, clubNames]
+        () => filterLobbyGames(rawGames, { query, stakes, sizes, treasuryOnly, treasuryAddress, clubNames }),
+        [rawGames, query, stakes, sizes, treasuryOnly, clubNames]
     );
     const sections = useMemo(() => groupLobbySections(games, sort).map(s => ({ ...s, levels: groupLevels(s.games) })), [games, sort]);
     const cashSections = useMemo(() => groupLobbySections(rawGames, "stakes-up").filter(s => s.kind === "cash"), [rawGames]);
     const preview = hasContent(previewId) ? rawGames.find(g => g.gameId === previewId) : undefined;
-    const filterCount = activeFilterCount({ query, stake, size });
+    const filterCount = activeFilterCount({ query, stakes, sizes });
 
     const clubOf = useCallback((gameId: string) => tableClubs[gameId]?.name ?? DEFAULT_CLUB_NAME, [tableClubs]);
     const jump = (kind: "cash" | "sit-and-go" | "tournament") => {
@@ -103,8 +109,7 @@ const Lobby: React.FC<LobbyProps> = ({ balance, address, onDeposit, onCreateTabl
     };
     const clearFilters = () => {
         setQuery("");
-        setStake("all");
-        setSize("all");
+        setPrefs({ stakes: [], sizes: [] });
     };
 
     const handleDelete = useCallback(async () => {
@@ -202,22 +207,28 @@ const Lobby: React.FC<LobbyProps> = ({ balance, address, onDeposit, onCreateTabl
                     <div className={styles.filters}>
                         <div className={styles.chips}>
                             <span className={styles.chipLabel}>{t("lobby.stakes")}</span>
-                            {STAKE_BANDS.map(b => (
-                                <button key={b} type="button" className={`${styles.chip} ${stake === b ? styles.chipOn : ""}`} onClick={() => setStake(b)} aria-pressed={stake === b}>
-                                    {b === "all" ? t("lobby.all") : STAKE_NAMES[b]}
-                                </button>
-                            ))}
+                            {STAKE_BANDS.map(b => {
+                                const on = b === "all" ? !hasElements(stakes) : stakes.some(x => x === b);
+                                return (
+                                    <button key={b} type="button" className={`${styles.chip} ${on ? styles.chipOn : ""}`} onClick={() => setPrefs({ stakes: toggleBand(stakes, b) })} aria-pressed={on}>
+                                        {b === "all" ? t("lobby.all") : STAKE_NAMES[b]}
+                                    </button>
+                                );
+                            })}
                         </div>
                         <div className={styles.chips}>
                             <span className={styles.chipLabel}>{t("lobby.seats")}</span>
-                            {SIZE_BANDS.map(b => (
-                                <button key={b} type="button" className={`${styles.chip} ${size === b ? styles.chipOn : ""}`} onClick={() => setSize(b)} aria-pressed={size === b}>
-                                    {b === "all" ? t("lobby.all") : SIZE_NAMES[b]}
-                                </button>
-                            ))}
+                            {SIZE_BANDS.map(b => {
+                                const on = b === "all" ? !hasElements(sizes) : sizes.some(x => x === b);
+                                return (
+                                    <button key={b} type="button" className={`${styles.chip} ${on ? styles.chipOn : ""}`} onClick={() => setPrefs({ sizes: toggleBand(sizes, b) })} aria-pressed={on}>
+                                        {b === "all" ? t("lobby.all") : SIZE_NAMES[b]}
+                                    </button>
+                                );
+                            })}
                         </div>
                         <div className={styles.sel} style={{ width: 190 }}>
-                            <select value={sort} onChange={e => setSort(toLobbySort(e.target.value) ?? sort)} aria-label="Sort tables">
+                            <select value={sort} onChange={e => setPrefs({ sort: toLobbySort(e.target.value) ?? sort })} aria-label="Sort tables">
                                 {SORTS.map(s => (
                                     <option key={s} value={s}>
                                         {t(SORT_KEYS[s])}
@@ -226,7 +237,7 @@ const Lobby: React.FC<LobbyProps> = ({ balance, address, onDeposit, onCreateTabl
                             </select>
                         </div>
                         {hasContent(treasuryAddress) ? (
-                            <button type="button" role="switch" aria-checked={treasuryOnly} className={`${styles.switch} ${treasuryOnly ? styles.switchOn : ""}`} onClick={() => setTreasuryOnly(v => !v)}>
+                            <button type="button" role="switch" aria-checked={treasuryOnly} className={`${styles.switch} ${treasuryOnly ? styles.switchOn : ""}`} onClick={() => setPrefs({ treasuryOnly: !treasuryOnly })}>
                                 <i />
                                 {t("lobby.treasuryOnly")}
                             </button>
@@ -273,7 +284,6 @@ const Lobby: React.FC<LobbyProps> = ({ balance, address, onDeposit, onCreateTabl
             ) : (
                 sections.map(section => {
                     const title = section.kind === "cash" ? section.title : section.kind === "sit-and-go" ? t("lobby.sitAndGo") : t("lobby.tournaments");
-                    const all = expanded[section.key] === true;
                     return (
                         <section key={section.key} id={sectionAnchorId(section.key)} className={styles.section}>
                             <div className={styles.sectionHead}>
@@ -281,24 +291,22 @@ const Lobby: React.FC<LobbyProps> = ({ balance, address, onDeposit, onCreateTabl
                                     <h2>{title}</h2>
                                     <small>{t("lobby.sectionCount", { count: section.games.length, open: totalOpenSeats(section.games) })}</small>
                                 </div>
-                                {section.levels.length > 2 ? (
-                                    <button type="button" className={`${styles.linkBtn} ${styles.seeAll}`} onClick={() => setExpanded(e => ({ ...e, [section.key]: !all }))}>
-                                        {all ? t("lobby.showLess") : t("lobby.seeAll")}
-                                    </button>
-                                ) : null}
                             </div>
-                            <div className={`${styles.grid} ${all ? styles.gridAll : ""}`}>
-                                {section.levels.map(level => (
-                                    <TableCard
-                                        key={level.key}
-                                        level={level}
-                                        clubName={clubOf(level.lead.gameId)}
-                                        isTreasury={isTreasuryTable(level.lead, treasuryAddress)}
-                                        nowMs={nowMs}
-                                        onOpen={setPreviewId}
-                                    />
-                                ))}
-                            </div>
+                            {section.levels.map(level => (
+                                <div key={level.key} className={styles.levelBlock}>
+                                    <div className={styles.levelHead}>
+                                        <b className={styles.mono}>{isCashTable(level.lead) ? lobbyStakesLabel(level.lead) : lobbyBuyInLabel(level.lead)}</b>
+                                        <span>{tableSizeLabel(level.lead.maxPlayers)}</span>
+                                        <span className={styles.levelStat}>{t("lobby.levelInPlay", { count: inPlayTables(level.tables).length })}</span>
+                                        <span className={styles.levelStat}>{t("lobby.openShort", { count: level.open })}</span>
+                                    </div>
+                                    <div className={styles.row}>
+                                        {level.shown.map(g => (
+                                            <TableCard key={g.gameId} game={g} clubName={clubOf(g.gameId)} isTreasury={isTreasuryTable(g, treasuryAddress)} nowMs={nowMs} onOpen={setPreviewId} />
+                                        ))}
+                                    </div>
+                                </div>
+                            ))}
                         </section>
                     );
                 })
@@ -318,7 +326,9 @@ const Lobby: React.FC<LobbyProps> = ({ balance, address, onDeposit, onCreateTabl
                     isCreator={isTableCreator(preview, address)}
                     nowMs={nowMs}
                     busy={isDeleting || isClosing}
-                    others={othersAtLevel(rawGames, preview)}
+                    others={occupiedTables(othersAtLevel(rawGames, preview))}
+                    similar={similarOpenTable(rawGames, preview)}
+                    onCreateSimilar={onCreateTable}
                     onPick={setPreviewId}
                     onClose={() => setPreviewId(null)}
                     onDelete={setDeleteId}

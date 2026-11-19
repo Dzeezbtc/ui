@@ -16,7 +16,7 @@ import { hasValue } from "./guards";
 import { formatMicroAsUsdc, microToUsdc } from "../constants/currency";
 import { computeSngEntryBreakdown } from "./buyInUtils";
 import { cashBlind } from "./blindsLabel";
-import { hasContent, hasElements } from "./guards";
+import { hasContent, hasElements, isBoolean, isRecord, isString } from "./guards";
 
 /** A lobby section: one per cash game (by name), plus Sit & Go and Tournaments. */
 export interface LobbySection {
@@ -76,8 +76,10 @@ export const matchesSearch = (game: Pick<GameWithFormat, "gameId" | "name">, que
 
 export interface LobbyFilter {
     query: string;
-    stake: StakeBand;
-    size: SizeBand;
+    /** Stake bands to show; empty = all. */
+    stakes: readonly StakeBand[];
+    /** Table sizes to show; empty = all. */
+    sizes: readonly SizeBand[];
     /** Only tables the treasury opened. Ignored when no treasury address is configured. */
     treasuryOnly: boolean;
     treasuryAddress: string;
@@ -90,8 +92,8 @@ export const filterLobbyGames = (games: GameWithFormat[], f: LobbyFilter): GameW
     games.filter(
         g =>
             (!f.treasuryOnly || !hasContent(f.treasuryAddress) || g.creator === f.treasuryAddress) &&
-            matchesStake(g, f.stake) &&
-            matchesSize(g, f.size) &&
+            matchesStakes(g, f.stakes) &&
+            matchesSizes(g, f.sizes) &&
             matchesSearch(g, f.query, f.clubNames?.[g.gameId])
     );
 
@@ -248,6 +250,10 @@ export interface StakeLevel {
     tables: GameWithFormat[];
     seated: number;
     open: number;
+    /** What the lobby row shows: the tables with players, then one empty table (if any). */
+    shown: GameWithFormat[];
+    /** Empty tables at this level the row leaves out. */
+    hiddenEmpty: number;
 }
 
 /** Which level a table belongs to: section + blinds (cash) or buy-in (tournaments) + table size. */
@@ -269,13 +275,34 @@ export const pickLead = (tables: GameWithFormat[]): GameWithFormat => {
     return hasElements(open) ? open[0] : [...tables].sort(byBusy)[0];
 };
 
+/**
+ * The tables a stake level's row shows: every table with players (most players
+ * first, so full tables come before ones with a seat), then ONE empty table so
+ * there is always somewhere to start a game. Other empty tables are left out,
+ * so a level with six tables and two in play shows three cards, not six.
+ */
+export const visibleLevelTables = (tables: GameWithFormat[]): GameWithFormat[] => {
+    const occupied = tables.filter(t => t.currentPlayers > 0).sort((a, b) => b.currentPlayers - a.currentPlayers || openSeats(a) - openSeats(b) || a.gameId.localeCompare(b.gameId));
+    const empty = tables.filter(t => t.currentPlayers === 0).sort((a, b) => a.gameId.localeCompare(b.gameId));
+    return [...occupied, ...empty.slice(0, 1)];
+};
+
 /** Collapse a section's (already sorted) tables into stake levels, in the order each level first appears. */
 export const groupLevels = (games: GameWithFormat[]): StakeLevel[] => {
     const map = new Map<string, GameWithFormat[]>();
     for (const g of games) map.set(levelKeyOf(g), [...(map.get(levelKeyOf(g)) ?? []), g]);
     return [...map.entries()].map(([key, tables]) => {
         const lead = pickLead(tables);
-        return { key, lead, tables: [lead, ...tables.filter(t => t !== lead)], seated: seatedTotal(tables), open: totalOpenSeats(tables) };
+        const shown = visibleLevelTables(tables);
+        return {
+            key,
+            lead,
+            tables: [lead, ...tables.filter(t => t !== lead)],
+            seated: seatedTotal(tables),
+            open: totalOpenSeats(tables),
+            shown,
+            hiddenEmpty: tables.length - shown.length
+        };
     });
 };
 
@@ -289,8 +316,60 @@ export const othersAtLevel = (games: GameWithFormat[], game: GameWithFormat): Ga
         .sort((a, b) => Number(openSeats(b) > 0) - Number(openSeats(a) > 0) || b.currentPlayers - a.currentPlayers || a.gameId.localeCompare(b.gameId));
 
 /** How many lobby filters are set (search counts as one), for the Filters button badge. */
-export const activeFilterCount = (f: { query: string; stake: StakeBand; size: SizeBand }): number =>
-    Number(hasContent(f.query.trim())) + Number(f.stake !== "all") + Number(f.size !== "all");
+export const activeFilterCount = (f: { query: string; stakes: readonly StakeBand[]; sizes: readonly SizeBand[] }): number =>
+    Number(hasContent(f.query.trim())) + Number(hasElements([...f.stakes])) + Number(hasElements([...f.sizes]));
 
 /** True when a USDC balance (decimal string) is above zero. */
 export const hasBalance = (usdc: string): boolean => Number(usdc) > 0;
+
+/**
+ * "Join similar table" for a full table: another table at the same stakes and
+ * size with a free seat, preferring one that already has players. Undefined
+ * when there is none (the lobby then offers to create one).
+ */
+export const similarOpenTable = (games: GameWithFormat[], game: GameWithFormat): GameWithFormat | undefined =>
+    othersAtLevel(games, game).find(g => openSeats(g) > 0);
+
+/** Multi-select stake filter: no bands picked means every stake. */
+export const matchesStakes = (game: GameWithFormat, bands: readonly StakeBand[]): boolean => !hasElements([...bands]) || bands.some(b => matchesStake(game, b));
+
+/** Multi-select size filter: no bands picked means every size. */
+export const matchesSizes = (game: Pick<GameWithFormat, "maxPlayers">, bands: readonly SizeBand[]): boolean => !hasElements([...bands]) || bands.some(b => matchesSize(game, b));
+
+/** Add a band to a multi-select filter, or take it out if it is already there. "all" clears the filter. */
+export const toggleBand = <T extends string>(bands: readonly T[], band: T | "all"): T[] =>
+    band === "all" ? [] : bands.includes(band) ? bands.filter(b => b !== band) : [...bands, band];
+
+/** The lobby filters a player keeps between visits. */
+export interface LobbyPrefs {
+    stakes: StakeBand[];
+    sizes: SizeBand[];
+    sort: LobbySort;
+    treasuryOnly: boolean;
+}
+
+const isStakeBand = (v: unknown): v is StakeBand => v === "micro" || v === "low" || v === "mid" || v === "high";
+const isSizeBand = (v: unknown): v is SizeBand => v === "heads-up" || v === "6-max" || v === "9-max";
+
+/** Read saved lobby filters (JSON from storage). Anything missing or unrecognised falls back to `defaults`. */
+export const parseLobbyPrefs = (raw: string | null, defaults: LobbyPrefs): LobbyPrefs => {
+    if (!hasContent(raw)) return defaults;
+    try {
+        const data: unknown = JSON.parse(raw);
+        if (!isRecord(data)) return defaults;
+        return {
+            stakes: Array.isArray(data.stakes) ? data.stakes.filter(isStakeBand) : defaults.stakes,
+            sizes: Array.isArray(data.sizes) ? data.sizes.filter(isSizeBand) : defaults.sizes,
+            sort: isString(data.sort) ? (toLobbySort(data.sort) ?? defaults.sort) : defaults.sort,
+            treasuryOnly: isBoolean(data.treasuryOnly) ? data.treasuryOnly : defaults.treasuryOnly
+        };
+    } catch {
+        return defaults;
+    }
+};
+
+/** Tables that have at least one player. */
+export const occupiedTables = (tables: GameWithFormat[]): GameWithFormat[] => tables.filter(t => t.currentPlayers > 0);
+
+/** Tables with a game going (two or more players), matching the cards' In play badge. */
+export const inPlayTables = (tables: GameWithFormat[]): GameWithFormat[] => tables.filter(isInPlay);

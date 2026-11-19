@@ -7,7 +7,7 @@ import { truncateMiddle } from "../../utils/stringUtils";
 import { copyToClipboard } from "../../utils/clipboard";
 import { lobbyBuyInLabel, lobbyPhase, lobbyScheduleLabel, lobbyStakesLabel, openSeats, tableSizeLabel } from "../../utils/lobbyLayout";
 import { useLanguage } from "../../i18n/useLanguage";
-import { hasContent, hasElements } from "../../utils/guards";
+import { hasContent, hasElements, hasValue } from "../../utils/guards";
 import MiniTable from "./MiniTable";
 import styles from "./Lobby.module.css";
 
@@ -19,6 +19,10 @@ interface TablePreviewProps {
     busy: boolean;
     /** The other tables at the same stake level, shown under the details. */
     others: GameWithFormat[];
+    /** When this table is full: another table at the same stakes with a free seat. */
+    similar?: GameWithFormat;
+    /** When this table is full and no similar table has a seat: open the create-table form. */
+    onCreateSimilar?: () => void;
     onPick: (gameId: string) => void;
     onClose: () => void;
     onDelete: (gameId: string) => void;
@@ -32,7 +36,7 @@ interface TablePreviewProps {
  * table's creator also gets Delete (empty table) or Close and refund (cash
  * table with players); tournaments can't be force-closed (poker-vm#2173).
  */
-const TablePreview: React.FC<TablePreviewProps> = ({ game, clubName, isCreator, nowMs, busy, others, onPick, onClose, onDelete, onForceClose }) => {
+const TablePreview: React.FC<TablePreviewProps> = ({ game, clubName, isCreator, nowMs, busy, others, similar, onCreateSimilar, onPick, onClose, onDelete, onForceClose }) => {
     const { t } = useLanguage();
     const tournament = isTournamentFormat(game.gameFormat);
     const open = openSeats(game);
@@ -156,18 +160,38 @@ const TablePreview: React.FC<TablePreviewProps> = ({ game, clubName, isCreator, 
                     ) : null}
                 </div>
                 <div className={styles.sheetFoot}>
-                    <button type="button" className={`${styles.btn} ${styles.btnXl} ${styles.btnGhost}`} onClick={onClose}>
-                        {t("table.close")}
-                    </button>
-                    <a
-                        href={`/table/${game.gameId}`}
-                        target="_blank"
-                        rel="noopener noreferrer"
-                        className={`${styles.btn} ${styles.btnXl} ${open > 0 && !cancelled ? styles.btnGrad : styles.btnGhost}`}
-                        aria-label={`Join ${gameLabel} table with ${game.currentPlayers} of ${game.maxPlayers} players`}
-                    >
-                        {cancelled ? t("lobby.cancelled") : open > 0 ? t("lobby.joinTable") : t("lobby.full")}
-                    </a>
+                    {open > 0 || cancelled ? (
+                        <a
+                            href={`/table/${game.gameId}`}
+                            target="_blank"
+                            rel="noopener noreferrer"
+                            className={`${styles.btn} ${styles.btnXl} ${cancelled ? styles.btnGhost : styles.btnGrad}`}
+                            aria-label={`Join ${gameLabel} table with ${game.currentPlayers} of ${game.maxPlayers} players`}
+                        >
+                            {cancelled ? t("lobby.cancelled") : t("lobby.joinTable")}
+                        </a>
+                    ) : (
+                        <>
+                            <a href={`/table/${game.gameId}`} target="_blank" rel="noopener noreferrer" className={`${styles.btn} ${styles.btnXl} ${styles.btnGhost}`}>
+                                {t("lobby.watch")}
+                            </a>
+                            {hasValue(similar) ? (
+                                <a
+                                    href={`/table/${similar.gameId}`}
+                                    target="_blank"
+                                    rel="noopener noreferrer"
+                                    className={`${styles.btn} ${styles.btnXl} ${styles.btnGrad}`}
+                                    aria-label={`Join a similar table with ${similar.currentPlayers} of ${similar.maxPlayers} players`}
+                                >
+                                    {t("lobby.joinSimilar")}
+                                </a>
+                            ) : onCreateSimilar ? (
+                                <button type="button" className={`${styles.btn} ${styles.btnXl} ${styles.btnGrad}`} onClick={onCreateSimilar}>
+                                    {t("lobby.createSimilar")}
+                                </button>
+                            ) : null}
+                        </>
+                    )}
                 </div>
             </aside>
         </div>,

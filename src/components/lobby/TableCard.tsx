@@ -1,14 +1,15 @@
 import React from "react";
+import type { GameWithFormat } from "../../utils/convertUtils";
 import { isTournamentFormat, formatTableGameDisplay, toGameVariant, formatGameFormatDisplay } from "../../utils/gameFormatUtils";
 import { displayGameFormat } from "../../utils/createGameType";
-import { isInPlay, lobbyBuyInLabel, lobbyScheduleLabel, lobbyStakesLabel, openSeats, tableSizeLabel, type StakeLevel } from "../../utils/lobbyLayout";
+import { isInPlay, lobbyBuyInLabel, lobbyScheduleLabel, lobbyStakesLabel, openSeats, tableSizeLabel } from "../../utils/lobbyLayout";
 import { hasContent } from "../../utils/guards";
 import { useLanguage } from "../../i18n/useLanguage";
 import MiniTable from "./MiniTable";
 import styles from "./Lobby.module.css";
 
 interface TableCardProps {
-    level: StakeLevel;
+    game: GameWithFormat;
     clubName: string;
     isTreasury: boolean;
     nowMs: number;
@@ -16,19 +17,16 @@ interface TableCardProps {
 }
 
 /**
- * TableCard — one stake level in the lobby. It shows the level's lead table
- * (the busiest one with a free seat) as a small picture of the felt, with the
- * stakes as the title, the game and size, the club, and how many seats are
- * free. "+N more" means more tables at the same stakes; they are listed in the
- * preview that opens on tap.
+ * TableCard — one table in a stake level's row: a small picture of the felt
+ * with taken and open seats, the stakes as the title, the game and size, the
+ * club, and seats open or Full. An empty table (the one spare a row keeps so
+ * there is always somewhere to start) says so. Tapping opens the preview.
  */
-const TableCard: React.FC<TableCardProps> = ({ level, clubName, isTreasury, nowMs, onOpen }) => {
+const TableCard: React.FC<TableCardProps> = ({ game, clubName, isTreasury, nowMs, onOpen }) => {
     const { t } = useLanguage();
-    const game = level.lead;
     const tournament = isTournamentFormat(game.gameFormat);
     const open = openSeats(game);
     const schedule = lobbyScheduleLabel(game, nowMs);
-    const more = level.tables.length - 1;
     const gameLabel = tournament
         ? displayGameFormat(game.gameFormat, game.scheduledStartTime, formatGameFormatDisplay)
         : formatTableGameDisplay(toGameVariant(game.gameVariant), game.bettingLimit);
@@ -36,9 +34,9 @@ const TableCard: React.FC<TableCardProps> = ({ level, clubName, isTreasury, nowM
     return (
         <button
             type="button"
-            className={`${styles.card} ${isInPlay(game) ? styles.cardLive : ""}`}
+            className={`${styles.card} ${isInPlay(game) ? styles.cardLive : ""} ${game.currentPlayers === 0 ? styles.cardEmpty : ""}`}
             onClick={() => onOpen(game.gameId)}
-            aria-label={`${title} ${gameLabel}, ${game.currentPlayers} of ${game.maxPlayers} seats taken${more > 0 ? `, ${more} more tables at this level` : ""}`}
+            aria-label={`${title} ${gameLabel}, ${game.currentPlayers} of ${game.maxPlayers} seats taken`}
         >
             <div className={styles.pic}>
                 <MiniTable maxPlayers={game.maxPlayers} currentPlayers={game.currentPlayers} label={`${game.currentPlayers} of ${game.maxPlayers} seats taken`} />
@@ -49,6 +47,8 @@ const TableCard: React.FC<TableCardProps> = ({ level, clubName, isTreasury, nowM
                         <span className={styles.dot} />
                         {t("lobby.inPlay")}
                     </span>
+                ) : game.currentPlayers === 0 ? (
+                    <span className={`${styles.pill} ${styles.pillCy}`}>{t("lobby.emptyTable")}</span>
                 ) : isTreasury ? (
                     <span className={`${styles.pill} ${styles.pillVi}`}>{t("lobby.treasury")}</span>
                 ) : (
@@ -79,7 +79,9 @@ const TableCard: React.FC<TableCardProps> = ({ level, clubName, isTreasury, nowM
                     ) : (
                         <span className={`${styles.open} ${styles.openFull}`}>{t("lobby.full")}</span>
                     )}
-                    {more > 0 ? <span className={styles.more}>{t("lobby.moreAtStake", { count: more })}</span> : null}
+                    <span className={`${styles.mono} ${styles.muted}`} style={{ fontSize: 12.5 }}>
+                        {game.currentPlayers}/{game.maxPlayers}
+                    </span>
                 </div>
             </div>
         </button>

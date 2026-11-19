@@ -1,5 +1,6 @@
 import { BettingLimit, GameFormat, GameVariant } from "@block52/poker-vm-sdk";
 import type { GameWithFormat } from "./convertUtils";
+import type { SizeBand, StakeBand } from "./lobbyLayout";
 import {
     filterLobbyGames,
     groupLobbySections,
@@ -17,6 +18,13 @@ import {
     sectionAnchorId,
     svgSafeId,
     lobbyPhase,
+    inPlayTables,
+    occupiedTables,
+    visibleLevelTables,
+    similarOpenTable,
+    toggleBand,
+    matchesStakes,
+    parseLobbyPrefs,
     hasBalance,
     othersAtLevel,
     activeFilterCount,
@@ -119,7 +127,7 @@ describe("matchesSearch", () => {
 
 describe("filterLobbyGames", () => {
     const games = [cash("t1", 1, 2, 3, 9, { creator: "b52treasury" }), cash("t2", 10, 20, 1, 6, { creator: "b52someone" }), cash("t3", 0.05, 0.1, 1, 2)];
-    const base = { query: "", stake: "all" as const, size: "all" as const, treasuryOnly: false, treasuryAddress: "b52treasury" };
+    const base = { query: "", stakes: [] as StakeBand[], sizes: [] as SizeBand[], treasuryOnly: false, treasuryAddress: "b52treasury" };
 
     it("keeps everything with no filters", () => {
         expect(filterLobbyGames(games, base)).toHaveLength(3);
@@ -134,8 +142,9 @@ describe("filterLobbyGames", () => {
     });
 
     it("combines stake, size and search", () => {
-        expect(filterLobbyGames(games, { ...base, stake: "high" }).map(g => g.gameId)).toEqual(["t2"]);
-        expect(filterLobbyGames(games, { ...base, size: "heads-up" }).map(g => g.gameId)).toEqual(["t3"]);
+        expect(filterLobbyGames(games, { ...base, stakes: ["high"] }).map(g => g.gameId)).toEqual(["t2"]);
+        expect(filterLobbyGames(games, { ...base, stakes: ["low", "high"] }).map(g => g.gameId)).toEqual(["t1", "t2"]);
+        expect(filterLobbyGames(games, { ...base, sizes: ["heads-up"] }).map(g => g.gameId)).toEqual(["t3"]);
         expect(filterLobbyGames(games, { ...base, query: "t1" }).map(g => g.gameId)).toEqual(["t1"]);
     });
 });
@@ -376,8 +385,8 @@ describe("othersAtLevel and activeFilterCount", () => {
     });
 
     it("counts set filters", () => {
-        expect(activeFilterCount({ query: " ", stake: "all", size: "all" })).toBe(0);
-        expect(activeFilterCount({ query: "neon", stake: "low", size: "6-max" })).toBe(3);
+        expect(activeFilterCount({ query: " ", stakes: [], sizes: [] })).toBe(0);
+        expect(activeFilterCount({ query: "neon", stakes: ["low", "mid"], sizes: ["6-max"] })).toBe(3);
     });
 });
 
@@ -386,5 +395,80 @@ describe("hasBalance", () => {
         expect(hasBalance("0.00")).toBe(false);
         expect(hasBalance("0.000001")).toBe(true);
         expect(hasBalance("12.5")).toBe(true);
+    });
+});
+
+describe("what a stake level shows", () => {
+    it("shows tables with players, most first, then one empty table", () => {
+        const tables = [cash("e1", 0.01, 0.02, 0, 9), cash("p2", 0.01, 0.02, 2, 9), cash("e2", 0.01, 0.02, 0, 9), cash("full", 0.01, 0.02, 9, 9), cash("e3", 0.01, 0.02, 0, 9), cash("p5", 0.01, 0.02, 5, 9)];
+        expect(visibleLevelTables(tables).map(t => t.gameId)).toEqual(["full", "p5", "p2", "e1"]);
+    });
+
+    it("shows a single empty table when nobody is playing", () => {
+        expect(visibleLevelTables([cash("b", 1, 2, 0, 9), cash("a", 1, 2, 0, 9)]).map(t => t.gameId)).toEqual(["a"]);
+    });
+
+    it("counts the empty tables it leaves out", () => {
+        const [level] = groupLevels([cash("a", 1, 2, 0, 9), cash("b", 1, 2, 0, 9), cash("c", 1, 2, 3, 9), cash("d", 1, 2, 0, 9)]);
+        expect(level.shown.map(t => t.gameId)).toEqual(["c", "a"]);
+        expect(level.hiddenEmpty).toBe(2);
+    });
+});
+
+describe("similarOpenTable", () => {
+    it("finds another table at the same stakes with a seat, preferring one with players", () => {
+        const full = cash("full", 1, 2, 9, 9);
+        const games = [full, cash("empty", 1, 2, 0, 9), cash("busy", 1, 2, 6, 9), cash("other", 2, 5, 1, 9)];
+        expect(similarOpenTable(games, full)?.gameId).toBe("busy");
+    });
+
+    it("is undefined when every table at that level is full", () => {
+        const a = cash("a", 1, 2, 6, 6);
+        expect(similarOpenTable([a, cash("b", 1, 2, 6, 6)], a)).toBeUndefined();
+    });
+});
+
+describe("multi-select filters", () => {
+    it("toggles bands and clears with all", () => {
+        expect(toggleBand<StakeBand>([], "micro")).toEqual(["micro"]);
+        expect(toggleBand<StakeBand>(["micro", "low"], "micro")).toEqual(["low"]);
+        expect(toggleBand<StakeBand>(["micro"], "all")).toEqual([]);
+    });
+
+    it("matches any picked band, or everything when none are picked", () => {
+        expect(matchesStakes(cash("a", 0.01, 0.02, 0, 9), [])).toBe(true);
+        expect(matchesStakes(cash("a", 0.01, 0.02, 0, 9), ["low", "mid"])).toBe(false);
+        expect(matchesStakes(cash("a", 1, 2, 0, 9), ["low", "mid"])).toBe(true);
+    });
+});
+
+describe("parseLobbyPrefs", () => {
+    const defaults = { stakes: [] as StakeBand[], sizes: [] as SizeBand[], sort: "stakes-up" as const, treasuryOnly: true };
+
+    it("reads saved filters", () => {
+        const raw = JSON.stringify({ stakes: ["low", "mid"], sizes: ["6-max"], sort: "most-players", treasuryOnly: false });
+        expect(parseLobbyPrefs(raw, defaults)).toEqual({ stakes: ["low", "mid"], sizes: ["6-max"], sort: "most-players", treasuryOnly: false });
+    });
+
+    it("drops unknown values and falls back for missing ones", () => {
+        expect(parseLobbyPrefs(JSON.stringify({ stakes: ["low", "huge", 3], sort: "nope" }), defaults)).toEqual({ ...defaults, stakes: ["low"] });
+    });
+
+    it("falls back on nothing saved or broken JSON", () => {
+        expect(parseLobbyPrefs(null, defaults)).toEqual(defaults);
+        expect(parseLobbyPrefs("{oops", defaults)).toEqual(defaults);
+        expect(parseLobbyPrefs("[1,2]", defaults)).toEqual(defaults);
+    });
+});
+
+describe("occupiedTables", () => {
+    it("keeps tables with players", () => {
+        expect(occupiedTables([cash("a", 1, 2, 0, 9), cash("b", 1, 2, 1, 9)]).map(g => g.gameId)).toEqual(["b"]);
+    });
+});
+
+describe("inPlayTables", () => {
+    it("keeps tables with two or more players", () => {
+        expect(inPlayTables([cash("a", 1, 2, 1, 9), cash("b", 1, 2, 2, 9), cash("c", 1, 2, 0, 9)]).map(g => g.gameId)).toEqual(["b"]);
     });
 });
