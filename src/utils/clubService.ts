@@ -143,7 +143,11 @@ export interface SeatApi {
     canSit: (handle: string, address: string, gameId: string, amount?: number) => Promise<{ allowed: boolean; reason?: string; depositLeft?: number }>;
     getSeatChallenge: (address: string, club: string) => Promise<{ nonce: string; text: string }>;
     checkSeat: (body: { address: string; club: string; gameId: string; nonce: string; signature: string; pubkey: string; lat?: number; lon?: number }) => Promise<{ allowed: boolean; reason?: string; locationNeeded?: boolean }>;
+    checkSeatAsAccount: (token: string, body: { club: string; gameId: string; lat?: number; lon?: number }) => Promise<{ allowed: boolean; reason?: string; locationNeeded?: boolean }>;
 }
+
+/** How a player proves who they are for the seat check: a wallet's seed phrase signs, a club account sends its player token. */
+export type SeatProof = string | { accountToken: string } | null | undefined;
 
 /** How the lobby asks for a player's location. Null if they say no or it can't be found. */
 export type GetLocation = () => Promise<{ lat: number; lon: number } | null>;
@@ -164,18 +168,19 @@ export const browserLocation: GetLocation = () =>
  * stop anyone sitting: it's the lobby being helpful, and the chain has the
  * final say once x/club is live.
  */
-export async function seatRefusal(api: SeatApi | null, gameId: string | undefined, address: string | null | undefined, mnemonic?: string | null, getLocation: GetLocation = browserLocation): Promise<string | null> {
+export async function seatRefusal(api: SeatApi | null, gameId: string | undefined, address: string | null | undefined, proof?: SeatProof, getLocation: GetLocation = browserLocation): Promise<string | null> {
     if (!api || !gameId || !address) return null;
     try {
         const club = (await api.getTableClubs()).tables[gameId];
         if (!club) return null;
         const answer = await api.canSit(club.handle, address, gameId);
         if (!answer.allowed) return answer.reason ?? t("club.seatRefused");
-        if (!mnemonic) return null;
+        if (!proof) return null;
         // Same network or place at this table. Location is only asked for if the club needs it.
         const ask = async (where?: { lat: number; lon: number }) => {
+            if (typeof proof !== "string") return api.checkSeatAsAccount(proof.accountToken, { club: club.handle, gameId, ...where });
             const ch = await api.getSeatChallenge(address, club.handle);
-            const signed = await signChallenge(mnemonic, ch.text);
+            const signed = await signChallenge(proof, ch.text);
             return api.checkSeat({ address, club: club.handle, gameId, nonce: ch.nonce, signature: signed.signature, pubkey: signed.pubkey, ...where });
         };
         let seat = await ask();

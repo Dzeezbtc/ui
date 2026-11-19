@@ -159,6 +159,9 @@ export class ClubApi extends HTTPClient {
     public getNotifications = (address: string) => this.get<{ notifications: ClubNotification[] }>(`/public/players/${encodeURIComponent(address)}/notifications`);
     public getSeatChallenge = (address: string, club: string) => this.post<{ nonce: string; text: string }>("/public/seat-check/challenge", { address, club });
     public checkSeat = (body: { address: string; club: string; gameId: string; nonce: string; signature: string; pubkey: string; lat?: number; lon?: number }) => this.post<{ allowed: boolean; reason?: string; locationNeeded?: boolean }>("/public/seat-check", body);
+    /** The same check for a club account (username and password): it has no seed phrase, so its player token says who it is (block52-club#59). */
+    public checkSeatAsAccount = (token: string, body: { club: string; gameId: string; lat?: number; lon?: number }) =>
+        this.post<{ allowed: boolean; reason?: string; locationNeeded?: boolean }>("/public/seat-check/account", body, { headers: { authorization: `Bearer ${token}` } });
     public getClubMissions = (handle: string) => this.get<{ missions: ClubMission[]; referralBonus: number }>(`/public/clubs/${encodeURIComponent(handle)}/missions`);
     public getClubOffers = (handle: string) => this.get<{ offers: ClubOffer[] }>(`/public/clubs/${encodeURIComponent(handle)}/offers`);
     public getClaimChallenge = (address: string, club: string, offerId: string) => this.post<{ nonce: string; text: string }>("/public/bonus-claims/challenge", { address, club, offerId });
