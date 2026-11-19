@@ -34,6 +34,14 @@ const originOf = (url: string): string | null => {
     }
 };
 
+/** A club service's address with its path, e.g. "https://site/api": a hosted service lives under a path, so the origin alone isn't it. */
+const serviceBaseOf = (url: string): string | null => {
+    const origin = originOf(url);
+    if (!origin) return null;
+    const u = new URL(url);
+    return `${origin}${u.pathname.replace(/\/+$/, "")}`;
+};
+
 /** Reads ?club=&api=&return= and refuses anything not on the allow-lists. */
 export function readClubLoginRequest(search: string, allowedConsoles: string[], allowedServices: string[]): { ok: true; request: ClubLoginRequest } | { ok: false; error: string } {
     const p = new URLSearchParams(search);
@@ -41,11 +49,11 @@ export function readClubLoginRequest(search: string, allowedConsoles: string[], 
     const api = p.get("api") ?? "";
     const returnTo = p.get("return") ?? "";
     if (!/^[a-z0-9-]{1,32}$/.test(club)) return { ok: false, error: "This sign-in link doesn't name a valid club." };
-    const apiOrigin = originOf(api);
+    const apiBase = serviceBaseOf(api);
     const returnOrigin = originOf(returnTo);
-    if (!apiOrigin || !allowedServices.includes(apiOrigin)) return { ok: false, error: "This sign-in link points at a club service Block52 doesn't recognise, so it was blocked." };
+    if (!apiBase || !allowedServices.includes(apiBase)) return { ok: false, error: "This sign-in link points at a club service Block52 doesn't recognise, so it was blocked." };
     if (!returnOrigin || !allowedConsoles.includes(returnOrigin)) return { ok: false, error: "This sign-in link would send your signature to a site Block52 doesn't recognise, so it was blocked." };
-    return { ok: true, request: { club, api: apiOrigin, returnTo } };
+    return { ok: true, request: { club, api: apiBase, returnTo } };
 }
 
 /** The ADR-036 sign doc for arbitrary text (what Keplr's signArbitrary signs). */
