@@ -1,0 +1,39 @@
+.cancelButton {
+    background-color: #dc2626;
+}
+
+.cancelButton:hover:not(:disabled) {
+    background-color: #b91c1c;
+}
+
+.infoCard {
+    background-color: var(--ui-bg-medium);
+    padding: 0.5rem 0.875rem;
+}
+
+.maxButton {
+    background-color: var(--ui-bg-medium);
+}
+
+.amountInput {
+    background-color: var(--ui-bg-medium);
+    border: 1px solid var(--ui-text-secondary);
+}
+
+.amountInput:focus {
+    border-color: var(--brand-primary);
+}
+
+.buyButton {
+    background: var(--brand-primary);
+}
+
+.buyButton:disabled {
+    opacity: 0.5;
+    cursor: not-allowed;
+}
+
+.noteText {
+    color: var(--ui-text-secondary);
+}
+

@@ -1,0 +1,240 @@
+import React, { useState, useMemo, useCallback } from "react";
+import { TexasHoldemRound } from "@block52/poker-vm-sdk";
+import { microToUsdc, usdcToMicroBigInt, parseUsdcToMicro } from "../../constants/currency";
+import { calculateMinTopUp, calculateMaxTopUp } from "../../utils/topUpUtils";
+import { useGameStateContext } from "../../context/GameStateContext";
+import { Modal, LoadingSpinner } from "../common";
+import styles from "./TopUpModal.module.css";
+import type { TopUpModalProps } from "./types";
+import { hasValue } from "../../utils/guards";
+import { useClubApi } from "../../context/ClubApiContext";
+import { depositRefusal } from "../../utils/clubService";
+import { getCosmosAddress } from "../../utils/cosmos/storage";
+
+const TopUpModal: React.FC<TopUpModalProps> = ({ tableId, currentStack, minBuyIn, maxBuyIn, walletBalance, onClose, onTopUp }) => {
+    const [topUpError, setTopUpError] = useState("");
+    const [isProcessing, setIsProcessing] = useState(false);
+    const [successMessage, setSuccessMessage] = useState<string | null>(null);
+
+    // block52/poker-vm#2141 / ui#279: while a hand is in progress (PREFLOP..SHOWDOWN)
+    // the PVM queues the top-up and only credits it at the next reInit. Surface that
+    // to the player so they don't expect chips to land mid-hand.
+    const { gameState } = useGameStateContext();
+    const clubApi = useClubApi();
+    const handInProgress =
+        hasValue(gameState?.round) &&
+        gameState.round !== TexasHoldemRound.ANTE &&
+        gameState.round !== TexasHoldemRound.END;
+
+    const { currentStackFormatted, maxBuyInFormatted, walletBalanceFormatted, minTopUpFormatted, maxTopUpFormatted, minTopUpMicro, maxTopUpMicro } = useMemo(() => {
+        const current = microToUsdc(currentStack);
+        const min = microToUsdc(minBuyIn);
+        const max = microToUsdc(maxBuyIn);
+        const wallet = microToUsdc(walletBalance);
+
+        const minTopUpAmount = calculateMinTopUp(current, min);
+        const maxTopUpAmount = calculateMaxTopUp(current, max, wallet);
+
+        return {
+            currentStackFormatted: current.toFixed(2),
+            maxBuyInFormatted: max.toFixed(2),
+            walletBalanceFormatted: wallet.toFixed(2),
+            minTopUpFormatted: minTopUpAmount.toFixed(2),
+            maxTopUpFormatted: maxTopUpAmount.toFixed(2),
+            minTopUpMicro: usdcToMicroBigInt(minTopUpAmount),
+            maxTopUpMicro: usdcToMicroBigInt(maxTopUpAmount)
+        };
+    }, [currentStack, minBuyIn, maxBuyIn, walletBalance]);
+
+    const [topUpAmount, setTopUpAmount] = useState(() => maxTopUpFormatted);
+
+    const canTopUp = useMemo(() => {
+        return parseFloat(maxTopUpFormatted) > 0;
+    }, [maxTopUpFormatted]);
+
+    const handleTopUpChange = useCallback((amount: string) => {
+        setTopUpAmount(amount);
+        setTopUpError("");
+    }, []);
+
+    const handleMinClick = useCallback(() => {
+        handleTopUpChange(minTopUpFormatted);
+    }, [minTopUpFormatted, handleTopUpChange]);
+
+    const handleMaxClick = useCallback(() => {
+        handleTopUpChange(maxTopUpFormatted);
+    }, [maxTopUpFormatted, handleTopUpChange]);
+
+    const isAmountInvalid = useMemo(() => {
+        const amount = parseFloat(topUpAmount);
+        if (isNaN(amount) || amount <= 0) return true;
+        const amountMicro = usdcToMicroBigInt(amount);
+        return amountMicro < minTopUpMicro || amountMicro > maxTopUpMicro;
+    }, [topUpAmount, minTopUpMicro, maxTopUpMicro]);
+
+    const handleTopUpClick = useCallback(async () => {
+        try {
+            setTopUpError("");
+            setIsProcessing(true);
+
+            const topUpMicrounits = parseUsdcToMicro(topUpAmount);
+
+            if (topUpMicrounits <= 0n) {
+                setTopUpError("Top-up amount must be positive");
+                return;
+            }
+
+            if (topUpMicrounits < minTopUpMicro) {
+                setTopUpError(`Minimum top-up is $${minTopUpFormatted}`);
+                return;
+            }
+
+            if (topUpMicrounits > maxTopUpMicro) {
+                setTopUpError(`Maximum top-up is $${maxTopUpFormatted}`);
+                return;
+            }
+
+            // A club's daily deposit limit (block52-club#13).
+            const refused = await depositRefusal(clubApi, tableId, getCosmosAddress(), microToUsdc(topUpMicrounits.toString()));
+            if (refused) {
+                setTopUpError(refused);
+                return;
+            }
+
+            await onTopUp(topUpMicrounits.toString());
+            setSuccessMessage(
+                handInProgress
+                    ? "Top-up confirmed. Chips will be added from the next hand."
+                    : "Top-up confirmed. Chips added to your stack."
+            );
+        } catch (error) {
+            console.error("Error in top-up:", error);
+            setTopUpError("Failed to top up. Please try again.");
+        } finally {
+            setIsProcessing(false);
+        }
+    }, [topUpAmount, minTopUpMicro, maxTopUpMicro, minTopUpFormatted, maxTopUpFormatted, onTopUp, handInProgress, clubApi, tableId]);
+
+    if (successMessage) {
+        return (
+            <Modal isOpen={true} onClose={onClose} title="Buy Chips" titleIcon="💰" patternId="hexagons-topup-success">
+                <p className="text-gray-200 mb-6">{successMessage}</p>
+                <button
+                    onClick={onClose}
+                    className={`w-full px-5 py-3 rounded-lg text-white font-medium hover:opacity-80 transition-opacity ${styles.buyButton}`}
+                >
+                    Close
+                </button>
+            </Modal>
+        );
+    }
+
+    if (!canTopUp) {
+        return (
+            <Modal isOpen={true} onClose={onClose} title="Cannot Top Up" patternId="hexagons-topup-error">
+                <p className="text-gray-300 mb-6">
+                    {parseFloat(walletBalanceFormatted) === 0
+                        ? "Insufficient wallet balance. Please deposit USDC to continue."
+                        : "You are already at the table maximum buy-in."}
+                </p>
+                <button
+                    onClick={onClose}
+                    className={`w-full px-5 py-3 rounded-lg text-white font-medium hover:opacity-80 transition-opacity ${styles.cancelButton}`}
+                >
+                    Close
+                </button>
+            </Modal>
+        );
+    }
+
+    return (
+        <Modal
+            isOpen={true}
+            onClose={onClose}
+            title="Buy Chips"
+            titleIcon="💰"
+            error={topUpError}
+            isProcessing={isProcessing}
+            patternId="hexagons-topup"
+            scrollable={false}
+        >
+            {/* Current Stack */}
+            <div className={`mb-2 rounded-lg ${styles.infoCard}`}>
+                <div className="text-xs text-gray-400 mb-0.5">Current Stack</div>
+                <div className="text-lg font-bold text-white">${currentStackFormatted}</div>
+                <div className="text-xs text-gray-500 mt-0.5">Table Max: ${maxBuyInFormatted}</div>
+            </div>
+
+            {/* Wallet Balance */}
+            <div className={`mb-3 rounded-lg ${styles.infoCard}`}>
+                <div className="text-xs text-gray-400 mb-0.5">Wallet Balance</div>
+                <div className="text-lg font-bold text-white">${walletBalanceFormatted}</div>
+            </div>
+
+            {/* Top-Up Amount Selection */}
+            <div className="mb-4">
+                <label className="block text-gray-300 mb-2 font-medium text-sm">Top-Up Amount</label>
+                <div className="flex gap-2 mb-2">
+                    <button
+                        onClick={handleMinClick}
+                        className={`flex-1 py-2 text-white rounded transition duration-200 hover:bg-opacity-80 ${styles.maxButton}`}
+                    >
+                        <div className="text-xs text-gray-400">MIN</div>
+                        <div className="font-bold">${minTopUpFormatted}</div>
+                    </button>
+                    <button
+                        onClick={handleMaxClick}
+                        className={`flex-1 py-2 text-white rounded transition duration-200 hover:bg-opacity-80 ${styles.maxButton}`}
+                    >
+                        <div className="text-xs text-gray-400">MAX</div>
+                        <div className="font-bold">${maxTopUpFormatted}</div>
+                    </button>
+                </div>
+                <div className="flex-1">
+                    <input
+                        type="number"
+                        min={minTopUpFormatted}
+                        max={maxTopUpFormatted}
+                        step="0.01"
+                        value={topUpAmount}
+                        onChange={e => handleTopUpChange(e.target.value)}
+                        className={`w-full p-2 text-white rounded-lg text-center ${styles.amountInput}`}
+                        style={isAmountInvalid && topUpAmount ? { borderColor: "red" } : undefined}
+                        placeholder="0.00"
+                    />
+                </div>
+            </div>
+
+            {/* Action Buttons */}
+            <div className="flex flex-col space-y-3">
+                <button
+                    onClick={handleTopUpClick}
+                    disabled={isProcessing || isAmountInvalid}
+                    className={`w-full px-5 py-2 rounded-lg font-medium text-white shadow-md flex items-center justify-center gap-2 ${styles.buyButton}`}
+                >
+                    {isProcessing ? (
+                        <>
+                            <LoadingSpinner size="sm" />
+                            Processing...
+                        </>
+                    ) : (
+                        "BUY"
+                    )}
+                </button>
+                <button
+                    onClick={onClose}
+                    disabled={isProcessing}
+                    className={`w-full px-5 py-2 rounded-lg text-white font-medium transition-all duration-200 disabled:opacity-50 hover:opacity-80 ${styles.cancelButton}`}
+                >
+                    Cancel
+                </button>
+            </div>
+
+            <div className={`mt-3 text-xs ${styles.noteText}`}>
+                <strong>Note:</strong> You can only top up when not in an active hand.
+            </div>
+        </Modal>
+    );
+};
+
+export default TopUpModal;

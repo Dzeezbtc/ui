@@ -1,0 +1,82 @@
+# Data flow: the app talks to the club API, and the Go function for game actions
+
+Decided in Dzeezbtc/block52-club#54. The full version lives in that repo's `docs/ARCHITECTURE.md`; this is what it means
+for this app. It is the target with the feature switches below **on**; with them off the app is as it was, reading the node
+and signing with the built-in wallet.
+
+```
+                ┌──REST──► club API (TypeScript)   everything that is not a game action:
+                │                 │                sign-up and login, balances, tables, history, clubs
+this app ───────┤                 └─gRPC──► pokerchain node (reads)
+                │
+                └──REST──► Go functions (signer)   game actions only: signs, then broadcasts to the node over gRPC
+```
+
+## Feature switches: none of this is a one-way door
+
+Each part of this work has its own build-time switch (`src/config/features.ts`, set in `.env`). **Unset is the app as it was
+before**, so a build with no switches behaves exactly as it always did, and any part can be turned back off by editing
+`.env` and restarting; no code change and no data migration.
+
+| Switch | On (this stack) | Off / unset |
+|---|---|---|
+| `VITE_FEATURE_CLUB_ACCOUNTS` | club username and password sign-in; game actions through the Go function | built-in wallet only; no `/signin`; a stored club session is ignored and the wallet that was set aside at sign-in is put back at the next start |
+| `VITE_FEATURE_API_READS` | the Game Wallet balance and the table list come from the club API | the app reads the node directly, as before |
+| `VITE_FEATURE_NODE_SELECTOR` | (default **on**) node dropdown and block height in the header | hidden; no block-height polling |
+| `VITE_FEATURE_CLUB_LOGIN` | (default **on**) the header "Club login" link, when `VITE_CLUB_CONSOLE_URLS` is set | hidden |
+| `VITE_FEATURE_CLUB_AUTH_MODAL` | (default **off**) the header "Sign in" button: a Sign in / Create account modal that talks to the club API directly (`/auth/password`, `/auth/register`, with the Advanced seed/key paste). Needs `VITE_FEATURE_CLUB_ACCOUNTS` and `VITE_CLUB_SERVICE_URLS`. When on it replaces the "Club login" link to the console | the console link (if on) |
+
+Values: `true`, `1`, `on`, `yes` / `false`, `0`, `off`, `no` (any case); anything else is the default. Turning club accounts off
+while someone is signed in to one is safe: their built-in wallet was only set aside, not deleted. The server side is
+reversible too: the club API's routes are additions, and the Go function is only called when club accounts are on.
+
+When you add the next piece (table state through the API, say), give it a switch the same way.
+
+## What changes for this app
+
+- **New code reads through the club API** (`VITE_CLUB_SERVICE_URLS`, first entry), not the node. No new direct use of
+  `currentNetwork`, `getCosmosClient` or the node's REST or RPC.
+- **No node or network selector** with `VITE_FEATURE_NODE_SELECTOR=false`: the header's node dropdown and block-height poll are hidden (they show by default).
+- **Two ways in** (`/signin`, present with `VITE_FEATURE_CLUB_ACCOUNTS=true`):
+  - the **built-in wallet** (key in this browser): unchanged, still talks to the node directly for now;
+  - a **club account** (username and password): Block52 holds the key. Sign-in goes to the club API, which returns a
+    player token. Game actions, join, leave, top-up and the table WebSocket signature go **straight to the Go function**
+    (`VITE_SIGNER_URL`) with that token; it signs and broadcasts over gRPC. The club API is not in the game path, and
+    nothing is signed in the browser (`src/utils/custody/session.ts`).
+- **The Game Wallet panel** is where the account shows: username, address, USDC balance, Deposit and Sign out. A club
+  account has no seed phrase, so it shows no create, import, seed settings, withdraw or send.
+- **Known gap:** the club's network and location seat check (`seatRefusal`) needs a signature from the seed phrase, so it is
+  skipped for club accounts. The club's rule check (`canSit`) and deposit limits still apply. Tracked in
+  block52-club#59.
+- **The browser holds only a player token.** Never put a key, a seed phrase or the signer's KEK in the app. Making,
+  freezing and limiting accounts is the club API's job (it seals the keys); the Go function only reads them and signs.
+
+## How a table action reaches the Go function
+
+Poker actions (`performActionSync`), join, leave and top-up all go through `getSigningClient`, which for a club account
+returns the client in `src/utils/custody/session.ts`: one `POST {VITE_SIGNER_URL}/Perform` with the player token and a
+`requestId`. The function claims the request id, so **a retry with the same id returns the first result and never
+broadcasts twice**: the client makes the id once per action and reuses it (up to 2 retries) when the function was
+unreachable, a duplicate is in flight, or the chain could not be reached (`chain-unavailable`). Policy and chain
+rejections (a limit, a frozen account, a table rule) are final and are shown as the function's message. `txHash` means the
+node accepted the transaction, not that the game did; the table state shows the result.
+
+## Already on the API
+
+| Need | Route |
+|---|---|
+| Sign up, sign in | `POST /auth/register`, `POST /auth/password` |
+| Table action, account, WS signature | Go function: `POST /Perform`, `/GetAccount`, `/WsAuth` (not the club API) |
+| Balance | `GET /chain/balance/:address` |
+| Recent transactions | `GET /chain/transactions/:address` |
+| Tables (the lobby list, table picker, table admin) | `GET /chain/tables`: `{ games: GameListItem[] }`, each with `currentPlayers` (`useFindGames`) |
+
+The API also has staff routes for freezing an account and setting its limits; the app does not use them.
+
+## Still read from the node directly (to move, one at a time; about 48 files)
+
+A single table's live state (the WebSocket; how it should reach the app is open in #54), the explorer, hand history and replay, profiles, and the balance
+in the table header (the Game Wallet panel now reads it from the API). Track them in block52-club#54. Withdrawals for club accounts are not built.
+
+When you move a read, add the route to the API first, then switch the hook, and keep the CLAUDE.md type rules: the
+response shapes come from the SDK types, with no defaults added in the app.

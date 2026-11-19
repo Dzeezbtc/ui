@@ -1,0 +1,787 @@
+import React, { useState, useEffect, useMemo, useCallback } from "react";
+import { PlayerActionType, PlayerStatus, TexasHoldemRound } from "@block52/poker-vm-sdk";
+import { hasContent, hasElements, hasValue, isNullish } from "../../utils/guards";
+import { parseMicroToBigInt, microBigIntToUsdc, usdcToMicroBigInt } from "../../constants/currency";
+import { STORAGE_KEYS } from "../../constants/storageKeys";
+import { isTournamentFormat } from "../../utils/gameFormatUtils";
+import {
+    getActionFlags,
+    playerMoveInFlight,
+    getFormattedMaxBetAmount,
+    getInitialRaiseAmount,
+    getTotalPotMicro,
+    getUserPlayer,
+    isCappedAllInCall,
+    isMaxAllIn,
+    isShortShoveRaise,
+    shouldShowShowdownBar,
+    validRaiseAmount
+} from "../../utils/pockerActionUtils";
+import { formatDisplayAmount } from "../../utils/numberUtils";
+
+// Import hooks
+import { useTableState, useNextToActInfo } from "../../hooks";
+import { useActionSounds } from "../../hooks/notifications/useActionSounds";
+import { usePlayerLegalActions } from "../../hooks/playerActions/usePlayerLegalActions";
+import { useGameStateContext } from "../../context/GameStateContext";
+import { isConnectionLive } from "../../context/gameState/connection";
+import { useActionSubmit } from "../../context/ActionSubmitContext";
+import { useGameSettings } from "../../context/GameSettingsContext";
+import { useTableStyle } from "../../context/TableStyleContext";
+import { isThreeTableStyle } from "../../utils/tableStyle";
+import { BadBeatPanelHeader, BadBeatWaitingHeader } from "./BadBeatPanelHeader";
+import { usePlayerSeatInfo } from "../../hooks/player/usePlayerSeatInfo";
+import { dealCardsWithEntropy } from "../../hooks/playerActions/dealCards";
+import { useAutoDeal } from "../../hooks/playerActions/useAutoDeal";
+import { useAutoPostBlinds } from "../../hooks/playerActions/useAutoPostBlinds";
+import { useAutoNewHand } from "../../hooks/playerActions/useAutoNewHand";
+import { useAutoFold } from "../../hooks/playerActions/useAutoFold";
+import { useCallClock } from "../../hooks/playerActions/useCallClock";
+import { clockCallOpportunity } from "../../utils/turnClock";
+import { useLogicalTrack } from "../../context/gameState/LogicalTrackContext";
+import { useGameEventsContext } from "../../context/gameState/GameEventsContext";
+import { toast } from "react-toastify";
+import { usePreAction } from "../../hooks/playerActions/usePreAction";
+import { usePlayerTimer } from "../../hooks/player/usePlayerTimer";
+import { useAutoShowCards } from "../../hooks/playerActions/useAutoShowCards";
+import { useAutoMuck } from "../../hooks/playerActions/useAutoMuck";
+
+// Import raw action hooks — these THROW on failure (unlike the handle* wrappers
+// in actionHandlers, which swallow errors). Submission goes through the
+// ActionSubmitController, which owns dedupe / serialize / retry / error toasts.
+import { betHand } from "../../hooks/playerActions/betHand";
+import { callHand } from "../../hooks/playerActions/callHand";
+import { checkHand } from "../../hooks/playerActions/checkHand";
+import { foldHand } from "../../hooks/playerActions/foldHand";
+import { muckCards } from "../../hooks/playerActions/muckCards";
+import { showCards } from "../../hooks/playerActions/showCards";
+import { raiseHand } from "../../hooks/playerActions/raiseHand";
+import { postSmallBlind } from "../../hooks/playerActions/postSmallBlind";
+import { postBigBlind } from "../../hooks/playerActions/postBigBlind";
+import { startNewHand } from "../../hooks/playerActions/startNewHand";
+import type { PlayerActionResult } from "../../types";
+
+// Import utils
+import { getActionByType } from "../../utils/actionUtils";
+import { getRaiseToAmount } from "../../utils/raiseUtils";
+import { getViewportMode } from "../../config/stageGeometry";
+
+// Import sub-components
+import { ActionButton } from "./ActionButton";
+import { DealButtonGroup } from "./DealButtonGroup";
+import { ShowdownButtons } from "./ShowdownButtons";
+import { BlindButtonGroup } from "./BlindButtonGroup";
+import { MainActionButtons } from "./MainActionButtons";
+import { RaiseBetControls } from "./RaiseBetControls";
+import { PreActionControls } from "./PreActionControls";
+import { allowsBlindMultiples } from "../../utils/preflopPresets";
+import { isCheckFreeForPlayer, hasVoluntarilyCommittedThisRound, amountToCallMicroForPlayer } from "../../utils/chipUtils";
+import { shouldShowPreActions, shouldClearPreAction, resolvePreAction, preActionButtons, PreAction, ResolvedPreAction } from "../../utils/preActions";
+
+// Import types
+import type { PokerActionPanelProps } from "./types";
+import { hasFoldedOrMucked } from "../../utils/playerStatus";
+import { useLanguage } from "../../i18n/useLanguage";
+
+export const PokerActionPanel: React.FC<PokerActionPanelProps> = ({ tableId, network, onTransactionSubmitted }) => {
+    const { t } = useLanguage();
+    // The ActionSubmitController owns dedupe, serialization, the safe transport
+    // retry, the confirmation gate (busy stays until the chain advances a signal
+    // — ui#364/#440), the 8s escape-hatch, and centralized error toasts.
+    // Every submission from this panel — manual buttons AND the automatic hooks
+    // (new-hand / blinds / deal / fold / pre-check / show / muck) — goes through
+    // the one ActionSubmitController (ui#635), so its loadingAction is the single
+    // source for every spinner.
+    const { submit, loadingAction, isBusy: isSubmitBusy, lastError: submitLastError } = useActionSubmit();
+    // Hide stale controls immediately after a manual click, until the next
+    // game-state snapshot confirms the new legal actions.
+    const [optimisticActionName, setOptimisticActionName] = useState<string | null>(null);
+    const [optimisticActionTurnIndex, setOptimisticActionTurnIndex] = useState<number | null>(null);
+    const lastSeenSubmitError = React.useRef(submitLastError);
+
+    // Action sounds. Preloading is owned by the Table (useGameStateSounds, which
+    // knows the playerActionSounds setting); the player is shared, so this panel
+    // plays from the same warmed buffers without fetching when sounds are off.
+    const { playActionSound } = useActionSounds({ preload: false });
+
+    // Detect mobile landscape orientation
+    const [isMobileLandscape, setIsMobileLandscape] = useState(getViewportMode() === "mobile-landscape");
+
+    useEffect(() => {
+        const checkOrientation = () => {
+            setIsMobileLandscape(getViewportMode() === "mobile-landscape");
+        };
+
+        window.addEventListener("resize", checkOrientation);
+        window.addEventListener("orientationchange", checkOrientation);
+
+        return () => {
+            window.removeEventListener("resize", checkOrientation);
+            window.removeEventListener("orientationchange", checkOrientation);
+        };
+    }, []);
+
+    // Get game state and player data
+    const { gameState, gameFormat, gameVariant, connection } = useGameStateContext();
+    const isTournament = isTournamentFormat(gameFormat);
+    const players = gameState?.players || null;
+    const { legalActions, isPlayerTurn, playerStatus, actionTurnIndex } = usePlayerLegalActions();
+    const { totalPot } = useTableState();
+    const totalPotMicro = useMemo(() => getTotalPotMicro(totalPot), [totalPot]);
+
+    // Read reactive game settings from context
+    const {
+        autoDeal: autoDealEnabled,
+        autoPostBlinds: autoPostBlindsEnabled,
+        autoNewHand: autoNewHandEnabled,
+        autoFold: autoFoldEnabled,
+        autoMuck: autoMuckEnabled,
+        callClock: callClockEnabled,
+        playerActionSounds,
+        preSelectCheck
+    } = useGameSettings();
+
+    // Get user address
+    const userAddress = useMemo(() => localStorage.getItem(STORAGE_KEYS.cosmosAddress)?.toLowerCase(), []);
+
+    // Get user player
+    const userPlayer = useMemo(() => getUserPlayer(players, userAddress), [players, userAddress]);
+
+    useEffect(() => {
+        if (submitLastError !== lastSeenSubmitError.current) {
+            lastSeenSubmitError.current = submitLastError;
+            if (submitLastError?.actionName === optimisticActionName) {
+                setOptimisticActionName(null);
+                setOptimisticActionTurnIndex(null);
+            }
+        }
+    }, [submitLastError, optimisticActionName]);
+
+    useEffect(() => {
+        if (optimisticActionName && !legalActions.some(action => action.action === optimisticActionName)) {
+            setOptimisticActionName(null);
+            setOptimisticActionTurnIndex(null);
+        }
+    }, [legalActions, optimisticActionName]);
+
+    useEffect(() => {
+        if (optimisticActionName && hasValue(optimisticActionTurnIndex) && actionTurnIndex !== optimisticActionTurnIndex) {
+            setOptimisticActionName(null);
+            setOptimisticActionTurnIndex(null);
+        }
+    }, [actionTurnIndex, optimisticActionName, optimisticActionTurnIndex]);
+
+    // Determine if it's user's turn
+    // It is only "our turn" on a view we can trust: while the game-state socket
+    // is not live (ui#613) the last snapshot may be stale, so every action
+    // control hides or disables exactly as when it is not our turn, and the
+    // controller refuses anything that slips through. The table banner explains.
+    const isUsersTurn = isPlayerTurn && isConnectionLive(connection);
+
+    // Check available actions
+    const {
+        hasSmallBlindAction,
+        hasBigBlindAction,
+        hasFoldAction,
+        hasCheckAction,
+        hasCallAction,
+        hasBetAction,
+        hasRaiseAction,
+        hasMuckAction,
+        hasShowAction,
+        hasDealAction
+    } = getActionFlags(legalActions);
+
+    // Blind amounts - single source of truth from gameState.gameOptions (per Commandment 7)
+    // Defined early so they can be used in useAutoPostBlinds hook
+    const smallBlindMicro = useMemo(() => parseMicroToBigInt(gameState?.gameOptions?.smallBlind), [gameState?.gameOptions?.smallBlind]);
+
+    const bigBlindMicro = useMemo(() => parseMicroToBigInt(gameState?.gameOptions?.bigBlind), [gameState?.gameOptions?.bigBlind]);
+
+    // Auto-deal / auto-post-blinds / auto-new-hand submit through the same
+    // ActionSubmitController as the manual buttons (ui#635), so this account has
+    // ONE outbound queue: they dedupe + serialize with a click instead of racing
+    // it, the controller's loadingAction drives their spinners, and a rejection
+    // is toasted rather than logged.
+
+    // Auto-deal hook - automatically triggers deal when conditions are met
+    // Can be disabled via URL query param: ?autodeal=false or via settings panel
+    useAutoDeal(tableId, network, hasDealAction, isUsersTurn, submit, onTransactionSubmitted, autoDealEnabled);
+
+    // Auto-post blinds hook - automatically posts small/big blind when conditions are met
+    // Can be disabled via URL query param: ?autoblinds=false or via settings panel
+    const handleAutoBlindSubmitted = useCallback(
+        (_blindType: "small" | "big", txHash: string) => onTransactionSubmitted?.(txHash),
+        [onTransactionSubmitted]
+    );
+    useAutoPostBlinds(
+        tableId,
+        network,
+        hasSmallBlindAction,
+        hasBigBlindAction,
+        smallBlindMicro,
+        bigBlindMicro,
+        isUsersTurn,
+        submit,
+        handleAutoBlindSubmitted,
+        autoPostBlindsEnabled
+    );
+
+    // Get timer data for the current user's seat (used by auto-fold)
+    const { timeRemaining } = usePlayerTimer(tableId, userPlayer?.seat);
+
+    // Auto-fold hook - automatically folds (or checks) when the action timer expires
+    // Can be disabled via URL query param: ?autofold=false or via settings panel
+    const handleAutoActionSubmitted = useCallback(
+        (_action: PlayerActionType.FOLD | PlayerActionType.CHECK, txHash: string) => onTransactionSubmitted?.(txHash),
+        [onTransactionSubmitted]
+    );
+    useAutoFold(
+        tableId,
+        network,
+        hasFoldAction,
+        hasCheckAction,
+        isUsersTurn,
+        timeRemaining,
+        submit,
+        isSubmitBusy,
+        handleAutoActionSubmitted,
+        autoFoldEnabled
+    );
+
+    // Call the clock (ui#819): the observer's side of the action clock. When the
+    // player to act is someone else and their deadline (plus the chain's
+    // inclusion grace and block-time margin, plus this seat's place in the line
+    // of observers from the button) has passed, submit the chain's `timeout`
+    // action; the engine verifies the deadline and plays their forced default
+    // for them. Keeps a dropped connection from locking the table. Setting /
+    // ?callclock=false.
+    //
+    // A submission decision, so it reads this table's LOGICAL track,
+    // never the paced rendered one: a showdown hold or a backlog would anchor
+    // the deadline on an older action and fire early. `latestItem` is only the
+    // tick that says a new frame arrived.
+    const { latestItem } = useGameEventsContext();
+    const track = useLogicalTrack();
+    const clockCall = useMemo(() => {
+        void latestItem;
+        return clockCallOpportunity(track.get(), userAddress, isTournament);
+    }, [latestItem, userAddress, track, isTournament]);
+    const stalledSeat = clockCall?.seat;
+    // Only a toast: no balance changed and the player did nothing, so the
+    // transaction popup and balance refetch (onTransactionSubmitted) stay quiet.
+    const handleClockCalled = useCallback(() => toast.info(t("action.calledClock", { seat: String(stalledSeat) })), [stalledSeat]);
+    useCallClock(tableId, network, clockCall, submit, isSubmitBusy, isConnectionLive(connection), handleClockCalled, callClockEnabled);
+
+    // Pre-select "Check/Fold" (ui#388): before it's the player's turn, if checking
+    // would be free, offer a box that checks when action reaches them, or folds if
+    // someone bets first. Ephemeral per-round intent — NOT a persisted setting.
+    // The pre-action bar (ui#388): while it is not the player's turn they arm one of
+    // Check/Fold, Check | Call {amount}, or Call Any, which fires on their turn.
+    const [preAction, setPreAction] = useState<PreAction | null>(null);
+    const [armedCallMicro, setArmedCallMicro] = useState<bigint | null>(null);
+
+    // Whether the player will be able to CHECK when action returns to them: no one has
+    // out-committed them this round AND they have not themselves bet/called this round
+    // (after committing, action only returns via a raise they must answer — ui#388).
+    const canCheckNext = useMemo(() => {
+        const even = isCheckFreeForPlayer(players, userAddress, gameState?.round, gameState?.previousActions ?? []);
+        const committed = hasVoluntarilyCommittedThisRound(userAddress ?? "", gameState?.round ?? "", gameState?.previousActions ?? []);
+        return even && !committed;
+    }, [players, userAddress, gameState?.round, gameState?.previousActions]);
+
+    // Chips owed to call right now (0 when even) — drives the "Call {amount}" button and
+    // is available before the turn, when there is no CALL legal action yet.
+    const preActionCallMicro = useMemo(
+        () => amountToCallMicroForPlayer(players, userAddress, gameState?.round, gameState?.previousActions ?? []),
+        [players, userAddress, gameState?.round, gameState?.previousActions]
+    );
+    const preActionStackMicro = useMemo(() => parseMicroToBigInt(userPlayer?.stack), [userPlayer?.stack]);
+
+    // Which pre-action buttons to show (empty = hide): can check → Check/Fold·Check·Call Any;
+    // owe a bet you can cover → Fold·Call {amount}·Call Any; calling would jam → Fold·All In;
+    // committed with nothing owed → nothing until a raise lands.
+    const preActionBtns = useMemo(() => {
+        const owesBet = preActionCallMicro > BigInt(0);
+        const callIsAllInPre = owesBet && preActionStackMicro > BigInt(0) && preActionCallMicro >= preActionStackMicro;
+        return preActionButtons(canCheckNext, owesBet, callIsAllInPre);
+    }, [canCheckNext, preActionCallMicro, preActionStackMicro]);
+
+    // Auto-show-cards hook - automatically shows cards when the action timer expires
+    useAutoShowCards(tableId, network, hasShowAction, isUsersTurn, timeRemaining, submit, isSubmitBusy, onTransactionSubmitted);
+
+    // Auto-muck hook - automatically mucks cards at showdown when enabled in settings
+    useAutoMuck(tableId, network, hasMuckAction, isUsersTurn, submit, isSubmitBusy, onTransactionSubmitted, autoMuckEnabled);
+
+    // Auto-new-hand hook - automatically triggers new hand when conditions are met
+    // Can be disabled via URL query param: ?autonewhand=false or via settings panel.
+    // Its trigger inputs (hasNewHandAction / isUsersTurn) are derived internally
+    // from the LOGICAL track so the deal is never delayed by the rendered
+    // showdown hold (see useAutoNewHand).
+    const { isDealingNewHand } = useAutoNewHand(tableId, network, submit, submitLastError, onTransactionSubmitted, autoNewHandEnabled);
+
+    // Show deal button if player has the deal action
+    const controlsPending = hasValue(optimisticActionName);
+    const shouldShowDealButton = hasDealAction && isUsersTurn && !controlsPending;
+    const hideOtherButtons = shouldShowDealButton;
+
+    // Get action details
+    const callAction = getActionByType(legalActions, PlayerActionType.CALL);
+    const betAction = getActionByType(legalActions, PlayerActionType.BET);
+    const raiseAction = getActionByType(legalActions, PlayerActionType.RAISE);
+
+    // Store amounts as bigint internally (in micro-units, 10^6 precision)
+    const minBetMicro = useMemo(() => parseMicroToBigInt(betAction?.min), [betAction]);
+    const maxBetMicro = useMemo(() => parseMicroToBigInt(betAction?.max), [betAction]);
+    const minRaiseMicro = useMemo(() => parseMicroToBigInt(raiseAction?.min), [raiseAction]);
+    const maxRaiseMicro = useMemo(() => parseMicroToBigInt(raiseAction?.max), [raiseAction]);
+    const callAmountMicro = useMemo(() => parseMicroToBigInt(callAction?.min), [callAction]);
+
+    // Convert to display values — USDC conversion for cash, raw chips for tournaments
+    const toDisplay = useCallback((micro: bigint) => (isTournament ? Number(micro) : microBigIntToUsdc(micro)), [isTournament]);
+    // Convert display values back to chain units — raw bigint for tournaments, ×10^6 for cash
+    const fromDisplay = useCallback((display: number) => (isTournament ? BigInt(Math.floor(display)) : usdcToMicroBigInt(display)), [isTournament]);
+    const minBet = useMemo(() => toDisplay(minBetMicro), [toDisplay, minBetMicro]);
+    const maxBet = useMemo(() => toDisplay(maxBetMicro), [toDisplay, maxBetMicro]);
+    const minRaise = useMemo(() => toDisplay(minRaiseMicro), [toDisplay, minRaiseMicro]);
+    const maxRaise = useMemo(() => toDisplay(maxRaiseMicro), [toDisplay, maxRaiseMicro]);
+    const callAmount = useMemo(() => toDisplay(callAmountMicro), [toDisplay, callAmountMicro]);
+
+    // Formatted amounts for display (blind amounts defined earlier for use in hooks)
+    const formattedSmallBlindAmount = useMemo(() => formatDisplayAmount(toDisplay(smallBlindMicro), isTournament), [toDisplay, smallBlindMicro, isTournament]);
+    const formattedBigBlindAmount = useMemo(() => formatDisplayAmount(toDisplay(bigBlindMicro), isTournament), [toDisplay, bigBlindMicro, isTournament]);
+    const bigBlindUsdc = useMemo(() => toDisplay(bigBlindMicro), [toDisplay, bigBlindMicro]);
+    const formattedCallAmount = useMemo(() => formatDisplayAmount(callAmount, isTournament), [callAmount, isTournament]);
+    const badBeat = isThreeTableStyle(useTableStyle());
+    const { currentUserSeat } = usePlayerSeatInfo();
+
+    // ---- Pre-action bar (ui#388) ------------------------------------------------
+    const preActionCallLabel = useMemo(() => formatDisplayAmount(toDisplay(preActionCallMicro), isTournament), [toDisplay, preActionCallMicro, isTournament]);
+
+    // Arm a pre-action (mutually exclusive). "Call this amount" remembers the size it
+    // was armed at, so a later raise (the owed amount changes) invalidates it.
+    const armPreAction = useCallback(
+        (action: PreAction | null) => {
+            setPreAction(action);
+            setArmedCallMicro(action === "call-exact" ? preActionCallMicro : null);
+        },
+        [preActionCallMicro]
+    );
+
+    // Show the bar while it is not the player's turn, they are in the hand, on a betting
+    // street, AND there is at least one applicable button (hidden when committed with
+    // nothing owed). See utils/preActions.
+    const showPreActions =
+        shouldShowPreActions({ enabled: preSelectCheck, isUsersTurn, playerStatus, round: gameState?.round }) && hasElements(preActionBtns);
+
+    // Scope an armed pre-action to the current round.
+    useEffect(() => {
+        setPreAction(null);
+        setArmedCallMicro(null);
+    }, [gameState?.round]);
+
+    // Clear when leaving the hand, or when the armed selection no longer fits the current
+    // button set (the situation changed), or when a "Call {amount}" pick's size changed.
+    useEffect(() => {
+        if (isNullish(preAction)) return;
+        const left = shouldClearPreAction({ action: preAction, isUsersTurn, playerStatus });
+        const amountChanged = preAction === "call-exact" && preActionCallMicro !== armedCallMicro;
+        const stale = !isUsersTurn && (!preActionBtns.includes(preAction) || amountChanged);
+        if (left || stale) {
+            setPreAction(null);
+            setArmedCallMicro(null);
+        }
+    }, [preAction, isUsersTurn, playerStatus, preActionBtns, preActionCallMicro, armedCallMicro]);
+
+    // A queued pre-action acts on the player's turn WITHOUT the betting bar appearing:
+    // once it is their turn and the armed action resolves to a real move, usePreAction
+    // submits it, so the action controls are suppressed (no flash of the betting bar).
+    const preActionLegal = { hasCheckAction, hasCallAction, hasFoldAction };
+    // "Call {amount}" fires only at the amount it was armed at (ui#875).
+    const preActionCallGuard = { armedCallMicro, owedMicro: preActionCallMicro };
+    const preActionFiring =
+        isUsersTurn && !isNullish(preAction) && !isNullish(resolvePreAction(preAction, preActionLegal, preActionCallGuard));
+
+    const clearPreAction = useCallback(() => {
+        setPreAction(null);
+        setArmedCallMicro(null);
+    }, []);
+    // A fired pre-action holds the controls pending like a clicked button does,
+    // until the move lands or fails — otherwise clearing the armed intent while
+    // it confirms flashes the whole betting bar for that moment.
+    const markPreActionPending = useCallback(
+        (actionName: ResolvedPreAction) => {
+            setOptimisticActionName(actionName);
+            setOptimisticActionTurnIndex(actionTurnIndex);
+        },
+        [actionTurnIndex]
+    );
+    usePreAction(
+        tableId,
+        network,
+        preAction,
+        preActionLegal,
+        callAmountMicro,
+        isUsersTurn,
+        submit,
+        isSubmitBusy,
+        onTransactionSubmitted,
+        clearPreAction,
+        preActionCallGuard,
+        markPreActionPending
+    );
+
+    // All-in as a FE label (poker-vm#2351/#2353). The engine never advertises an
+    // ALL_IN action; a whole-stack commit arrives as a normal legal action whose
+    // `max` equals the stack. Two shapes need FE handling:
+    //   - Short-shove RAISE {min:stack,max:stack}: a min===max range breaks the
+    //     bet slider, so render a dedicated ALL-IN button that dispatches
+    //     RAISE(stack) and suppress the normal raise button + slider.
+    //   - Capped all-in CALL (facing a bet >= stack, no raise): the normal CALL
+    //     button already commits the whole stack — just relabel it "Call (All-In)".
+    const stackMicro = useMemo(() => parseMicroToBigInt(userPlayer?.stack), [userPlayer?.stack]);
+    const shortShoveRaise = useMemo(() => isShortShoveRaise(legalActions, stackMicro), [legalActions, stackMicro]);
+    const callIsAllIn = useMemo(() => isCappedAllInCall(legalActions, stackMicro), [legalActions, stackMicro]);
+    // Pot-limit (ui#768): the engine caps the bet/raise max at the pot, so for a
+    // deep stack the max is a pot-sized bet, not an all-in.
+    const maxIsAllIn = useMemo(
+        () => isMaxAllIn(hasBetAction ? maxBetMicro : maxRaiseMicro, stackMicro),
+        [hasBetAction, maxBetMicro, maxRaiseMicro, stackMicro]
+    );
+    const formattedAllInAmount = useMemo(() => formatDisplayAmount(toDisplay(stackMicro), isTournament), [toDisplay, stackMicro, isTournament]);
+    const formattedMaxBetAmount = useMemo(
+        () => getFormattedMaxBetAmount(hasBetAction, maxBet, maxRaise, isTournament),
+        [hasBetAction, maxBet, maxRaise, isTournament]
+    );
+
+    // Raise amount state
+    const initialAmount = getInitialRaiseAmount(hasBetAction, minBet, minRaise);
+    const [raiseAmount, setRaiseAmount] = useState<number>(initialAmount);
+
+    // Validation
+    const isRaiseAmountInvalid = validRaiseAmount(raiseAmount, hasRaiseAction, hasBetAction, minRaise, maxRaise, minBet, maxBet);
+
+    // Update raise amount when actions become available
+    useEffect(() => {
+        if (hasRaiseAction && minRaise > 0) {
+            setRaiseAmount(minRaise);
+        } else if (hasBetAction && minBet > 0) {
+            setRaiseAmount(minBet);
+        }
+    }, [hasRaiseAction, hasBetAction, minRaise, minBet]);
+
+    // Submit a manual action through the controller. It plays the action sound,
+    // then hands off: the controller dedupes double-clicks, serializes, retries
+    // transport errors safely, holds the spinner until the chain confirms a
+    // signal (ui#364/#440), runs the 8s escape-hatch, and toasts any failure.
+    // Callers just describe the action and how to run it (the raw hook throws
+    // on failure, so the controller can classify it).
+    const submitAction = useCallback(
+        (actionName: string, run: () => Promise<PlayerActionResult>, playSound = true) => {
+            setOptimisticActionName(actionName);
+            setOptimisticActionTurnIndex(actionTurnIndex);
+            if (playSound && playerActionSounds) {
+                playActionSound(actionName);
+            }
+            submit({ actionName, run, onSuccess: onTransactionSubmitted });
+        },
+        [actionTurnIndex, submit, onTransactionSubmitted, playActionSound, playerActionSounds]
+    );
+
+    // Handler for dealing cards with entropy. Async to satisfy DealButtonGroup's
+    // onDeal signature, though submission itself is fire-and-forget.
+    const handleDealWithEntropy = useCallback(
+        async (entropy: string): Promise<void> => {
+            submitAction("deal", () => dealCardsWithEntropy(tableId, network, entropy));
+        },
+        [tableId, network, submitAction]
+    );
+
+    // Action handlers - use blind amounts directly from gameState (per Commandment 7: NO fallbacks)
+    const handlePostSmallBlindAction = () => {
+        if (smallBlindMicro === 0n) return;
+        submitAction("small-blind", () => postSmallBlind(tableId, smallBlindMicro, network));
+    };
+
+    const handlePostBigBlindAction = () => {
+        if (bigBlindMicro === 0n) return;
+        submitAction("big-blind", () => postBigBlind(tableId, bigBlindMicro, network));
+    };
+
+    const handleBetAction = () => {
+        const amountMicro = fromDisplay(raiseAmount);
+        submitAction("bet", () => betHand(tableId, amountMicro, network));
+    };
+
+    const handleRaiseAction = () => {
+        const amountMicro = fromDisplay(raiseAmount);
+        submitAction("raise", () => raiseHand(tableId, amountMicro, network));
+    };
+
+    const handleFoldAction = () => submitAction("fold", () => foldHand(tableId, network));
+    const handleCheckAction = () => submitAction("check", () => checkHand(tableId, network));
+    const handleCallAction = () => submitAction("call", () => callHand(tableId, callAmountMicro, network));
+    const handleMuckAction = () => submitAction("muck", () => muckCards(tableId, network));
+    const handleShowAction = () => submitAction("show", () => showCards(tableId, network));
+    const handleNewHandAction = () => submitAction("new-hand", () => startNewHand(tableId, network));
+
+    // Calculate button visibility flags
+    const { canFoldAnytime, showActionButtons, showSmallBlindButton, showBigBlindButton } = useMemo(() => {
+        const showButtons = !!userPlayer;
+        const shouldShowSmallBlindButton = hasSmallBlindAction && isUsersTurn;
+        const shouldShowBigBlindButton = hasBigBlindAction && isUsersTurn;
+
+        return {
+            canFoldAnytime: hasFoldAction && !hasFoldedOrMucked(playerStatus) && showButtons,
+            showActionButtons: isUsersTurn && hasElements(legalActions) && showButtons && !controlsPending && !preActionFiring,
+            showSmallBlindButton: shouldShowSmallBlindButton && showButtons && !controlsPending,
+            showBigBlindButton: shouldShowBigBlindButton && showButtons && !controlsPending
+        };
+    }, [hasSmallBlindAction, hasBigBlindAction, isUsersTurn, userPlayer, hasFoldAction, playerStatus, legalActions, controlsPending, preActionFiring]);
+
+    // Increment/decrement handlers - always step by big blind amount
+    const getStep = (): number => {
+        return bigBlindUsdc > 0 ? bigBlindUsdc : hasBetAction ? minBet : hasRaiseAction ? minRaise : 0;
+    };
+
+    const handleRaiseIncrement = () => {
+        const step = getStep();
+        const maxAmount = hasBetAction ? maxBet : maxRaise;
+        setRaiseAmount(prev => Math.min(prev + step, maxAmount));
+    };
+
+    const handleRaiseDecrement = () => {
+        const step = getStep();
+        const minAmount = hasBetAction ? minBet : minRaise;
+        setRaiseAmount(prev => Math.max(prev - step, minAmount));
+    };
+
+    const handleAllInAction = () => {
+        const maxAmount = hasBetAction ? maxBet : maxRaise;
+        setRaiseAmount(maxAmount);
+
+        if (import.meta.env.VITE_ALL_IN_INSTANT_EXECUTE !== "true") return;
+
+        if (!hasContent(tableId)) return;
+        const amountMicro = fromDisplay(maxAmount);
+        // A pot-limit max short of the stack is a normal bet/raise: let the
+        // controller play its usual sound rather than announcing an all-in.
+        if (playerActionSounds && maxIsAllIn) {
+            playActionSound("all-in");
+        }
+        submitAction(
+            hasRaiseAction ? "raise" : "bet",
+            () => (hasRaiseAction ? raiseHand(tableId, amountMicro, network) : betHand(tableId, amountMicro, network)),
+            !maxIsAllIn
+        );
+    };
+
+    // Short-shove ALL-IN: dispatch the all-in-only RAISE for the whole stack (the
+    // real legal action — no ALL_IN dispatch). Commits immediately; there is no
+    // amount to stage. (poker-vm#2353, ui#457)
+    const handleShortShoveAllInAction = () => {
+        if (!hasContent(tableId)) return;
+        if (playerActionSounds) {
+            playActionSound("all-in");
+        }
+        submitAction("raise", () => raiseHand(tableId, stackMicro, network), false);
+    };
+
+    return (
+        <div
+            className={`fixed left-0 right-0 text-white flex justify-center items-center relative ${
+                isMobileLandscape ? "bottom-0 p-0.5" : "bottom-12 lg:bottom-1 p-2 lg:p-1 pb-4 lg:pb-1"
+            }`}
+        >
+            <div
+                data-part="action-panel"
+                className={`flex flex-col w-full justify-center rounded-lg relative z-10 ${
+                    isMobileLandscape ? "mx-1 space-y-0.5 max-w-full" : "lg:w-[570px] mx-4 lg:mx-0 space-y-2 lg:space-y-3 max-w-full"
+                }`}
+            >
+                {/* Pre-action bar (ui#388) — shown when it's not your turn: Check/Fold,
+                    Check | Call {amount}, and Call Any. Arm one and it fires on your turn
+                    with no betting bar. */}
+                {/* Bad Beat: "Your turn · $10 to call" and the pot odds (ui#36) */}
+                {badBeat && isUsersTurn && (
+                    <BadBeatPanelHeader
+                        toCall={callAmount}
+                        pot={toDisplay(totalPotMicro)}
+                        callLabel={formattedCallAmount}
+                        potLabel={formatDisplayAmount(toDisplay(totalPotMicro), isTournament)}
+                    />
+                )}
+                {badBeat && !isUsersTurn && <BadBeatWaitingHeader nextToAct={gameState?.nextToAct ?? 0} mySeat={currentUserSeat} />}
+
+                {showPreActions && (
+                    <PreActionControls
+                        buttons={preActionBtns}
+                        armed={preAction}
+                        onArm={armPreAction}
+                        callAmountLabel={preActionCallLabel}
+                        isMobileLandscape={isMobileLandscape}
+                    />
+                )}
+
+                {/* Deal Button Group */}
+                {shouldShowDealButton && (
+                    <DealButtonGroup
+                        tableId={tableId}
+                        onDeal={handleDealWithEntropy}
+                        loading={loadingAction === "deal"}
+                        disabled={!isUsersTurn}
+                        autoDealEnabled={autoDealEnabled}
+                    />
+                )}
+
+                {/* New Hand Button - hidden when auto-new-hand is enabled */}
+                {gameState?.round === TexasHoldemRound.END && !autoNewHandEnabled && !controlsPending && (
+                    <div className="flex justify-center mb-2 lg:mb-3">
+                        <ActionButton
+                            action="new-hand"
+                            label={t("action.startNewHand")}
+                            loading={loadingAction === "new-hand"}
+                            onClick={handleNewHandAction}
+                            variant="primary"
+                            className="px-6 lg:px-8 py-2 lg:py-3 text-sm lg:text-base font-bold"
+                        />
+                    </div>
+                )}
+
+                {/* Auto-new-hand: hold on the showdown for a beat, showing a
+                    "Dealing hand #X…" indicator before the next hand deals (ui#443) */}
+                {autoNewHandEnabled && isDealingNewHand && !controlsPending && (
+                    <div className="flex justify-center mb-2 lg:mb-3">
+                        <ActionButton
+                            action="new-hand"
+                            label={t("action.dealingHand", { hand: (gameState?.handNumber ?? 0) + 1 })}
+                            loading={true}
+                            disabled={true}
+                            onClick={() => {}}
+                            variant="primary"
+                            className="px-6 lg:px-8 py-2 lg:py-3 text-sm lg:text-base font-bold"
+                        />
+                    </div>
+                )}
+
+                {/* Only show other buttons if deal button is not showing */}
+                {!hideOtherButtons && (
+                    <>
+                        {/* Showdown Buttons — gated on isUsersTurn like every other
+                            control (ui#697). In the sequenced clockwise showdown
+                            (poker-vm#2140) the engine offers SHOW/MUCK only to the single
+                            pending losing-hand player (nextToAct); a forced/auto reveal
+                            flips a seat to SHOWING with no action and is never the actor.
+                            Without this gate an auto-revealed seat still rendered a Show
+                            button. `!controlsPending` additionally hides the bar the
+                            instant this player submits, until the next snapshot (ui#678,
+                            mirroring #650). */}
+                        {shouldShowShowdownBar({ hasShowAction, hasMuckAction, isUsersTurn, controlsPending }) && (
+                            <ShowdownButtons
+                                canMuck={hasMuckAction}
+                                canShow={hasShowAction}
+                                loading={loadingAction}
+                                onMuck={handleMuckAction}
+                                onShow={handleShowAction}
+                            />
+                        )}
+
+                        {/* Blind Buttons */}
+                        {(showSmallBlindButton || showBigBlindButton) && !controlsPending && (
+                            <BlindButtonGroup
+                                showSmallBlind={showSmallBlindButton}
+                                showBigBlind={showBigBlindButton}
+                                smallBlindAmount={formattedSmallBlindAmount}
+                                bigBlindAmount={formattedBigBlindAmount}
+                                canFold={canFoldAnytime && (!showActionButtons || showSmallBlindButton || showBigBlindButton)}
+                                playerStatus={userPlayer?.status || PlayerStatus.SEATED}
+                                loading={loadingAction}
+                                isMobileLandscape={isMobileLandscape}
+                                isTournament={isTournament}
+                                onPostSmallBlind={handlePostSmallBlindAction}
+                                onPostBigBlind={handlePostBigBlindAction}
+                                onFold={handleFoldAction}
+                            />
+                        )}
+
+                        {/* Main Action Buttons */}
+                        {showActionButtons && !showSmallBlindButton && !showBigBlindButton && (
+                            <>
+                                <MainActionButtons
+                                    canFold={canFoldAnytime}
+                                    canCheck={hasCheckAction}
+                                    // Defensive guard for #2152: never offer CALL to an ALL_IN
+                                    // player. The engine doesn't emit CALL in this case, but a
+                                    // stale legalActions render (optimistic-update desync, mid-
+                                    // tx flicker) could otherwise paint a "CALL $0.00" button.
+                                    canCall={hasCallAction && userPlayer?.status !== PlayerStatus.ALL_IN}
+                                    callAmount={formattedCallAmount}
+                                    // Capped all-in call: the CALL commits the whole stack — relabel it.
+                                    callIsAllIn={callIsAllIn}
+                                    canBet={hasBetAction}
+                                    // Short-shove RAISE is an all-in-only range; the dedicated ALL-IN
+                                    // button handles it, so suppress the normal (slider-driven) raise.
+                                    canRaise={hasRaiseAction && !shortShoveRaise}
+                                    raiseAmount={raiseAmount}
+                                    isRaiseAmountInvalid={isRaiseAmountInvalid}
+                                    playerStatus={userPlayer?.status || PlayerStatus.SEATED}
+                                    loading={playerMoveInFlight(loadingAction)}
+                                    isAllIn={maxIsAllIn && raiseAmount >= (hasBetAction ? maxBet : maxRaise)}
+                                    isMobileLandscape={isMobileLandscape}
+                                    currentRound={gameState?.round || TexasHoldemRound.ANTE}
+                                    previousActions={gameState?.previousActions || []}
+                                    userAddress={userAddress || ""}
+                                    isTournament={isTournament}
+                                    canAllIn={shortShoveRaise}
+                                    allInAmount={formattedAllInAmount}
+                                    onFold={handleFoldAction}
+                                    onCheck={handleCheckAction}
+                                    onCall={handleCallAction}
+                                    onBetOrRaise={hasRaiseAction ? handleRaiseAction : handleBetAction}
+                                    onAllIn={handleShortShoveAllInAction}
+                                />
+
+                                {/* Raise/Bet Controls — hidden for a short-shove RAISE, whose
+                                    all-in-only (min===max) range would render a degenerate slider;
+                                    the dedicated ALL-IN button drives that shove instead. */}
+                                {(hasBetAction || hasRaiseAction) && !shortShoveRaise && (
+                                    <RaiseBetControls
+                                        amount={raiseAmount}
+                                        minAmount={hasBetAction ? minBet : minRaise}
+                                        maxAmount={hasBetAction ? maxBet : maxRaise}
+                                        formattedMaxAmount={formattedMaxBetAmount}
+                                        displayOffset={
+                                            hasRaiseAction
+                                                ? getRaiseToAmount(
+                                                      raiseAmount,
+                                                      gameState?.previousActions || [],
+                                                      gameState?.round || TexasHoldemRound.ANTE,
+                                                      userAddress || "",
+                                                      isTournament
+                                                  ) - raiseAmount
+                                                : 0
+                                        }
+                                        totalPotMicro={totalPotMicro}
+                                        callAmountMicro={callAmountMicro}
+                                        isInvalid={isRaiseAmountInvalid}
+                                        isMobileLandscape={isMobileLandscape}
+                                        isTournament={isTournament}
+                                        currentRound={gameState?.round || TexasHoldemRound.ANTE}
+                                        previousActions={gameState?.previousActions || []}
+                                        disabled={!isUsersTurn}
+                                        onAmountChange={setRaiseAmount}
+                                        onIncrement={handleRaiseIncrement}
+                                        onDecrement={handleRaiseDecrement}
+                                        onAllIn={handleAllInAction}
+                                        maxIsAllIn={maxIsAllIn}
+                                        allowBlindMultiples={allowsBlindMultiples(gameVariant, gameState?.gameOptions?.bettingLimit)}
+                                    />
+                                )}
+                            </>
+                        )}
+                    </>
+                )}
+            </div>
+        </div>
+    );
+};

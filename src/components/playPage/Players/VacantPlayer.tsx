@@ -1,0 +1,497 @@
+/**
+ * VacantPlayer Component
+ *
+ * Represents an empty seat at the poker table.
+ *
+ * Look (ui#872): a small marker instead of an avatar and "Seat N / Click to Join".
+ * - Cash games: a dark circle with a "+". Clicking it opens the buy-in modal.
+ * - Sit & Go / tournaments: a recessed circle reading "EMPTY". Clicking it joins
+ *   with a seat drawn at random (ui#969) until the tournament starts; after that
+ *   PlayerSeating leaves empty seats blank (utils/seatDisplay).
+ * While the viewer is already seated, or the seat can't be taken, the marker shows
+ * without the "+" or hover ring and does nothing.
+ *
+ * Props:
+ * - left/top: Position on the table
+ * - index: Seat number
+ */
+
+import * as React from "react";
+import { memo, useState, useMemo, useCallback } from "react";
+import { createPortal } from "react-dom";
+import { useTableId } from "../../../context/TableIdContext";
+
+import { useVacantSeatData } from "../../../hooks/game/useVacantSeatData";
+import { useGameStateContext } from "../../../context/GameStateContext";
+import { useLogicalTrack } from "../../../context/gameState/LogicalTrackContext";
+import type { VacantPlayerProps } from "../../../types/index";
+import { useDealerPosition } from "../../../hooks/game/useDealerPosition";
+import { joinTable } from "../../../hooks/playerActions/joinTable";
+import { useGameOptions } from "../../../hooks/game/useGameOptions";
+import { formatDollars, formatUSDCToSimpleDollars, parseDollars } from "../../../utils/numberUtils";
+import { useCosmosWallet } from "../../../hooks";
+import { microToUsdc } from "../../../constants/currency";
+import { hasElements, isNullish } from "../../../utils/guards";
+import { seatsAreDrawn } from "../../../utils/seatDraw";
+import { joinSeatButtonLabel, seatDrawNote, vacantSeatMarker } from "../../../utils/vacantSeatText";
+import { viteEnv } from "../../../utils/viteEnv";
+import { useNetwork } from "../../../context/NetworkContext";
+import styles from "./VacantPlayer.module.css";
+import { USDCDepositModal } from "../../modals";
+import { useLanguage } from "../../../i18n/useLanguage";
+import { useClubApi } from "../../../context/ClubApiContext";
+import { getCosmosAddress, getCosmosMnemonic } from "../../../utils/cosmos/storage";
+import { depositRefusal, seatRefusal } from "../../../utils/clubService";
+
+const VacantPlayer: React.FC<VacantPlayerProps & { uiPosition?: number }> = memo(
+    ({ left, top, index, onJoin, uiPosition }) => {
+        const { t, language } = useLanguage();
+        const { isUserAlreadyPlaying, canJoinSeat: checkCanJoinSeat } = useVacantSeatData();
+        const tableId = useTableId();
+        const { gameOptions } = useGameOptions();
+        const { gameFormat } = useGameStateContext();
+        const logicalTrack = useLogicalTrack();
+        // A Sit & Go seat is drawn at random on join, not the one clicked (ui#969).
+        const seatDrawn = useMemo(() => seatsAreDrawn(gameFormat), [gameFormat]);
+        const cosmosWallet = useCosmosWallet();
+        const { currentNetwork } = useNetwork();
+
+        const [showBuyInModal, setShowBuyInModal] = useState(false);
+        const [isJoining, setIsJoining] = useState(false);
+        const [joinError, setJoinError] = useState<string | null>(null);
+        const [joinSuccess, setJoinSuccess] = useState(false);
+        const [, setJoinResponse] = useState<any>(null);
+        const [buyInAmount, setBuyInAmount] = useState<string>("");
+        const [buyInAmountDisplay, setBuyInAmountDisplay] = useState<string>("");
+        const { dealerSeat } = useDealerPosition();
+        // USDC Deposit Modal
+        const [showUSDCDepositModal, setShowUSDCDepositModal] = useState(false);
+
+        // Check if this seat is the dealer
+        const isDealer = dealerSeat === index;
+
+        // Memoize seat status checks
+        const canJoinThisSeat = useMemo(() => checkCanJoinSeat(index), [checkCanJoinSeat, index]);
+
+        // Memoize handlers
+        const handleJoinClick = useCallback(() => {
+            if (!canJoinThisSeat) return;
+
+            // Initialize buy-in amount with maxBuyIn for Cash games
+            const maxBuyInDollars = formatUSDCToSimpleDollars(gameOptions?.maxBuyIn);
+            // Get user's USDC balance to determine default buy-in (use lesser of maxBuyIn or user's balance)
+            const usdcBalance = cosmosWallet.balance.find(b => b.denom === "usdc");
+            let defaultBuyIn = maxBuyInDollars;
+            if (usdcBalance) {
+                const usdcAmount = microToUsdc(usdcBalance.amount);
+                defaultBuyIn = Math.min(parseFloat(maxBuyInDollars), usdcAmount).toString();
+            }
+            setBuyInAmount(defaultBuyIn);
+            setBuyInAmountDisplay(formatDollars(parseFloat(defaultBuyIn)));
+            // Open buy-in modal directly (skip confirmation modal)
+            setShowBuyInModal(true);
+            setJoinError(null);
+            setJoinSuccess(false);
+            setJoinResponse(null);
+        }, [canJoinThisSeat, gameOptions?.maxBuyIn, cosmosWallet.balance]);
+
+        const clubApi = useClubApi();
+        // A club table's rules, from the club service: why this player can't sit, if they can't.
+        const [seatRefused, setSeatRefused] = useState<string | null>(null);
+
+        const handleSeatClick = useCallback(async () => {
+            if (!isUserAlreadyPlaying && canJoinThisSeat) {
+                const refused = await seatRefusal(clubApi, tableId, getCosmosAddress(), getCosmosMnemonic());
+                if (refused) {
+                    setSeatRefused(refused);
+                    return;
+                }
+                handleJoinClick();
+                return;
+            }
+            // Silent no-ops are a debugging trap — say WHY the click did
+            // nothing (ui#440 live-testing).
+            console.error(
+                `[VacantPlayer] seat ${index} click ignored:`,
+                isUserAlreadyPlaying
+                    ? "this wallet is already seated at the table"
+                    : isNullish(gameOptions?.maxPlayers)
+                      ? "game state not loaded yet (no gameOptions — stale/pre-fix table or WS not connected)"
+                      : "seat not joinable (taken or not in availableSeats)"
+            );
+        }, [isUserAlreadyPlaying, canJoinThisSeat, handleJoinClick, index, gameOptions?.maxPlayers, clubApi, tableId]);
+
+        // Detect if this is Sit & Go (fixed buy-in) or Cash game (variable buy-in)
+        const isSitAndGo = useMemo(() => {
+            return gameOptions?.minBuyIn === gameOptions?.maxBuyIn;
+        }, [gameOptions?.minBuyIn, gameOptions?.maxBuyIn]);
+
+        // Memoize min/max buy-in values for slider and big blind (per Commandment 7: NO fallbacks)
+        const { minBuyInNum, maxBuyInNum, bigBlindValue } = useMemo(() => {
+            return {
+                minBuyInNum: parseFloat(formatUSDCToSimpleDollars(gameOptions?.minBuyIn)),
+                maxBuyInNum: parseFloat(formatUSDCToSimpleDollars(gameOptions?.maxBuyIn)),
+                bigBlindValue: parseFloat(formatUSDCToSimpleDollars(gameOptions?.bigBlind))
+            };
+        }, [gameOptions?.minBuyIn, gameOptions?.maxBuyIn, gameOptions?.bigBlind]);
+
+        // Memoize slider value to avoid inline function recreation
+        const sliderValue = useMemo(() => {
+            const val = parseFloat(buyInAmount);
+            return isNaN(val) ? minBuyInNum : val;
+        }, [buyInAmount, minBuyInNum]);
+
+        // Check if buy-in exceeds available balance. This gates the join button
+        // for BOTH transports: under WS-first (#2325) a gateway join relays a
+        // real MsgJoinGame that escrows from the on-chain USDC balance, so an
+        // unfunded player must not be able to attempt a buy-in (#2433). The
+        // earlier gateway bypass (ui#440/poker-vm#2221) predates that and let
+        // unfunded users click into a seat — removed.
+        const exceedsBalance = useMemo(() => {
+            const buyInValue = parseFloat(buyInAmount) || 0;
+            const usdcBalance = cosmosWallet.balance.find(b => b.denom === "usdc");
+            if (!usdcBalance) return true; // If user has no USDC balance, treat as exceeding balance
+            const usdcAmount = microToUsdc(usdcBalance.amount);
+            if (usdcAmount < minBuyInNum) return true; // If user balance is less than minimum buy-in, always show as exceeding balance
+            return buyInValue > usdcAmount;
+        }, [buyInAmount, cosmosWallet.balance, minBuyInNum]);
+
+        // Handle buy-in confirmation and join
+        const handleBuyInConfirm = useCallback(async () => {
+            if (!tableId) {
+                setJoinError("Missing table ID");
+                return;
+            }
+
+            // For Sit & Go: use minBuyIn (fixed amount)
+            // For Cash Game: use user-selected buyInAmount
+            let buyInDollars: string;
+
+            if (isSitAndGo) {
+                // Sit & Go: Fixed buy-in
+                const buyInMicrounits = gameOptions?.minBuyIn || gameOptions?.maxBuyIn;
+                if (!buyInMicrounits) {
+                    setJoinError("Unable to determine buy-in amount");
+                    return;
+                }
+                buyInDollars = formatUSDCToSimpleDollars(buyInMicrounits);
+            } else {
+                // Cash Game: User-selected amount
+                buyInDollars = buyInAmount;
+
+                // Validate buy-in range
+                const minBuyInDollars = parseFloat(formatUSDCToSimpleDollars(gameOptions?.minBuyIn));
+                const maxBuyInDollars = parseFloat(formatUSDCToSimpleDollars(gameOptions?.maxBuyIn));
+                const buyInValue = parseFloat(buyInDollars);
+
+                if (buyInValue < minBuyInDollars) {
+                    setJoinError(`Buy-in must be at least $${formatDollars(minBuyInDollars)}`);
+                    return;
+                }
+                if (buyInValue > maxBuyInDollars) {
+                    setJoinError(`Buy-in cannot exceed $${formatDollars(maxBuyInDollars)}`);
+                    return;
+                }
+            }
+
+            setIsJoining(true);
+            setJoinError(null);
+            setJoinSuccess(false);
+
+            // A club's daily deposit limit (block52-club#13).
+            const overLimit = await depositRefusal(clubApi, tableId, getCosmosAddress(), parseFloat(buyInDollars));
+            if (overLimit) {
+                setJoinError(overLimit);
+                setIsJoining(false);
+                return;
+            }
+
+            try {
+                // joinTable expects amount in USDC dollar format (e.g., "5.00")
+                // The hook will convert it to microunits internally
+                const response = await joinTable(
+                    tableId,
+                    {
+                        amount: buyInDollars,
+                        // Where seats are drawn, joinTable draws one; the clicked seat is not claimed.
+                        seatNumber: seatDrawn ? undefined : index,
+                        format: gameFormat,
+                        gameState: logicalTrack.get()
+                    },
+                    currentNetwork
+                );
+
+                setJoinResponse(response);
+                setJoinSuccess(true);
+                setShowBuyInModal(false);
+                setIsJoining(false);
+
+                // The "YOUR SEAT" banner now fires from the derived `playerJoined`
+                // bus event (useSeatJoinNotification), which arrives on the commit
+                // that seats the player — no imperative trigger or mount-delay hack.
+
+                // Call onJoin after successful join
+                if (onJoin) {
+                    onJoin();
+                }
+            } catch (err) {
+                console.error("Failed to join table:", err);
+                setJoinError(err instanceof Error ? err.message : "Unknown error joining table");
+                setIsJoining(false);
+            }
+        }, [tableId, index, onJoin, gameOptions?.minBuyIn, gameOptions?.maxBuyIn, buyInAmount, isSitAndGo, currentNetwork, seatDrawn, gameFormat, logicalTrack, clubApi]);
+
+        // Memoize container styles
+        const containerStyle = useMemo(
+            () => ({
+                left,
+                top
+            }),
+            [left, top]
+        );
+
+        // The seat's marker: + (cash) or EMPTY (drawn seats), and whether it can be taken.
+        const marker = useMemo(
+            () => vacantSeatMarker(index, isUserAlreadyPlaying, canJoinThisSeat, seatDrawn),
+            [isUserAlreadyPlaying, canJoinThisSeat, index, seatDrawn, language]
+        );
+
+        // Memoized Deposit callback - always open modal; crypto payments don't need Web3 wallet
+        const handleDepositClick = useCallback(() => {
+            setShowBuyInModal(false); // Ensure buy-in modal is closed
+            setShowUSDCDepositModal(true);
+        }, []);
+        return (
+            <>
+                <div className="absolute transform -translate-x-1/2 -translate-y-1/2" style={containerStyle} data-testid={`vacant-seat-${index}`} data-part="vacant-seat">
+                    {/* Development Mode Debug Info */}
+                    {viteEnv.VITE_NODE_ENV === "development" && (
+                        <div className="absolute top-[-50px] left-1/2 transform -translate-x-1/2 bg-gray-600 bg-opacity-80 text-white px-2 py-1 rounded text-[10px] whitespace-nowrap z-50 border border-gray-400">
+                            <div className="text-gray-300">UI Pos: {uiPosition ?? "N/A"}</div>
+                            <div className="text-yellow-300">Vacant Seat: {index}</div>
+                            <div className="text-gray-300">
+                                XY: {left}, {top}
+                            </div>
+                        </div>
+                    )}
+                    <button
+                        type="button"
+                        className={`${marker.kind === "empty" ? styles.emptySeat : styles.openSeat} ${marker.joinable ? styles.joinable : ""}`}
+                        aria-label={marker.label}
+                        title={marker.label}
+                        disabled={!marker.joinable}
+                        onClick={handleSeatClick}
+                    >
+                        {marker.kind === "empty" ? t("felt.empty") : marker.joinable && <span className={styles.plus} aria-hidden="true" />}
+                    </button>
+
+                    {/* Dealer Button - TODO: Implement framer motion animation in future iteration */}
+                    {/* Dealer Button — rendered at table level using geometry positions */}
+                </div>
+
+                {seatRefused &&
+                    createPortal(
+                        <div className="fixed inset-0 z-50 flex items-center justify-center" role="dialog" aria-modal="true">
+                            <div className="absolute inset-0 bg-black bg-opacity-50" onClick={() => setSeatRefused(null)} />
+                            <div className="relative max-w-sm rounded-xl border border-gray-600 bg-gray-900 p-5 text-gray-100">
+                                <p className="text-sm">{seatRefused}</p>
+                                <button type="button" className="mt-4 rounded-lg bg-violet-600 px-4 py-2 text-sm font-semibold text-white" onClick={() => setSeatRefused(null)}>
+                                    OK
+                                </button>
+                            </div>
+                        </div>,
+                        document.body
+                    )}
+
+                {/* Buy-in modal - using portal to render at document body */}
+                {showBuyInModal &&
+                    gameOptions &&
+                    createPortal(
+                        <div className="fixed inset-0 z-50 flex items-center justify-center">
+                            {/* Backdrop */}
+                            <div className="absolute inset-0 bg-black bg-opacity-50 backdrop-blur-sm" onClick={() => !isJoining && setShowBuyInModal(false)} />
+
+                            {/* Modal */}
+                            <div className={`relative p-8 rounded-xl w-96 shadow-2xl ${styles.modalContainer}`}>
+                                <h3 className="text-2xl font-bold mb-4 text-white text-center">{isSitAndGo ? "Sit & Go Buy-In" : "Cash Game Buy-In"}</h3>
+
+                                {/* Buy-In Amount - Fixed for Sit & Go, Input for Cash Game */}
+                                {isSitAndGo ? (
+                                    // Sit & Go: Fixed buy-in amount
+                                    <div className={`mb-6 p-4 rounded-lg border-2 ${styles.fixedBuyInPanel}`}>
+                                        <div className="text-center">
+                                            <div className="text-xs text-gray-400 mb-1">{t("buyIn.required")}</div>
+                                            <div className="text-3xl font-bold text-white">${formatUSDCToSimpleDollars(gameOptions.minBuyIn)}</div>
+                                            <div className="text-xs text-gray-400 mt-1">{t("buyIn.fixed")}</div>
+                                            {seatDrawn && (
+                                                <div className="text-xs text-blue-300 mt-2" data-testid="seat-draw-note">
+                                                    {seatDrawNote()}
+                                                </div>
+                                            )}
+                                        </div>
+                                    </div>
+                                ) : (
+                                    // Cash Game: Editable buy-in amount
+                                    <div className="mb-6">
+                                        <label className="block text-xs text-gray-400 mb-2">{t("buyIn.amount")}</label>
+
+                                        {/* Slider with min/max labels */}
+                                        <div className="mb-3">
+                                            <div className="flex justify-between text-xs text-gray-400 mb-2">
+                                                <span>${formatDollars(minBuyInNum)}</span>
+                                                <span>${formatDollars(maxBuyInNum)}</span>
+                                            </div>
+                                            <input
+                                                type="range"
+                                                value={sliderValue}
+                                                onChange={e => {
+                                                    const val = parseFloat(e.target.value);
+                                                    if (!isNaN(val)) {
+                                                        // Round to nearest step to align with bigBlindValue increments
+                                                        const steppedValue = Math.round(val / bigBlindValue) * bigBlindValue;
+                                                        setBuyInAmount(formatDollars(Math.max(minBuyInNum, Math.min(steppedValue, maxBuyInNum))));
+                                                        setBuyInAmountDisplay(formatDollars(Math.max(minBuyInNum, Math.min(steppedValue, maxBuyInNum))));
+                                                    }
+                                                }}
+                                                min={minBuyInNum.toString()}
+                                                max={maxBuyInNum.toString()}
+                                                step={bigBlindValue.toString()}
+                                                className={`w-full h-2 rounded-lg appearance-none cursor-pointer ${styles.buyInSlider}`}
+                                            />
+                                        </div>
+
+                                        {/* Manual input below slider */}
+                                        <input
+                                            type="number"
+                                            value={parseFloat(buyInAmountDisplay) ? buyInAmountDisplay : "0"}
+                                            onChange={e => {
+                                                setBuyInAmount(e.target.value);
+                                                setBuyInAmountDisplay(e.target.value);
+                                            }}
+                                            placeholder={t("buyIn.enterAmount")}
+                                            className={`w-full px-4 py-2 rounded-lg text-white text-center text-lg ${styles.buyInInput}`}
+                                            step={bigBlindValue.toString()}
+                                            min={minBuyInNum.toString()}
+                                            max={maxBuyInNum.toString()}
+                                        />
+                                    </div>
+                                )}
+
+                                {/* User Balance */}
+                                <div className="mb-6">
+                                    <div className="text-xs text-gray-400 mb-2">{t("buyIn.balance")}</div>
+                                    {/* Require update here when cosmos client return array of usdc = 0 instead of returning an empty array */}
+                                    {hasElements(cosmosWallet.balance) ? (
+                                        cosmosWallet.balance.map((balance, idx) => {
+                                            if (balance.denom === "usdc") {
+                                                const usdcAmount = microToUsdc(balance.amount);
+                                                const buyInValue = parseDollars(buyInAmount) || 0;
+                                                const exceedsBalance = buyInValue > usdcAmount;
+                                                return (
+                                                    <div key={idx} className={`p-3 rounded-lg ${styles.balanceCard}`}>
+                                                        <div className="flex justify-between items-center">
+                                                            <span className="text-white font-semibold">USDC</span>
+                                                            <span className={`text-lg font-bold ${exceedsBalance ? "text-red-400" : "text-white"}`}>
+                                                                ${formatDollars(usdcAmount)}
+                                                            </span>
+                                                        </div>
+                                                    </div>
+                                                );
+                                            }
+                                            return null;
+                                        })
+                                    ) : (
+                                        <div className={`p-3 rounded-lg ${styles.balanceCard}`}>
+                                            <div className="flex justify-between items-center">
+                                                <span className="text-white font-semibold">USDC</span>
+                                                <span className={`text-lg font-bold ${exceedsBalance ? "text-red-400" : "text-white"}`}>$0.00</span>
+                                            </div>
+                                        </div>
+                                    )}
+                                </div>
+
+                                {/* Error Message */}
+                                {joinError && <div className={`mb-4 p-3 rounded-lg text-sm ${styles.errorCard}`}>⚠️ {joinError}</div>}
+
+                                {/* Action Buttons */}
+                                <div className="flex flex-col space-y-3">
+                                    <button
+                                        onClick={handleBuyInConfirm}
+                                        disabled={isJoining || exceedsBalance}
+                                        className={`w-full px-6 py-3 text-sm font-semibold rounded-lg transition duration-300 flex items-center justify-center ${styles.confirmButton} ${
+                                            exceedsBalance ? styles.confirmButtonDisabled : ""
+                                        }`}
+                                    >
+                                        {isJoining ? (
+                                            <>
+                                                <svg
+                                                    className="animate-spin -ml-1 mr-2 h-4 w-4 text-white"
+                                                    xmlns="http://www.w3.org/2000/svg"
+                                                    fill="none"
+                                                    viewBox="0 0 24 24"
+                                                >
+                                                    <circle className="opacity-25" cx="12" cy="12" r="10" stroke="currentColor" strokeWidth="4"></circle>
+                                                    <path
+                                                        className="opacity-75"
+                                                        fill="currentColor"
+                                                        d="M4 12a8 8 0 018-8V0C5.373 0 0 5.373 0 12h4zm2 5.291A7.962 7.962 0 014 12H0c0 3.042 1.135 5.824 3 7.938l3-2.647z"
+                                                    ></path>
+                                                </svg>
+                                                {t("buyIn.joining")}
+                                            </>
+                                        ) : (
+                                            joinSeatButtonLabel(index, seatDrawn)
+                                        )}
+                                    </button>
+                                    <button
+                                        onClick={handleDepositClick}
+                                        className={`w-full px-6 py-3 text-sm font-semibold rounded-lg transition duration-300 flex items-center justify-center ${styles.confirmButton}`}
+                                    >
+                                        {t("buyIn.topUp")}
+                                    </button>
+                                    <button
+                                        onClick={() => setShowBuyInModal(false)}
+                                        className={`w-full px-6 py-3 text-sm font-semibold rounded-lg transition duration-300 ${styles.cancelButton}`}
+                                        disabled={isJoining}
+                                    >
+                                        {t("buyIn.cancel")}
+                                    </button>
+                                </div>
+                            </div>
+                        </div>,
+                        document.body
+                    )}
+
+                {/* Placeholder div for potential future loading animation */}
+                {joinSuccess && (
+                    <div id="loading-animation-placeholder" className={styles.hiddenPlaceholder}>
+                        {/* Future loading animation will go here */}
+                    </div>
+                )}
+                {showUSDCDepositModal &&
+                    createPortal(
+                        <>
+                            <USDCDepositModal
+                                isOpen={showUSDCDepositModal}
+                                onClose={() => setShowUSDCDepositModal(false)}
+                                onSuccess={() => {
+                                    // Balance will auto-refresh on next page interaction
+                                    setShowUSDCDepositModal(false);
+                                    setShowBuyInModal(true);
+                                }}
+                            />
+                        </>,
+                        document.body
+                    )}
+            </>
+        );
+    },
+    (prevProps, nextProps) => {
+        // Custom comparison function for memo
+        return prevProps.left === nextProps.left && prevProps.top === nextProps.top && prevProps.index === nextProps.index;
+    }
+);
+
+VacantPlayer.displayName = "VacantPlayer";
+
+export default VacantPlayer;

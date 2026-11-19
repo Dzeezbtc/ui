@@ -1,0 +1,837 @@
+/* Table animations */
+@keyframes gradient {
+    0% {
+        background-position: 0% 50%;
+    }
+    50% {
+        background-position: 100% 50%;
+    }
+    100% {
+        background-position: 0% 50%;
+    }
+}
+
+@keyframes shimmer {
+    0% { background-position: 0% 0; }
+    100% { background-position: 200% 0; }
+}
+
+/*
+ * Composited replacement for the `shimmer` background-position animation above.
+ *
+ * `background-position` is a PAINT property — the compositor cannot run it, so
+ * animating it re-rasterizes the element every frame on the main thread. This
+ * moves an oversized child with `transform` instead, which the compositor
+ * handles off-thread. The child is its own GPU layer, so keep it small: the
+ * table's other (drift) layer was 16 viewports and was made static (ui#838).
+ *
+ * Deliberately NOT named `shimmer`: @keyframes names are GLOBAL, and
+ * Dashboard.css defines its own `shimmer` and `gradient` with the old
+ * background-position semantics. Reusing the names would let whichever
+ * stylesheet loads last silently redefine the other's animation.
+ */
+@keyframes table-shimmer-slide {
+    0% { transform: translate3d(0, 0, 0); }
+    100% { transform: translate3d(-50%, 0, 0); }
+}
+
+@keyframes float {
+    0% { transform: translateY(0px); }
+    50% { transform: translateY(-10px); }
+    100% { transform: translateY(0px); }
+}
+
+@keyframes pulse {
+    0% { opacity: 0.6; }
+    50% { opacity: 1; }
+    100% { opacity: 0.6; }
+}
+
+@keyframes textShine {
+    to {
+        background-position: 200% center;
+    }
+}
+
+/* Custom Table styles */
+.bg-custom-table {
+    position: relative;
+    background-color: transparent;
+}
+
+.bg-custom-footer {
+    background: linear-gradient(to right, var(--table-bg-gradient-start), var(--table-bg-gradient-mid), var(--table-bg-gradient-end));
+    border-top: 1px solid var(--ui-border-color);
+}
+
+/*
+ * Community-card entrance: each card drops into place. useCardAnimations (WS
+ * Action Bus) reveals the slots one at a time, so the flop's three cards drop
+ * in sequence rather than together.
+ */
+@keyframes fall {
+    0% {
+        transform: translateY(-100px);
+        opacity: 0;
+    }
+    100% {
+        transform: translateY(0);
+        opacity: 1;
+    }
+}
+
+.animate-fall {
+    /* Duration comes from src/bus/timing.ts (CARD_DROP_MS) via the table root's
+       custom property, so the drop can never drift from the bus's ack budget. */
+    animation: fall var(--card-drop-ms, 1s) ease-out backwards;
+}
+
+/* Winning card highlight — lifts card upward and brightens it */
+@keyframes card-lift {
+    0%   { transform: translateY(0)     scale(1);    filter: brightness(1); }
+    100% { transform: translateY(-14px) scale(1.05); filter: brightness(1.25) drop-shadow(0 0 8px rgba(255, 215, 0, 0.85)); }
+}
+
+.animate-win-card {
+    animation: card-lift 350ms ease-out forwards;
+    position: relative;
+    z-index: 20;
+}
+
+
+
+/* Animation classes */
+/*
+ * The shimmer host. The gradient and the motion live on ::before, which is 2x
+ * the host's width and slides left by exactly one tile per cycle.
+ *
+ * ::before is 2W carrying two W-wide tiles (background-size: 50%), translated
+ * -50% = -W per cycle, so the seam lands on a tile boundary and the loop is
+ * invisible. It was 4W (two 2W tiles over 3s); that is a 4-viewport GPU layer
+ * animating forever on the table, part of the graphics-memory load behind the
+ * macOS black screen (ui#838). Same band speed (W per 1.5s), half the layer.
+ *
+ * The host must be positioned (both users are `position: absolute`) so ::before
+ * anchors to it.
+ */
+.shimmer-animation {
+    overflow: hidden;
+}
+
+.shimmer-animation::before {
+    content: "";
+    position: absolute;
+    top: 0;
+    bottom: 0;
+    left: 0;
+    width: 200%;
+    background-image: linear-gradient(90deg, transparent 0%, var(--brand-primary-10) 25%, transparent 50%, var(--brand-primary-10) 75%, transparent 100%);
+    background-size: 50% 100%;
+    background-repeat: repeat-x;
+    animation: table-shimmer-slide 1.5s infinite linear;
+    will-change: transform;
+}
+
+.text-gradient {
+    background-clip: text;
+    -webkit-background-clip: text;
+    color: transparent;
+    background-size: 200% auto;
+    animation: textShine 3s linear infinite;
+}
+
+/* Hexagon pattern for table */
+.hexagon-pattern {
+    background-image: 
+        linear-gradient(to right, var(--ui-border-color) 1px, transparent 1px),
+        linear-gradient(to bottom, var(--ui-border-color) 1px, transparent 1px);
+    background-size: 30px 30px;
+}
+
+/* Header specific styles */
+.bg-custom-header {
+    background: linear-gradient(to right, var(--table-bg-gradient-start), var(--table-bg-gradient-mid), var(--table-bg-gradient-end));
+    border-bottom: 1px solid var(--ui-border-color);
+}
+
+/* Enhanced glow effects for text */
+.text-glow {
+    text-shadow: 0 0 5px color-mix(in srgb, var(--brand-primary) 50%, transparent), 0 0 10px color-mix(in srgb, var(--brand-primary) 30%, transparent);
+}
+
+/* New classes for extracted inline styles */
+.table-container {
+    height: 100dvh;
+    width: 100%;
+    overflow: visible;
+    display: flex;
+    flex-direction: column;
+}
+
+.sub-header {
+    position: relative;
+    z-index: 50;
+}
+
+.sub-header-overlay {
+    position: absolute;
+    inset: 0;
+    z-index: 0;
+    opacity: 0.3;
+    /* Gradient + motion live on .shimmer-animation::before. */
+}
+
+.sub-header-shadow {
+    position: absolute;
+    bottom: 0;
+    left: 0;
+    right: 0;
+    height: 2px;
+    background: linear-gradient(to right, transparent, var(--brand-primary), transparent);
+    opacity: 0.5;
+}
+
+.body-container {
+    /* no CSS overrides — layout handled by tailwind flex classes */
+}
+
+.background-shimmer {
+    position: absolute;
+    inset: 0;
+    z-index: 0;
+    opacity: 0.3;
+    /* Gradient + motion live on .shimmer-animation::before. */
+}
+
+.background-base {
+    position: absolute;
+    inset: 0;
+    z-index: 0;
+    background-color: var(--table-bg-base);
+    filter: blur(60px);
+    transition: all 0.3s ease-out;
+}
+
+.table-logo {
+    position: absolute;
+    z-index: 0;
+    pointer-events: none;
+    top: 50%;
+    left: 50%;
+    transform: translate(-50%, -50%) 
+    scale(1.5);
+}
+
+.table-logo img {
+    width: 300px;
+    opacity: 0.3;
+    object-fit: contain;
+}
+
+.pot-display {
+    font-size: 28px;
+    background-color: color-mix(in srgb, #000000 25%, transparent);
+    border-radius: 9999px;
+    color: #ffffff;
+    padding: 4px 10px;
+}
+
+@media (min-width: 640px) {
+    .pot-display {
+        font-size: 20px;
+        padding: 3px 8px;
+    }
+}
+
+.pot-display-secondary {
+    font-size: 26px;
+    background-color: color-mix(in srgb, #000000 25%, transparent);
+    border-radius: 9999px;
+    color: #ffffff;
+    padding: 4px 10px;
+    margin-top: 4px;
+}
+
+
+@media (min-width: 640px) {
+    .pot-display-secondary {
+        font-size: 18px;
+        padding: 3px 8px;
+    }
+}
+
+/* "Pot as Chips" setting (ui#772): the chip stack + amount pill (shared with
+   player bets) with a small caption underneath naming the pot. */
+.pot-chips,
+.pot-chips-secondary {
+    display: flex;
+    justify-content: center;
+}
+
+.pot-chips-secondary {
+    margin-top: 6px;
+}
+
+/* Side pots (ui#918): main pot then each side pot, side by side, wrapping
+   inside the board's width rather than growing the table. */
+.side-pots-row {
+    display: flex;
+    flex-wrap: wrap;
+    justify-content: center;
+    align-items: flex-end;
+    gap: 4px 10px;
+    max-width: 480px;
+    margin-top: 6px;
+}
+.side-pots-row > .pot-display-secondary,
+.side-pots-row > .pot-chips-secondary {
+    margin-top: 0;
+}
+/* Phone landscape: keep the pots on one line so they never stack into the cards. */
+@media (max-height: 500px) and (orientation: landscape) {
+    .side-pots-row {
+        flex-wrap: nowrap;
+        max-width: none;
+        gap: 0 6px;
+    }
+}
+.side-pots-row[data-count="3"] > .pot-display-secondary,
+.side-pots-row[data-count="4"] > .pot-display-secondary {
+    font-size: 0.8em;
+}
+@media (min-width: 640px) {
+    .side-pots-row[data-count="3"] > .pot-display-secondary,
+    .side-pots-row[data-count="4"] > .pot-display-secondary {
+        font-size: 15px;
+    }
+}
+
+.pot-pill {
+    display: flex;
+    flex-direction: column;
+    align-items: center;
+    gap: 2px;
+}
+
+.pot-pill-label {
+    font-size: 11px;
+    font-weight: 600;
+    letter-spacing: 0.12em;
+    text-transform: uppercase;
+    color: color-mix(in srgb, #ffffff 65%, transparent);
+}
+
+.dealer-button {
+    position: absolute;
+    z-index: 50;
+    width: 48px;
+    height: 48px;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+}
+
+.chip-position {
+    position: absolute;
+}
+
+/* Chip movement (Dan's UI #3, #4, #7): transform-only, so it stays on the GPU. */
+.chip-slide-in {
+    display: inline-flex;
+    animation: chip-slide-in 220ms ease-out both;
+}
+
+@keyframes chip-slide-in {
+    from {
+        transform: translate(var(--chip-from-x, 0), var(--chip-from-y, 0));
+        opacity: 0.6;
+    }
+    to {
+        transform: translate(0, 0);
+        opacity: 1;
+    }
+}
+
+.chip-flight-spot {
+    pointer-events: none;
+    z-index: 5;
+}
+
+.chip-flight-measure {
+    display: inline-flex;
+}
+
+.chip-to-pot {
+    display: inline-flex;
+    animation: chip-to-pot 320ms ease-in both;
+}
+
+@keyframes chip-to-pot {
+    from {
+        transform: translate(0, 0);
+        opacity: 1;
+    }
+    85% {
+        opacity: 1;
+    }
+    to {
+        transform: translate(var(--chip-dx, 0), var(--chip-dy, 0)) scale(0.8);
+        opacity: 0;
+    }
+}
+
+@media (prefers-reduced-motion: reduce) {
+    .chip-slide-in,
+    .chip-to-pot {
+        animation: none;
+    }
+}
+
+/* Floating card panel (History + Settings tabs, ui#752). Always visible, inset
+   from the right edge so it reads as a card floating above the felt (rounded +
+   shadow on the inner element) rather than an edge-docked panel. */
+.table-panel {
+    position: fixed;
+    top: 100px;
+    right: 16px;
+    width: 300px;
+    height: calc(100dvh - 350px);
+    z-index: 1000;
+}
+
+/* Phones: opened from the hamburger menu, so it can take most of the screen. */
+.table-panel--mobile {
+    top: calc(env(safe-area-inset-top) + 74px);
+    left: calc(env(safe-area-inset-left) + 8px);
+    right: calc(env(safe-area-inset-right) + 8px);
+    bottom: calc(env(safe-area-inset-bottom) + 8px);
+    width: auto;
+    height: auto;
+}
+
+/* Desktop: collapsed panel leaves a slim tab on the right edge to reopen it. */
+.table-panel-expand {
+    position: fixed;
+    top: 100px;
+    right: 0;
+    z-index: 1000;
+    display: flex;
+    flex-direction: column;
+    align-items: center;
+    gap: 8px;
+    padding: 12px 6px;
+    background: #1a2234;
+    color: #9ca3af;
+    border: 1px solid rgba(255, 255, 255, 0.1);
+    border-right: none;
+    border-radius: 12px 0 0 12px;
+    box-shadow: 0 10px 25px rgba(0, 0, 0, 0.4);
+}
+
+.table-panel-expand:hover {
+    color: #fff;
+}
+
+.table-panel-expand__label {
+    writing-mode: vertical-rl;
+    font-size: 11px;
+    font-weight: 600;
+    letter-spacing: 0.05em;
+}
+
+.powered-by-block52 {
+    position: fixed;
+    bottom: 1rem;
+    left: 1rem;
+    display: flex;
+    align-items: center;
+    z-index: 50;
+    opacity: 0.3;
+}
+
+.powered-by-content {
+    display: flex;
+    flex-direction: column;
+    align-items: flex-start;
+    background-color: transparent;
+    padding: 0.5rem 0.75rem;
+    border-radius: 0.5rem;
+    backdrop-filter: blur(4px);
+    border: 0;
+}
+
+.powered-by-text {
+    text-align: left;
+    margin-bottom: 0.25rem;
+}
+
+.powered-by-logo {
+    height: 1.5rem;
+    width: auto;
+    object-fit: contain;
+    pointer-events: none;
+}
+
+.debug-panel {
+    position: fixed;
+    bottom: 6rem;
+    left: 1rem;
+    width: 16rem;
+    z-index: 50;
+}
+
+.network-display {
+    background-color: color-mix(in srgb, var(--ui-bg-dark) 60%, transparent);
+    border: 1px solid color-mix(in srgb, var(--brand-primary) 20%, transparent);
+}
+
+.network-display-dot-devnet {
+    background-color: var(--brand-primary);
+}
+
+.table-surface-shadow {
+    box-shadow: 0 4px 20px rgba(0,0,0,0.5), inset 0 0 60px rgba(0,0,0,0.3);
+}
+
+/* Performance optimized styles - moved from inline */
+
+/**
+ * Zoom wrapper — CSS does NOTHING for positioning.
+ *
+ * All positioning is calculated in stageGeometry.ts via pixel-based
+ * translate(Xpx, Ypx) scale(zoom). CSS just sets the stage dimensions
+ * and anchors at top-left with transform-origin: 0 0.
+ *
+ * NO top:50%, NO left:50%, NO max-width, NO max-height.
+ */
+.zoom-wrapper-mobile,
+.zoom-wrapper-desktop {
+    position: absolute;
+    top: 0;
+    left: 0;
+    transform-origin: 0 0;
+    width: 1600px;
+    height: 850px;
+    overflow: visible;
+}
+
+/*
+ * ::before is the 4W x 4H gradient, offset `top: -150%` so the host shows its
+ * vertically centred slice. It is static and not composited (ui#838): the host
+ * clips it, so only the visible slice is painted.
+ */
+.background-animated-static {
+    position: absolute;
+    inset: 0;
+    z-index: 0;
+    opacity: 0.2;
+    overflow: hidden;
+}
+
+.background-animated-static::before {
+    content: "";
+    position: absolute;
+    top: -150%;
+    left: 0;
+    width: 400%;
+    height: 400%;
+    background: linear-gradient(
+        45deg,
+        var(--anim-color-2-10) 0%,
+        var(--anim-color-1-10) 25%,
+        var(--anim-color-4-10) 50%,
+        var(--anim-color-5-10) 75%,
+        var(--anim-color-2-10) 100%
+    );
+    /* Static (ui#838). This 4W x 4H layer used to drift forever with
+       will-change: transform, which made it a ~16-viewport GPU layer: measured
+       at 2x DPR it was the largest single cost in the table's graphics memory,
+       and GPU memory pressure on macOS resets the GPU process (black screen,
+       clicks still land). At 2% effective alpha the drift was not visible. */
+}
+
+/* Static radial gradient - reduce calculations */
+.background-base-static {
+    position: absolute;
+    inset: 0;
+    z-index: 0;
+    background: 
+        radial-gradient(circle at 20% 30%, var(--anim-color-1-80) 0%, transparent 60%),
+        radial-gradient(circle at 0% 0%, var(--anim-color-2-70) 0%, transparent 50%),
+        radial-gradient(circle at 100% 0%, var(--anim-color-3-70) 0%, transparent 50%),
+        radial-gradient(circle at 0% 100%, var(--anim-color-4-70) 0%, transparent 50%),
+        radial-gradient(circle at 100% 100%, var(--anim-color-5-70) 0%, transparent 50%),
+        var(--table-bg-base);
+    /* No filter: blur (ui#838). The radial stops already fade to transparent;
+       a full-viewport blur(60px) is an extra offscreen GPU surface. */
+    transition: all 0.3s ease-out;
+}
+
+/* Player Action Drop Box Animations */
+@keyframes dropDown {
+    0% {
+        opacity: 0;
+        transform: translateY(-10px) scale(0.95);
+    }
+    100% {
+        opacity: 1;
+        transform: translateY(0) scale(1);
+    }
+}
+
+@keyframes rollAway {
+    0% {
+        opacity: 1;
+        transform: translateY(0) scale(1);
+    }
+    100% {
+        opacity: 0;
+        transform: translateY(10px) scale(0.95);
+    }
+}
+
+.action-box-enter {
+    animation: dropDown 0.3s ease-out forwards;
+}
+
+.action-box-exit {
+    animation: rollAway 0.5s ease-in forwards;
+}
+
+/* Action box pulse effect for emphasis */
+@keyframes actionPulse {
+    0% { box-shadow: 0 4px 12px color-mix(in srgb, var(--brand-primary) 40%, transparent), 0 2px 4px color-mix(in srgb, #000000 30%, transparent); }
+    50% { box-shadow: 0 6px 20px color-mix(in srgb, var(--brand-primary) 60%, transparent), 0 4px 8px color-mix(in srgb, #000000 40%, transparent); }
+    100% { box-shadow: 0 4px 12px color-mix(in srgb, var(--brand-primary) 40%, transparent), 0 2px 4px color-mix(in srgb, #000000 30%, transparent); }
+}
+
+.action-box-pulse {
+    animation: actionPulse 1s ease-in-out;
+}
+
+/* ===== Nouns NFT Theme ===== */
+/* Reference: https://www.nouns.com | https://github.com/block52/nouns.poker */
+
+.nouns-table-felt {
+    background: linear-gradient(
+        135deg,
+        #2d1f3d 0%,
+        #1a1a2e 40%,
+        #1e2a3a 100%
+    );
+    box-shadow:
+        0 4px 20px rgba(0,0,0,0.5),
+        inset 0 0 60px rgba(0,0,0,0.3),
+        inset 0 0 120px rgba(214, 60, 94, 0.05),
+        inset 0 0 120px rgba(43, 131, 246, 0.05);
+}
+
+/* Pixel grid overlay on Nouns felt */
+.nouns-table-felt::before {
+    content: "";
+    position: absolute;
+    inset: 0;
+    border-radius: inherit;
+    background-image:
+        linear-gradient(rgba(255,255,255,0.03) 1px, transparent 1px),
+        linear-gradient(90deg, rgba(255,255,255,0.03) 1px, transparent 1px);
+    background-size: 8px 8px;
+    pointer-events: none;
+    z-index: 1;
+}
+
+/* Nouns glasses logo positioning */
+.table-logo-nouns {
+    bottom: 25px;
+}
+
+.nouns-glasses-logo {
+    opacity: 0.25;
+    animation: nounsDropIn 0.6s cubic-bezier(0.34, 1.56, 0.64, 1) forwards;
+}
+
+@keyframes nounsDropIn {
+    0% {
+        opacity: 0;
+        transform: translateY(-20px) scale(0.8);
+    }
+    100% {
+        opacity: 0.25;
+        transform: translateY(0) scale(1);
+    }
+}
+
+/* Nouns background — warm dark with pixel grid */
+.nouns-background {
+    position: absolute;
+    inset: 0;
+    z-index: 0;
+    background:
+        radial-gradient(circle at 20% 30%, rgba(214, 60, 94, 0.08) 0%, transparent 50%),
+        radial-gradient(circle at 80% 70%, rgba(43, 131, 246, 0.08) 0%, transparent 50%),
+        radial-gradient(circle at 50% 50%, rgba(67, 185, 127, 0.04) 0%, transparent 60%),
+        #0d0d1a;
+}
+
+.nouns-background::before {
+    content: "";
+    position: absolute;
+    inset: 0;
+    background-image:
+        linear-gradient(rgba(255,255,255,0.015) 1px, transparent 1px),
+        linear-gradient(90deg, rgba(255,255,255,0.015) 1px, transparent 1px);
+    background-size: 8px 8px;
+    pointer-events: none;
+}
+
+/* Nouns-themed pot displays */
+.nouns-table-felt .pot-display,
+.nouns-table-felt .pot-display-secondary {
+    font-family: "Silkscreen", monospace;
+    border: 2px solid rgba(214, 60, 94, 0.3);
+    background-color: rgba(26, 26, 46, 0.6);
+}
+
+/* Nouns-themed total pot */
+.nouns-table-felt .pot-display {
+    background: linear-gradient(135deg, rgba(214, 60, 94, 0.2), rgba(43, 131, 246, 0.2));
+    border: 2px solid rgba(214, 60, 94, 0.3);
+}
+
+/* Nouns-themed pot pill caption */
+.nouns-table-felt .pot-pill-label {
+    font-family: "Silkscreen", monospace;
+    color: rgba(214, 60, 94, 0.9);
+}
+
+/* Performance mode - disable expensive animations */
+@media (prefers-reduced-motion: reduce) {
+    .shimmer-animation::before {
+        animation: none;
+    }
+    
+    .text-gradient {
+        animation: none;
+        background: linear-gradient(to right, var(--brand-primary), #60a5fa);
+        background-clip: text;
+        -webkit-background-clip: text;
+        color: transparent;
+    }
+    
+    /* Disable action box animations for reduced motion */
+    .action-box-enter,
+    .action-box-exit,
+    .action-box-pulse {
+        animation: none;
+    }
+
+    .nouns-glasses-logo {
+        animation: none;
+        opacity: 0.25;
+    }
+}
+
+/* Simplified dealer button positioning */
+.dealer-button-optimized {
+    position: absolute;
+    z-index: 50;
+    width: 48px;
+    height: 48px;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    transition: all 0.6s ease-in-out;
+}
+
+/* Mobile-specific optimizations */
+@media (max-width: 414px) {
+    /* Reduce animation complexity on mobile */
+    /* The animation is on ::before, not the host — this previously matched an
+       element with no animation and did nothing. */
+    .shimmer-animation::before {
+        animation-duration: 3s; /* Half speed = less CPU */
+    }
+    
+    .text-gradient {
+        animation-duration: 6s; /* Slower = less CPU */
+    }
+    
+}
+
+/* Professional Sit Out Toggle for Mobile */
+.sit-out-toggle {
+    user-select: none;
+    cursor: pointer;
+}
+
+.sit-out-toggle input[type="checkbox"]:checked ~ div > div:first-child {
+    background-color: #f97316;
+}
+
+.sit-out-toggle input[type="checkbox"]:checked ~ div > div:last-child {
+    transform: translateX(20px);
+}
+
+/* Smooth transitions for toggle */
+.sit-out-toggle div > div {
+    transition: all 0.2s ease-in-out;
+}
+
+/* Hover effect for toggle container */
+.sit-out-toggle:hover {
+    box-shadow: 0 2px 8px rgba(249, 115, 22, 0.3);
+}
+
+/* Active state indicator */
+.sit-out-toggle input[type="checkbox"]:checked ~ span {
+    color: #fb923c;
+} 
+/* Pot slot (ui#918): a fixed-height box in the board column. The pots sit in an absolutely
+ * positioned stack anchored to its bottom, so extra pots grow upward and never push the cards. */
+.pot-slot {
+    position: relative;
+    width: 100%;
+    height: 40px;
+}
+.pot-stack {
+    position: absolute;
+    /* Sits low in the slot, near the cards (the card row's top margin), away from the top seats' bets. */
+    bottom: -22px;
+    left: 50%;
+    transform: translateX(-50%);
+    width: max-content;
+    max-width: 100vw;
+}
+/* Multi-pot layout (ui#918): Total Pot centred on top, then every pot in one compact centred row.
+ * More pots means smaller pills, so the group stays inside the pot slot and clear of the bets. */
+.pot-stack:has(.side-pots-row) {
+    flex-direction: column !important;
+    align-items: center !important;
+    gap: 2px !important;
+}
+.pot-stack .side-pots-row {
+    flex-wrap: nowrap;
+    max-width: none;
+    gap: 0 8px;
+    margin-top: 4px;
+}
+.pot-stack .side-pots-row[data-count="3"] { --side-row-zoom: 0.85; zoom: var(--side-row-zoom); }
+.pot-stack .side-pots-row[data-count="4"] { --side-row-zoom: 0.72; zoom: var(--side-row-zoom); }
+/* Desktop: Main + Side pots always use the compact 4-pot size (ui#918). */
+@media (min-width: 1024px) and (pointer: fine) { .pot-stack .side-pots-row { --side-row-zoom: 0.72 !important; zoom: 0.72 !important; } }
+/* Tablets (touch, e.g. iPad Mini): a bit larger, nearer the bet size, and 3px lower. */
+@media (min-width: 768px) and (pointer: coarse) { .pot-stack .side-pots-row { --side-row-zoom: 0.85 !important; zoom: 0.85 !important; margin-top: 7px; } }
+/* ui#918: one amount size everywhere. Bets, stacks, Main/Side pot amounts paint at --bet-amount-size;
+   Total Pot paints at --total-pot-ratio x that. Side amounts divide out the row zoom so they stay equal. */
+.pot-stack { --bet-amount-size: 18px; --total-pot-ratio: 1.2; }
+.pot-stack > .pot-chips .type-num-bet > span:not(.pot-pill-label) { font-size: calc(var(--bet-amount-size) * var(--total-pot-ratio)); }
+.pot-stack .side-pots-row .type-num-bet > span:not(.pot-pill-label) { font-size: calc(var(--bet-amount-size) / var(--side-row-zoom, 1)); }
+.pot-stack .side-pots-row > .pot-display-secondary { font-size: 15px; }
+
+/* Pot caption sits under the amount, above the chips (ui#918). */
+.pot-pill { padding-bottom: 15px; }
+.chip-caption { position: absolute; top: 100%; left: 50%; transform: translateX(-50%); margin-top: 2px; white-space: nowrap; line-height: 1.2; z-index: 100; }
+/* Tablet portrait (vertical table): lift the board + pots together towards the table centre, between seats 4/7 and 3/8 (ui#918). */
+@media (min-width: 768px) and (pointer: coarse) and (orientation: portrait) { .community-board:not([data-mobile-readable] .community-board) { top: -44px; } }
+/* Tablet landscape (e.g. iPad Mini 1024x768): drop the board + all pots together 5px on screen (ui#918). */
+@media (min-width: 768px) and (pointer: coarse) and (orientation: landscape) { .community-board:not([data-mobile-readable] .community-board) { translate: 0 calc(5px / var(--table-zoom, 1)); } }

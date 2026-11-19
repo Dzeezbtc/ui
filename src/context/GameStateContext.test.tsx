@@ -1,0 +1,834 @@
+import React, { useEffect } from "react";
+import { render, screen, act, waitFor } from "@testing-library/react";
+import { NetworkProvider } from "./NetworkContext";
+import { GameStateProvider } from "./GameStateContext";
+import { useGameData } from "./gameState/GameDataContext";
+import { useGameUI } from "./gameState/GameUIContext";
+import { useGameActions } from "./gameState/GameActionsContext";
+import { useLogicalTrack } from "./gameState/LogicalTrackContext";
+import type { LogicalTrack } from "../hooks/playerActions/transportAction";
+import { STORAGE_KEYS } from "../constants/storageKeys";
+import { TexasHoldemStateDTO, GameOptionsDTO } from "@block52/poker-vm-sdk";
+import { createAuthPayload } from "../utils/cosmos/signing";
+import { AUTH_MASKED_RETRY_MS, AUTH_RENEWAL_CHECK_MS, AUTH_RENEWAL_INTERVAL_MS } from "../utils/wsAuth";
+
+jest.mock("../utils/cosmos/signing", () => ({ createAuthPayload: jest.fn() }));
+
+// The provider constructs a WebSocket; hand-roll a mock so tests can drive
+// scripted frames into ws.onmessage without a real socket.
+class MockWebSocket {
+    static CONNECTING = 0;
+    static OPEN = 1;
+    static CLOSING = 2;
+    static CLOSED = 3;
+    static instances: MockWebSocket[] = [];
+
+    url: string;
+    readyState = MockWebSocket.CONNECTING;
+    onopen: (() => void) | null = null;
+    onmessage: ((ev: { data: string }) => void) | null = null;
+    onclose: (() => void) | null = null;
+    onerror: ((ev: unknown) => void) | null = null;
+    sent: string[] = [];
+
+    constructor(url: string) {
+        this.url = url;
+        MockWebSocket.instances.push(this);
+    }
+
+    send(data: string): void {
+        this.sent.push(data);
+    }
+
+    close(): void {
+        this.readyState = MockWebSocket.CLOSED;
+        this.onclose?.();
+    }
+
+    /** Test helper: deliver a frame to the provider's onmessage handler. */
+    emit(frame: unknown): void {
+        this.onmessage?.({ data: JSON.stringify(frame) });
+    }
+
+    /** Test helper: deliver a raw (unparseable) string. */
+    emitRaw(data: string): void {
+        this.onmessage?.({ data });
+    }
+}
+
+const TABLE_ID = "0xcafe0001";
+
+const validGameOptions: GameOptionsDTO = {
+    minBuyIn: "1000000",
+    maxBuyIn: "1000000000",
+    minPlayers: 2,
+    maxPlayers: 9,
+    smallBlind: "500000",
+    bigBlind: "1000000",
+    timeout: 30000
+};
+
+function makeSnapshot(handNumber: number): TexasHoldemStateDTO {
+    return {
+        gameOptions: validGameOptions,
+        players: [],
+        communityCards: [],
+        deck: "",
+        pots: [],
+        totalPot: "0",
+        nextToAct: 0,
+        previousActions: [],
+        actionCount: handNumber,
+        handNumber,
+        round: "preflop" as TexasHoldemStateDTO["round"],
+        winners: [],
+        results: [],
+        legalActions: [],
+        availableSeats: [],
+        signature: ""
+    };
+}
+
+function stateFrame(handNumber: number): unknown {
+    return {
+        event: "state",
+        gameId: TABLE_ID,
+        data: { format: "cash", variant: "texas-holdem", gameState: makeSnapshot(handNumber) }
+    };
+}
+
+const Consumer: React.FC = () => {
+    const { gameState } = useGameData();
+    const { error, validationError, pendingAction, connection } = useGameUI();
+    const { subscribeToTable, unsubscribeFromTable } = useGameActions();
+
+    useEffect(() => {
+        subscribeToTable(TABLE_ID);
+    }, [subscribeToTable]);
+
+    return (
+        <div>
+            <span data-testid="hand">{gameState?.handNumber ?? "none"}</span>
+            <span data-testid="error">{error?.message ?? "none"}</span>
+            <span data-testid="validation">{validationError?.message ?? "none"}</span>
+            <span data-testid="pending">{pendingAction?.action ?? "none"}</span>
+            <span data-testid="conn">{`${connection.status}:${connection.attempt}`}</span>
+            <button type="button" onClick={unsubscribeFromTable}>unsubscribe</button>
+        </div>
+    );
+};
+
+function renderProvider() {
+    return render(
+        <NetworkProvider>
+            <GameStateProvider>
+                <Consumer />
+            </GameStateProvider>
+        </NetworkProvider>
+    );
+}
+
+function currentSocket(): MockWebSocket {
+    const socket = MockWebSocket.instances[MockWebSocket.instances.length - 1];
+    if (!socket) throw new Error("no socket created");
+    return socket;
+}
+
+describe("GameStateProvider ingest funnel", () => {
+    let originalWebSocket: typeof WebSocket;
+
+    beforeEach(() => {
+        originalWebSocket = global.WebSocket;
+        // @ts-expect-error — assigning the hand-rolled mock over the DOM lib type.
+        global.WebSocket = MockWebSocket;
+        MockWebSocket.instances = [];
+        localStorage.clear();
+        localStorage.setItem(STORAGE_KEYS.cosmosAddress, "b521testaddress");
+    });
+
+    afterEach(() => {
+        global.WebSocket = originalWebSocket;
+        delete window.__B52_BUS__;
+    });
+
+    it("commits ordered snapshots through the bus", async () => {
+        renderProvider();
+        const socket = currentSocket();
+
+        act(() => {
+            socket.emit(stateFrame(1));
+            socket.emit(stateFrame(2));
+            socket.emit(stateFrame(3));
+        });
+
+        await waitFor(() => expect(screen.getByTestId("hand").textContent).toBe("3"));
+
+        // The dev introspection handle records strictly-increasing commit seqs.
+        const bus = window.__B52_BUS__;
+        expect(bus).toBeDefined();
+        expect(bus!.commitLog.map(e => e.seq)).toEqual([1, 2, 3]);
+        expect(bus!.committed).toBe(3);
+    });
+
+    it("surfaces an error frame", async () => {
+        renderProvider();
+        const socket = currentSocket();
+
+        act(() => {
+            socket.emit({ type: "error", message: "kaboom" });
+        });
+
+        await waitFor(() => expect(screen.getByTestId("error").textContent).toBe("kaboom"));
+    });
+
+    it("surfaces a GAME_NOT_FOUND error and clears the game state", async () => {
+        renderProvider();
+        const socket = currentSocket();
+
+        act(() => {
+            socket.emit(stateFrame(5));
+        });
+        await waitFor(() => expect(screen.getByTestId("hand").textContent).toBe("5"));
+
+        act(() => {
+            socket.emit({ type: "error", code: "GAME_NOT_FOUND", message: "Game not found", details: { suggestion: "Create it" } });
+        });
+
+        await waitFor(() => expect(screen.getByTestId("error").textContent).toBe("Game not found\n\nCreate it"));
+        expect(screen.getByTestId("hand").textContent).toBe("none");
+    });
+
+    it("surfaces a pending action", async () => {
+        renderProvider();
+        const socket = currentSocket();
+
+        act(() => {
+            socket.emit({ event: "pending", gameId: TABLE_ID, data: { actor: "0xabc", action: "call", amount: "1000000" } });
+        });
+
+        await waitFor(() => expect(screen.getByTestId("pending").textContent).toBe("call"));
+    });
+
+    it("surfaces a validation error while still rendering the snapshot", async () => {
+        renderProvider();
+        const socket = currentSocket();
+
+        act(() => {
+            // Missing format/variant → validation error, snapshot still committed.
+            socket.emit({ event: "state", gameId: TABLE_ID, data: { gameState: makeSnapshot(7) } });
+        });
+
+        await waitFor(() => expect(screen.getByTestId("hand").textContent).toBe("7"));
+        expect(screen.getByTestId("validation").textContent).toContain("Missing required fields");
+    });
+
+    it("counts an unparseable frame and keeps the table up instead of raising a page error (ui#623)", async () => {
+        const consoleError = jest.spyOn(console, "error").mockImplementation(() => {});
+        renderProvider();
+        const socket = currentSocket();
+
+        act(() => {
+            socket.emit(stateFrame(4));
+        });
+        await waitFor(() => expect(screen.getByTestId("hand").textContent).toBe("4"));
+
+        act(() => {
+            socket.emitRaw("not-json{{{");
+        });
+
+        // Counted on the dev handle, logged, and the last good state stays on
+        // screen — never swapped for the error page.
+        await waitFor(() => expect(window.__B52_BUS__?.parseFailures).toBe(1));
+        expect(screen.getByTestId("error").textContent).toBe("none");
+        expect(screen.getByTestId("hand").textContent).toBe("4");
+        expect(window.__B52_BUS__?.committed).toBe(1);
+        expect(consoleError).toHaveBeenCalledWith(expect.stringContaining("Dropped 1 unparseable WebSocket document"), expect.any(String));
+        consoleError.mockRestore();
+    });
+
+    it("ingests every document of a newline-batched frame, in order (pokerchain#364 tolerance)", async () => {
+        renderProvider();
+        const socket = currentSocket();
+
+        act(() => {
+            socket.emitRaw(`${JSON.stringify(stateFrame(1))}\n${JSON.stringify(stateFrame(2))}\n`);
+        });
+
+        await waitFor(() => expect(screen.getByTestId("hand").textContent).toBe("2"));
+        const bus = window.__B52_BUS__;
+        expect(bus!.commitLog.map(e => e.seq)).toEqual([1, 2]);
+        expect(bus!.parseFailures).toBe(0);
+        expect(screen.getByTestId("error").textContent).toBe("none");
+    });
+
+    it("keeps the good documents of a frame that also carries a malformed line", async () => {
+        jest.spyOn(console, "error").mockImplementation(() => {});
+        renderProvider();
+        const socket = currentSocket();
+
+        act(() => {
+            socket.emitRaw(`${JSON.stringify(stateFrame(1))}\ngarbage\n${JSON.stringify(stateFrame(2))}`);
+        });
+
+        await waitFor(() => expect(screen.getByTestId("hand").textContent).toBe("2"));
+        expect(window.__B52_BUS__?.parseFailures).toBe(1);
+        expect(window.__B52_BUS__?.committed).toBe(2);
+        expect(screen.getByTestId("error").textContent).toBe("none");
+        jest.restoreAllMocks();
+    });
+
+    it("ignores frames for a different table", async () => {
+        renderProvider();
+        const socket = currentSocket();
+
+        act(() => {
+            socket.emit({ event: "state", gameId: "0xdifferent", data: { format: "cash", variant: "texas-holdem", gameState: makeSnapshot(9) } });
+        });
+
+        // Give the async drain a chance to run — nothing should commit.
+        await new Promise(resolve => setTimeout(resolve, 10));
+        expect(screen.getByTestId("hand").textContent).toBe("none");
+    });
+});
+
+/**
+ * Reconnect (ui#613). A server-side drop is simulated with the mock's close()
+ * (readyState → CLOSED, then onclose) — the provider never asked for it, so it
+ * must reconnect: bounded backoff, a fresh socket, the old one's late frames
+ * ignored, the catch-up frame a fresh baseline, and no reconnect after an
+ * intentional unsubscribe.
+ */
+describe("GameStateProvider reconnect (ui#613)", () => {
+    let originalWebSocket: typeof WebSocket;
+    let warn: jest.SpyInstance;
+    let err: jest.SpyInstance;
+
+    beforeEach(() => {
+        jest.useFakeTimers();
+        warn = jest.spyOn(console, "warn").mockImplementation(() => {});
+        err = jest.spyOn(console, "error").mockImplementation(() => {});
+        originalWebSocket = global.WebSocket;
+        // @ts-expect-error — assigning the hand-rolled mock over the DOM lib type.
+        global.WebSocket = MockWebSocket;
+        MockWebSocket.instances = [];
+        localStorage.clear();
+        localStorage.setItem(STORAGE_KEYS.cosmosAddress, "b521testaddress");
+    });
+
+    afterEach(() => {
+        warn.mockRestore();
+        err.mockRestore();
+        global.WebSocket = originalWebSocket;
+        delete window.__B52_BUS__;
+        jest.useRealTimers();
+    });
+
+    const conn = () => screen.getByTestId("conn").textContent;
+
+    it("reconnects after a drop with a fresh socket, re-snapshots, and reports live again", async () => {
+        renderProvider();
+        const first = currentSocket();
+        expect(conn()).toBe("connecting:0");
+
+        act(() => {
+            first.emit(stateFrame(3));
+        });
+        await waitFor(() => expect(screen.getByTestId("hand").textContent).toBe("3"));
+        expect(conn()).toBe("live:0");
+        const eventsBefore = window.__B52_BUS__!.totalEvents;
+
+        // The relay drops us mid-hand.
+        act(() => {
+            first.close();
+        });
+        expect(conn()).toBe("reconnecting:1");
+        expect(MockWebSocket.instances).toHaveLength(1);
+        // The last snapshot stays on screen — nothing is blanked, no page error.
+        expect(screen.getByTestId("hand").textContent).toBe("3");
+        expect(screen.getByTestId("error").textContent).toBe("none");
+
+        // Backoff: attempt 1 opens within ~1.25 s.
+        act(() => {
+            jest.advanceTimersByTime(1300);
+        });
+        expect(MockWebSocket.instances).toHaveLength(2);
+        const second = currentSocket();
+        expect(second).not.toBe(first);
+        expect(second.url).toBe(first.url);
+        expect(conn()).toBe("reconnecting:1");
+
+        // The catch-up frame: live again, rendered, and a FRESH baseline — no
+        // events derived for whatever we missed (late-mount semantics).
+        act(() => {
+            second.emit(stateFrame(5));
+        });
+        await waitFor(() => expect(screen.getByTestId("hand").textContent).toBe("5"));
+        expect(conn()).toBe("live:0");
+        expect(window.__B52_BUS__!.totalEvents).toBe(eventsBefore);
+        expect(window.__B52_BUS__!.lastEventCount).toBe(0);
+    });
+
+    it("ignores a late frame from the superseded socket", async () => {
+        renderProvider();
+        const first = currentSocket();
+        act(() => {
+            first.emit(stateFrame(3));
+            first.close();
+            jest.advanceTimersByTime(1300);
+        });
+        const second = currentSocket();
+        act(() => {
+            second.emit(stateFrame(5));
+        });
+        await waitFor(() => expect(screen.getByTestId("hand").textContent).toBe("5"));
+
+        // A frame arriving on the OLD socket after the new one opened must not apply.
+        act(() => {
+            first.emit(stateFrame(9));
+            jest.advanceTimersByTime(50); // let any (wrongly) queued commit drain
+        });
+        expect(screen.getByTestId("hand").textContent).toBe("5");
+    });
+
+    it("does not reconnect after an intentional unsubscribe", async () => {
+        renderProvider();
+        const first = currentSocket();
+        act(() => {
+            first.emit(stateFrame(3));
+        });
+        await waitFor(() => expect(conn()).toBe("live:0"));
+
+        act(() => {
+            screen.getByText("unsubscribe").click();
+        });
+        expect(conn()).toBe("idle:0");
+        act(() => {
+            jest.advanceTimersByTime(60_000);
+        });
+        expect(MockWebSocket.instances).toHaveLength(1);
+    });
+
+    it("backs off, then gives up after the attempt cap and surfaces the loss", async () => {
+        renderProvider();
+        act(() => {
+            currentSocket().emit(stateFrame(3));
+        });
+        await waitFor(() => expect(conn()).toBe("live:0"));
+
+        // Every reconnect attempt opens a socket the relay closes again.
+        for (let attempt = 1; attempt <= 8; attempt++) {
+            act(() => {
+                currentSocket().close();
+            });
+            expect(conn()).toBe(`reconnecting:${attempt}`);
+            act(() => {
+                jest.advanceTimersByTime(40_000); // past the 30 s cap + jitter
+            });
+            expect(MockWebSocket.instances).toHaveLength(attempt + 1);
+        }
+        act(() => {
+            currentSocket().close(); // the 8th attempt fails too
+        });
+        expect(conn()).toBe("offline:8");
+        await waitFor(() => expect(screen.getByTestId("error").textContent).toMatch(/could not be restored after 8 attempts/));
+        act(() => {
+            jest.advanceTimersByTime(120_000);
+        });
+        expect(MockWebSocket.instances).toHaveLength(9); // no further attempts
+    });
+
+    it("reconnects immediately when the tab becomes visible while the socket is down", async () => {
+        Object.defineProperty(document, "visibilityState", { configurable: true, get: () => "visible" });
+        renderProvider();
+        act(() => {
+            currentSocket().emit(stateFrame(3));
+            currentSocket().close();
+        });
+        expect(conn()).toBe("reconnecting:1");
+        expect(MockWebSocket.instances).toHaveLength(1);
+
+        act(() => {
+            document.dispatchEvent(new Event("visibilitychange"));
+        });
+        expect(MockWebSocket.instances).toHaveLength(2); // no wait for the backoff timer
+        act(() => {
+            jest.advanceTimersByTime(40_000);
+        });
+        expect(MockWebSocket.instances).toHaveLength(2); // the pending timer was cancelled
+    });
+
+    it("waits for the browser to come back online instead of burning attempts", async () => {
+        const onLine = jest.spyOn(navigator, "onLine", "get").mockReturnValue(false);
+        renderProvider();
+        act(() => {
+            currentSocket().emit(stateFrame(3));
+        });
+        await waitFor(() => expect(conn()).toBe("live:0"));
+
+        act(() => {
+            window.dispatchEvent(new Event("offline"));
+            currentSocket().close();
+        });
+        expect(conn()).toBe("offline:0");
+        act(() => {
+            jest.advanceTimersByTime(60_000);
+        });
+        expect(MockWebSocket.instances).toHaveLength(1);
+
+        onLine.mockReturnValue(true);
+        act(() => {
+            window.dispatchEvent(new Event("online"));
+        });
+        expect(MockWebSocket.instances).toHaveLength(2);
+        expect(conn()).toBe("reconnecting:1");
+        act(() => {
+            currentSocket().emit(stateFrame(4));
+        });
+        await waitFor(() => expect(conn()).toBe("live:0"));
+        onLine.mockRestore();
+    });
+
+    it("recovers when the browser blips offline and back while the socket stays open (ui#867)", async () => {
+        renderProvider();
+        const first = currentSocket();
+        act(() => {
+            first.readyState = MockWebSocket.OPEN;
+            first.emit(stateFrame(3));
+        });
+        await waitFor(() => expect(conn()).toBe("live:0"));
+
+        // A network handover: offline fires, but the socket never closes.
+        act(() => {
+            window.dispatchEvent(new Event("offline"));
+        });
+        expect(conn()).toBe("offline:0");
+
+        // Back online: the socket is still OPEN, but its view may be stale, so
+        // it must re-subscribe for a fresh snapshot rather than stay offline.
+        act(() => {
+            window.dispatchEvent(new Event("online"));
+        });
+        expect(MockWebSocket.instances).toHaveLength(2);
+        act(() => {
+            currentSocket().emit(stateFrame(4));
+        });
+        await waitFor(() => expect(conn()).toBe("live:0"));
+    });
+
+    it("a frame on the current socket clears an offline status (ui#867)", async () => {
+        renderProvider();
+        act(() => {
+            currentSocket().emit(stateFrame(3));
+        });
+        await waitFor(() => expect(conn()).toBe("live:0"));
+
+        act(() => {
+            window.dispatchEvent(new Event("offline"));
+        });
+        expect(conn()).toBe("offline:0");
+
+        // The socket is delivering, so the table is current again.
+        act(() => {
+            currentSocket().emit(stateFrame(4));
+        });
+        await waitFor(() => expect(conn()).toBe("live:0"));
+    });
+});
+
+describe("GameStateProvider auth renewal (ui#953)", () => {
+    const ADDRESS = "b521testaddress";
+    const signMock = createAuthPayload as jest.MockedFunction<typeof createAuthPayload>;
+    let originalWebSocket: typeof WebSocket;
+    let warn: jest.SpyInstance;
+
+    beforeEach(() => {
+        jest.useFakeTimers();
+        warn = jest.spyOn(console, "warn").mockImplementation(() => {});
+        originalWebSocket = global.WebSocket;
+        // @ts-expect-error — assigning the hand-rolled mock over the DOM lib type.
+        global.WebSocket = MockWebSocket;
+        MockWebSocket.instances = [];
+        localStorage.clear();
+        localStorage.setItem(STORAGE_KEYS.cosmosAddress, ADDRESS);
+        signMock.mockReset();
+        signMock.mockImplementation(async () => ({
+            playerAddress: ADDRESS,
+            timestamp: Math.floor(Date.now() / 1000),
+            signature: `sig-${Date.now()}`
+        }));
+    });
+
+    afterEach(() => {
+        warn.mockRestore();
+        global.WebSocket = originalWebSocket;
+        delete window.__B52_BUS__;
+        jest.useRealTimers();
+    });
+
+    const conn = () => screen.getByTestId("conn").textContent;
+    const hand = () => screen.getByTestId("hand").textContent;
+    const subscribes = (socket: MockWebSocket) => socket.sent.map(data => JSON.parse(data)).filter(message => message.type === "subscribe");
+    const advance = (ms: number) =>
+        act(async () => {
+            await jest.advanceTimersByTimeAsync(ms);
+        });
+
+    function heroFrame(handNumber: number, holeCards: string[]): unknown {
+        const players = [{ seat: 1, address: ADDRESS, holeCards }] as unknown as TexasHoldemStateDTO["players"];
+        return {
+            event: "state",
+            gameId: TABLE_ID,
+            data: { format: "cash", variant: "texas-holdem", gameState: { ...makeSnapshot(handNumber), players } }
+        };
+    }
+
+    /** Open the socket, take the subscribe it signs, and go live on a frame. */
+    async function openLive(frame: unknown = stateFrame(3)): Promise<MockWebSocket> {
+        renderProvider();
+        const socket = currentSocket();
+        await act(async () => {
+            socket.readyState = MockWebSocket.OPEN;
+            await socket.onopen?.();
+        });
+        expect(subscribes(socket)).toHaveLength(1);
+        act(() => socket.emit(frame));
+        await waitFor(() => expect(conn()).toBe("live:0"));
+        return socket;
+    }
+
+    it("signs again on the same socket before the chain's hour runs out, then keeps doing so", async () => {
+        const socket = await openLive();
+        const [first] = subscribes(socket);
+
+        await advance(AUTH_RENEWAL_INTERVAL_MS - AUTH_RENEWAL_CHECK_MS);
+        expect(subscribes(socket)).toHaveLength(1);
+
+        await advance(AUTH_RENEWAL_CHECK_MS);
+        expect(subscribes(socket)).toHaveLength(2);
+        const [, renewed] = subscribes(socket);
+        expect(renewed.gameId).toBe(TABLE_ID);
+        expect(renewed.playerAddress).toBe(ADDRESS);
+        expect(renewed.timestamp).toBeGreaterThan(first.timestamp);
+        expect(renewed.signature).not.toBe(first.signature);
+
+        await advance(AUTH_RENEWAL_INTERVAL_MS);
+        expect(subscribes(socket)).toHaveLength(3);
+        expect(MockWebSocket.instances).toHaveLength(1);
+    });
+
+    it("leaves the table up through a renewal: no reconnect, and the answer is an ordinary frame", async () => {
+        const socket = await openLive();
+        await waitFor(() => expect(hand()).toBe("3"));
+
+        await advance(AUTH_RENEWAL_INTERVAL_MS);
+        expect(conn()).toBe("live:0");
+        expect(hand()).toBe("3");
+
+        act(() => socket.emit(stateFrame(4)));
+        await waitFor(() => expect(hand()).toBe("4"));
+        expect(MockWebSocket.instances).toHaveLength(1);
+    });
+
+    it("renews on the tab coming back when the signature aged in the background", async () => {
+        const socket = await openLive();
+
+        // A frozen tab: the clock moved, but no timer ran.
+        jest.setSystemTime(Date.now() + AUTH_RENEWAL_INTERVAL_MS);
+        await act(async () => {
+            document.dispatchEvent(new Event("visibilitychange"));
+        });
+
+        expect(subscribes(socket)).toHaveLength(2);
+        expect(MockWebSocket.instances).toHaveLength(1);
+    });
+
+    it("does not sign again for a tab switch while the signature is young", async () => {
+        const socket = await openLive();
+
+        await act(async () => {
+            document.dispatchEvent(new Event("visibilitychange"));
+        });
+
+        expect(subscribes(socket)).toHaveLength(1);
+    });
+
+    it("signs again at once when our own cards arrive masked", async () => {
+        const socket = await openLive(heroFrame(3, ["AS", "KD"]));
+        await advance(AUTH_MASKED_RETRY_MS);
+        expect(subscribes(socket)).toHaveLength(1);
+
+        act(() => socket.emit(heroFrame(3, ["X", "X"])));
+        await waitFor(() => expect(subscribes(socket)).toHaveLength(2));
+        expect(MockWebSocket.instances).toHaveLength(1);
+        expect(conn()).toBe("live:0");
+    });
+
+    it("does not sign again for frames with our own cards visible", async () => {
+        const socket = await openLive(heroFrame(3, ["AS", "KD"]));
+        await advance(AUTH_MASKED_RETRY_MS);
+
+        act(() => socket.emit(heroFrame(3, ["AS", "KD"])));
+        await advance(AUTH_RENEWAL_CHECK_MS);
+
+        expect(subscribes(socket)).toHaveLength(1);
+    });
+
+    it("retries masked cards no faster than the debounce, also on a table that has gone quiet", async () => {
+        const socket = await openLive(heroFrame(3, ["AS", "KD"]));
+        await advance(AUTH_MASKED_RETRY_MS);
+
+        act(() => socket.emit(heroFrame(3, ["X", "X"])));
+        await waitFor(() => expect(subscribes(socket)).toHaveLength(2));
+
+        // Still masked, frames arriving: inside the window nothing more is signed.
+        act(() => socket.emit(heroFrame(3, ["X", "X"])));
+        await advance(AUTH_MASKED_RETRY_MS / 2);
+        expect(subscribes(socket)).toHaveLength(2);
+
+        // No frame at all now: the clock retries by itself, on its first check
+        // past the window.
+        await advance(AUTH_MASKED_RETRY_MS / 2 + AUTH_RENEWAL_CHECK_MS);
+        expect(subscribes(socket)).toHaveLength(3);
+    });
+
+    it("sends nothing when signing fails, which would overwrite the relay's credentials", async () => {
+        const socket = await openLive();
+        signMock.mockResolvedValue(null);
+
+        await advance(AUTH_RENEWAL_INTERVAL_MS);
+
+        expect(signMock).toHaveBeenCalledTimes(2);
+        expect(subscribes(socket)).toHaveLength(1);
+    });
+
+    it("sends nothing when the socket closes while signing", async () => {
+        const socket = await openLive();
+        signMock.mockImplementation(async () => {
+            socket.readyState = MockWebSocket.CLOSED;
+            return { playerAddress: ADDRESS, timestamp: 1, signature: "late" };
+        });
+
+        await advance(AUTH_RENEWAL_INTERVAL_MS);
+
+        expect(subscribes(socket)).toHaveLength(1);
+    });
+
+    it("stops renewing after an unsubscribe", async () => {
+        const socket = await openLive();
+        act(() => screen.getByText("unsubscribe").click());
+        signMock.mockClear();
+
+        await advance(AUTH_RENEWAL_INTERVAL_MS);
+
+        expect(signMock).not.toHaveBeenCalled();
+        expect(subscribes(socket)).toHaveLength(1);
+    });
+});
+
+
+// ui#834: with several tables mounted (multi-tabling, ui#55), each
+// GameStateProvider must own its logical track, so one table's submissions and
+// auto-actions never read another table's state.
+describe("GameStateProvider per-table logical track (ui#834)", () => {
+    let originalWebSocket: typeof WebSocket;
+
+    beforeEach(() => {
+        originalWebSocket = global.WebSocket;
+        // @ts-expect-error — assigning the hand-rolled mock over the DOM lib type.
+        global.WebSocket = MockWebSocket;
+        MockWebSocket.instances = [];
+        localStorage.clear();
+        localStorage.setItem(STORAGE_KEYS.cosmosAddress, "b521testaddress");
+    });
+
+    afterEach(() => {
+        global.WebSocket = originalWebSocket;
+        delete window.__B52_BUS__;
+    });
+
+    const TABLE_A = "0xaaaa0001";
+    const TABLE_B = "0xbbbb0002";
+    const tracks: Record<string, LogicalTrack> = {};
+
+    const TableProbe: React.FC<{ tableId: string }> = ({ tableId }) => {
+        const { subscribeToTable } = useGameActions();
+        const { gameState } = useGameData();
+        tracks[tableId] = useLogicalTrack();
+        useEffect(() => {
+            subscribeToTable(tableId);
+        }, [subscribeToTable, tableId]);
+        return <span data-testid={`hand-${tableId}`}>{gameState?.handNumber ?? "none"}</span>;
+    };
+
+    const frameFor = (gameId: string, handNumber: number) => ({
+        event: "state",
+        gameId,
+        data: { format: "cash", variant: "texas-holdem", gameState: makeSnapshot(handNumber) }
+    });
+
+    const socketFor = (gameId: string): MockWebSocket => {
+        // Each provider opens its own socket; its URL names the table.
+        const socket = MockWebSocket.instances.find(ws => ws.url.includes(`tableAddress=${gameId}`));
+        if (!socket) throw new Error(`no socket subscribed to ${gameId}`);
+        return socket;
+    };
+
+    it("gives each mounted table its own logical track, fed only by its own socket", async () => {
+        render(
+            <NetworkProvider>
+                <GameStateProvider>
+                    <TableProbe tableId={TABLE_A} />
+                </GameStateProvider>
+                <GameStateProvider>
+                    <TableProbe tableId={TABLE_B} />
+                </GameStateProvider>
+            </NetworkProvider>
+        );
+        expect(tracks[TABLE_A]).toBeDefined();
+        expect(tracks[TABLE_A]).not.toBe(tracks[TABLE_B]);
+
+        act(() => {
+            socketFor(TABLE_A).emit(frameFor(TABLE_A, 5));
+            socketFor(TABLE_B).emit(frameFor(TABLE_B, 9));
+        });
+        await waitFor(() => expect(screen.getByTestId(`hand-${TABLE_B}`).textContent).toBe("9"));
+
+        // Table B ingested last, yet table A's track still holds A's state.
+        expect(tracks[TABLE_A].get()?.handNumber).toBe(5);
+        expect(tracks[TABLE_B].get()?.handNumber).toBe(9);
+
+        // A later frame on A updates only A.
+        act(() => {
+            socketFor(TABLE_A).emit(frameFor(TABLE_A, 6));
+        });
+        await waitFor(() => expect(tracks[TABLE_A].get()?.handNumber).toBe(6));
+        expect(tracks[TABLE_B].get()?.handNumber).toBe(9);
+    });
+
+    it("notifies a table's track subscribers only for that table's frames", async () => {
+        render(
+            <NetworkProvider>
+                <GameStateProvider>
+                    <TableProbe tableId={TABLE_A} />
+                </GameStateProvider>
+                <GameStateProvider>
+                    <TableProbe tableId={TABLE_B} />
+                </GameStateProvider>
+            </NetworkProvider>
+        );
+        const seenByA: number[] = [];
+        const unsubscribe = tracks[TABLE_A].subscribe(state => {
+            if (state) seenByA.push(state.handNumber);
+        });
+
+        act(() => {
+            socketFor(TABLE_B).emit(frameFor(TABLE_B, 3));
+            socketFor(TABLE_A).emit(frameFor(TABLE_A, 7));
+            socketFor(TABLE_B).emit(frameFor(TABLE_B, 4));
+        });
+        await waitFor(() => expect(seenByA).toContain(7));
+        unsubscribe();
+
+        expect(seenByA).toEqual([7]);
+    });
+});

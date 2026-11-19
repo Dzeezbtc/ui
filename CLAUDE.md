@@ -1,0 +1,924 @@
+# UI - Claude Code Instructions
+
+## Overview
+
+The Poker VM UI is a React + TypeScript application for the Block 52 poker platform. It provides the web interface for playing poker games on the Cosmos blockchain.
+
+---
+
+## The 12 Commandments of Types (DO NOT CHANGE)
+
+These rules prevent regression. **All UI code must conform to SDK types. Violations break the system.**
+
+### 1. SDK is the Single Source of Truth
+
+The `@block52/poker-vm-sdk` package defines ALL type shapes. The UI must import types from SDK, never define duplicates.
+
+```
+SDK Types → Go Server follows → UI follows
+```
+
+**Never** define duplicate types elsewhere. Import from SDK.
+
+### 2. DTO Naming Convention
+
+| Suffix | Meaning | BigInt Fields |
+|--------|---------|---------------|
+| `DTO` or `ResponseDTO` | Over-the-wire format | **Strings** (e.g., `"80000"`) |
+| No suffix | Internal/runtime | **BigInt/number** |
+
+### 3. Single Source of Truth Fields
+
+These fields exist in **ONE place only**. Never duplicate them.
+
+| Field | Canonical Location | NEVER put in |
+|-------|-------------------|--------------|
+| `format` | `GameStateResponseDTO.format` | `gameOptions.format` |
+| `variant` | `GameStateResponseDTO.variant` | `gameOptions.variant` |
+| `creator` | `GameStateResponseDTO.creator` | `gameOptions.owner` |
+| `players[]` | `gameState.players` | Root `GameStateResponseDTO.players` |
+
+### 4. Canonical Root Type
+
+`GameStateResponseDTO` is the ONLY root type for game data over the wire:
+
+```typescript
+type GameStateResponseDTO = {
+    gameId: string;
+    creator: string;
+    format: GameFormat;
+    variant: GameVariant;
+    gameState: TexasHoldemStateDTO;
+};
+```
+
+### 5. WebSocket JSON Naming
+
+ALL WebSocket messages use **camelCase**:
+- `gameId` (not `game_id`)
+- `playerAddress` (not `player_address`)
+- `txHash` (not `tx_hash`)
+
+### 6. Required vs Optional Fields
+
+**Required fields have NO `?` marker.** Chain MUST provide these - if missing, it's a chain bug.
+**Optional fields have `?` marker.** Only for specific game types or special configurations.
+
+### 7. NO Defaults Policy (CRITICAL)
+
+> **Errors happen at pokerchain/PVM level, NEVER hidden by defaults in UI.**
+
+```typescript
+// ❌ WRONG - NEVER use default values
+const format = game.format || "cash";  // NO!
+const timeout = gameOptions.timeout ?? 60;  // NO!
+
+// ✅ CORRECT - let it error if undefined
+const format = game.format;  // Will throw if missing - GOOD
+if (!game.format) throw new Error("game.format required");
+```
+
+### 8. NO Backwards Compatibility
+
+```typescript
+// ❌ WRONG - NO aliases
+type Game = GameStateResponseDTO;  // NO!
+
+// ❌ WRONG - NO supporting old field names
+const id = game.gameId || game.game_id;  // NO!
+
+// ✅ CORRECT - one name only
+const id = game.gameId;  // This is the only name
+```
+
+### 9. String Fields (BigNumber Values)
+
+These fields are **always strings** in DTOs (to handle large numbers safely):
+```
+minBuyIn, maxBuyIn, startingStack, smallBlind, bigBlind,
+stack, amount, sumOfBets, pots[], min/max in legalActions
+```
+
+### 10. Number Fields (Safe Integer Range)
+
+These fields are **always numbers** (fit in JavaScript safe integer range):
+```
+minPlayers, maxPlayers, timeout, seat, dealer,
+smallBlindPosition, bigBlindPosition, handNumber,
+actionCount, index, timestamp, blindLevelDuration
+```
+
+### 11. NO `any` Type
+
+**Never use `any` when SDK types exist.** Using `any` bypasses TypeScript's type checking.
+
+```typescript
+// ❌ WRONG - `any` hides shape mismatches
+const games = cosmosGames.map((game: any) => ({ ... }));
+
+// ✅ CORRECT - use SDK types
+import { GameListItem } from "@block52/poker-vm-sdk";
+const games = cosmosGames.map((game: GameListItem) => ({ ... }));
+```
+
+### 12. NO Inline Casting — Use Centralized Utilities
+
+All type conversions must go through centralized, unit-tested utility functions.
+
+```typescript
+// ❌ WRONG - inline casting scattered everywhere
+const format = game.format as GameFormat;
+
+// ✅ CORRECT - use tested utility functions
+import { parseGameFormat } from "../utils/typeConversions";
+const format = parseGameFormat(game.format);
+```
+
+### Reference
+
+- Issue: https://github.com/block52/poker-vm/issues/1691
+- SDK Types: `@block52/poker-vm-sdk/src/types/game.ts`
+- Full Rules: `/clients/block52/issues/cleaning_up_types/THE_12_COMMANDMENTS.md`
+
+---
+
+## The 8 Commandments of UI Architecture
+
+These rules standardize how API calls, state management, null checks and testing are structured across the UI. **Violations create inconsistency and tech debt.** Established in PR #159.
+
+### 1. Centralized HTTPClient — No Raw Axios/Fetch
+
+All HTTP calls go through `src/apis/HTTPClient.ts`. Never import `axios` or use `fetch` directly in components or hooks.
+
+HTTPClient provides:
+- Typed methods: `get<T>()`, `post<T>()`, `put<T>()`, `delete<T>()`
+- Automatic Bearer token injection when `secure: true`
+- Unified error handling via `onError` / `setCustomOnError()`
+- Configurable timeout and abort signal support
+
+```typescript
+// ❌ WRONG — raw axios in a component
+import axios from "axios";
+const res = await axios.get("/api/data");
+
+// ✅ CORRECT — use an API class that extends HTTPClient
+import { PaymentApi } from "../apis/Api";
+const api = new PaymentApi({ baseUrl: PROXY_URL, secure: true, timeout: 5000 });
+const res = await api.getPaymentStatus(id);
+```
+
+### 2. API Class Pattern — Extend HTTPClient
+
+Domain API classes live in `src/apis/Api.ts`, extend HTTPClient, and expose public arrow function methods — one endpoint per method, no business logic.
+
+```typescript
+export class CosmosApi extends HTTPClient {
+    public getValidators = (limit?: number) =>
+        this.get(`/cosmos/staking/v1beta1/validators${limit ? `?pagination.limit=${limit}` : ""}`);
+    public getBalanceByAddress = (address: string) =>
+        this.get(`/cosmos/bank/v1beta1/balances/${address}`);
+}
+```
+
+**Rules:**
+- One class per API domain (`PaymentApi`, `CosmosApi`, `IndexerApi`)
+- Methods are public arrow functions calling `this.get/post/put/delete`
+- No state, no side effects, no business logic in API classes
+
+### 3. Context → Provider → Hook
+
+Each API domain gets three pieces in `src/context/`:
+
+1. **Context**: `createContext<XxxApi>(null as any)`
+2. **Provider**: `FC` component that creates the API instance with config
+3. **Hook**: `useXxxApi()` that calls `useContext`
+
+```typescript
+// src/context/PaymentApiContext.tsx
+const PaymentApiContext = createContext<PaymentApi>(null as any);
+
+export const PaymentApiProvider: FC<{ children: ReactNode }> = ({ children }) => {
+    const api = useMemo(() => new PaymentApi({ baseUrl: PROXY_URL!, secure: true, timeout: 5000 }), []);
+    return <PaymentApiContext.Provider value={api}>{children}</PaymentApiContext.Provider>;
+};
+
+export const usePaymentApi = (): PaymentApi => useContext(PaymentApiContext);
+```
+
+**Rules:**
+- **Always** `useMemo` the instance (or lazy-init it in a `useRef`). Without it
+  every provider render constructs a new API object, which changes the context
+  value and invalidates the dep array of every consumer downstream. List the
+  dynamic values it depends on (e.g. `currentNetwork.rest`) as the deps, or `[]`
+  when it depends on nothing
+- Providers are composed in `App.tsx`
+- Components consume APIs only via hooks, never by constructing API classes directly
+
+### 4. Hook Composition
+
+- One `useState` per concern — never combine unrelated state into a single object
+- One `useEffect` per side-effect — separate timer, polling, and data-fetching effects
+- `useCallback` with explicit dependency arrays for functions passed to children or used in effects
+- Clean up intervals/subscriptions in effect return functions
+
+### 5. Error Handling in Async Code
+
+- Wrap async operations in try-catch inside `useCallback` / `useEffect`
+- Store errors in component state (`useState<string | null>(null)`)
+- Log with `console.error` — no silent failures
+- Use `setCustomOnError()` on API instances for cross-cutting error handling
+
+```typescript
+// ✅ CORRECT pattern
+const fetchData = useCallback(async () => {
+    try {
+        const result = await api.getData();
+        setData(result);
+    } catch (err) {
+        console.error("Failed to fetch data:", err);
+        setError(err instanceof Error ? err.message : "Unknown error");
+    }
+}, [api]);
+```
+
+### 6. Naming Conventions
+
+| Thing | Pattern | Example |
+|-------|---------|---------|
+| Custom hook | `use[Domain][Feature]` | `useDepositSession`, `usePaymentApi` |
+| API class | `[Domain]Api` | `PaymentApi`, `CosmosApi`, `IndexerApi` |
+| Context | `[Domain]ApiContext` | `PaymentApiContext` |
+| Provider | `[Domain]ApiProvider` | `CosmosApiProvider` |
+| Hook file | `use[Name].ts` | `useDepositSession.ts` |
+| Context file | `[Domain]ApiContext.tsx` | `PaymentApiContext.tsx` |
+
+### 7. API Testing Pattern
+
+Tests live in `src/tests/`. Mock axios at the module level, use describe blocks per HTTP method, test both success and error paths.
+
+```typescript
+jest.mock("axios");
+const mockedAxios = axios as jest.Mocked<typeof axios>;
+
+describe("HTTPClient", () => {
+    describe("GET", () => {
+        it("should return data on success", async () => {
+            mockedAxios.create.mockReturnValue({
+                get: jest.fn().mockResolvedValueOnce({ data: expected }),
+                interceptors: { request: { use: jest.fn() } }
+            } as any);
+            // ...
+        });
+
+        it("should call onError on failure", async () => {
+            // test error path
+        });
+    });
+});
+```
+
+### 8. Guards and `utils/` — No Inline Checks, No Helpers in Components
+
+Agents: this applies to every PR. A PR that adds `x && x.length > 0`,
+`x !== null && x !== undefined` or a helper function inside a component is not
+ready for review.
+
+Logic lives in `src/utils/` (or a hook when it needs React state), **never as
+helper functions declared inside a component body or module**. A component
+should render and wire up hooks; anything that computes, parses, formats,
+compares or validates belongs in a named, exported, unit-tested helper.
+
+```typescript
+// ❌ WRONG - logic defined inside the component file
+const shortAddress = (addr: string) => `${addr.slice(0, 8)}...${addr.slice(-8)}`;
+export const PlayerSeat: React.FC<Props> = ({ player }) => {
+    const label = shortAddress(player.address);
+    if (player.holeCards && player.holeCards.length > 0) { ... }
+};
+
+// ✅ CORRECT - import tested helpers and guards
+import { truncateHash } from "../utils/formatUtils";
+import { hasElements } from "../utils/guards";
+export const PlayerSeat: React.FC<Props> = ({ player }) => {
+    const label = truncateHash(player.address);
+    if (hasElements(player.holeCards)) { ... }
+};
+```
+
+Before writing a null/empty/length check, a `typeof` check or a conversion by
+hand, look for an existing helper. If one is missing, add it to `src/utils/`
+**with a colocated `*.test.ts`** rather than inlining the logic. Reuse beats
+re-implementation: grep `src/utils/` first.
+
+Most common: `src/utils/guards.ts` for null/empty and `typeof` checks.
+
+```typescript
+// ❌ WRONG - inline checks scattered everywhere
+if (arr && arr.length > 0) { ... }
+if (value !== null && value !== undefined) { ... }
+
+// ✅ CORRECT - use the tested guards
+import { hasElements, hasValue } from "../utils/guards";
+if (hasElements(arr)) { ... }
+if (hasValue(value)) { ... }
+```
+
+Available guards: `hasValue` / `isNullish` (null-or-undefined), `hasElements` /
+`isEmpty` / `safeLength` (arrays), `hasContent` / `isBlank` (strings), `isRecord`
+(an `unknown` JSON reply or caught error whose fields you want to read, instead
+of casting it or checking `typeof x === "object"`; unlike that check, it rejects
+arrays), `isString` / `isNumber` / `isBoolean` (instead of a
+`typeof x === "string"` check). For type conversions, see Commandment 12
+(`utils/typeConversions`).
+
+**Checked in CI.** The `Guards` job runs `yarn check:guards`, which fails a PR
+whose added lines contain a hand-written null/empty/length check or a `typeof`
+check for a string, number, boolean or object, and names the guard to use. Run it
+before opening a PR. Existing code isn't checked, only the lines you add. When a
+raw check is genuinely needed (`null` and `undefined` meaning different things, a
+number compared with 0, an object check that must accept arrays), end the line
+with `// guards-ok`. `typeof` checks for `function`, `undefined` and `bigint`
+aren't flagged: `typeof window === "undefined"` is the safe way to test for a
+global.
+
+---
+
+### Tech Stack
+
+- **React 19** - UI framework
+- **TypeScript 5** - Type safety
+- **Vite** - Build tool and dev server
+- **TailwindCSS** - Styling
+- **@block52/poker-vm-sdk** - Blockchain integration
+- **@reown/appkit** - Wallet connection (Ethereum)
+
+### Node Version (pinned to 24.13.0)
+
+Node is pinned to **24.13.0** and must stay aligned across four places, with
+`.nvmrc` as the single source of truth:
+
+| Where | Value |
+|-------|-------|
+| `.nvmrc` | `24.13.0` (source of truth) |
+| `Dockerfile` (both stages) | `node:24.13.0-alpine` |
+| `.github/workflows/ci.yml` | `node-version-file: ".nvmrc"` (never hardcode a version) |
+| `package.json` engines | `"node": "24.x"` (compat range) |
+
+> **DigitalOcean reads `engines`, not `.nvmrc`.** The App Platform static-site
+> build (`app.yaml`) takes its Node version from `package.json` `engines`, so
+> that field decides what production builds with. App Platform supports
+> Node 24.0.0–24.15.0.
+
+> The old "Cosmos SDK breaks on newer Node" warning could not be reproduced
+> (ui#753): `yarn build` and the full jest suite pass on Node 24.13.0, and
+> `@cosmjs/*` declares no `engines` ceiling. If a real break is found, record
+> the failing issue/PR here instead of an unsourced warning.
+
+When bumping, change `.nvmrc`, the Dockerfile and `engines` together; CI follows
+`.nvmrc` automatically.
+
+**GitHub Actions runtime note:** the Node the *actions themselves* run on is
+separate from the build node. Keep actions on Node-24-targeting majors
+(`checkout@v6`, `setup-node@v6`, `upload-artifact@v7+`) to avoid the runner's
+Node-20 deprecation warning (see issue #493 / PR #499).
+
+### Project Structure
+
+```
+ui/
+├── src/
+│   ├── components/       # React components
+│   ├── hooks/           # Custom React hooks (see hooks/README.md)
+│   ├── context/         # React Context providers
+│   ├── pages/           # Page components
+│   ├── utils/           # Utility functions
+│   ├── types/           # TypeScript type definitions
+│   └── App.tsx          # Root component
+├── public/              # Static assets
+└── build/               # Production build output
+```
+
+## Code Style
+
+### Linting & Formatting
+
+The project uses ESLint with strict TypeScript rules. **IMPORTANT**: Always follow these conventions:
+
+#### Quotes
+- **Use double quotes (`"`) for strings** - This is enforced by ESLint
+- Single quotes (`'`) will cause linting errors
+
+```typescript
+// ✅ Correct
+const greeting = "Hello, world!";
+import { useTableData } from "../hooks/useTableData";
+
+// ❌ Wrong - will fail linting
+const greeting = 'Hello, world!';
+import { useTableData } from '../hooks/useTableData';
+```
+
+#### Semicolons
+- **Always use semicolons** - Required by ESLint
+
+```typescript
+// ✅ Correct
+const value = 42;
+return data;
+
+// ❌ Wrong - will fail linting
+const value = 42
+return data
+```
+
+#### TypeScript Rules
+- `@typescript-eslint/no-explicit-any`: OFF - `any` is allowed (use sparingly)
+- `@typescript-eslint/no-unused-vars`: WARN - Prefix with `_` to ignore
+- `@typescript-eslint/no-unused-expressions`: WARN
+
+```typescript
+// ✅ Ignore unused params with underscore prefix
+const callback = (_event: Event, data: Data) => {
+  console.log(data);
+};
+```
+
+### Running Linting
+
+```bash
+# Check for lint errors
+yarn lint
+
+# Auto-fix lint errors
+yarn lint:fix
+
+# Fix with warnings allowed (up to 100)
+yarn lint:warn
+```
+
+### Guards and `utils/`
+
+See UI Architecture Commandment 8.
+
+### New Features Must Be Unit Tested
+
+A new feature is not done until it has unit tests. This already happens for
+much of the codebase (utils, bus decorators, hooks); it is the rule, not the
+exception, for anything new.
+
+- **Utils / guards / conversions:** colocated `src/utils/<name>.test.ts`
+  covering the happy path and the edge cases (null, empty, boundary values).
+- **Bus decorators and pure stream logic:** a test per decorator file in
+  `src/bus/`, exercised in isolation with hand-built `prev`/`next` snapshots.
+- **API classes / HTTP:** `src/tests/`, mocking axios at module level, one
+  describe block per method, success **and** error paths (Architecture
+  Commandment 7).
+- **Hooks:** `@testing-library/react` `renderHook` tests next to the hook.
+- **Components:** test the extracted logic (above), not the JSX. If a component
+  has behavior worth testing, the behavior belongs in a util or hook.
+
+Run `yarn test` before opening a PR. A PR that adds a feature without tests
+should say so explicitly and why; "will add tests later" is not acceptable.
+
+### Issues and Pull Requests
+
+**Check all three repos before doing any work, and before filing a new issue.**
+Someone may already have reported it, designed it, started it, built it, or
+closed it as won't-fix — and often in a *different* repo from the one you are
+in. Block52 is one product split across `block52/ui`, `block52/poker-vm`
+(SDK + Go engine) and `block52/pokerchain` (chain), so a UI request may already
+be an engine issue, a chain feature, or code that already exists.
+
+**Never create a GitHub issue until both passes below are done.**
+
+1. **Issue pass — all three repos, open and closed.** Search by the symptom,
+   the feature name, the component or hook name, and any synonyms
+   ("blinds tab" / "blind structure" / "blind level"):
+
+   ```bash
+   for r in ui poker-vm pokerchain; do
+     gh issue list --repo block52/$r --search "<keywords>" --state all --limit 50
+     gh pr list    --repo block52/$r --search "<keywords>" --state all --limit 50
+   done
+   ```
+
+   The TypeScript engine's issues live in `block52/ts-engine`; divergence
+   records go there too.
+
+2. **Code pass — all three repos.** Grep the code for the behaviour before
+   claiming it is missing. The UI already wires more than it shows (dev-only
+   pages, feature flags, hooks with no caller), and the engine or chain may
+   already expose the data or action the request needs:
+
+   ```bash
+   grep -rn -i "<feature>" ../ui/src ../poker-vm/pvm/go/engine ../poker-vm/sdk/src ../pokerchain/x --include=*.ts --include=*.tsx --include=*.go
+   ```
+
+   Then say in the issue what exists today and where (file paths), so the
+   issue is about the gap, not a restatement of the feature.
+
+- If an issue exists, work against it (`Closes #NNN` in the PR body) and
+  comment on it rather than opening a duplicate. If it exists in another
+  repo, file the UI slice only when there is UI work, and link it.
+- If none exists, file one **before** the PR so the discussion and the decision
+  have a home, and link related issues in other block52 repos
+  (`poker-vm`, `pokerchain`) when the change spans them.
+- A big idea is one issue, not an epic plus a dozen sub-tickets. Split only
+  when someone is about to build a piece.
+- **Label every issue.** One type label (`bug`, `enhancement`, `feature`,
+  `tech debt`, `dev-ops`, `documentation`) plus the area labels that apply
+  (`UI`, `ux`, `sit-and-go`, `table-layout`, `mobile`, `admin`, `chat`,
+  `visual`, `animation`, `lobby`, `deposit`, …). Use `gh label list` to see
+  what exists; don't invent names. An unlabelled issue is invisible to the
+  boards and filters that drive triage.
+
+**Every PR with a visible change includes screenshots.** Put before/after
+screenshots (or a short recording) of the affected screen in the PR
+description — the lobby row, the modal, the panel, whatever changed. Capture
+them against the PVM stub (`packages/e2e`: inject a state frame, then
+`page.screenshot()`), so reviewers see the real rendering, not a mock. A PR
+with no visible change says so explicitly in its description instead.
+
+**Never commit screenshots to the repo.** Screenshots (and recordings) exist
+to show reviewers what changed between before and after, so they belong in the
+PR description only — upload them there (drag-and-drop into the PR body or a
+comment). Do not `git add` PNG/JPG/GIF/video files, and delete or gitignore
+any that a Playwright run leaves behind. The one exception is an image a test
+genuinely needs as a fixture (e.g. a visual-regression baseline or a unit-test
+input); that file is committed deliberately, lives next to the test that uses
+it, and the PR says why.
+
+**Resolve review comments on PRs.** Every review comment gets one of three
+outcomes before the PR is re-requested for review or merged:
+
+1. **Fixed** - push the change and reply naming the commit.
+2. **Declined** - reply explaining why, and let the reviewer resolve it.
+3. **Out of scope** - reply with the follow-up issue number you filed.
+
+Never leave a comment unanswered, never resolve a reviewer's thread without
+replying, and never force-push over a branch that has unresolved review
+threads (it detaches the comments from the diff). Use
+`gh pr view <N> --comments` and `gh api graphql` review-thread queries to list
+what is still open.
+
+## Hooks Architecture
+
+The application uses **57 custom React hooks** organized by domain. See [`hooks/README.md`](./src/hooks/README.md) for comprehensive documentation.
+
+### Hook Categories
+
+- **Game Hooks** (`hooks/game/`) - Table data, game state, game flow
+- **Player Hooks** (`hooks/player/`) - Player data, stats, hand strength
+- **Player Action Hooks** (`hooks/playerActions/`) - Bet, raise, fold, etc.
+- **Wallet Hooks** (`hooks/wallet/`) - Wallet connection, deposits, withdrawals
+- **Animation Hooks** (`hooks/animations/`) - UI animations
+- **Notification Hooks** (`hooks/notifications/`) - Toasts, alerts
+
+### Data Flow Pattern
+
+```
+Blockchain/API → WebSocket → Bus (serialize + decorate) → Context → Hooks → Components
+```
+
+Inbound WS messages pass through the **WS Action Bus** (`src/bus/`) before they
+reach React. The bus serializes messages (one at a time, in arrival order),
+derives typed transitions (`playerJoined`, `handEnded`, `roundAdvanced`, …), and
+decorates them with pacing/animation/sound hints. It runs on **two tracks**:
+
+- **Logical track** — every snapshot updates `setLatestGameState` immediately at
+  ingest (zero added latency). Action submission and any submission decision
+  (e.g. auto-new-hand) read this track so they never act on stale indices.
+- **Rendered track** — the queue drains into `setGameState` at the pace the
+  decorations dictate (e.g. `showdownHold` keeps the winner banner up ~2s).
+  Everything visual reads this track via `GameDataContext`.
+
+Most hooks read from **GameStateContext** which maintains a WebSocket connection for real-time updates.
+
+```typescript
+// Components subscribe to table
+useEffect(() => {
+  subscribeToTable(tableId);
+  return () => unsubscribeFromTable(tableId);
+}, [tableId]);
+
+// Hooks read from context
+const { gameState } = useGameStateContext();
+```
+
+See [`hooks/README.md`](./src/hooks/README.md) for detailed architecture patterns.
+
+## Key Concepts
+
+### WebSocket Subscriptions
+
+The UI uses WebSocket connections for real-time game state updates:
+
+1. **GameStateContext** manages WebSocket connections
+2. Components call `subscribeToTable(tableId)` to connect
+3. Every inbound message passes through the **WS Action Bus** (see below) before it reaches React
+4. Hooks like `useTableData()` and `usePlayerData()` read from context
+5. Updates are pushed in real-time from the backend
+
+**Connection freshness (ui#613):** `useGameUI().connection` is
+`{ status: idle | connecting | live | reconnecting | offline, attempt }`. A
+dropped socket reconnects on its own with exponential backoff and jitter
+(`utils/reconnectBackoff.ts`, 8 attempts, 30 s cap), re-subscribes and takes
+the relay's fresh snapshot as a new baseline (the bus is reset, so the
+catch-up frame derives no events). A superseded socket's late frames are
+ignored by generation. Tab-visible and browser-online events reconnect at
+once; while offline the provider waits for `online` instead of burning
+attempts. Only `live` means the table is current: `ActionSubmitController`
+refuses to broadcast otherwise (kind `offline`), and `ConnectionBanner` says
+so on the table. Never treat the last snapshot as current while the status is
+anything else.
+
+### WS Action Bus
+
+All inbound WebSocket messages flow through the **WS Action Bus** (`src/bus/`)
+before they reach React. It exists so the UI reacts to *typed transitions*
+("a player acted", "the hand ended") and can *pace* rendering (hold the
+showdown, stagger the flop) — instead of every hook reverse-engineering "what
+changed" by diffing consecutive snapshots.
+
+**Pipeline:** `ws.onmessage` → `classifyMessage` (`ingest.ts`) →
+`GameMessageBus.ingest` assigns a monotonic `seq` → `deriveEvents(prev, next)`
+emits typed `GameEvent`s → registered **decorators** annotate the item with
+pacing/animation/sound hints → a serialized FIFO **drain** commits items one at
+a time, honoring the decorations.
+
+**Two tracks (do NOT break this invariant):**
+
+- **Logical track** — every snapshot updates `setLatestGameState` *immediately*
+  at ingest (zero added latency). Anything that makes a *submission* decision
+  (sending an action, auto-new-hand) must read this track, or it will act on
+  stale action indices and the chain will reject it.
+- **Rendered track** — the drain commits to `setGameState` at the pace the
+  decorations dictate (e.g. `showdownHold` holds the winner banner ~2s). All
+  *visual* code reads this track via `GameDataContext`.
+
+**Provenance (ui#609):** the logical track carries `TrackMeta { optimistic }`
+— `true` for the relay's `optimistic` event, a projection of pending mempool
+actions. The outbound `ActionSubmitController` (`src/submit/`) confirms a
+submission only by IDENTITY (our address + the recorded action name at/after
+the job's baseline index, or the tx-by-hash verdict): a projection moves a job
+to `accepted` (busy releases), only committed state or `tx_response.code === 0`
+moves it to `committed`, the confirm timer expiring yields `unknown` (the user
+is told — never a silent "confirmed"), and a chain rejection found later is
+still surfaced. Never confirm a submission from table counters advancing.
+
+**File map (`src/bus/`):** `ingest.ts` (pure message classifier),
+`deriveEvents.ts` (pure prev→next transition diff), `expandFrames.ts` (pure
+multi-street splitter), `GameMessageBus.ts` (seq, drain, coalescing, animation
+acks), `decorators/*` (one pure decorator per file), `types.ts`
+(`GameStreamItem`, `GameEvent`, `Decoration`, hints).
+
+**Runout expansion:** the engine deals a whole all-in runout inside one
+`performAction`, so flop+turn+river+winner arrive as ONE snapshot. Since the bus
+queues snapshots, and one snapshot is one atomic commit, nothing could space
+those apart. `expandFrames(prev, next)` splits such a frame into one sub-frame
+per street — each a projection of two REAL snapshots, never invented state — and
+the existing drain paces them. Sub-frames are `synthetic: true`, are excluded
+from the backpressure depth count (they are planned choreography, not backlog),
+and stay coalescible so a lagging client snaps to truth. They NEVER reach the
+logical track. See `docs/plans/2026_09_09_runout_frame_expansion.md`.
+
+**Extension points:**
+
+- **React the UI to an event:** `useGameEvents("playerActed")`
+  (`src/hooks/game/useGameEvents.ts`) — do NOT add new snapshot ref-diffing.
+- **Add a visual/audio behavior:** write a pure decorator in
+  `src/bus/decorators/`, unit-test it in isolation, register it in
+  `decorators/index.ts`. Decorators attach hints; consumers read them.
+- **Gate the drain on a real animation (Phase 5 acks):** a decorator sets
+  `ackTimeoutMs` on an `AnimationHint`; the render consumer calls
+  `bus.ackAnimation(ackId)` when the animation finishes (see
+  `useCardAnimations` + `useAnimationAck`). The drain waits
+  `max(minDisplayMs, acks resolved-or-timed-out)` — the timeout guarantees a
+  missing ack can never stall the stream.
+
+**Conventions:** the bus is **framework-free plain TS** (no React imports —
+React coupling lives only in the context/hooks layer); array checks use
+`hasElements`/`isEmpty` from `utils/guards`; env is read via the `viteEnv`
+indirection (never `import.meta.env` directly — it breaks under Jest); all
+snapshot types come from the SDK (Commandment 1).
+
+**Testing:** in dev builds the bus exposes `window.__B52_BUS__`
+(`committed`, `coalesced`, `expanded`, `pendingAcks`, `ackTimeouts`,
+`parseFailures`, `queueDepth`, `commitLog`) so e2e can assert serialization/pacing numerically instead of by
+screenshot timing.
+
+**Framing:** the relay sends ONE JSON document per WebSocket frame
+(block52/pokerchain#364). The provider parses frames through `parseFrame`
+(`src/bus/frame.ts`), which also tolerates a newline-batched frame and counts
+unparseable documents in `parseFailures` — a bad frame is logged and counted,
+never turned into a page-level error (ui#623). Stub controls (`__control/config` frame pacing,
+`__control/inject`, `__control/script`, `__control/disconnect`) drive the
+bus's paths in Playwright.
+
+> Full design, rationale, and phase history: `docs/plans/2026_07_13_ws_action_bus.md`.
+
+### Wallet Integration
+
+The app integrates two wallet types:
+
+1. **Cosmos Wallet** (`useCosmosWallet()`) - For gameplay on Poker Chain
+   - Uses mnemonic stored in localStorage
+   - Handles game transactions (bet, fold, join, etc.)
+   - Token: USDC (6 decimals)
+
+2. **Ethereum Wallet** (`useUserWalletConnect()`) - For deposits/withdrawals
+   - Connected via @reown/appkit (WalletConnect)
+   - Bridge deposits from Ethereum to Cosmos
+   - Bridge withdrawals from Cosmos to Ethereum
+
+### Game Formats
+
+Three game formats supported:
+
+- **Cash Games** - Flexible buy-in, players can leave anytime
+- **Sit & Go** - Fixed buy-in, starts when table fills
+- **Tournaments** - Scheduled events with prize pools
+
+Format detection:
+```typescript
+import { isTournamentFormat, isCashFormat } from "@block52/poker-vm-sdk";
+
+if (isTournamentFormat(gameState.gameFormat)) {
+  // Tournament logic
+} else if (isCashFormat(gameState.gameFormat)) {
+  // Cash game logic
+}
+```
+
+### Stack Value Handling
+
+**Critical distinction**:
+
+- **Cash Games**: Stack is in USDC microunits (6 decimals)
+  - Use `convertUSDCToNumber()` to display
+  - Example: `1000000` = $1.00
+
+- **Tournament Games**: Stack is in chip units (no decimals)
+  - Use value directly
+  - Example: `1500` = 1500 chips
+
+```typescript
+const stackValue = useMemo(() => {
+  if (!playerData?.stack) return 0;
+
+  const rawStack = Number(playerData.stack);
+
+  if (isTournament) {
+    return rawStack; // Chips as-is
+  } else {
+    return convertUSDCToNumber(playerData.stack); // Convert USDC
+  }
+}, [playerData?.stack, isTournament]);
+```
+
+## Development Workflow
+
+### Running the App
+
+```bash
+# Development server (with lint checks)
+yarn dev
+
+# Development without checks
+yarn dev:nocheck
+
+# Run lint before dev
+yarn dev:lint
+```
+
+### Building
+
+```bash
+# Type check + production build
+yarn build
+
+# Preview production build
+yarn preview
+```
+
+### Testing
+
+```bash
+# Run all tests
+yarn test
+
+# Run tests in watch mode
+yarn test:watch
+
+# Run tests with coverage
+yarn test:coverage
+```
+
+## Component Patterns
+
+### Prop Types
+Define explicit prop interfaces:
+
+```typescript
+interface TableProps {
+  tableId: string;
+  onJoinTable?: (seatIndex: number) => void;
+}
+
+export const Table: React.FC<TableProps> = ({ tableId, onJoinTable }) => {
+  // component logic
+};
+```
+
+### State Management
+Use hooks for state, avoid prop drilling:
+
+```typescript
+// ✅ Good - use hooks
+const { gameState } = useGameStateContext();
+const { playerData } = usePlayerData(seatIndex);
+
+// ❌ Avoid - prop drilling through multiple levels
+<Parent gameState={gameState}>
+  <Child gameState={gameState}>
+    <GrandChild gameState={gameState} />
+  </Child>
+</Parent>
+```
+
+### Memoization
+Use `useMemo()` and `useCallback()` for expensive operations:
+
+```typescript
+const sortedPlayers = useMemo(() => {
+  return players.sort((a, b) => a.seat - b.seat);
+}, [players]);
+
+const handleAction = useCallback((action: Action) => {
+  performAction(action);
+}, [performAction]);
+```
+
+## Common Issues
+
+### Import Errors from SDK
+If SDK functions are not found, check that the SDK is rebuilt:
+
+```bash
+cd ../sdk
+yarn build
+cd ../ui
+rm -rf node_modules/@block52
+yarn install
+```
+
+### WebSocket Connection Issues
+- Check that `subscribeToTable()` is called in component
+- Verify table ID is correct
+- Check Network context has correct endpoints
+
+### Type Errors
+- Ensure SDK types are up to date
+- Check `tsconfig.json` includes all necessary paths
+- Run `yarn build` to verify type checking
+
+## Environment Variables
+
+Create `.env` file with:
+
+```bash
+# Backend API
+VITE_API_URL=http://localhost:8080
+
+# Cosmos RPC endpoints
+VITE_COSMOS_RPC=http://localhost:26657
+VITE_COSMOS_REST=http://localhost:1317
+
+# WalletConnect Project ID
+VITE_WALLETCONNECT_PROJECT_ID=your_project_id
+```
+
+## Related Documentation
+
+- [Club API data flow](./docs/CLUB_API_ARCHITECTURE.md) - The app talks to the club API only (REST); the API reads nodes over gRPC; table actions go through the Go signer
+- [Hooks Documentation](./src/hooks/README.md) - Complete hook reference
+- [SDK Documentation](../sdk/CLAUDE.md) - SDK usage and API
+- [Component Architecture](./src/components/README.md) - Component patterns
+
+## Contributing
+
+When making changes:
+
+1. Check existing issues and PRs first; work against an issue (see
+   "Issues and Pull Requests")
+2. Follow code style (double quotes, semicolons)
+3. Put logic in `src/utils/` guards and helpers, not in components
+4. Add unit tests for every new feature; run `yarn test`
+5. Run linting before commit: `yarn lint:fix`
+6. Add JSDoc comments to new hooks
+7. Update relevant documentation
+8. Resolve every review comment before re-requesting review or merging
+
+---
+
+Last Updated: 2026-10-19

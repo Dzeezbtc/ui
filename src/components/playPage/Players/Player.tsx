@@ -1,0 +1,203 @@
+import * as React from "react";
+import { memo, useMemo, useCallback } from "react";
+import Badge from "../common/Badge";
+import { TimeBankClock } from "../common/TimeBankClock";
+import { useWinnerInfo } from "../../../hooks/game/useWinnerInfo";
+import { useWinnerCards } from "../../../hooks/game/useWinnerCards";
+import { usePlayerData } from "../../../hooks/player/usePlayerData";
+import { usePlayerTimer } from "../../../hooks/player/usePlayerTimer";
+import { useTableId } from "../../../context/TableIdContext";
+import type { PlayerProps } from "../../../types/index";
+import { useDealerPosition } from "../../../hooks/game/useDealerPosition";
+import { getCardImageUrl } from "../../../utils/cardImages";
+import { winnerCardHighlight } from "../../../utils/holeCardLayout";
+import { HoleCardRow } from "./HoleCardRow";
+import { useSitAndGoPlayerResults } from "../../../hooks/game/useSitAndGoPlayerResults";
+import { useAllInEquity } from "../../../hooks/player/useAllInEquity";
+import { useProfileAvatar } from "../../../context/profile/ProfileAvatarContext";
+import { useNetwork } from "../../../context/NetworkContext";
+import { useActionSubmit } from "../../../context/ActionSubmitContext";
+import { SIT_IN_METHOD_POST_NOW, sitIn } from "../../../hooks/playerActions";
+import { hasElements } from "../../../utils/guards";
+import { getSeatOpacityClass } from "../../../utils/seatOpacity";
+import SeatChatBubble from "../../../chat/SeatChatBubble";
+import styles from "./PlayersCommon.module.css";
+import { NftAvatarImage } from "../../profile/NftAvatarImage";
+import { seatGradient } from "../../../utils/cardFace";
+
+const Player: React.FC<PlayerProps & { uiPosition?: number }> = memo(
+    ({ left, top, index, currentIndex: _currentIndex, color, status: _status, uiPosition }) => {
+        const id = useTableId();
+        const { playerData, stackValue, isFolded, isAllIn, isSeated, isSittingOut, holeCards, round } = usePlayerData(index);
+        const { winnerInfo, winnerBySeat } = useWinnerInfo();
+        const winnerCards = useWinnerCards();
+        const { isActive: isTurnTimerActive } = usePlayerTimer(id, index);
+
+        // The time bank alarm clock sits on our own pill, opposite the seat number (ui#19).
+        const timeBankClock = useMemo(() => <TimeBankClock tableId={id} seat={index} />, [id, index]);
+
+        const { dealerSeat } = useDealerPosition();
+        const { equities, shouldShow: shouldShowEquity } = useAllInEquity();
+        const { getAvatarForAddress } = useProfileAvatar();
+        const { currentNetwork } = useNetwork();
+        const { submit } = useActionSubmit();
+
+        // Callback for "I'm Back" button on badge — routes through the
+        // ActionSubmitController (dedupe / serialize / retry / error toast).
+        const handleSitInFromBadge = useCallback(() => {
+            if (id) {
+                submit({ actionName: "sit-in", run: () => sitIn(id, currentNetwork, SIT_IN_METHOD_POST_NOW) });
+            }
+        }, [id, currentNetwork, submit]);
+
+        // Check if this seat is the dealer
+        const isDealer = dealerSeat === index;
+
+        // Get equity for this player if available
+        const playerEquity = useMemo((): number | null => {
+            if (!shouldShowEquity || !equities.has(index)) return null;
+            return equities.get(index) ?? null;
+        }, [shouldShowEquity, equities, index]);
+
+        // Get tournament results for this seat
+        const { getSeatResult, isSitAndGo } = useSitAndGoPlayerResults();
+        const tournamentResult = useMemo(() => {
+            return isSitAndGo ? getSeatResult(index) : null;
+        }, [getSeatResult, isSitAndGo, index]);
+
+        // 1) detect when any winner exists
+        const hasWinner = useMemo(() => hasElements(winnerInfo), [winnerInfo]);
+
+        // 2) memoize winner check via the shared seat index (#2455)
+        const isWinner = useMemo(() => winnerBySeat.has(index), [winnerBySeat, index]);
+
+        // 3) dim the seat based on how involved this player is in the hand
+        //    (see getSeatOpacityClass — dims seated/sitting-out/sitting-in/busted/folded).
+        const opacityClass = getSeatOpacityClass({ status: playerData?.status, hasWinner, isWinner });
+
+        // 4) memoize winner amount
+        const winnerAmount = useMemo(() => {
+            return winnerBySeat.get(index)?.formattedAmount ?? null;
+        }, [winnerBySeat, index]);
+
+        // 4b) memoize winner hand description (e.g. "Full House")
+        const winnerHandDescription = useMemo(() => {
+            return winnerBySeat.get(index)?.description ?? null;
+        }, [winnerBySeat, index]);
+
+        // 5) render hole cards — two for Hold'em, four for Omaha (ui#768)
+        const renderCards = useCallback(() => {
+            if (!hasElements(holeCards)) {
+                return <div className="w-[120px] h-[80px]"></div>;
+            }
+
+            return (
+                <HoleCardRow
+                    cards={holeCards.map((card, i) => ({
+                        key: `${i}-${card}`,
+                        src: getCardImageUrl(card),
+                        code: card,
+                        alt: `Card ${i + 1}`,
+                        highlight: winnerCardHighlight(card, isWinner, winnerCards),
+                        onError: () => console.error(`❌ Player ${index} card${i + 1} failed to load:`, getCardImageUrl(card))
+                    }))}
+                />
+            );
+        }, [holeCards, index, isWinner, winnerCards]);
+
+        // 6) container style for positioning
+        const containerStyle = useMemo(
+            () => ({
+                left,
+                top
+            }),
+            [left, top]
+        );
+
+        const selectedAvatarUrl = useMemo(() => {
+            return getAvatarForAddress(playerData?.address, playerData?.avatar);
+        }, [getAvatarForAddress, playerData?.address, playerData?.avatar]);
+
+        if (!playerData) {
+            return <></>;
+        }
+
+        return (
+            <div
+                key={index}
+                data-part="hero-seat"
+                className={`${opacityClass} absolute flex flex-col justify-center w-[160px] h-[140px] transform -translate-x-1/2 -translate-y-1/2 cursor-pointer ${styles.secondaryText} ${styles.positionTransition}`}
+                style={containerStyle}
+            >
+                {/* Table chat (block52-chat#3): this player's sticker or message pops up above the seat. */}
+                <SeatChatBubble address={playerData?.address} />
+                {/* Development Mode Debug Info */}
+                {import.meta.env.VITE_NODE_ENV === "development" && (
+                    <div className="absolute top-[-60px] left-1/2 transform -translate-x-1/2 bg-black bg-opacity-80 text-white px-2 py-1 rounded text-[10px] whitespace-nowrap z-50 border border-green-400">
+                        <div className="text-green-400">UI Pos: {uiPosition ?? "N/A"}</div>
+                        <div className="text-yellow-400">Seat: {index}</div>
+                        <div className="text-gray-300">
+                            XY: {left}, {top}
+                        </div>
+                        <div className="text-orange-300">Addr: ...{playerData?.address ? playerData.address.slice(-3) : "N/A"}</div>
+                    </div>
+                )}
+                <div className="flex justify-center gap-1" data-part="hole-cards">{renderCards()}</div>
+                <div className="relative flex flex-col justify-end mt-[-6px] mx-1">
+                    {/* Flagship skin only: the round gradient avatar (its stylesheet shows it) */}
+                    <span data-part="seat-avatar" aria-hidden="true" style={{ background: seatGradient(index) }} />
+                    {/* Flagship skin only: the dealer button sits on your plate */}
+                    {isDealer && <span data-part="seat-dealer" aria-label="Dealer">D</span>}
+                    {selectedAvatarUrl && (
+                        <NftAvatarImage
+                            src={selectedAvatarUrl}
+                            alt="Player avatar"
+                            imgClassName={styles.avatarImage}
+                            chipClassName={styles.avatarChip}
+                            fallbackClassName={`${styles.avatarChip} ${styles.avatarFallback}`}
+                        />
+                    )}
+                    {/* Spacer preserves the 55px flow height the old status bar occupied */}
+                    <div className="w-full h-[55px]" />
+                    <div className="absolute top-[-10px] w-full">
+                        <Badge
+                            count={index}
+                            value={stackValue}
+                            color={color}
+                            tournamentPlace={tournamentResult?.place}
+                            tournamentPayout={tournamentResult?.payout}
+                            isWinner={isWinner}
+                            winnerAmount={winnerAmount}
+                            winnerHandDescription={winnerHandDescription}
+                            isTurnTimerActive={isTurnTimerActive}
+                            round={round}
+                            isFolded={isFolded}
+                            isAllIn={isAllIn}
+                            isSeated={isSeated}
+                            isSittingOut={isSittingOut}
+                            playerEquity={playerEquity}
+                            onSitIn={isSittingOut ? handleSitInFromBadge : undefined}
+                            leading={timeBankClock}
+                        />
+                    </div>
+
+                    {/* Dealer Button — rendered at table level using geometry positions */}
+                </div>
+            </div>
+        );
+    },
+    (prevProps, nextProps) => {
+        return (
+            prevProps.left === nextProps.left &&
+            prevProps.top === nextProps.top &&
+            prevProps.index === nextProps.index &&
+            prevProps.currentIndex === nextProps.currentIndex &&
+            prevProps.color === nextProps.color &&
+            prevProps.status === nextProps.status
+        );
+    }
+);
+
+Player.displayName = "Player";
+
+export default Player;

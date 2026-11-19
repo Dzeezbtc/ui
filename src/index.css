@@ -1,0 +1,16 @@
+@tailwind base;
+@tailwind components;
+@tailwind utilities;
+
+/* Prevent white background bleed on mobile, foldables, and notched devices.
+   html/body background is set in App.css; here we only ensure the app root
+   div and all viewports have zero margin/padding and correct min-height. */
+html,
+body,
+#app {
+    margin: 0;
+    padding: 0;
+    min-height: 100dvh;
+    min-width: 100%;
+    overflow-x: hidden;
+}

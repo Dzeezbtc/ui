@@ -1,0 +1,1851 @@
+/**
+ * Table Component
+ *
+ * This is the main poker table component that orchestrates the entire game interface.
+ * It manages:
+ * - Player positions and rotations
+ * - Game state and progress
+ * - Community cards
+ * - Pot amounts
+ * - Dealer button
+ * - Player actions
+ *
+ * Key Features:
+ * - Dynamic table layout (6 or 9 players)
+ * - Real-time game state updates
+ * - Player position management
+ * - Chip position calculations
+ * - Winner animations
+ * - Sidebar for game log
+ *
+ * Player Components:
+ * - Player: Current user's view with hole cards and controls
+ * - OppositePlayer: Other players' views with seat changing functionality
+ * - VacantPlayer: Empty seat views with direct join/seat changing
+ *
+ * PlayerPopUpCard Integration:
+ * - Used by OppositePlayer for seat changing
+ * - Used by VacantPlayer for seat changing (only when user is already seated)
+ * - Provides consistent UI for player interactions
+ *
+ * State Management:
+ * - Uses multiple hooks for different aspects of the game
+ * - Manages player positions and rotations
+ * - Handles game progress and round information
+ * - Controls UI elements visibility
+ *
+ * Components Used:
+ * - Player: Current user's view
+ * - OppositePlayer: Other players' views
+ * - VacantPlayer: Empty seat views
+ * - PlayerPopUpCard: Popup for player actions
+ * - PokerActionPanel: Betting controls
+ * - ActionsLog: Game history
+ */
+
+import { useProfileAvatar } from "../../context/profile/ProfileAvatarContext";
+import { buildHandShareUrl } from "../../utils/handReplay";
+import { useEffect, useState, useMemo, useCallback, memo, useRef } from "react";
+import { isTournamentFormat } from "../../utils/gameFormatUtils";
+import { formatPotDisplay, formatChipCount } from "../../utils/potDisplayUtils";
+// Position arrays now come from useTableLayout hook
+// // Position arrays now come from useTableLayout hook
+// import { playerPosition, dealerPosition, vacantPlayerPosition } from "../../utils/PositionArray";
+import PokerActionPanel from "../Footer";
+import WinnerBanner from "./Animations/WinnerBanner";
+
+// Extracted Table components
+import {
+    TableHeader,
+    MobileTableHeader,
+    TableBoard,
+    TablePanel,
+    TablePanelExpandTab,
+    type TablePanelTab,
+    TableModals,
+    PlayerSeating,
+    PlayerActionButtons,
+    LayoutDebugInfo
+} from "./Table/components";
+
+import defaultLogo from "../../assets/YOUR_CLUB.png";
+import { HexagonPattern } from "../common/Modal";
+
+// Use environment variable for club logo with fallback to default
+const clubLogo = import.meta.env.VITE_CLUB_LOGO || defaultLogo;
+
+import React from "react";
+import { formatUSDCToSimpleDollars } from "../../utils/numberUtils";
+import { toast } from "react-toastify";
+
+import { isValidPlayerAddress } from "../../utils/addressUtils";
+import { CardBackStyle } from "../../utils/cardImages";
+import { useClubLook } from "../../hooks/club/useClubLook";
+import { TableRadio } from "./TableRadio";
+import { tableStyleForLook } from "../../utils/clubLook";
+import { TABLE_STYLE_LABELS, TableStyle, dealsFaceDown, isThreeTableStyle, nextTableStyle, skinAttrFor, stageShapeFor, tableStyleFromEnv, usesFlagshipLayout } from "../../utils/tableStyle";
+import { TableStyleProvider } from "../../context/TableStyleContext";
+import "./skins/chipchair.css";
+import "./skins/flagship.css";
+import "./skins/three-table.css";
+import "./skins/badbeat.css";
+import "./skins/maison.css";
+import { cssVars } from "../../utils/cssVars";
+import { ANIMATION_CSS_VARS } from "../../bus/timing";
+
+import "./Table.css"; // Import the Table CSS file
+
+const DESKTOP_PANEL_COLLAPSED_KEY = "b52.tablePanelCollapsed";
+
+//// TODO get these hooks to subscribe to the wss connection
+
+// 1. Core Data Providers
+import { useTableData } from "../../hooks/game/useTableData"; // Used to create tableActivePlayers (filtered players), Contains seat numbers, addresses, and player statuses
+import { usePlayerSeatInfo } from "../../hooks/player/usePlayerSeatInfo"; // Provides currentUserSeat - the current user's seat position and userDataBySeat - object for direct seat-to-player lookup
+import { useNextToActInfo } from "../../hooks/game/useNextToActInfo";
+
+//2. Visual Position/State Providers
+import PlayerChipDisplay from "./Table/components/PlayerChipDisplay";
+
+//3. Game State Providers
+import { useTableState } from "../../hooks/game/useTableState"; //Provides currentRound, formattedTotalPot, tableSize, tableSize determines player layout (6 vs 9 players)
+import { useGameProgress } from "../../hooks/game/useGameProgress"; //Provides isGameInProgress - whether a hand is active
+import { useHoleCardWatchdog } from "../../hooks/game/useHoleCardWatchdog"; //#409: auto-recover when owning player's hole cards fail to arrive
+import { useBlindClickGuard } from "../../hooks/game/useBlindClickGuard"; // #838: ignore clicks while the screen is not painting
+import { useLastHandResultCapture } from "../../hooks/game/useLastHandResultCapture"; // retain last showdown summary for the History panel
+
+//todo wire up to use the sdk instead of the proxy
+// 4. Player Actions
+import { leaveTable } from "../../hooks/playerActions/leaveTable";
+import { claimWinnings } from "../../hooks/playerActions/claimWinnings";
+
+// 5. Winner Info
+import { useWinnerInfo } from "../../hooks/game/useWinnerInfo"; // Provides winner information for animations
+import { useWinnerCards } from "../../hooks/game/useWinnerCards"; // Winning card codes for card-lift animation
+import { useGameResults } from "../../hooks/game/useGameResults"; // Game results display
+
+// other
+import { usePlayerLegalActions } from "../../hooks/playerActions/usePlayerLegalActions";
+import { SitOutIntentProvider } from "../../context/SitOutIntentContext";
+import { useGameOptions } from "../../hooks/game/useGameOptions";
+import { isAwaitingTournamentStart } from "../../utils/scheduledSng";
+import { describeReplayStep, latestCompletedHand } from "../../utils/replayTimeline";
+import { useReplayTimeline } from "../../hooks/game/useReplayTimeline";
+import { ReplayTransport } from "./ReplayTransport";
+import { getCosmosBalance, getCosmosAddressSync, getFormattedCosmosAddress } from "../../utils/cosmosAccountUtils";
+import TableChatBox from "../../chat/TableChatBox";
+import { setChatTableSkin } from "../../chat/brand";
+import { useGameStateContext } from "../../context/GameStateContext";
+import { useLogicalTrack } from "../../context/gameState/LogicalTrackContext";
+import { useTableId } from "../../context/TableIdContext";
+import { useGameSettings } from "../../context/GameSettingsContext";
+import { useNetwork } from "../../context/NetworkContext";
+import { PlayerDTO, PlayerStatus } from "@block52/poker-vm-sdk";
+import LiveHandStrengthDisplay from "./LiveHandStrengthDisplay";
+import { TurnStatusLabel } from "./TurnStatusLabel";
+import { StreetTracker } from "./StreetTracker";
+import { BadBeatHeroDock } from "./BadBeatHeroDock";
+import { MaisonDock } from "./MaisonDock";
+import { ChipChairDock } from "./ChipChairDock";
+import { BadBeatShowCards } from "./BadBeat3D/BadBeatShowCards";
+// Bad Beat's 3D table brings three.js: only a Bad Beat table downloads it (ui#36)
+const BadBeatTable3D = React.lazy(() => import("./BadBeat3D/BadBeatTable3D").then(m => ({ default: m.BadBeatTable3D })));
+import { radioStationsFor } from "../../utils/radioStations";
+import { ProvablyFairBadge } from "./ProvablyFair/ProvablyFairBadge";
+import { FlagshipTopBar } from "./Table/components/FlagshipTopBar";
+import { TableSettingsMenu } from "./Table/components/TableSettingsMenu";
+import { blindsLabel } from "../../utils/blindsLabel";
+import { useGameStateSounds } from "../../hooks/notifications/useGameStateSounds";
+import NoWalletOverlay from "./NoWalletOverlay";
+import SngPayoutPanel from "./SngPayoutPanel";
+import BlindsPanel from "./BlindsPanel";
+
+// Table Error Page
+import TableErrorPage from "./TableErrorPage";
+import { useGameStartCountdown } from "../../hooks/game/useGameStartCountdown";
+import { useReplayMode } from "../../hooks/game/useReplayMode";
+import { useIndexerApi } from "../../context/IndexerApiContext";
+
+// Table Layout Configuration
+import { useTableLayout } from "../../hooks/game/useTableLayout";
+import { useVacantSeatData } from "../../hooks/game/useVacantSeatData";
+import {
+    getViewportMode,
+    COMPONENT_SCALE,
+    type PositionArrays,
+    getSeatCoords,
+    getStageDims,
+    STAGE_DIMS,
+    FLAGSHIP_PORTRAIT_DIMS,
+    CHIPCHAIR_DIMS,
+    getContentBounds,
+    VIEWPORT_PARAMS,
+    PLAYER_UI_PADDING,
+    type TableSize
+} from "../../config/stageGeometry";
+import { useDealerPosition } from "../../hooks/game/useDealerPosition";
+
+// Turn Notification
+import { useTurnNotification } from "../../hooks/notifications/useTurnNotification";
+import ConnectionBanner from "./ConnectionBanner";
+
+import { hasElements, hasValue, isNullish } from "../../utils/guards";
+import { resolveDebugOverlayAction } from "../../utils/debugOverlayKeys";
+
+//* Here's the typical sequence of a poker hand:
+//* ANTE - Initial forced bets
+//* PREFLOP - Players get their hole cards, betting round
+//* FLOP - First 3 community cards dealt, betting round
+//* TURN - Fourth community card dealt, betting round
+//* RIVER - Final community card dealt, final betting round
+//* SHOWDOWN - Players show their cards to determine winner
+
+//* Define the interface for the position object
+
+interface NetworkDisplayProps {
+    isMainnet?: boolean;
+}
+
+// Memoize the NetworkDisplay component
+const NetworkDisplay = memo(({ isMainnet = false }: NetworkDisplayProps) => {
+    return (
+        <div className="network-display flex items-center gap-1 sm:gap-1.5 px-1 sm:px-2 py-1 rounded-lg text-[10px] sm:text-xs">
+            <div className={`w-1.5 h-1.5 sm:w-2 sm:h-2 rounded-full ${isMainnet ? "bg-green-500" : "network-display-dot-devnet"}`}></div>
+            <span className="text-gray-300 whitespace-nowrap">Block52 Chain</span>
+        </div>
+    );
+});
+
+NetworkDisplay.displayName = "NetworkDisplay";
+
+// Global debug state — shared between LayoutDebugOverlay and Table component
+// Keys (ui#741): Ctrl+I/⌘I = all overlays + enable debug mode, then while on:
+// 2 = geometry, 3 = seats, 4 = chips, 5 = dealers, 6 = crosshair,
+// 7 = hole-card slots + deck (ui#21 dealing-animation targets)
+let _debugChips = false;
+let _debugDealers = false;
+let _debugSeats = false;
+let _debugGeometry = false;
+let _debugCards = false;
+const debugListeners: Set<() => void> = new Set();
+function useDebugToggle() {
+    const [, forceUpdate] = useState(0);
+    useEffect(() => {
+        const cb = () => forceUpdate(n => n + 1);
+        debugListeners.add(cb);
+        return () => {
+            debugListeners.delete(cb);
+        };
+    }, []);
+    return { showChips: _debugChips, showDealers: _debugDealers, showSeats: _debugSeats, showGeometry: _debugGeometry, showCards: _debugCards };
+}
+
+/**
+ * DEBUG OVERLAY (ui#741): Ctrl+I (⌘I on macOS) toggles all overlays and enables
+ * debug mode. Once on, 2=geometry, 3=seats, 4=chips, 5=dealers, 6=crosshair,
+ * 7=cards. Key events from inputs are ignored so typing never flips the overlays.
+ */
+const LayoutDebugOverlay = () => {
+    const [visible, setVisible] = useState(false);
+    const [debugMode, setDebugMode] = useState(false);
+    const [pos, setPos] = useState({ x: 200, y: 200 });
+    const [dragging, setDragging] = useState(false);
+    const [mousePos, setMousePos] = useState({ x: 0, y: 0 });
+
+    useEffect(() => {
+        const handleKey = (e: KeyboardEvent) => {
+            const action = resolveDebugOverlayAction(e, debugMode);
+            if (isNullish(action)) return;
+
+            // Firefox uses Ctrl+I for Page Info and editors for italic — claim it.
+            if (action === "all") e.preventDefault();
+
+            switch (action) {
+                case "all": {
+                    const s = !_debugGeometry;
+                    _debugGeometry = s;
+                    _debugChips = s;
+                    _debugDealers = s;
+                    _debugSeats = s;
+                    _debugCards = s;
+                    setDebugMode(s);
+                    debugListeners.forEach(cb => cb());
+                    break;
+                }
+                case "geometry":
+                    _debugGeometry = !_debugGeometry;
+                    debugListeners.forEach(cb => cb());
+                    break;
+                case "seats":
+                    _debugSeats = !_debugSeats;
+                    debugListeners.forEach(cb => cb());
+                    break;
+                case "chips":
+                    _debugChips = !_debugChips;
+                    debugListeners.forEach(cb => cb());
+                    break;
+                case "dealers":
+                    _debugDealers = !_debugDealers;
+                    debugListeners.forEach(cb => cb());
+                    break;
+                case "crosshair":
+                    setVisible(v => !v);
+                    break;
+                case "cards":
+                    _debugCards = !_debugCards;
+                    debugListeners.forEach(cb => cb());
+                    break;
+            }
+        };
+        window.addEventListener("keydown", handleKey);
+        return () => window.removeEventListener("keydown", handleKey);
+    }, [debugMode]);
+
+    useEffect(() => {
+        if (!visible) return;
+        const handleMove = (e: MouseEvent) => {
+            setMousePos({ x: e.clientX, y: e.clientY });
+            if (dragging) setPos({ x: e.clientX, y: e.clientY });
+        };
+        const handleUp = () => setDragging(false);
+        window.addEventListener("mousemove", handleMove);
+        window.addEventListener("mouseup", handleUp);
+        return () => {
+            window.removeEventListener("mousemove", handleMove);
+            window.removeEventListener("mouseup", handleUp);
+        };
+    }, [visible, dragging]);
+
+    if (!visible) return null;
+
+    return (
+        <div style={{ position: "fixed", inset: 0, zIndex: 999999, pointerEvents: "none" }}>
+            <div style={{ position: "absolute", left: pos.x, top: 0, width: 1, height: "100%", backgroundColor: "rgba(255,0,0,0.4)" }} />
+            <div style={{ position: "absolute", top: pos.y, left: 0, height: 1, width: "100%", backgroundColor: "rgba(255,0,0,0.4)" }} />
+            <div
+                onMouseDown={e => {
+                    e.preventDefault();
+                    setDragging(true);
+                }}
+                style={{
+                    position: "absolute",
+                    left: pos.x - 15,
+                    top: pos.y - 15,
+                    width: 30,
+                    height: 30,
+                    borderRadius: "50%",
+                    backgroundColor: "rgba(255, 0, 0, 0.8)",
+                    border: "2px solid white",
+                    cursor: "grab",
+                    pointerEvents: "auto",
+                    display: "flex",
+                    alignItems: "center",
+                    justifyContent: "center"
+                }}
+            >
+                <span style={{ color: "white", fontSize: 10, fontWeight: "bold" }}>+</span>
+            </div>
+            <div
+                style={{
+                    position: "absolute",
+                    top: 8,
+                    right: 8,
+                    backgroundColor: "rgba(0,0,0,0.85)",
+                    color: "white",
+                    padding: "8px 12px",
+                    borderRadius: 8,
+                    fontFamily: "monospace",
+                    fontSize: 12,
+                    lineHeight: 1.6,
+                    pointerEvents: "auto",
+                    minWidth: 220
+                }}
+            >
+                <div style={{ color: "#f87171", fontWeight: "bold", marginBottom: 4 }}>DEBUG (1=all 2=geo 3=seats 4=chips 5=dealers 6=crosshair 7=cards)</div>
+                <div>
+                    Viewport: {window.innerWidth}x{window.innerHeight}
+                </div>
+                <div>
+                    Mouse: {mousePos.x}, {mousePos.y}
+                </div>
+                <div style={{ color: "#4ade80" }}>
+                    Marker: {pos.x}, {pos.y}
+                </div>
+                <div>
+                    From bottom: {window.innerHeight - pos.y}px | From right: {window.innerWidth - pos.x}px
+                </div>
+                <div style={{ marginTop: 4, borderTop: "1px solid #444", paddingTop: 4 }}>
+                    <span style={{ color: _debugChips ? "#4ade80" : "#666" }}>C:chips{_debugChips ? " ON" : ""} </span>
+                    <span style={{ color: _debugDealers ? "#fbbf24" : "#666" }}>B:dealer{_debugDealers ? " ON" : ""} </span>
+                    <span style={{ color: _debugSeats ? "#60a5fa" : "#666" }}>S:seats{_debugSeats ? " ON" : ""} </span>
+                    <span style={{ color: _debugGeometry ? "#f472b6" : "#666" }}>G:geometry{_debugGeometry ? " ON" : ""} </span>
+                    <span style={{ color: _debugCards ? "#a78bfa" : "#666" }}>H:cards{_debugCards ? " ON" : ""}</span>
+                </div>
+            </div>
+        </div>
+    );
+};
+
+/** DEBUG: Renders colored markers at chip/dealer/seat positions inside the table div. */
+const PositionDebugMarkers: React.FC<{ positions: PositionArrays }> = ({ positions }) => {
+    const debug = useDebugToggle();
+    const markerStyle = (left: string, top: string, color: string, label: string, useBottom = false) => (
+        <div
+            key={`${label}-${left}-${top}`}
+            style={{
+                position: "absolute",
+                left,
+                ...(useBottom ? { bottom: top } : { top }),
+                transform: "translate(-50%, -50%)",
+                zIndex: 99999,
+                pointerEvents: "none"
+            }}
+        >
+            <div
+                style={{
+                    width: 24,
+                    height: 24,
+                    borderRadius: "50%",
+                    backgroundColor: color,
+                    border: "2px solid white",
+                    display: "flex",
+                    alignItems: "center",
+                    justifyContent: "center",
+                    boxShadow: "0 0 8px rgba(0,0,0,0.5)"
+                }}
+            >
+                <span style={{ color: "white", fontSize: 8, fontWeight: "bold" }}>{label}</span>
+            </div>
+            <div
+                style={{
+                    position: "absolute",
+                    top: 26,
+                    left: "50%",
+                    transform: "translateX(-50%)",
+                    backgroundColor: "rgba(0,0,0,0.8)",
+                    color: "white",
+                    fontSize: 8,
+                    padding: "1px 4px",
+                    borderRadius: 3,
+                    whiteSpace: "nowrap",
+                    fontFamily: "monospace"
+                }}
+            >
+                {left},{top}
+            </div>
+        </div>
+    );
+    // Hole-card slots + deck (ui#21): 60×80 outlines exactly where the dealing
+    // animation lands each card, so the geometry offsets can be tuned against the
+    // seat components' real card render (key 7).
+    const cardOutline = (pos: { left: string; top: string }, label: string) => (
+        <div
+            key={`${label}-${pos.left}-${pos.top}`}
+            style={{
+                position: "absolute",
+                left: pos.left,
+                top: pos.top,
+                width: 60,
+                height: 80,
+                transform: "translate(-50%, -50%)",
+                border: "2px dashed #a78bfa",
+                borderRadius: 5,
+                color: "#a78bfa",
+                fontSize: 10,
+                fontWeight: "bold",
+                fontFamily: "monospace",
+                textAlign: "center",
+                lineHeight: "80px",
+                zIndex: 99999,
+                pointerEvents: "none"
+            }}
+        >
+            {label}
+        </div>
+    );
+    return (
+        <>
+            {debug.showChips && positions.chips.map((chip, i) => markerStyle(chip.left, chip.bottom, "#4ade80", `C${i + 1}`, true))}
+            {debug.showDealers && positions.dealers.map((d, i) => markerStyle(d.left, d.top, "#fbbf24", `D${i + 1}`))}
+            {debug.showSeats && positions.players.map((p, i) => markerStyle(p.left, p.top, "#60a5fa", `S${i + 1}`))}
+            {debug.showCards && positions.holeCards.map((slot, i) => [cardOutline(slot.first, `H${i + 1}a`), cardOutline(slot.second, `H${i + 1}b`)])}
+            {debug.showCards && cardOutline(positions.deck, "DECK")}
+        </>
+    );
+};
+
+/** DEBUG: Geometry overlay — table center, seats, bounds box, header/footer lines. Toggle with G key. */
+const GeometryDebugOverlay: React.FC<{
+    tableSize: number;
+    containerWidth: number;
+    containerHeight: number;
+    zoom: number;
+    tableDivRef?: React.RefObject<HTMLDivElement | null>;
+}> = ({ tableSize, containerWidth, containerHeight, zoom, tableDivRef }) => {
+    const debug = useDebugToggle();
+    const [panelPos, setPanelPos] = useState({ x: 20, y: 20 });
+    const [dragging, setDragging] = useState(false);
+    const dragStart = useRef({ x: 0, y: 0 });
+    if (!debug.showGeometry) return null;
+
+    const ts = tableSize as TableSize;
+    const dims = getStageDims();
+    const coords = getSeatCoords(ts);
+    const bounds = getContentBounds(ts);
+    const mode = getViewportMode();
+    const params = VIEWPORT_PARAMS[mode];
+    const pad = PLAYER_UI_PADDING[mode];
+    const usableW = containerWidth - params.paddingH;
+    const usableH = containerHeight - params.footerOverlay - params.paddingV;
+
+    const trx = (stageX: number) => stageX - dims.originX;
+    const tryy = (stageY: number) => stageY - dims.originY;
+    const centerX = trx(dims.centerX);
+    const centerY = tryy(dims.centerY);
+    const boundsMinX = trx(bounds.centerX - bounds.width / 2);
+    const boundsMinY = tryy(bounds.centerY - bounds.height / 2);
+
+    let sMinX = Infinity,
+        sMaxX = -Infinity,
+        sMinY = Infinity,
+        sMaxY = -Infinity;
+    for (const [x, y] of coords) {
+        sMinX = Math.min(sMinX, trx(x));
+        sMaxX = Math.max(sMaxX, trx(x));
+        sMinY = Math.min(sMinY, tryy(y));
+        sMaxY = Math.max(sMaxY, tryy(y));
+    }
+
+    const tableDivEl = tableDivRef?.current;
+    const containerParent = tableDivEl?.closest(".table-container");
+    const headerEl = containerParent?.querySelector(".sub-header");
+    const headerBottom = headerEl ? headerEl.getBoundingClientRect().bottom : (containerParent?.getBoundingClientRect()?.top ?? 0);
+    const footerHeight = mode === "mobile-landscape" ? 80 : 160;
+    const footerTop = window.innerHeight - footerHeight;
+    const tableRect = tableDivEl?.getBoundingClientRect();
+    const tTop = tableRect?.top ?? 0;
+    const tScaleY = tableRect ? tableRect.height / dims.tableHeight : zoom;
+    const boundsTopScreen = tTop + boundsMinY * tScaleY;
+    const boundsBottomScreen = tTop + (boundsMinY + bounds.height) * tScaleY;
+    const gapTop = boundsTopScreen - headerBottom;
+    const gapBottom = footerTop - boundsBottomScreen;
+
+    return (
+        <>
+            <svg
+                style={{
+                    position: "absolute",
+                    top: 0,
+                    left: 0,
+                    width: `${dims.tableWidth}px`,
+                    height: `${dims.tableHeight}px`,
+                    overflow: "visible",
+                    zIndex: 99998,
+                    pointerEvents: "none"
+                }}
+            >
+                <rect
+                    x={boundsMinX}
+                    y={boundsMinY}
+                    width={bounds.width}
+                    height={bounds.height}
+                    fill="none"
+                    stroke="#4ade80"
+                    strokeWidth={2}
+                    strokeDasharray="8 4"
+                    opacity={0.8}
+                />
+                <text x={boundsMinX + 4} y={boundsMinY - 6} fill="#4ade80" fontSize={12} fontFamily="monospace">
+                    bounds {bounds.width.toFixed(0)}x{bounds.height.toFixed(0)}
+                </text>
+                <rect
+                    x={sMinX}
+                    y={sMinY}
+                    width={sMaxX - sMinX}
+                    height={sMaxY - sMinY}
+                    fill="none"
+                    stroke="#22d3ee"
+                    strokeWidth={1.5}
+                    strokeDasharray="4 4"
+                    opacity={0.5}
+                />
+                <line x1={centerX - 30} y1={centerY} x2={centerX + 30} y2={centerY} stroke="#ef4444" strokeWidth={2} />
+                <line x1={centerX} y1={centerY - 30} x2={centerX} y2={centerY + 30} stroke="#ef4444" strokeWidth={2} />
+                <circle cx={centerX} cy={centerY} r={6} fill="#ef4444" stroke="white" strokeWidth={1.5} />
+                <text x={centerX + 12} y={centerY - 12} fill="#ef4444" fontSize={11} fontFamily="monospace" fontWeight="bold">
+                    CENTER
+                </text>
+                {coords.map(([sx, sy], i) => (
+                    <line
+                        key={`line-${i}`}
+                        x1={centerX}
+                        y1={centerY}
+                        x2={trx(sx)}
+                        y2={tryy(sy)}
+                        stroke="rgba(255,255,255,0.3)"
+                        strokeWidth={1.5}
+                        strokeDasharray="6 3"
+                    />
+                ))}
+                {coords.map(([sx, sy], i) => (
+                    <g key={`seat-${i}`}>
+                        <circle cx={trx(sx)} cy={tryy(sy)} r={14} fill="#3b82f6" stroke="white" strokeWidth={1.5} opacity={0.9} />
+                        <text x={trx(sx)} y={tryy(sy) + 4} fill="white" fontSize={10} fontFamily="monospace" fontWeight="bold" textAnchor="middle">
+                            {i + 1}
+                        </text>
+                    </g>
+                ))}
+            </svg>
+            {/* Header/footer lines and info panel are rendered by GeometryFixedOverlay outside the zoom-wrapper */}
+        </>
+    );
+};
+
+/** DEBUG: Fixed overlay for header/footer lines + info panel.
+ *  Rendered OUTSIDE the zoom-wrapper so position:fixed actually works. */
+const GeometryFixedOverlay: React.FC<{
+    containerWidth: number;
+    containerHeight: number;
+    zoom: number;
+    tableSize: number;
+}> = ({ containerWidth, containerHeight, zoom, tableSize }) => {
+    const debug = useDebugToggle();
+    const [panelPos, setPanelPos] = useState({ x: 20, y: 20 });
+    const [dragging, setDragging] = useState(false);
+    const dragStart = useRef({ x: 0, y: 0 });
+    if (!debug.showGeometry) return null;
+
+    const ts = tableSize as TableSize;
+    const coords = getSeatCoords(ts);
+    const bounds = getContentBounds(ts);
+    const mode = getViewportMode();
+    const params = VIEWPORT_PARAMS[mode];
+    const pad = PLAYER_UI_PADDING[mode];
+    const usableW = containerWidth - params.paddingH;
+    const usableH = containerHeight - params.footerOverlay - params.paddingV;
+    const footerHeight = mode === "mobile-landscape" ? 80 : 160;
+    const footerTop = window.innerHeight - footerHeight;
+
+    // Find header bottom from DOM
+    const headerEl = document.querySelector(".sub-header");
+    const headerBottom = headerEl ? headerEl.getBoundingClientRect().bottom : 0;
+
+    return (
+        <>
+            <svg style={{ position: "fixed", top: 0, left: 0, width: "100vw", height: "100vh", zIndex: 999990, pointerEvents: "none" }}>
+                <line x1={0} y1={headerBottom} x2={window.innerWidth} y2={headerBottom} stroke="#f97316" strokeWidth={2} opacity={0.8} />
+                <text x={8} y={headerBottom + 14} fill="#f97316" fontSize={10} fontFamily="monospace">
+                    header bottom (y={headerBottom.toFixed(0)})
+                </text>
+                <line x1={0} y1={footerTop} x2={window.innerWidth} y2={footerTop} stroke="#f97316" strokeWidth={2} opacity={0.8} />
+                <text x={8} y={footerTop - 6} fill="#f97316" fontSize={10} fontFamily="monospace">
+                    footer top (y={footerTop.toFixed(0)})
+                </text>
+            </svg>
+            <div
+                style={{
+                    position: "fixed",
+                    left: panelPos.x,
+                    top: panelPos.y,
+                    zIndex: 999999,
+                    backgroundColor: "rgba(0,0,0,0.9)",
+                    color: "white",
+                    padding: "10px 14px",
+                    borderRadius: 8,
+                    fontFamily: "monospace",
+                    fontSize: 12,
+                    lineHeight: 1.7,
+                    cursor: dragging ? "grabbing" : "grab",
+                    userSelect: "none",
+                    border: "1px solid #f472b6",
+                    minWidth: 340
+                }}
+                onMouseDown={e => {
+                    e.preventDefault();
+                    setDragging(true);
+                    dragStart.current = { x: e.clientX - panelPos.x, y: e.clientY - panelPos.y };
+                    const onMove = (ev: MouseEvent) => setPanelPos({ x: ev.clientX - dragStart.current.x, y: ev.clientY - dragStart.current.y });
+                    const onUp = () => {
+                        setDragging(false);
+                        window.removeEventListener("mousemove", onMove);
+                        window.removeEventListener("mouseup", onUp);
+                    };
+                    window.addEventListener("mousemove", onMove);
+                    window.addEventListener("mouseup", onUp);
+                }}
+            >
+                <div style={{ color: "#f472b6", fontWeight: "bold", marginBottom: 4 }}>GEOMETRY DEBUG (G) — drag to move</div>
+                <div>
+                    zoom: {zoom.toFixed(3)} | mode: {mode}
+                </div>
+                <div>
+                    container: {containerWidth}x{containerHeight}
+                </div>
+                <div>
+                    usable: {usableW.toFixed(0)}x{usableH.toFixed(0)} (footer={params.footerOverlay})
+                </div>
+                <div style={{ color: "#4ade80" }}>
+                    bounds: {bounds.width.toFixed(0)}x{bounds.height.toFixed(0)} center=({bounds.centerX.toFixed(0)},{bounds.centerY.toFixed(0)})
+                </div>
+                <div style={{ color: "#22d3ee" }}>
+                    seats: {coords.length} | scaleH={usableH > 0 ? (usableH / bounds.height).toFixed(3) : "?"} scaleW=
+                    {usableW > 0 ? (usableW / bounds.width).toFixed(3) : "?"}
+                </div>
+                <div style={{ color: "#f97316" }}>
+                    header: {headerBottom.toFixed(0)}px | footer: {footerTop}px | avail: {(footerTop - headerBottom).toFixed(0)}px
+                </div>
+            </div>
+        </>
+    );
+};
+
+const GeometryToggleButton: React.FC = () => {
+    const debug = useDebugToggle();
+    return (
+        <button
+            onClick={() => {
+                const s = !_debugGeometry;
+                _debugGeometry = s;
+                _debugChips = s;
+                _debugDealers = s;
+                _debugSeats = s;
+                debugListeners.forEach(cb => cb());
+            }}
+            style={{
+                position: "fixed",
+                bottom: 12,
+                left: 12,
+                zIndex: 999999,
+                padding: "6px 12px",
+                borderRadius: 6,
+                border: `2px solid ${debug.showGeometry ? "#f472b6" : "#555"}`,
+                backgroundColor: debug.showGeometry ? "rgba(244,114,182,0.2)" : "rgba(0,0,0,0.6)",
+                color: debug.showGeometry ? "#f472b6" : "#888",
+                fontSize: 12,
+                fontFamily: "monospace",
+                fontWeight: "bold",
+                cursor: "pointer"
+            }}
+        >
+            [G] Geometry
+        </button>
+    );
+};
+
+interface TableProps {
+    /**
+     * The table to show. In the multi-table workspace (ui#55) each live instance is
+     * given its id explicitly; left undefined the table takes its id from
+     * TableIdContext (which falls back to the route's :id).
+     */
+    tableId?: string;
+}
+
+const Table = React.memo(({ tableId }: TableProps = {}) => {
+    const contextId = useTableId();
+    const id = tableId ?? contextId;
+    // This table's logical track (ui#834) — read by submission decisions.
+    const logicalTrack = useLogicalTrack();
+    // Game state context and subscription
+    const { subscribeToTable, unsubscribeFromTable, gameState, gameFormat, gameVariant, gameName, validationError, error, loadHistoricalState, isReplayMode, replayHandNumber, connection } =
+        useGameStateContext();
+    const { currentNetwork } = useNetwork();
+    // Who is seated, for chat's "mute spectators" (block52-chat#5).
+    // Who is seated — seat and avatar — so chat shows avatars / "Seat N" instead of
+    // wallet addresses (and for "mute spectators", block52-chat#5).
+    const { getAvatarForAddress } = useProfileAvatar();
+    const chatPlayers = useMemo(
+        () =>
+            (gameState?.players ?? [])
+                .filter(p => Boolean(p.address))
+                .map(p => ({ address: p.address, seat: Number(p.seat), avatar: getAvatarForAddress(p.address, p.avatar) })),
+        [gameState?.players, getAvatarForAddress]
+    );
+
+    // Replay mode — read hand/index query params from the readonly share link.
+    const { isReplayMode: hasReplayParams, handNumber: replayHandParam, actionIndex: replayActionParam, clearReplayParams, setReplayHand } = useReplayMode();
+
+    // Replay (ui#816). Live table: the circle-arrow button opens the latest
+    // completed hand's replay in a NEW tab (the live table stays as it is).
+    // Replay tab: the timeline + transport drive loadHistoricalStateAtHeight.
+    const replayHand = useMemo(() => latestCompletedHand(gameState), [gameState]);
+    const handleOpenReplay = useCallback(() => {
+        if (!id || isNullish(replayHand)) return;
+        window.open(buildHandShareUrl(window.location.origin, id, replayHand), "_blank", "noopener");
+    }, [id, replayHand]);
+    const replay = useReplayTimeline({ tableId: id, handNumber: replayHandNumber, active: isReplayMode });
+    const replayStepLabel = useMemo(() => describeReplayStep(gameState), [gameState]);
+    const indexerApi = useIndexerApi();
+
+    // No-wallet detection: must be declared before the subscribeToTable useEffect that depends on it.
+    const [hasWallet, setHasWallet] = useState<boolean>(() => !!getCosmosAddressSync());
+    const handleWalletReady = useCallback(() => {
+        setHasWallet(true);
+        // Now that the wallet is saved, start the WebSocket subscription
+        if (id) {
+            subscribeToTable(id);
+        }
+    }, [id, subscribeToTable]);
+
+    useEffect(() => {
+        if (id) {
+            if (hasReplayParams && hasValue(replayHandParam)) {
+                // Read-only replay, no WebSocket: the hand's final state, or a point
+                // in the current hand when ?index= is given.
+                loadHistoricalState(id, replayHandParam, replayActionParam);
+            } else if (hasWallet) {
+                // Live mode: only subscribe once we have a wallet — subscribing without
+                // one immediately sets an error that hides the NoWalletOverlay.
+                subscribeToTable(id);
+            }
+        }
+    }, [id, hasWallet, hasReplayParams, replayHandParam, replayActionParam, subscribeToTable, loadHistoricalState]);
+
+    // Card back style configuration - driven by VITE_CARD_BACK_URL env var
+    // Options: "default", "block52", "custom", "legacy", or a full URL to a custom SVG
+    const clubLook = useClubLook(id);
+    const radioSlot = <TableRadio stations={radioStationsFor(clubLook?.radio)} />;
+    const cardBackStyle: CardBackStyle = clubLook?.cardBack ?? (import.meta.env.VITE_CARD_BACK_URL || "default");
+
+    // Game Start Countdown
+    const { gameStartTime, showCountdown, handleCountdownComplete, handleSkipCountdown } = useGameStartCountdown();
+
+    // Track viewport mode for debugging
+    const [viewportMode, setViewportMode] = useState(getViewportMode());
+
+    const [accountBalance, setAccountBalance] = useState<string>("0");
+    const [isBalanceLoading, setIsBalanceLoading] = useState<boolean>(true);
+    const [, setBalanceError] = useState<Error | null>(null);
+    const publicKey = getCosmosAddressSync();
+
+    // Update to use the imported hook
+    const tableDataValues = useTableData();
+    const { isUserAlreadyPlaying, emptySeatIndexes } = useVacantSeatData();
+    // Determine if we're waiting for the first hand. "Started" is read from the
+    // state, not from the seat count: a tournament starts with empty seats and
+    // holds a full table for its start time (poker-vm#2680, #2776).
+    const isSitAndGoWaitingForPlayers = useMemo(
+        () => isAwaitingTournamentStart({ gameFormat, gameState, isUserAlreadyPlaying, hasEmptySeats: hasElements(emptySeatIndexes) }),
+        [gameFormat, isUserAlreadyPlaying, emptySeatIndexes.length, gameState]
+    );
+
+    // invoke hook for seat loop
+    const { winnerInfo } = useWinnerInfo();
+    const winnerCards = useWinnerCards();
+
+    // Zoom is now handled by the table layout configuration
+    // const calculateZoom = useCallback(() => { ... }, []);
+
+    // Function to fetch Cosmos account balance
+    const fetchAccountBalance = useCallback(async () => {
+        try {
+            setIsBalanceLoading(true);
+            setBalanceError(null);
+
+            const balance = await getCosmosBalance(currentNetwork, "usdc");
+            setAccountBalance(balance);
+        } catch (err) {
+            console.error("Error fetching Cosmos balance:", err);
+            setBalanceError(err instanceof Error ? err : new Error("Failed to fetch balance"));
+        } finally {
+            setIsBalanceLoading(false);
+        }
+    }, [currentNetwork]);
+
+    // Fetch balance once on page load
+    useEffect(() => {
+        if (publicKey) {
+            fetchAccountBalance();
+        }
+    }, [publicKey, fetchAccountBalance]);
+
+    // Manual balance refresh function for after key actions
+    const updateBalanceOnPlayerJoin = useCallback(() => {
+        if (publicKey) {
+            fetchAccountBalance();
+        }
+    }, [publicKey, fetchAccountBalance]);
+
+    // Zoom is now managed by useTableLayout hook
+    //
+    // Always-visible floating panel with two tabs (History default, then
+    // Settings) — replaces the two former fly-out overlays (ui#752). The panel
+    // is never closed; the header gear/panel controls just switch the tab.
+    const [panelTab, setPanelTab] = useState<TablePanelTab>("history");
+    // Phones: the panel covers the felt, so it is closed until opened from the hamburger menu.
+    const [mobilePanelOpen, setMobilePanelOpen] = useState(false);
+    // Desktop: the panel can be collapsed to a slim edge tab; the choice is remembered.
+    const [desktopPanelCollapsed, setDesktopPanelCollapsed] = useState<boolean>(() => {
+        try {
+            return localStorage.getItem(DESKTOP_PANEL_COLLAPSED_KEY) === "1";
+        } catch {
+            return false;
+        }
+    });
+    const setDesktopPanelCollapsedPersisted = useCallback((collapsed: boolean) => {
+        setDesktopPanelCollapsed(collapsed);
+        try {
+            localStorage.setItem(DESKTOP_PANEL_COLLAPSED_KEY, collapsed ? "1" : "0");
+        } catch {
+            // storage unavailable (private mode) — keep in-memory state only
+        }
+    }, []);
+
+    // Leave table modal state
+    const [isLeaveModalOpen, setIsLeaveModalOpen] = useState(false);
+
+    // Transaction popup state
+    const [recentTxHash, setRecentTxHash] = useState<string | null>(null);
+
+    // Callback to show transaction popup
+    const handleTransactionSubmitted = useCallback(
+        (txHash: string | null) => {
+            if (txHash) {
+                setRecentTxHash(txHash);
+                // Auto-refresh balance after transaction
+                fetchAccountBalance();
+            }
+        },
+        [fetchAccountBalance]
+    );
+
+    // Callback to close transaction popup
+    const handleCloseTransactionPopup = useCallback(() => {
+        setRecentTxHash(null);
+    }, []);
+
+    // Use the hook directly instead of getting it from context
+    const { legalActions: playerLegalActions, playerStatus, sitInMethod, pendingSitOut } = usePlayerLegalActions();
+
+    // Add the usePlayerSeatInfo hook
+    const { currentUserSeat } = usePlayerSeatInfo();
+
+    // Add the useNextToActInfo hook
+    const {
+        seat: nextToActSeat,
+        player: _nextToActPlayer,
+        isCurrentUserTurn,
+        availableActions: _nextToActAvailableActions,
+        timeRemaining: _timeRemaining
+    } = useNextToActInfo(id);
+
+    // Enable turn-to-act notifications (tab flashing + optional sound)
+    const { turnNotificationSound, playerActionSounds, seatAtBottom } = useGameSettings();
+    useTurnNotification(isCurrentUserTurn, {
+        enableSound: turnNotificationSound,
+        soundVolume: 0.3,
+        flashInterval: 1000
+    });
+
+    // Broadcast action sounds to all players at the table (not just the local user)
+    useGameStateSounds(playerActionSounds);
+
+    // Add the useTableState hook to get table state properties.
+    // tableSize is only valid once state has loaded — while isLoading it is a
+    // placeholder (0) and must not drive layout, or the board flashes from a
+    // fabricated seat count to the real one (#466).
+    const { tableSize, isLoading: isTableStateLoading } = useTableState();
+
+    // Container refs for geometry engine
+    const tableContainerRef = useRef<HTMLDivElement>(null);
+    const tableDivRef = useRef<HTMLDivElement>(null);
+
+    // StageGeometry layout system — supports 2/4/6/9 tables, auto-fit to any viewport.
+    // This hook runs on EVERY render, including while loading (hooks can't be
+    // conditional), and getSeatPositions() indexes SEAT_COORDS[tableSize] — which
+    // is undefined for the loading placeholder 0 and throws. So feed it a valid
+    // fallback (9) while loading; the loading guard below still prevents any
+    // fabricated board from being PAINTED until tableSize is real (#466), so this
+    // computed-but-unrendered layout causes no flash.
+    const [tableStyle, setTableStyle] = useState<TableStyle>(() => tableStyleFromEnv(import.meta.env.VITE_TABLE_STYLE));
+    // A club table starts in the club theme's skin, or its felt. The player can still switch it.
+    const clubFelt = clubLook?.felt;
+    const clubTheme = clubLook?.theme;
+    useEffect(() => {
+        if (clubFelt && clubTheme) setTableStyle(tableStyleForLook({ theme: clubTheme, felt: clubFelt }));
+    }, [clubFelt, clubTheme]);
+    // The chat wears the table's skin (block52-chat#2): flagship, chipchair, badbeat and
+    // maison have their own chat look; plain styles fall back to the player's B52/HODL pick.
+    useEffect(() => {
+        setChatTableSkin(tableStyle);
+        return () => setChatTableSkin(undefined);
+    }, [tableStyle]);
+    // The flagship skin brings its own phone table shape (a wide oval).
+    const tableLayout = useTableLayout((tableSize || 9) as 2 | 4 | 6 | 9, tableContainerRef, stageShapeFor(tableStyle));
+    const { dealerSeat } = useDealerPosition();
+
+    // Portrait phones get a decluttered UI + the vertical portrait stage —
+    // the old "Rotate to Play" gate (#200) is gone.
+    const isMobilePortrait = tableLayout.viewportMode === "mobile-portrait";
+    // Compact = both phone orientations. Landscape phones (852px WIDE — any
+    // width-based breakpoint calls them desktop; height is what's scarce) get
+    // the same treatment as portrait: one-row header + hamburger, no persistent
+    // banner, no style selector — just with the horizontal stage.
+    const isCompactMobile = isMobilePortrait || tableLayout.viewportMode === "mobile-landscape";
+    // Felt/rail dimensions follow the SAME mode as the layout hook, so the
+    // markup and the seat positions can never disagree mid-rotation.
+    const stageDims = tableStyle === "chipchair" ? CHIPCHAIR_DIMS : isMobilePortrait && usesFlagshipLayout(tableStyle) ? FLAGSHIP_PORTRAIT_DIMS : STAGE_DIMS[isMobilePortrait ? "portrait" : "landscape"];
+
+    // Add the useGameProgress hook
+    const { isGameInProgress, handNumber, actionCount, nextToAct } = useGameProgress(id);
+
+    // #409 watchdog: detect "I'm in a hand but my hole cards are missing" and auto re-subscribe.
+    useHoleCardWatchdog(id);
+    useBlindClickGuard();
+
+    // Retain the finished hand's showdown summary ("won with X over Y") so the
+    // History panel can still show it after a fast all-in runout has moved on
+    // to the next hand. Must live here — the sidebar unmounts while closed.
+    useLastHandResultCapture(id);
+
+    // Add the useGameOptions hook
+    const { gameOptions } = useGameOptions();
+
+    // Add the useGameResults hook
+    const { results } = useGameResults();
+
+    // Memoize formatted values
+    const formattedValues = useMemo(() => {
+        if (!gameOptions) {
+            return {
+                smallBlindFormatted: "N/A",
+                bigBlindFormatted: "N/A",
+                isTournamentStyle: false
+            };
+        }
+
+        // Check if this is a tournament-style game (tournament or sit-and-go)
+        const isTournamentStyle = isTournamentFormat(gameFormat);
+
+        if (isTournamentStyle) {
+            // Tournament: blinds are chip counts, display with commas
+            const smallBlind = Number(gameOptions.smallBlind);
+            const bigBlind = Number(gameOptions.bigBlind);
+
+            return {
+                smallBlindFormatted: formatChipCount(smallBlind),
+                bigBlindFormatted: formatChipCount(bigBlind),
+                isTournamentStyle: true
+            };
+        } else {
+            // Cash game: blinds are USDC microunits, convert to dollars
+            return {
+                smallBlindFormatted: formatUSDCToSimpleDollars(gameOptions.smallBlind),
+                bigBlindFormatted: formatUSDCToSimpleDollars(gameOptions.bigBlind),
+                isTournamentStyle: false
+            };
+        }
+    }, [gameOptions, gameFormat]);
+
+    // ============================================================
+    // TABLE ROTATION SYSTEM - COMPREHENSIVE DOCUMENTATION
+    // ============================================================
+    //
+    // OVERVIEW:
+    // The rotation system allows the poker table view to rotate, changing which
+    // seat appears at the bottom (traditional "hero" position in poker UIs).
+    // This is controlled by a single variable: startIndex
+    //
+    // KEY CONCEPTS:
+    // - UI Position: The visual position on screen (0 = bottom, 1 = left, 2 = top, etc.)
+    // - Seat Number: The actual seat at the table (1, 2, 3, 4, etc.)
+    // - startIndex: The offset that determines the rotation
+    //
+    // HOW IT WORKS:
+    // The formula: seatNumber = ((uiPosition + startIndex) % tableSize) + 1
+    //
+    // Example with 4 players:
+    // - startIndex = 0: No rotation
+    //   UI Pos 0 shows Seat 1 (bottom)
+    //   UI Pos 1 shows Seat 2 (left)
+    //   UI Pos 2 shows Seat 3 (top)
+    //   UI Pos 3 shows Seat 4 (right)
+    //
+    // - startIndex = 1: Rotate by 1 (Seat 2 at bottom)
+    //   UI Pos 0 shows Seat 2 (bottom)
+    //   UI Pos 1 shows Seat 3 (left)
+    //   UI Pos 2 shows Seat 4 (top)
+    //   UI Pos 3 shows Seat 1 (right)
+    //
+    // ROTATION CONTROLS:
+    // - ← Rotate: Increases startIndex, rotates seats CLOCKWISE
+    //   From default (0): goes to 1 → Seat 4 moves to bottom, Seat 1 moves to left
+    // - Rotate →: Decreases startIndex, rotates seats COUNTER-CLOCKWISE
+    //   From default (0): goes to 3 → Seat 2 moves to bottom, Seat 1 moves to right
+    // - Reset (startIndex = 0): Returns to default view (Seat 1 at bottom)
+    //
+    // WHERE ROTATION IS APPLIED:
+    // 1. In getComponentToRender() function (line ~570)
+    //    - Calculates which seat should appear at each UI position
+    //    - Formula: seatNumber = ((positionIndex + startIndex) % tableSize) + 1
+    //
+    // 2. In the render loop (line ~1000)
+    //    - Uses tableLayout.positions.players (NOT pre-rotated)
+    //    - Passes positionIndex to getComponentToRender
+    //    - Rotation happens inside getComponentToRender
+    //
+    // IMPORTANT: Rotation happens ONLY ONCE in getComponentToRender()
+    // We don't pre-rotate arrays to avoid double rotation
+
+    const [seat] = useState<number>(0);
+    const [startIndex, setStartIndex] = useState<number>(0); // Controls table rotation (0 = no rotation)
+
+    const [currentIndex, setCurrentIndex] = useState<number>(1);
+
+    // Chip positions now come from tableLayout.positions.chips (stageGeometry)
+
+    // Chip data is now read per-seat inside PlayerChipDisplay (#424)
+
+    // Memoize user wallet address using Cosmos utility function
+    const userWalletAddress = useMemo(() => {
+        const storedAddress = getCosmosAddressSync();
+        return storedAddress ? storedAddress.toLowerCase() : null;
+    }, []);
+
+    // Use Cosmos utility function for formatted address
+    const formattedAddress = getFormattedCosmosAddress();
+
+    // Memoize table active players
+    const tableActivePlayers = useMemo(() => {
+        const activePlayers = tableDataValues.tableDataPlayers?.filter((player: PlayerDTO) => isValidPlayerAddress(player.address)) ?? [];
+
+        return activePlayers;
+    }, [tableDataValues.tableDataPlayers]);
+
+    // Check if any player is ACTIVE or ALL_IN (mirrors PVM's checkBootstrap logic)
+    const hasActivePlayers = useMemo(() => {
+        return tableActivePlayers.some((p: PlayerDTO) => p.status === PlayerStatus.ACTIVE || p.status === PlayerStatus.ALL_IN);
+    }, [tableActivePlayers]);
+
+    // Check if current user is seated at the table
+    const isCurrentUserSeated = useMemo(() => {
+        return tableActivePlayers.some((p: PlayerDTO) => p.address.toLowerCase() === userWalletAddress);
+    }, [tableActivePlayers, userWalletAddress]);
+
+    // Check if current table is full (no empty seats)
+    const isTableFull = useMemo(() => {
+        const maxPlayers = gameOptions?.maxPlayers;
+        if (!maxPlayers) return false;
+        return tableActivePlayers.length >= maxPlayers;
+    }, [tableActivePlayers, gameOptions]);
+
+    // Optimize window width detection - only check on resize
+    const [isMobile, setIsMobile] = useState(window.innerWidth <= 414);
+    const [isMobileLandscape, setIsMobileLandscape] = useState(getViewportMode() === "mobile-landscape");
+
+    // Update viewport mode on window resize
+    useEffect(() => {
+        const handleResize = () => {
+            setViewportMode(getViewportMode());
+            setIsMobile(window.innerWidth <= 414);
+            setIsMobileLandscape(getViewportMode() === "mobile-landscape");
+        };
+
+        window.addEventListener("resize", handleResize);
+        return () => window.removeEventListener("resize", handleResize);
+    }, []);
+
+    // 🔧 PERFORMANCE FIX: Disabled mouse tracking to prevent hundreds of re-renders
+    // Mouse tracking was causing setMousePosition({ x, y }) on every mouse move
+    // which created new objects and triggered excessive re-renders
+    // useEffect(() => {
+    //     // Mouse tracking disabled for performance
+    // }, []);
+
+    // Legacy seat effect (can be removed if not used)
+    useEffect(() => (seat ? setStartIndex(seat) : setStartIndex(0)), [seat]);
+
+    // AUTO-ROTATION: Automatically rotate table when user joins
+    // Auto-rotate table so current player is always at bottom (6 o'clock) (#13)
+    // Gated by the seatAtBottom user setting (#392) — when off, render absolute layout.
+    // Formula in PlayerSeating: seatNumber = ((positionIndex - startIndex + tableSize) % tableSize) + 1
+    // For position 0 (bottom) to show seat S: S = ((0 - startIndex + tableSize) % tableSize) + 1
+    // Solving: startIndex = (tableSize - (S - 1)) % tableSize
+    useEffect(() => {
+        if (!seatAtBottom) {
+            setStartIndex(0);
+            return;
+        }
+        if (currentUserSeat > 0 && tableSize > 0) {
+            setStartIndex((tableSize - (currentUserSeat - 1)) % tableSize);
+        }
+    }, [currentUserSeat, tableSize, seatAtBottom]);
+
+    // Winner animations
+    const hasWinner = hasElements(winnerInfo);
+
+    // Restore the useEffect for the timer
+    useEffect(() => {
+        const timer = setTimeout(() => {
+            setCurrentIndex((prevIndex: number) => {
+                if (prevIndex === 2) {
+                    // Handle case where prevIndex is 2 (e.g., no change or custom logic)
+                    return prevIndex + 2; // For example, keep it the same
+                }
+                if (prevIndex === 4) {
+                    // If prevIndex is 4, increment by 2
+                    return prevIndex + 2;
+                }
+                if (prevIndex === 9) {
+                    // If prevIndex is 4, increment by 2
+                    return prevIndex - 8;
+                } else {
+                    // Otherwise, just increment by 1
+                    return prevIndex + 1;
+                }
+            });
+        }, 30000);
+
+        // Cleanup the timer on component unmount
+        return () => clearTimeout(timer);
+    }, [currentIndex]);
+
+    // Memoize handlers
+    const handleResize = useCallback(() => {
+        // Add a small delay for orientation changes to ensure dimensions are updated.
+        // isMobileLandscape derives from getViewportMode() — the same classifier the
+        // geometry engine uses — so the header/footer and the stage can never disagree
+        // (the old inline width/height formula here contradicted the other resize
+        // listener and made the header flicker on fine-pointer windows).
+        setTimeout(() => {
+            tableLayout.refreshLayout();
+            setIsMobile(window.innerWidth <= 414);
+            setIsMobileLandscape(getViewportMode() === "mobile-landscape");
+        }, 100);
+    }, [tableLayout]);
+
+    useEffect(() => {
+        window.addEventListener("resize", handleResize);
+        window.addEventListener("orientationchange", handleResize);
+
+        // Also listen for the modern screen orientation API
+        if (screen.orientation) {
+            screen.orientation.addEventListener("change", handleResize);
+        }
+
+        return () => {
+            window.removeEventListener("resize", handleResize);
+            window.removeEventListener("orientationchange", handleResize);
+            if (screen.orientation) {
+                screen.orientation.removeEventListener("change", handleResize);
+            }
+        };
+    }, [handleResize]);
+
+    // Position arrays are now managed by useTableLayout hook
+    // useEffect(() => { ... }, [tableSize, id]);
+
+    // Memoize formatted balance - Cosmos returns microunits (6 decimals)
+    const balanceFormatted = useMemo(() => (accountBalance ? formatUSDCToSimpleDollars(accountBalance) : "0.00"), [accountBalance]);
+
+    const potDisplayValues = useMemo(() => {
+        const pots = Array.isArray(gameState?.pots) ? (gameState?.pots as string[]) : [];
+        return formatPotDisplay(pots, gameState?.totalPot, gameFormat, gameState?.round, gameState?.potDetails);
+    }, [gameState?.pots, gameState?.totalPot, gameFormat, gameState?.round, gameState?.potDetails]);
+
+    const copyToClipboard = useCallback((text: string) => {
+        navigator.clipboard.writeText(text);
+    }, []);
+
+    // Handler for copying table link
+    const handleCopyTableLink = useCallback(async () => {
+        try {
+            const tableUrl = `${window.location.origin}/table/${id}`;
+            await navigator.clipboard.writeText(tableUrl);
+            toast.success("Table link copied to clipboard!", {
+                position: "top-right",
+                autoClose: 2000,
+                hideProgressBar: false,
+                closeOnClick: true,
+                pauseOnHover: true,
+                draggable: true
+            });
+        } catch (error) {
+            console.error("Failed to copy table link:", error);
+            toast.error("Failed to copy link. Please try again.", {
+                position: "top-right",
+                autoClose: 2000
+            });
+        }
+    }, [id]);
+
+    // Handler for sharing current hand as a table replay URL
+    const handleShareHand = useCallback(async () => {
+        if (!id || !handNumber) {
+            toast.info("No hand data available to share");
+            return;
+        }
+        try {
+             // `?hand=N` opens the hand's final state, so the link keeps working after
+            // the hand ends (an `&index=` link only resolves while the hand is live).
+            const shareUrl = buildHandShareUrl(window.location.origin, id, handNumber);
+            await navigator.clipboard.writeText(shareUrl);
+            toast.success("Hand link copied to clipboard!", {
+                position: "top-right",
+                autoClose: 2000
+            });
+        } catch {
+            toast.error("Failed to copy share URL.");
+        }
+    }, [id, handNumber]);
+
+    // Memoize event handlers to prevent re-renders
+    const handleLobbyClick = useCallback(() => {
+        window.location.href = "/";
+    }, []);
+
+    const handleDepositClick = useCallback(() => {
+        window.location.href = "/";
+    }, []);
+
+    // Open leave table modal
+    const handleLeaveTableClick = useCallback(() => {
+        setIsLeaveModalOpen(true);
+    }, []);
+
+    // Close leave table modal
+    const handleLeaveModalClose = useCallback(() => {
+        setIsLeaveModalOpen(false);
+    }, []);
+
+    // Get current player data for leave modal
+    const currentPlayerData = useMemo(() => {
+        return tableDataValues.tableDataPlayers?.find((p: PlayerDTO) => p.address?.toLowerCase() === userWalletAddress?.toLowerCase());
+    }, [tableDataValues.tableDataPlayers, userWalletAddress]);
+
+    // Confirm leave table action
+    const handleLeaveTableConfirm = useCallback(async () => {
+        if (!id || !currentPlayerData) {
+            throw new Error("Cannot leave: missing table ID or player data");
+        }
+
+        await leaveTable(id, currentNetwork);
+
+        // Refresh balance after leaving
+        fetchAccountBalance();
+    }, [id, currentPlayerData, currentNetwork, fetchAccountBalance]);
+
+    // Claim a decided SNG/Tournament prize (record hand-end state + settle).
+    // Distinct from leaving — the roster is frozen post-start. (pokerchain#239)
+    const handleClaimWinnings = useCallback(async () => {
+        if (!id) {
+            throw new Error("Cannot claim: missing table ID");
+        }
+        await claimWinnings(id, currentNetwork, logicalTrack.get());
+        fetchAccountBalance();
+    }, [id, currentNetwork, fetchAccountBalance, logicalTrack]);
+
+    // Show error page if connection/general error occurred
+    // Do NOT show the error page when the user has no wallet — the overlay handles that case.
+    if (error && id && hasWallet) {
+        const handleRetry = () => {
+            unsubscribeFromTable();
+            subscribeToTable(id);
+        };
+        return (
+            <TableErrorPage
+                error={{
+                    missingFields: [],
+                    message: error.message,
+                    rawData: undefined
+                }}
+                tableId={id}
+                onRetry={handleRetry}
+            />
+        );
+    }
+
+    // Show error page if validation failed
+    if (validationError && id) {
+        const handleRetry = () => {
+            unsubscribeFromTable();
+            subscribeToTable(id);
+        };
+        return <TableErrorPage error={validationError} tableId={id} onRetry={handleRetry} />;
+    }
+
+    // Loading guard (#466): do NOT paint the board until real game state arrives.
+    // The seat ring and the felt zoom are both derived from tableSize
+    // (gameState.gameOptions.maxPlayers). Rendering before that value exists
+    // meant painting a fabricated 9-seat table and then re-laying-out to the
+    // real size — a visible flash. Render the felt background + a spinner
+    // instead, so seats/felt only lay out once, at the correct size.
+    if (isTableStateLoading || !gameState) {
+        return (
+            <div className="table-container">
+                <div className="flex-grow relative overflow-visible flex items-center justify-center">
+                    {/* Background layers — same as the live table for a seamless transition */}
+                    <HexagonPattern patternId="hexagons-table-loading" />
+                    <div className="background-shimmer shimmer-animation" />
+                    <div className="background-animated-static" />
+                    <div className="background-base-static" />
+                    {/* Centered spinner */}
+                    <div className="relative z-20 h-10 w-10 rounded-full border-4 border-white/20 border-t-white animate-spin" />
+                </div>
+            </div>
+        );
+    }
+
+    return (
+        <SitOutIntentProvider tableId={id} network={currentNetwork} pendingSitOut={pendingSitOut} legalActions={playerLegalActions}>
+        <TableStyleProvider value={tableStyle}>
+        <div className="table-container" data-connection={connection.status} data-skin={skinAttrFor(tableStyle)} data-look={tableStyle} data-three={isThreeTableStyle(tableStyle) ? "true" : undefined} data-deal={dealsFaceDown(tableStyle) ? "roll" : undefined} data-orient={isMobilePortrait ? "portrait" : "landscape"}>
+            {/* Connection freshness (ui#613): shown whenever the live socket is not live */}
+            {!isReplayMode && id && (
+                <ConnectionBanner
+                    connection={connection}
+                    onRetry={() => {
+                        unsubscribeFromTable();
+                        subscribeToTable(id);
+                    }}
+                />
+            )}
+            {/* Replay transport (ui#816): hand selector, play / pause / step / scrub, Go Live */}
+            {isReplayMode && hasValue(replayHandNumber) && (
+                <ReplayTransport
+                    handNumber={replayHandNumber}
+                    latestHand={replay.latestHand}
+                    stepCount={replay.steps.length}
+                    position={replay.transport.position}
+                    isPlaying={replay.transport.isPlaying}
+                    speed={replay.transport.speed}
+                    stepLabel={replayStepLabel}
+                    isLoading={replay.isLoading}
+                    error={replay.error}
+                    onTogglePlay={replay.transport.togglePlay}
+                    onStepBack={replay.transport.stepBack}
+                    onStepForward={replay.transport.stepForward}
+                    onSeek={replay.transport.seek}
+                    onSpeed={replay.transport.setSpeed}
+                    onPrevHand={() => setReplayHand(replayHandNumber - 1)}
+                    onNextHand={() => setReplayHand(replayHandNumber + 1)}
+                    onGoLive={clearReplayParams}
+                />
+            )}
+            {/* DEBUG OVERLAY: Press D/C/B/S/G to toggle debug tools */}
+            <LayoutDebugOverlay />
+            {/* Table style toggle — on phones (either orientation) this lives in
+                the hamburger menu instead. z-index is deliberately modest: this must
+                never sit above modals/overlays (it used to be 999999 and beat everything). */}
+            {!isCompactMobile && !usesFlagshipLayout(tableStyle) && (
+                <button
+                    onClick={() => setTableStyle(nextTableStyle)}
+                    style={{
+                        position: "fixed",
+                        bottom: 12,
+                        left: 12,
+                        zIndex: 30,
+                        padding: "6px 12px",
+                        borderRadius: tableStyle === "nouns" ? 0 : 6,
+                        border: tableStyle === "nouns" ? "2px solid #d63c5e" : "2px solid #555",
+                        backgroundColor: tableStyle === "nouns" ? "rgba(26,26,46,0.8)" : "rgba(0,0,0,0.6)",
+                        color: tableStyle === "nouns" ? "#e1d7d5" : "#ccc",
+                        fontSize: 12,
+                        fontFamily: tableStyle === "nouns" ? "'Silkscreen', monospace" : "monospace",
+                        fontWeight: "bold",
+                        cursor: "pointer"
+                    }}
+                >
+                    Table: {TABLE_STYLE_LABELS[tableStyle]}
+                </button>
+            )}
+            <GeometryFixedOverlay
+                containerWidth={tableLayout.containerWidth}
+                containerHeight={tableLayout.containerHeight}
+                zoom={tableLayout.zoom}
+                tableSize={tableSize}
+            />
+
+            {/*//! HEADER - CASINO STYLE — phones (both orientations) get the
+                collapsed one-row header + hamburger */}
+            {usesFlagshipLayout(tableStyle) ? (
+                <FlagshipTopBar
+                    gameFormat={gameFormat || null}
+                    gameVariant={gameVariant}
+                    gameOptions={gameOptions}
+                    isBalanceLoading={isBalanceLoading}
+                    balanceFormatted={balanceFormatted}
+                    handleLobbyClick={handleLobbyClick}
+                    fetchAccountBalance={fetchAccountBalance}
+                    stakes={blindsLabel(formattedValues.smallBlindFormatted, formattedValues.bigBlindFormatted, formattedValues.isTournamentStyle)}
+                    tools={
+                        <>
+                            {id && <ProvablyFairBadge tableId={id} handNumber={handNumber} tableName={gameName} compact />}
+                            {radioSlot}
+                            {id && (
+                                <TableSettingsMenu
+                                    tableId={id}
+                                    handNumber={handNumber}
+                                    tableStyle={tableStyle}
+                                    onCycleTableStyle={() => setTableStyle(nextTableStyle)}
+                                    currentNetwork={currentNetwork}
+                                    publicKey={publicKey}
+                                    formattedAddress={formattedAddress}
+                                    isCurrentUserSeated={isCurrentUserSeated}
+                                    canLeave={!!currentPlayerData && !formattedValues.isTournamentStyle}
+                                    showTopUpEntry={isCurrentUserSeated && !formattedValues.isTournamentStyle}
+                                    legalActions={playerLegalActions}
+                                    currentStack={currentPlayerData?.stack || "0"}
+                                    minBuyIn={gameOptions?.minBuyIn || "0"}
+                                    maxBuyIn={gameOptions?.maxBuyIn || "0"}
+                                    walletBalance={accountBalance}
+                                    replayHand={replayHand}
+                                    handleOpenReplay={isReplayMode ? undefined : handleOpenReplay}
+                                    handleCopyTableLink={handleCopyTableLink}
+                                    handleShareHand={handleShareHand}
+                                    handleLeaveTableClick={handleLeaveTableClick}
+                                    copyToClipboard={copyToClipboard}
+                                />
+                            )}
+                        </>
+                    }
+                />
+            ) : isCompactMobile ? (
+                <MobileTableHeader
+                    tableId={id || ""}
+                    tableName={gameName}
+                    radioSlot={radioSlot}
+                    handleOpenReplay={isReplayMode ? undefined : handleOpenReplay}
+                    replayHand={replayHand}
+                    currentNetwork={currentNetwork}
+                    gameFormat={gameFormat || null}
+                    gameOptions={gameOptions}
+                    tableActivePlayers={tableActivePlayers}
+                    publicKey={publicKey}
+                    formattedAddress={formattedAddress}
+                    isBalanceLoading={isBalanceLoading}
+                    balanceFormatted={balanceFormatted}
+                    formattedValues={formattedValues}
+                    handNumber={handNumber}
+                    nextToAct={nextToAct}
+                    currentPlayerData={currentPlayerData || null}
+                    isCurrentUserSeated={isCurrentUserSeated}
+                    legalActions={playerLegalActions}
+                    currentStack={currentPlayerData?.stack || "0"}
+                    minBuyIn={gameOptions?.minBuyIn || "0"}
+                    maxBuyIn={gameOptions?.maxBuyIn || "0"}
+                    walletBalance={accountBalance}
+                    tableStyle={tableStyle}
+                    onCycleTableStyle={() => setTableStyle(nextTableStyle)}
+                    onOpenPanel={tab => {
+                        setPanelTab(tab);
+                        setMobilePanelOpen(true);
+                    }}
+                    handleLobbyClick={handleLobbyClick}
+                    handleCopyTableLink={handleCopyTableLink}
+                    fetchAccountBalance={fetchAccountBalance}
+                    copyToClipboard={copyToClipboard}
+                    handleLeaveTableClick={handleLeaveTableClick}
+                    handleShareHand={handleShareHand}
+                />
+            ) : (
+                <TableHeader
+                    tableId={id || ""}
+                    tableName={gameName}
+                    radioSlot={radioSlot}
+                    handleOpenReplay={isReplayMode ? undefined : handleOpenReplay}
+                    replayHand={replayHand}
+                    isMobileLandscape={isMobileLandscape}
+                    gameFormat={gameFormat || null}
+                    gameVariant={gameVariant}
+                    gameOptions={gameOptions}
+                    tableActivePlayers={tableActivePlayers}
+                    publicKey={publicKey}
+                    formattedAddress={formattedAddress}
+                    isBalanceLoading={isBalanceLoading}
+                    balanceFormatted={balanceFormatted}
+                    formattedValues={formattedValues}
+                    handNumber={handNumber}
+                    actionCount={actionCount}
+                    nextToAct={nextToAct}
+                    currentPlayerData={currentPlayerData || null}
+                    handleLobbyClick={handleLobbyClick}
+                    handleCopyTableLink={handleCopyTableLink}
+                    handleDepositClick={handleDepositClick}
+                    fetchAccountBalance={fetchAccountBalance}
+                    copyToClipboard={copyToClipboard}
+                    handleLeaveTableClick={handleLeaveTableClick}
+                    handleShareHand={handleShareHand}
+                />
+            )}
+
+            {/* Blinds structure panel (ui#794) — self-gates to SNG/tournament;
+                non-modal floating tab + panel in the top-left of the table.
+                Hidden in replay mode (read-only view of a past hand). */}
+            {!isReplayMode && <BlindsPanel />}
+
+            {/*//! BODY — single flex-grow container, measured by geometry engine */}
+            <div ref={tableContainerRef} className="flex-grow relative overflow-visible">
+                {/* Background layers */}
+                {tableStyle !== "nouns" && tableStyle !== "chipchair" && !usesFlagshipLayout(tableStyle) && <HexagonPattern patternId="hexagons-table" />}
+                {/* A 3D table (Bad Beat, Maison 52): the concept's table, under everything that sits on it (ui#36, #38) */}
+                {isThreeTableStyle(tableStyle) && tableLayout.positions.seatAngles ? (
+                    <React.Suspense fallback={<div className="flagship-background" />}>
+                        <BadBeatTable3D
+                            look={tableStyle}
+                            seatAngles={tableLayout.positions.seatAngles}
+                            tableSize={(tableSize || 9) as 2 | 4 | 6 | 9}
+                            startIndex={startIndex}
+                            dealerSeat={dealerSeat}
+                            zoom={tableLayout.zoom}
+                            containerWidth={tableLayout.containerWidth}
+                            containerHeight={tableLayout.containerHeight}
+                        />
+                    </React.Suspense>
+                ) : usesFlagshipLayout(tableStyle) ? (
+                    <div className="flagship-background" />
+                ) : tableStyle === "chipchair" ? (
+                    <div className="chipchair-background" />
+                ) : tableStyle === "nouns" ? (
+                    <div className="nouns-background" />
+                ) : (
+                    <>
+                        <div className="background-shimmer shimmer-animation" />
+                        <div className="background-animated-static" />
+                        <div className="background-base-static" />
+                    </>
+                )}
+
+                {/*//! TABLE — zoom-wrapper applies calculated transform */}
+                <div className={`${isMobile ? "zoom-wrapper-mobile" : "zoom-wrapper-desktop"}`} style={{ transform: tableLayout.tableTransform }}>
+                    {/*//! Table coordinate space — the felt div at its stage origin.
+                        Landscape: 1000×500 at (300,285) on the 1600×850 stage.
+                        Portrait: 500×1000 at (175,300) on the 850×1600 stage.
+                        Also the root for the card-animation durations (src/bus/timing.ts → CSS custom properties). */}
+                    <div
+                        ref={tableDivRef}
+                        data-part="table-plane"
+                        className="absolute"
+                        style={{
+                            width: `${stageDims.tableWidth}px`,
+                            height: `${stageDims.tableHeight}px`,
+                            left: `${stageDims.originX}px`,
+                            top: `${stageDims.originY}px`,
+                            ...cssVars(ANIMATION_CSS_VARS),
+                            ...(tableLayout.positions.boardCentre ? cssVars({ "--bb-board-x": tableLayout.positions.boardCentre.left, "--bb-board-y": tableLayout.positions.boardCentre.top }) : {})
+                        }}
+                    >
+                        {/* Outer rail — Ignition-style 3D depth (modern and nouns) */}
+                        {tableStyle !== "classic" && (
+                            <div
+                                data-part="rail"
+                                className="absolute z-10 rounded-[290px]"
+                                style={{
+                                    width: `${stageDims.tableWidth + 60}px`,
+                                    height: `${stageDims.tableHeight + 60}px`,
+                                    left: "-30px",
+                                    top: "-30px",
+                                    border: tableStyle === "nouns" ? "10px solid rgba(26, 26, 46, 0.8)" : "10px solid rgba(100, 75, 40, 0.6)",
+                                    boxShadow:
+                                        tableStyle === "nouns"
+                                            ? "0 12px 48px rgba(0,0,0,0.8), 0 4px 16px rgba(0,0,0,0.5), inset 0 3px 12px rgba(0,0,0,0.5), inset 0 -2px 6px rgba(255,255,255,0.05)"
+                                            : "0 12px 48px rgba(0,0,0,0.8), 0 4px 16px rgba(0,0,0,0.5), inset 0 3px 12px rgba(0,0,0,0.5), inset 0 -2px 6px rgba(255,255,255,0.05)",
+                                    background:
+                                        tableStyle === "nouns"
+                                            ? "linear-gradient(180deg, rgba(26,26,46,0.4) 0%, rgba(26,26,46,0.7) 100%)"
+                                            : "linear-gradient(180deg, rgba(80,55,25,0.25) 0%, rgba(40,25,10,0.45) 100%)"
+                                }}
+                            />
+                        )}
+                        {/* Table felt surface */}
+                        <div
+                            data-part="felt"
+                            className={`table-surface-shadow z-20 relative flex flex-col text-center border-solid rounded-[250px] items-center justify-center ${tableStyle === "nouns" ? "nouns-table-felt border-[3px]" : tableStyle === "classic" ? "border-[3px]" : "border-[2px]"}`}
+                            style={{
+                                width: `${stageDims.tableWidth}px`,
+                                height: `${stageDims.tableHeight}px`,
+                                borderColor:
+                                    tableStyle === "nouns"
+                                        ? "rgba(214, 60, 94, 0.4)"
+                                        : tableStyle === "classic"
+                                          ? "rgba(255, 255, 255, 0.3)"
+                                          : "rgba(255, 255, 255, 0.08)"
+                            }}
+                        >
+                            <TableBoard
+                                clubLogo={clubLook?.logo ?? clubLogo}
+                                potDisplayValues={potDisplayValues}
+                                communityCards={tableDataValues.tableDataCommunityCards || []}
+                                isSitAndGoWaitingForPlayers={isSitAndGoWaitingForPlayers}
+                                cardBackStyle={cardBackStyle}
+                                tableTheme={tableStyle}
+                                winnerCards={winnerCards}
+                            />
+
+                            {/* Chips — per-seat memoized leaf; only the affected seat re-renders on WS update (#424) */}
+                            {!isSitAndGoWaitingForPlayers &&
+                                tableLayout.positions.chips.map((position, positionIndex) => {
+                                    const seatNumber = ((positionIndex - startIndex + tableSize) % tableSize) + 1;
+                                    return (
+                                        <PlayerChipDisplay
+                                            key={`chip-${positionIndex}`}
+                                            seatIndex={seatNumber}
+                                            left={position.left}
+                                            bottom={position.bottom}
+                                            top={position.top}
+                                            side={position.side}
+                                            isDealer={dealerSeat === seatNumber}
+                                            isTournament={isTournamentFormat(gameFormat)}
+                                        />
+                                    );
+                                })}
+                        </div>
+
+                        {/* A 3D table: a shown hand lifts off the felt, big and flat (ui#36) */}
+                        {isThreeTableStyle(tableStyle) && tableLayout.positions.feltCards && (
+                            <BadBeatShowCards spots={tableLayout.positions.feltCards} tableSize={tableSize} startIndex={startIndex} dealerSeat={dealerSeat} />
+                        )}
+
+                        {/* Last-pot winner banner (ui#848) */}
+                        <WinnerBanner />
+
+                        {/* Player seats */}
+                        <PlayerSeating
+                            tableLayout={tableLayout}
+                            tableSize={tableSize}
+                            startIndex={startIndex}
+                            tableActivePlayers={tableActivePlayers}
+                            tableDataPlayers={tableDataValues.tableDataPlayers}
+                            userWalletAddress={userWalletAddress}
+                            currentIndex={currentIndex}
+                            hasWinner={hasWinner}
+                            isSitAndGoWaitingForPlayers={isSitAndGoWaitingForPlayers}
+                            winnerInfo={winnerInfo}
+                            cardBackStyle={cardBackStyle}
+                            updateBalanceOnPlayerJoin={updateBalanceOnPlayerJoin}
+                        />
+
+                        {/* DEBUG overlays */}
+                        <PositionDebugMarkers positions={tableLayout.positions} />
+                        <GeometryDebugOverlay
+                            tableSize={tableSize}
+                            containerWidth={tableLayout.containerWidth}
+                            containerHeight={tableLayout.containerHeight}
+                            zoom={tableLayout.zoom}
+                            tableDivRef={tableDivRef}
+                        />
+                    </div>
+                </div>
+
+                {/* Live Hand Strength Display */}
+                <LiveHandStrengthDisplay />
+                {usesFlagshipLayout(tableStyle) && <TurnStatusLabel nextToAct={nextToAct} mySeat={currentUserSeat} />}
+                {isThreeTableStyle(tableStyle) && <StreetTracker round={gameState?.round} />}
+                {tableStyle === "badbeat" && <BadBeatHeroDock />}
+                {tableStyle === "maison" && <MaisonDock />}
+                {tableStyle === "chipchair" && <ChipChairDock tableId={id} />}
+            </div>
+
+            {/*//! FOOTER — hidden in replay mode (read-only).
+                Phones (both orientations) get NO persistent banner: the panel stays
+                MOUNTED (it hosts the auto-deal/auto-blinds/auto-fold/auto-new-hand
+                hooks, which must run regardless of visibility) in a chromeless
+                overlay above the safe area, so it occupies space only when it has
+                something to show — i.e. when it's the user's turn. The safe-area
+                left/right insets matter in landscape, where the notch eats a side. */}
+            {!isReplayMode &&
+                (isCompactMobile ? (
+                    <div
+                        data-part="footer"
+                        className="fixed bottom-0 left-0 right-0 z-[10] [&>div]:!bottom-0"
+                        style={{
+                            paddingBottom: "env(safe-area-inset-bottom)",
+                            paddingLeft: "env(safe-area-inset-left)",
+                            paddingRight: "env(safe-area-inset-right)"
+                        }}
+                    >
+                        <PokerActionPanel onTransactionSubmitted={handleTransactionSubmitted} />
+                        {/* SNG payout structure is hidden on mobile: the floating panel
+                            sat on top of the ALL-IN preset button (ui#693). It stays on
+                            desktop/landscape below, where there's lateral room for it. */}
+                    </div>
+                ) : (
+                    <div data-part="footer" className="w-full flex justify-center items-center z-[10] h-[160px] fixed bottom-0 left-0 right-0 bg-black bg-opacity-50 backdrop-blur-sm">
+                        <div className="w-full flex justify-center items-center h-full max-w-[700px]">
+                            <PokerActionPanel onTransactionSubmitted={handleTransactionSubmitted} />
+                        </div>
+                        {gameFormat && isTournamentFormat(gameFormat) && (
+                            <div className="absolute right-4 bottom-3 z-20">
+                                <SngPayoutPanel />
+                            </div>
+                        )}
+                    </div>
+                ))}
+
+            {/*//! FLOATING PANEL — History + Settings tabs (ui#752). Always visible on
+                desktop; on phones it opens from the hamburger menu and closes itself. */}
+            {usesFlagshipLayout(tableStyle) ? null : isCompactMobile ? (
+                mobilePanelOpen && <TablePanel activeTab={panelTab} onSelectTab={setPanelTab} onClose={() => setMobilePanelOpen(false)} />
+            ) : desktopPanelCollapsed ? (
+                <TablePanelExpandTab onExpand={() => setDesktopPanelCollapsedPersisted(false)} />
+            ) : (
+                <TablePanel activeTab={panelTab} onSelectTab={setPanelTab} onCollapse={() => setDesktopPanelCollapsedPersisted(true)} />
+            )}
+
+            {/* Table chat (block52-chat#1): chat box with Quick chat stickers and settings.
+                Hidden in replay mode (a read-only view of a past hand). */}
+            {!isReplayMode && <TableChatBox players={chatPlayers} />}
+
+            {/* Layout Debug Panel */}
+            <LayoutDebugInfo viewportMode={viewportMode} startIndex={startIndex} tableSize={tableSize} results={results} setStartIndex={setStartIndex} />
+
+            {/* Player Action Buttons — hidden in replay mode (read-only) */}
+            {!isReplayMode && (
+                <PlayerActionButtons
+                    isMobile={isMobile}
+                    isMobileLandscape={isMobileLandscape}
+                    isCompactMobile={isCompactMobile}
+                    legalActions={playerLegalActions}
+                    tableId={id}
+                    currentNetwork={currentNetwork}
+                    playerStatus={playerStatus}
+                    sitInMethod={sitInMethod}
+                    pendingSitOut={pendingSitOut}
+                    totalSeatedPlayers={tableActivePlayers.length}
+                    handNumber={handNumber}
+                    hasActivePlayers={hasActivePlayers}
+                    currentStack={currentPlayerData?.stack || "0"}
+                    minBuyIn={gameOptions?.minBuyIn || "0"}
+                    maxBuyIn={gameOptions?.maxBuyIn || "0"}
+                    walletBalance={accountBalance}
+                    isCurrentUserSeated={isCurrentUserSeated}
+                    isTableFull={isTableFull}
+                />
+            )}
+
+            {/* All Table Modals */}
+            {/* Read-only replay: no join/leave/countdown/result modals (they act on the live table). */}
+            {!isReplayMode && (
+            <TableModals
+                showCountdown={showCountdown}
+                gameStartTime={gameStartTime}
+                handleCountdownComplete={handleCountdownComplete}
+                handleSkipCountdown={handleSkipCountdown}
+                gameState={gameState}
+                gameFormat={gameFormat}
+                isUserAlreadyPlaying={isUserAlreadyPlaying}
+                tableId={id}
+                onAutoJoinSuccess={() => window.location.reload()}
+                isSitAndGoWaitingForPlayers={isSitAndGoWaitingForPlayers}
+                handleLeaveTableClick={handleLeaveTableClick}
+                recentTxHash={recentTxHash}
+                handleCloseTransactionPopup={handleCloseTransactionPopup}
+                isLeaveModalOpen={isLeaveModalOpen}
+                handleLeaveModalClose={handleLeaveModalClose}
+                handleLeaveTableConfirm={handleLeaveTableConfirm}
+                handleClaimWinnings={handleClaimWinnings}
+                currentPlayerStack={currentPlayerData?.stack || "0"}
+                isInActiveHand={isGameInProgress && currentUserSeat > 0}
+            />
+            )}
+
+            {/* No-wallet overlay — blurs the table and walks the user through wallet setup */}
+            {/* Replay is read-only and must work without a wallet (poker-vm#2025). */}
+            {!hasWallet && !isReplayMode && <NoWalletOverlay onWalletReady={handleWalletReady} />}
+        </div>
+        </TableStyleProvider>
+        </SitOutIntentProvider>
+    );
+});
+
+export default Table;

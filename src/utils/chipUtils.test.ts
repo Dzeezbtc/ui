@@ -1,0 +1,397 @@
+import { ActionDTO, NonPlayerActionType, PlayerActionType, PlayerDTO, PlayerStatus, TexasHoldemRound } from "@block52/poker-vm-sdk";
+import { shouldShowChips, getRelevantChipAmounts, calculateCurrentRoundBetting, hasPlayerBetInRound, currentRoundContribution, isCheckFreeForPlayer, hasVoluntarilyCommittedThisRound, amountToCallMicroForPlayer, CHIP_ACTIONS, seatBetThisRound } from "./chipUtils";
+import { MAX_ACTION_GROUPS } from "../constants/chips";
+
+// Helper to build an ActionDTO for tests
+const makeAction = (fields: { playerId: string; round: string; action: string; amount: string; index: number }): ActionDTO => ({
+    ...fields,
+} as ActionDTO);
+
+describe("shouldShowChips", () => {
+    it("returns true for ACTIVE players", () => {
+        expect(shouldShowChips(PlayerStatus.ACTIVE)).toBe(true);
+    });
+
+    it("returns true for ALL_IN players", () => {
+        expect(shouldShowChips(PlayerStatus.ALL_IN)).toBe(true);
+    });
+
+    it("returns true for FOLDED players", () => {
+        expect(shouldShowChips(PlayerStatus.FOLDED)).toBe(true);
+    });
+
+    it("returns true for MUCKED players — their chips are still in the pot", () => {
+        expect(shouldShowChips(PlayerStatus.MUCKED)).toBe(true);
+    });
+
+    it("returns false for SITTING_OUT players", () => {
+        expect(shouldShowChips(PlayerStatus.SITTING_OUT)).toBe(false);
+    });
+
+    it("returns false for SEATED players", () => {
+        expect(shouldShowChips(PlayerStatus.SEATED)).toBe(false);
+    });
+
+    it("returns false for BUSTED players", () => {
+        expect(shouldShowChips(PlayerStatus.BUSTED)).toBe(false);
+    });
+});
+
+describe("hasPlayerBetInRound", () => {
+    const player = "0xPlayer1";
+
+    it("returns false when no actions exist", () => {
+        expect(hasPlayerBetInRound(player, [])).toBe(false);
+    });
+
+    it("returns false when player has no betting actions (only JOIN)", () => {
+        const actions = [
+            makeAction({ playerId: player, round: TexasHoldemRound.ANTE, action: "join" as any, amount: "5000000", index: 0 }),
+        ];
+        expect(hasPlayerBetInRound(player, actions)).toBe(false);
+    });
+
+    it("returns true when player has SMALL_BLIND action in ANTE round", () => {
+        const actions = [
+            makeAction({ playerId: player, round: TexasHoldemRound.ANTE, action: PlayerActionType.SMALL_BLIND, amount: "100000", index: 0 }),
+        ];
+        expect(hasPlayerBetInRound(player, actions)).toBe(true);
+    });
+
+    it("returns true when player has BIG_BLIND action in ANTE round", () => {
+        const actions = [
+            makeAction({ playerId: player, round: TexasHoldemRound.ANTE, action: PlayerActionType.BIG_BLIND, amount: "200000", index: 0 }),
+        ];
+        expect(hasPlayerBetInRound(player, actions)).toBe(true);
+    });
+
+    it("returns true when player has CALL action in PREFLOP round", () => {
+        const actions = [
+            makeAction({ playerId: player, round: TexasHoldemRound.PREFLOP, action: PlayerActionType.CALL, amount: "200000", index: 0 }),
+        ];
+        expect(hasPlayerBetInRound(player, actions)).toBe(true);
+    });
+
+    it("returns false when player has zero-amount action", () => {
+        const actions = [
+            makeAction({ playerId: player, round: TexasHoldemRound.ANTE, action: PlayerActionType.SMALL_BLIND, amount: "0", index: 0 }),
+        ];
+        expect(hasPlayerBetInRound(player, actions)).toBe(false);
+    });
+
+    it("returns false for actions by different player", () => {
+        const actions = [
+            makeAction({ playerId: "0xOtherPlayer", round: TexasHoldemRound.ANTE, action: PlayerActionType.SMALL_BLIND, amount: "100000", index: 0 }),
+        ];
+        expect(hasPlayerBetInRound(player, actions)).toBe(false);
+    });
+
+    it("returns false for actions in FLOP round (only checks ANTE/PREFLOP)", () => {
+        const actions = [
+            makeAction({ playerId: player, round: TexasHoldemRound.FLOP, action: PlayerActionType.BET, amount: "500000", index: 0 }),
+        ];
+        expect(hasPlayerBetInRound(player, actions)).toBe(false);
+    });
+});
+
+describe("CHIP_ACTIONS", () => {
+    it("includes all betting action types", () => {
+        expect(CHIP_ACTIONS).toContain(PlayerActionType.SMALL_BLIND);
+        expect(CHIP_ACTIONS).toContain(PlayerActionType.BIG_BLIND);
+        expect(CHIP_ACTIONS).toContain(PlayerActionType.BET);
+        expect(CHIP_ACTIONS).toContain(PlayerActionType.CALL);
+        expect(CHIP_ACTIONS).toContain(PlayerActionType.RAISE);
+        expect(CHIP_ACTIONS).toContain(PlayerActionType.ALL_IN);
+    });
+
+    it("does not include non-betting actions", () => {
+        expect(CHIP_ACTIONS).not.toContain(PlayerActionType.FOLD);
+        expect(CHIP_ACTIONS).not.toContain(PlayerActionType.CHECK);
+    });
+});
+
+describe("getRelevantChipAmounts", () => {
+    const player = "0xPlayer1";
+
+    it("returns empty array when no actions match", () => {
+        const result = getRelevantChipAmounts(player, TexasHoldemRound.FLOP, []);
+        expect(result).toEqual([]);
+    });
+
+    it("filters actions by player address", () => {
+        const actions = [
+            makeAction({ playerId: "0xOther", round: TexasHoldemRound.FLOP, action: PlayerActionType.BET, amount: "100", index: 0 }),
+            makeAction({ playerId: player, round: TexasHoldemRound.FLOP, action: PlayerActionType.BET, amount: "200", index: 1 }),
+        ];
+        const result = getRelevantChipAmounts(player, TexasHoldemRound.FLOP, actions);
+        expect(result).toEqual(["200"]);
+    });
+
+    it("includes ANTE and PREFLOP actions during preflop", () => {
+        const actions = [
+            makeAction({ playerId: player, round: TexasHoldemRound.ANTE, action: PlayerActionType.SMALL_BLIND, amount: "50", index: 0 }),
+            makeAction({ playerId: player, round: TexasHoldemRound.PREFLOP, action: PlayerActionType.CALL, amount: "100", index: 1 }),
+        ];
+        const result = getRelevantChipAmounts(player, TexasHoldemRound.PREFLOP, actions);
+        expect(result).toEqual(["50", "100"]);
+    });
+
+    it("includes ANTE and PREFLOP actions during ante round", () => {
+        const actions = [
+            makeAction({ playerId: player, round: TexasHoldemRound.ANTE, action: PlayerActionType.BIG_BLIND, amount: "200", index: 0 }),
+        ];
+        const result = getRelevantChipAmounts(player, TexasHoldemRound.ANTE, actions);
+        expect(result).toEqual(["200"]);
+    });
+
+    it("only includes current round actions post-flop", () => {
+        const actions = [
+            makeAction({ playerId: player, round: TexasHoldemRound.PREFLOP, action: PlayerActionType.CALL, amount: "100", index: 0 }),
+            makeAction({ playerId: player, round: TexasHoldemRound.FLOP, action: PlayerActionType.BET, amount: "300", index: 1 }),
+            makeAction({ playerId: player, round: TexasHoldemRound.TURN, action: PlayerActionType.BET, amount: "500", index: 2 }),
+        ];
+        const result = getRelevantChipAmounts(player, TexasHoldemRound.FLOP, actions);
+        expect(result).toEqual(["300"]);
+    });
+
+    it("excludes non-chip actions (fold, check)", () => {
+        const actions = [
+            makeAction({ playerId: player, round: TexasHoldemRound.FLOP, action: PlayerActionType.CHECK, amount: "0", index: 0 }),
+            makeAction({ playerId: player, round: TexasHoldemRound.FLOP, action: PlayerActionType.BET, amount: "500", index: 1 }),
+        ];
+        const result = getRelevantChipAmounts(player, TexasHoldemRound.FLOP, actions);
+        expect(result).toEqual(["500"]);
+    });
+
+    it("excludes actions with zero amount", () => {
+        const actions = [
+            makeAction({ playerId: player, round: TexasHoldemRound.FLOP, action: PlayerActionType.BET, amount: "0", index: 0 }),
+            makeAction({ playerId: player, round: TexasHoldemRound.FLOP, action: PlayerActionType.BET, amount: "400", index: 1 }),
+        ];
+        const result = getRelevantChipAmounts(player, TexasHoldemRound.FLOP, actions);
+        expect(result).toEqual(["400"]);
+    });
+
+    it("sorts actions by index", () => {
+        const actions = [
+            makeAction({ playerId: player, round: TexasHoldemRound.FLOP, action: PlayerActionType.RAISE, amount: "600", index: 3 }),
+            makeAction({ playerId: player, round: TexasHoldemRound.FLOP, action: PlayerActionType.BET, amount: "200", index: 1 }),
+        ];
+        const result = getRelevantChipAmounts(player, TexasHoldemRound.FLOP, actions);
+        expect(result).toEqual(["200", "600"]);
+    });
+
+    it("merges oldest actions when exceeding MAX_ACTION_GROUPS", () => {
+        // Create MAX_ACTION_GROUPS + 2 actions to trigger merging
+        const count = MAX_ACTION_GROUPS + 2;
+        const actions = Array.from({ length: count }, (_, i) =>
+            makeAction({ playerId: player, round: TexasHoldemRound.FLOP, action: PlayerActionType.BET, amount: "100", index: i })
+        );
+        const result = getRelevantChipAmounts(player, TexasHoldemRound.FLOP, actions);
+
+        // Should have exactly MAX_ACTION_GROUPS entries
+        expect(result).toHaveLength(MAX_ACTION_GROUPS);
+
+        // First entry is the merged total of the oldest (count - MAX_ACTION_GROUPS + 1) actions
+        const mergeCount = count - MAX_ACTION_GROUPS + 1;
+        expect(result[0]).toBe((BigInt(100) * BigInt(mergeCount)).toString());
+
+        // Remaining entries are unchanged
+        for (let i = 1; i < MAX_ACTION_GROUPS; i++) {
+            expect(result[i]).toBe("100");
+        }
+    });
+});
+
+describe("calculateCurrentRoundBetting", () => {
+    const player = "0xPlayer1";
+
+    it("returns '0' when no actions match", () => {
+        expect(calculateCurrentRoundBetting(player, TexasHoldemRound.FLOP, [])).toBe("0");
+    });
+
+    it("sums amounts for the current round only", () => {
+        const actions = [
+            makeAction({ playerId: player, round: TexasHoldemRound.PREFLOP, action: PlayerActionType.CALL, amount: "100", index: 0 }),
+            makeAction({ playerId: player, round: TexasHoldemRound.FLOP, action: PlayerActionType.BET, amount: "200", index: 1 }),
+            makeAction({ playerId: player, round: TexasHoldemRound.FLOP, action: PlayerActionType.RAISE, amount: "300", index: 2 }),
+        ];
+        expect(calculateCurrentRoundBetting(player, TexasHoldemRound.FLOP, actions)).toBe("500");
+    });
+
+    it("filters by player address", () => {
+        const actions = [
+            makeAction({ playerId: "0xOther", round: TexasHoldemRound.FLOP, action: PlayerActionType.BET, amount: "1000", index: 0 }),
+            makeAction({ playerId: player, round: TexasHoldemRound.FLOP, action: PlayerActionType.BET, amount: "200", index: 1 }),
+        ];
+        expect(calculateCurrentRoundBetting(player, TexasHoldemRound.FLOP, actions)).toBe("200");
+    });
+
+    it("excludes zero and empty amounts", () => {
+        const actions = [
+            makeAction({ playerId: player, round: TexasHoldemRound.FLOP, action: PlayerActionType.BET, amount: "0", index: 0 }),
+            makeAction({ playerId: player, round: TexasHoldemRound.FLOP, action: PlayerActionType.BET, amount: "", index: 1 }),
+            makeAction({ playerId: player, round: TexasHoldemRound.FLOP, action: PlayerActionType.BET, amount: "500", index: 2 }),
+        ];
+        expect(calculateCurrentRoundBetting(player, TexasHoldemRound.FLOP, actions)).toBe("500");
+    });
+
+    it("handles large BigInt amounts correctly", () => {
+        const actions = [
+            makeAction({ playerId: player, round: TexasHoldemRound.FLOP, action: PlayerActionType.BET, amount: "999999999999999999", index: 0 }),
+            makeAction({ playerId: player, round: TexasHoldemRound.FLOP, action: PlayerActionType.BET, amount: "1", index: 1 }),
+        ];
+        expect(calculateCurrentRoundBetting(player, TexasHoldemRound.FLOP, actions)).toBe("1000000000000000000");
+    });
+
+    // Regression: block52/poker-vm#2141 (originally block52/ui#279).
+    // A folded player's mid-hand TOP_UP must never count toward chips on the table
+    // for the current round, even though addNonPlayerAction tags it with currentRound.
+    it("excludes TOP_UP actions logged in the current round (issue #2141)", () => {
+        const actions = [
+            makeAction({ playerId: player, round: TexasHoldemRound.FLOP, action: PlayerActionType.BET, amount: "500", index: 0 }),
+            makeAction({ playerId: player, round: TexasHoldemRound.FLOP, action: NonPlayerActionType.TOP_UP, amount: "300000", index: 1 }),
+        ];
+        expect(calculateCurrentRoundBetting(player, TexasHoldemRound.FLOP, actions)).toBe("500");
+    });
+
+    it("excludes non-bet actions (FOLD, CHECK) even with amount", () => {
+        const actions = [
+            makeAction({ playerId: player, round: TexasHoldemRound.FLOP, action: PlayerActionType.FOLD, amount: "100", index: 0 }),
+            makeAction({ playerId: player, round: TexasHoldemRound.FLOP, action: PlayerActionType.CHECK, amount: "200", index: 1 }),
+            makeAction({ playerId: player, round: TexasHoldemRound.FLOP, action: PlayerActionType.BET, amount: "400", index: 2 }),
+        ];
+        expect(calculateCurrentRoundBetting(player, TexasHoldemRound.FLOP, actions)).toBe("400");
+    });
+});
+
+describe("currentRoundContribution", () => {
+    const p = "0xP1";
+
+    it("returns 0n when the player has no actions", () => {
+        expect(currentRoundContribution(p, TexasHoldemRound.FLOP, [])).toBe(0n);
+    });
+
+    it("sums ante blinds and preflop bets together for the preflop round", () => {
+        const actions = [
+            makeAction({ playerId: p, round: TexasHoldemRound.ANTE, action: PlayerActionType.BIG_BLIND, amount: "200000", index: 0 }),
+            makeAction({ playerId: p, round: TexasHoldemRound.PREFLOP, action: PlayerActionType.CALL, amount: "100000", index: 3 }),
+        ];
+        expect(currentRoundContribution(p, TexasHoldemRound.PREFLOP, actions)).toBe(300000n);
+    });
+
+    it("counts only the current round post-flop", () => {
+        const actions = [
+            makeAction({ playerId: p, round: TexasHoldemRound.PREFLOP, action: PlayerActionType.CALL, amount: "200000", index: 3 }),
+            makeAction({ playerId: p, round: TexasHoldemRound.FLOP, action: PlayerActionType.BET, amount: "500000", index: 5 }),
+        ];
+        expect(currentRoundContribution(p, TexasHoldemRound.FLOP, actions)).toBe(500000n);
+    });
+});
+
+describe("isCheckFreeForPlayer", () => {
+    const sb = "0xSB", bb = "0xBB", utg = "0xUTG";
+    const players = [{ address: sb }, { address: bb }, { address: utg }] as PlayerDTO[];
+    const blinds = [
+        makeAction({ playerId: sb, round: TexasHoldemRound.ANTE, action: PlayerActionType.SMALL_BLIND, amount: "100000", index: 0 }),
+        makeAction({ playerId: bb, round: TexasHoldemRound.ANTE, action: PlayerActionType.BIG_BLIND, amount: "200000", index: 1 }),
+    ];
+
+    it("returns false for null players / missing address / missing round", () => {
+        expect(isCheckFreeForPlayer(null, bb, TexasHoldemRound.PREFLOP, blinds)).toBe(false);
+        expect(isCheckFreeForPlayer(players, undefined, TexasHoldemRound.PREFLOP, blinds)).toBe(false);
+        expect(isCheckFreeForPlayer(players, bb, undefined, blinds)).toBe(false);
+    });
+
+    it("preflop: the big blind is check-free until someone raises", () => {
+        expect(isCheckFreeForPlayer(players, bb, TexasHoldemRound.PREFLOP, blinds)).toBe(true);
+    });
+
+    it("preflop: a non-blind seat facing the BB is not check-free", () => {
+        expect(isCheckFreeForPlayer(players, utg, TexasHoldemRound.PREFLOP, blinds)).toBe(false);
+        expect(isCheckFreeForPlayer(players, sb, TexasHoldemRound.PREFLOP, blinds)).toBe(false);
+    });
+
+    it("preflop: a raise removes the big blind's check-free status", () => {
+        const raised = [
+            ...blinds,
+            makeAction({ playerId: utg, round: TexasHoldemRound.PREFLOP, action: PlayerActionType.RAISE, amount: "600000", index: 3 }),
+        ];
+        expect(isCheckFreeForPlayer(players, bb, TexasHoldemRound.PREFLOP, raised)).toBe(false);
+        expect(isCheckFreeForPlayer(players, utg, TexasHoldemRound.PREFLOP, raised)).toBe(true);
+    });
+
+    it("post-flop: everyone is check-free when no bet has been made", () => {
+        expect(isCheckFreeForPlayer(players, bb, TexasHoldemRound.FLOP, blinds)).toBe(true);
+        expect(isCheckFreeForPlayer(players, utg, TexasHoldemRound.FLOP, blinds)).toBe(true);
+    });
+
+    it("post-flop: facing a bet is not check-free (but the bettor is)", () => {
+        const withBet = [
+            ...blinds,
+            makeAction({ playerId: sb, round: TexasHoldemRound.FLOP, action: PlayerActionType.BET, amount: "300000", index: 5 }),
+        ];
+        expect(isCheckFreeForPlayer(players, bb, TexasHoldemRound.FLOP, withBet)).toBe(false);
+        expect(isCheckFreeForPlayer(players, sb, TexasHoldemRound.FLOP, withBet)).toBe(true);
+    });
+});
+
+describe("hasVoluntarilyCommittedThisRound", () => {
+    const me = "0xme";
+    it("is false for only a blind (the BB can still check)", () => {
+        expect(hasVoluntarilyCommittedThisRound(me, TexasHoldemRound.PREFLOP, [
+            makeAction({ playerId: me, round: TexasHoldemRound.ANTE, action: PlayerActionType.BIG_BLIND, amount: "200000", index: 0 })
+        ])).toBe(false);
+    });
+    it("is true after a bet, call, raise or all-in", () => {
+        for (const action of [PlayerActionType.BET, PlayerActionType.CALL, PlayerActionType.RAISE, PlayerActionType.ALL_IN]) {
+            expect(hasVoluntarilyCommittedThisRound(me, TexasHoldemRound.FLOP, [
+                makeAction({ playerId: me, round: TexasHoldemRound.FLOP, action, amount: "500000", index: 0 })
+            ])).toBe(true);
+        }
+    });
+    it("ignores other players and other rounds", () => {
+        expect(hasVoluntarilyCommittedThisRound(me, TexasHoldemRound.TURN, [
+            makeAction({ playerId: "0xother", round: TexasHoldemRound.TURN, action: PlayerActionType.BET, amount: "500000", index: 0 }),
+            makeAction({ playerId: me, round: TexasHoldemRound.FLOP, action: PlayerActionType.BET, amount: "500000", index: 1 })
+        ])).toBe(false);
+    });
+});
+
+describe("amountToCallMicroForPlayer", () => {
+    const me = "0xme";
+    const players = [{ address: me }, { address: "0xvillain" }] as PlayerDTO[];
+    it("is the gap to the highest contribution when facing a bet", () => {
+        const acts = [
+            makeAction({ playerId: "0xvillain", round: TexasHoldemRound.FLOP, action: PlayerActionType.BET, amount: "300000", index: 0 })
+        ];
+        expect(amountToCallMicroForPlayer(players, me, TexasHoldemRound.FLOP, acts)).toBe(300000n);
+    });
+    it("is zero when even (the aggressor waiting on a raise)", () => {
+        const acts = [
+            makeAction({ playerId: me, round: TexasHoldemRound.FLOP, action: PlayerActionType.BET, amount: "300000", index: 0 })
+        ];
+        expect(amountToCallMicroForPlayer(players, me, TexasHoldemRound.FLOP, acts)).toBe(0n);
+    });
+    it("is zero with missing inputs", () => {
+        expect(amountToCallMicroForPlayer(null, me, TexasHoldemRound.FLOP, [])).toBe(0n);
+        expect(amountToCallMicroForPlayer(players, "", TexasHoldemRound.FLOP, [])).toBe(0n);
+    });
+});
+
+describe("seatBetThisRound", () => {
+    const seat = (status: PlayerStatus, sumOfBets = "30") => ({ address: "0xP", status, sumOfBets }) as unknown as PlayerDTO;
+    const bet = makeAction({ playerId: "0xP", round: TexasHoldemRound.PREFLOP, action: PlayerActionType.CALL, amount: "30", index: 1 });
+
+    it("shows a preflop bet only once the player has really bet", () => {
+        expect(seatBetThisRound(seat(PlayerStatus.ACTIVE), TexasHoldemRound.PREFLOP, [])).toBe("0");
+        expect(seatBetThisRound(seat(PlayerStatus.ACTIVE), TexasHoldemRound.PREFLOP, [bet])).toBe("30");
+    });
+
+    it("counts only this street's betting later on, and nothing for an empty seat", () => {
+        const flop = makeAction({ playerId: "0xP", round: TexasHoldemRound.FLOP, action: PlayerActionType.BET, amount: "50", index: 2 });
+        expect(seatBetThisRound(seat(PlayerStatus.ACTIVE), TexasHoldemRound.FLOP, [bet, flop])).toBe("50");
+        expect(seatBetThisRound(undefined, TexasHoldemRound.FLOP, [flop])).toBe("0");
+        expect(seatBetThisRound(seat(PlayerStatus.ACTIVE), undefined, [flop])).toBe("0");
+    });
+});

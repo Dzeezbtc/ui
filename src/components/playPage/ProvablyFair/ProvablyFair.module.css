@@ -1,0 +1,410 @@
+/* Provably fair badge, info panel and verify window (ui#972). */
+
+.badge {
+    display: inline-flex;
+    align-items: center;
+    gap: 0.4rem;
+    padding: 0.15rem 0.55rem;
+    border-radius: 0.5rem;
+    background-color: color-mix(in srgb, var(--ui-bg-dark) 70%, transparent);
+    border: 1px solid color-mix(in srgb, var(--accent-success) 45%, transparent);
+    color: var(--ui-text-primary, #fff);
+    cursor: pointer;
+    line-height: 1.05;
+    transition: border-color 0.15s ease, background-color 0.15s ease;
+}
+
+.badge:hover,
+.badge:focus-visible {
+    border-color: var(--accent-success);
+    background-color: color-mix(in srgb, var(--ui-bg-medium) 80%, transparent);
+    outline: none;
+}
+
+.badgeIcon {
+    color: var(--accent-success);
+    flex-shrink: 0;
+}
+
+.badgeTitle {
+    font-size: 0.55rem;
+    letter-spacing: 0.08em;
+    text-transform: uppercase;
+    color: var(--ui-text-secondary);
+}
+
+.badgeSub {
+    font-size: 0.72rem;
+    font-weight: 600;
+}
+
+/* Info panel (popover under the badge). Above the table header, which sits at z 9999. */
+.infoPanel {
+    position: fixed;
+    z-index: 10000;
+    width: min(360px, calc(100vw - 24px));
+    max-height: calc(100vh - 96px);
+    overflow-y: auto;
+    padding: 1rem;
+    border-radius: 0.85rem;
+    background-color: color-mix(in srgb, var(--ui-bg-dark) 96%, transparent);
+    border: 1px solid color-mix(in srgb, var(--accent-success) 35%, transparent);
+    box-shadow: 0 18px 50px rgba(0, 0, 0, 0.55);
+    color: var(--ui-text-primary, #fff);
+}
+
+.infoHeading {
+    display: flex;
+    align-items: center;
+    gap: 0.5rem;
+    font-weight: 700;
+    font-size: 0.95rem;
+}
+
+.infoText {
+    margin-top: 0.6rem;
+    font-size: 0.8rem;
+    line-height: 1.45;
+    color: var(--ui-text-secondary);
+}
+
+.infoRow {
+    display: flex;
+    justify-content: space-between;
+    gap: 0.75rem;
+    margin-top: 0.5rem;
+    font-size: 0.78rem;
+}
+
+.infoRowLabel {
+    color: var(--ui-text-secondary);
+}
+
+.primaryButton {
+    display: inline-flex;
+    align-items: center;
+    justify-content: center;
+    gap: 0.4rem;
+    width: 100%;
+    margin-top: 0.75rem;
+    padding: 0.55rem 0.75rem;
+    border-radius: 0.6rem;
+    font-weight: 700;
+    font-size: 0.85rem;
+    background-color: color-mix(in srgb, var(--accent-success) 22%, transparent);
+    border: 1px solid color-mix(in srgb, var(--accent-success) 60%, transparent);
+    color: var(--ui-text-primary, #fff);
+}
+
+.primaryButton:hover {
+    background-color: color-mix(in srgb, var(--accent-success) 32%, transparent);
+}
+
+.secondaryButton {
+    display: inline-flex;
+    align-items: center;
+    justify-content: center;
+    gap: 0.4rem;
+    padding: 0.45rem 0.7rem;
+    border-radius: 0.55rem;
+    font-weight: 600;
+    font-size: 0.8rem;
+    background-color: color-mix(in srgb, var(--ui-bg-medium) 70%, transparent);
+    border: 1px solid var(--ui-border-color);
+    color: var(--ui-text-primary, #fff);
+}
+
+.secondaryButton:hover:not(:disabled) {
+    border-color: var(--brand-primary);
+}
+
+.secondaryButton:disabled {
+    opacity: 0.45;
+    cursor: not-allowed;
+}
+
+/* Verify window */
+.overlay {
+    position: fixed;
+    inset: 0;
+    z-index: 10001;
+    display: flex;
+    justify-content: flex-end;
+    align-items: stretch;
+    padding: 12px;
+    background-color: rgba(0, 0, 0, 0.35);
+}
+
+.window {
+    display: flex;
+    flex-direction: column;
+    width: min(600px, 100%);
+    max-height: 100%;
+    border-radius: 1rem;
+    background-color: color-mix(in srgb, var(--ui-bg-dark) 93%, transparent);
+    border: 1px solid color-mix(in srgb, var(--accent-success) 45%, transparent);
+    box-shadow: 0 24px 70px rgba(0, 0, 0, 0.6);
+    backdrop-filter: blur(6px);
+    color: var(--ui-text-primary, #fff);
+    overflow: hidden;
+}
+
+@media (max-width: 640px) {
+    .overlay {
+        padding: 0;
+    }
+
+    .window {
+        width: 100%;
+        border-radius: 0;
+    }
+}
+
+.windowBar {
+    display: flex;
+    align-items: center;
+    justify-content: space-between;
+    padding: 0.6rem 0.9rem;
+    border-bottom: 1px solid var(--ui-border-color);
+    font-weight: 600;
+    font-size: 0.85rem;
+}
+
+.closeButton {
+    padding: 0.25rem;
+    border-radius: 0.4rem;
+    color: var(--ui-text-secondary);
+}
+
+.closeButton:hover {
+    color: var(--ui-text-primary, #fff);
+}
+
+.windowBody {
+    flex: 1;
+    overflow-y: auto;
+    padding: 1rem 1.1rem 1.4rem;
+}
+
+.handTitle {
+    font-size: 1.25rem;
+    font-weight: 800;
+    line-height: 1.2;
+    word-break: break-word;
+}
+
+.handMeta {
+    margin-top: 0.2rem;
+    font-size: 0.8rem;
+    color: var(--ui-text-secondary);
+}
+
+.handMeta a {
+    text-decoration: underline;
+}
+
+.banner {
+    display: flex;
+    align-items: flex-start;
+    gap: 0.6rem;
+    margin-top: 1rem;
+    padding: 0.75rem 0.9rem;
+    border-radius: 0.75rem;
+    font-weight: 600;
+    font-size: 0.88rem;
+    line-height: 1.35;
+    border: 1px solid var(--ui-border-color);
+}
+
+.check {
+    display: flex;
+    gap: 0.65rem;
+    margin-top: 0.6rem;
+    padding: 0.7rem 0.85rem;
+    border-radius: 0.7rem;
+    background-color: color-mix(in srgb, var(--ui-bg-medium) 45%, transparent);
+    border: 1px solid var(--ui-border-color);
+}
+
+.checkIcon {
+    flex-shrink: 0;
+    margin-top: 0.15rem;
+}
+
+.checkTitle {
+    font-weight: 700;
+    font-size: 0.88rem;
+}
+
+.checkStatus {
+    margin-left: 0.4rem;
+    font-size: 0.68rem;
+    font-weight: 700;
+    text-transform: uppercase;
+    letter-spacing: 0.05em;
+}
+
+.checkDetail {
+    margin-top: 0.2rem;
+    font-size: 0.78rem;
+    line-height: 1.45;
+    color: var(--ui-text-secondary);
+    word-break: break-word;
+}
+
+.toneGood {
+    color: var(--accent-success);
+}
+
+.toneWarn {
+    color: var(--accent-warning);
+}
+
+.toneBad {
+    color: var(--accent-danger);
+}
+
+.toneNeutral {
+    color: var(--ui-text-secondary);
+}
+
+.bannerGood {
+    color: var(--accent-success);
+    background-color: color-mix(in srgb, var(--accent-success) 12%, transparent);
+    border-color: color-mix(in srgb, var(--accent-success) 45%, transparent);
+}
+
+.bannerWarn {
+    color: var(--accent-warning);
+    background-color: color-mix(in srgb, var(--accent-warning) 12%, transparent);
+    border-color: color-mix(in srgb, var(--accent-warning) 45%, transparent);
+}
+
+.bannerBad {
+    color: var(--accent-danger);
+    background-color: color-mix(in srgb, var(--accent-danger) 12%, transparent);
+    border-color: color-mix(in srgb, var(--accent-danger) 45%, transparent);
+}
+
+.bannerNeutral {
+    color: var(--ui-text-secondary);
+    background-color: color-mix(in srgb, var(--ui-bg-medium) 50%, transparent);
+}
+
+.sectionTitle {
+    margin-top: 1.4rem;
+    font-size: 1.05rem;
+    font-weight: 800;
+}
+
+.sectionNote {
+    margin-top: 0.2rem;
+    font-size: 0.78rem;
+    color: var(--ui-text-secondary);
+}
+
+.dealRow {
+    display: flex;
+    align-items: center;
+    gap: 0.75rem;
+    margin-top: 0.5rem;
+    font-size: 0.8rem;
+}
+
+.dealLabel {
+    width: 9.5rem;
+    flex-shrink: 0;
+    overflow: hidden;
+    text-overflow: ellipsis;
+    white-space: nowrap;
+    color: var(--ui-text-secondary);
+}
+
+.dealCards {
+    display: flex;
+    flex-wrap: wrap;
+    gap: 0.25rem;
+}
+
+.card {
+    width: 2rem;
+    height: auto;
+    border-radius: 0.2rem;
+    box-shadow: 0 2px 6px rgba(0, 0, 0, 0.4);
+}
+
+.cardRecomputed {
+    opacity: 0.85;
+    outline: 1px dashed color-mix(in srgb, var(--accent-warning) 70%, transparent);
+    outline-offset: 1px;
+}
+
+.tag {
+    font-size: 0.65rem;
+    padding: 0.05rem 0.35rem;
+    border-radius: 0.3rem;
+    background-color: color-mix(in srgb, var(--ui-bg-medium) 80%, transparent);
+    color: var(--ui-text-secondary);
+}
+
+.inputs {
+    margin-top: 0.6rem;
+    border-radius: 0.7rem;
+    border: 1px solid var(--ui-border-color);
+    overflow: hidden;
+}
+
+.inputRow {
+    display: grid;
+    grid-template-columns: 9.5rem 1fr auto;
+    gap: 0.6rem;
+    padding: 0.55rem 0.8rem;
+    font-size: 0.76rem;
+    border-top: 1px solid var(--ui-border-color);
+}
+
+.inputRow:first-child {
+    border-top: none;
+}
+
+@media (max-width: 480px) {
+    .inputRow {
+        grid-template-columns: 1fr auto;
+    }
+
+    .inputRow > :first-child {
+        grid-column: 1 / -1;
+    }
+}
+
+.inputLabel {
+    color: var(--ui-text-secondary);
+}
+
+.inputValue {
+    font-family: ui-monospace, SFMono-Regular, Menlo, monospace;
+    word-break: break-all;
+}
+
+.inputValue a {
+    text-decoration: underline;
+}
+
+.copyButton {
+    align-self: start;
+    color: var(--ui-text-secondary);
+}
+
+.copyButton:hover {
+    color: var(--brand-primary);
+}
+
+.spin {
+    animation: pfSpin 1s linear infinite;
+}
+
+@keyframes pfSpin {
+    to {
+        transform: rotate(360deg);
+    }
+}

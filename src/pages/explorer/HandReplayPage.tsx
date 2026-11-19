@@ -1,0 +1,344 @@
+import { useEffect, useState, useCallback, useMemo } from "react";
+import { truncateMiddle } from "../../utils/stringUtils";
+import { useParams, Link } from "react-router-dom";
+import { FaCopy, FaCheck } from "react-icons/fa";
+import { AnimatedBackground } from "../../components/common/AnimatedBackground";
+import { ExplorerHeader } from "../../components/explorer/ExplorerHeader";
+import { getCardImageUrl } from "../../utils/cardImages";
+import { hasElements, hasValue } from "../../utils/guards";
+import type { HandDetail, HandListItem, HandListResponse } from "./types";
+import { useIndexerApi } from "../../context/IndexerApiContext";
+import { useIndexerStatus } from "../../hooks/player/useIndexerStatus";
+import { describeHandLoadError } from "../../utils/handHistory";
+
+export default function HandReplayPage() {
+    const { gameId, handNumber } = useParams<{ gameId: string; handNumber: string }>();
+
+    const [hand, setHand] = useState<HandDetail | null>(null);
+    const [hands, setHands] = useState<HandListItem[]>([]);
+    const [loading, setLoading] = useState(true);
+    const [error, setError] = useState<string | null>(null);
+    // The failed hand lookup, described at render time against the indexer's progress.
+    const [loadError, setLoadError] = useState<unknown>(null);
+    const indexerApi = useIndexerApi();
+    const indexerStatus = useIndexerStatus();
+
+    const fetchHand = useCallback(async () => {
+        if (!gameId) {
+            setError("No game ID provided. URL format: /explorer/hand/{gameId}/{handNumber}");
+            setLoading(false);
+            return;
+        }
+
+        try {
+            setLoading(true);
+            setError(null);
+            setLoadError(null);
+
+            // Always fetch the hands list for this game
+            try {
+                const listRes = (await indexerApi.getHands(gameId)) as HandListResponse;
+                if (listRes.data) {
+                    setHands(listRes.data);
+                }
+            } catch {
+                // Non-critical
+            }
+
+            // If no hand number, show the list only
+            if (!handNumber) {
+                setLoading(false);
+                return;
+            }
+
+            const res = (await indexerApi.getHand(gameId, handNumber)) as HandDetail;
+            if (!res) throw new Error(`Hand not found (${handNumber})`);
+            setHand(res);
+
+            setLoading(false);
+        } catch (err) {
+            console.error("Error fetching hand:", err);
+            setLoadError(err);
+            setError(describeHandLoadError(err, handNumber ?? "", null));
+            setLoading(false);
+        }
+    }, [gameId, handNumber]);
+
+    useEffect(() => {
+        fetchHand();
+    }, [fetchHand]);
+
+    // Parse community and hole cards from revealed_cards
+    const communityCards = useMemo(() => {
+        if (!hand?.revealed_cards) return [];
+        return hand.revealed_cards
+            .filter(c => c.card_type === "community")
+            .sort((a, b) => a.position - b.position)
+            .map(c => c.card.toUpperCase());
+    }, [hand?.revealed_cards]);
+
+    const holeCards = useMemo(() => {
+        if (!hand?.revealed_cards) return [];
+        return hand.revealed_cards
+            .filter(c => c.card_type === "hole")
+            .sort((a, b) => a.position - b.position)
+            .map(c => c.card.toUpperCase());
+    }, [hand?.revealed_cards]);
+
+    // Parse the full deck string: "[AC]-JC-6D-7D-..."
+    const deckCards = useMemo(() => {
+        if (!hand?.deck) return [];
+        return hand.deck.replace(/[[\]]/g, "").split("-");
+    }, [hand?.deck]);
+
+    // Compute SHA-256 hash of the deck string
+    const [deckHash, setDeckHash] = useState<string | null>(null);
+    useEffect(() => {
+        if (!hand?.deck) {
+            setDeckHash(null);
+            return;
+        }
+        crypto.subtle.digest("SHA-256", new TextEncoder().encode(hand.deck))
+            .then(buf => {
+                const hex = Array.from(new Uint8Array(buf)).map(b => b.toString(16).padStart(2, "0")).join("");
+                setDeckHash(hex);
+            });
+    }, [hand?.deck]);
+
+    // Sorted hand list for navigation
+    const sortedHands = useMemo(() => {
+        return [...hands].sort((a, b) => a.hand_number - b.hand_number);
+    }, [hands]);
+
+    const currentHandNum = Number(handNumber);
+
+    const [copiedField, setCopiedField] = useState<string | null>(null);
+
+    const copyToClipboard = useCallback((text: string, field: string) => {
+        navigator.clipboard.writeText(text);
+        setCopiedField(field);
+        setTimeout(() => setCopiedField(null), 2000);
+    }, []);
+
+    const truncateId = (id: string) => {
+        if (id.length <= 24) return id;
+        return truncateMiddle(id, 16, 8);
+    };
+
+    return (
+        <div className="min-h-screen p-8 relative">
+            <AnimatedBackground />
+            <div className="max-w-7xl mx-auto relative z-10">
+                <ExplorerHeader title="Hand Replay" />
+
+                {loading ? (
+                    <div className="text-center py-12">
+                        <p className="text-lg text-white">Loading hand data...</p>
+                    </div>
+                ) : error ? (
+                    <div className="text-center py-12">
+                        <div className="bg-red-900/30 rounded-lg p-6 border border-red-700 inline-block">
+                            <p className="text-lg text-red-300 max-w-xl">
+                                {hasValue(loadError) && handNumber ? describeHandLoadError(loadError, handNumber, indexerStatus) : error}
+                            </p>
+                            {gameId && handNumber && (
+                                <p className="mt-3 text-sm text-gray-300">
+                                    The table replay reads the hand from the chain instead:{" "}
+                                    <Link to={`/table/${gameId}?hand=${handNumber}`} className="text-blue-300 hover:underline">
+                                        open hand #{handNumber} on the table
+                                    </Link>
+                                </p>
+                            )}
+                            <button onClick={fetchHand} className="mt-4 px-4 py-2 bg-red-700 hover:bg-red-600 text-white rounded transition-colors">
+                                Retry
+                            </button>
+                        </div>
+                    </div>
+                ) : !handNumber && hasElements(hands) ? (
+                    /* Hands list mode — no hand number in URL */
+                    <div className="bg-gray-800 rounded-lg p-6 border border-gray-700">
+                        <h2 className="text-2xl font-bold text-white mb-2">Hands for Game</h2>
+                        <p className="text-gray-400 font-mono text-sm mb-6">{gameId}</p>
+                        <p className="text-gray-300 mb-4">
+                            {hands.length} hand{hands.length !== 1 ? "s" : ""} found
+                        </p>
+                        <div className="flex flex-wrap gap-2">
+                            {[...hands]
+                                .sort((a, b) => a.hand_number - b.hand_number)
+                                .map(h => (
+                                    <Link
+                                        key={h.hand_number}
+                                        to={`/explorer/hand/${h.game_id}/${h.hand_number}`}
+                                        className="px-3 py-1.5 rounded text-sm transition-colors bg-gray-700 text-gray-300 hover:bg-gray-600"
+                                    >
+                                        Hand #{h.hand_number}
+                                    </Link>
+                                ))}
+                        </div>
+                    </div>
+                ) : !handNumber ? (
+                    <div className="text-center py-12">
+                        <p className="text-lg text-gray-400">No hands found for this game.</p>
+                    </div>
+                ) : hand ? (
+                    <>
+                        <div className="mb-6">
+                            <h2 className="text-2xl font-bold text-white">Hand #{hand.hand_number}</h2>
+                        </div>
+
+                        {/* Hand Info Card */}
+                        <div className="bg-gray-800 rounded-lg p-6 border border-gray-700 mb-6">
+                            <div className="grid grid-cols-1 md:grid-cols-3 gap-4">
+                                <div>
+                                    <p className="text-sm text-gray-400">Game ID</p>
+                                    <p className="text-white font-mono text-sm">{truncateId(hand.game_id)}</p>
+                                </div>
+                                <div>
+                                    <p className="text-sm text-gray-400">Block Height</p>
+                                    <Link to={`/explorer/block/${hand.block_height}`} className="text-blue-400 hover:text-blue-300">
+                                        #{hand.block_height.toLocaleString()}
+                                    </Link>
+                                </div>
+                                <div>
+                                    <p className="text-sm text-gray-400">Played</p>
+                                    <p className="text-white">{new Date(hand.created_at).toLocaleString()}</p>
+                                </div>
+                            </div>
+                        </div>
+
+                        {/* Community Cards */}
+                        <div className="bg-gray-800 rounded-lg p-6 border border-gray-700 mb-6">
+                            <h3 className="text-lg font-semibold text-white mb-4">Community Cards</h3>
+                            {hasElements(communityCards) ? (
+                                <div className="flex gap-3">
+                                    {communityCards.map((card, idx) => (
+                                        <img key={idx} src={getCardImageUrl(card)} alt={card} className="w-[70px] h-[105px] rounded shadow-lg" />
+                                    ))}
+                                </div>
+                            ) : (
+                                <p className="text-gray-400">No community cards revealed</p>
+                            )}
+                        </div>
+
+                        {/* Revealed Hole Cards */}
+                        {hasElements(holeCards) && (
+                            <div className="bg-gray-800 rounded-lg p-6 border border-gray-700 mb-6">
+                                <h3 className="text-lg font-semibold text-white mb-4">Revealed Hole Cards</h3>
+                                <div className="flex gap-3">
+                                    {holeCards.map((card, idx) => (
+                                        <img key={idx} src={getCardImageUrl(card)} alt={card} className="w-[70px] h-[105px] rounded shadow-lg" />
+                                    ))}
+                                </div>
+                            </div>
+                        )}
+
+                        {/* Hand Result */}
+                        {hand.result && (
+                            <div className="bg-gray-800 rounded-lg p-6 border border-gray-700 mb-6">
+                                <h3 className="text-lg font-semibold text-white mb-4">Result</h3>
+                                <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
+                                    <div>
+                                        <p className="text-sm text-gray-400">Winner(s)</p>
+                                        <p className="text-green-400 font-semibold">
+                                            {hand.result.winner_count} winner{hand.result.winner_count !== 1 ? "s" : ""}
+                                        </p>
+                                    </div>
+                                    <div>
+                                        <p className="text-sm text-gray-400">Result Recorded</p>
+                                        <p className="text-white">{new Date(hand.result.created_at).toLocaleString()}</p>
+                                    </div>
+                                </div>
+                            </div>
+                        )}
+
+                        {/* Full Deck (Provably Fair) */}
+                        {hasElements(deckCards) && (
+                            <div className="bg-gray-800 rounded-lg p-6 border border-gray-700 mb-6">
+                                <h3 className="text-lg font-semibold text-white mb-4">Full Deck (Provably Fair)</h3>
+                                <p className="text-sm text-gray-400 mb-4">
+                                    The complete shuffled deck derived from the on-chain seed. Verify this against the block hash.
+                                </p>
+                                <div className="flex flex-wrap gap-1.5 mb-4">
+                                    {deckCards.map((card, idx) => (
+                                        <img key={idx} src={getCardImageUrl(card)} alt={card} className="w-[45px] h-[67px] rounded shadow" />
+                                    ))}
+                                </div>
+
+                                {/* Deck String */}
+                                {hand.deck && (
+                                    <div className="mt-4">
+                                        <div className="flex items-center gap-2 mb-1">
+                                            <p className="text-sm text-gray-400">Deck String</p>
+                                            <button
+                                                onClick={() => copyToClipboard(hand.deck, "deck")}
+                                                className="text-gray-400 hover:text-white transition-colors"
+                                                title="Copy deck string"
+                                            >
+                                                {copiedField === "deck" ? <FaCheck size={12} className="text-green-400" /> : <FaCopy size={12} />}
+                                            </button>
+                                        </div>
+                                        <p className="text-white font-mono text-xs break-all bg-gray-900 rounded p-3 border border-gray-700">{hand.deck}</p>
+                                    </div>
+                                )}
+
+                                {/* Deck Seed */}
+                                {hand.deck_seed && (
+                                    <div className="mt-3">
+                                        <div className="flex items-center gap-2 mb-1">
+                                            <p className="text-sm text-gray-400">Deck Seed</p>
+                                            <button
+                                                onClick={() => copyToClipboard(hand.deck_seed, "seed")}
+                                                className="text-gray-400 hover:text-white transition-colors"
+                                                title="Copy deck seed"
+                                            >
+                                                {copiedField === "seed" ? <FaCheck size={12} className="text-green-400" /> : <FaCopy size={12} />}
+                                            </button>
+                                        </div>
+                                        <p className="text-white font-mono text-xs break-all bg-gray-900 rounded p-3 border border-gray-700">{hand.deck_seed}</p>
+                                    </div>
+                                )}
+
+                                {/* Deck Hash */}
+                                {deckHash && (
+                                    <div className="mt-3">
+                                        <div className="flex items-center gap-2 mb-1">
+                                            <p className="text-sm text-gray-400">Deck Hash (SHA-256)</p>
+                                            <button
+                                                onClick={() => copyToClipboard(deckHash, "hash")}
+                                                className="text-gray-400 hover:text-white transition-colors"
+                                                title="Copy deck hash"
+                                            >
+                                                {copiedField === "hash" ? <FaCheck size={12} className="text-green-400" /> : <FaCopy size={12} />}
+                                            </button>
+                                        </div>
+                                        <p className="text-white font-mono text-xs break-all bg-gray-900 rounded p-3 border border-gray-700">{deckHash}</p>
+                                    </div>
+                                )}
+                            </div>
+                        )}
+
+                        {/* Hand Navigation */}
+                        {sortedHands.length > 1 && (
+                            <div className="bg-gray-800 rounded-lg p-6 border border-gray-700">
+                                <h3 className="text-lg font-semibold text-white mb-4">All Hands in This Game ({sortedHands.length})</h3>
+                                <div className="flex flex-wrap gap-2">
+                                    {sortedHands.map(h => (
+                                        <Link
+                                            key={h.hand_number}
+                                            to={`/explorer/hand/${h.game_id}/${h.hand_number}`}
+                                            className={`px-3 py-1.5 rounded text-sm transition-colors ${
+                                                h.hand_number === currentHandNum ? "bg-blue-600 text-white" : "bg-gray-700 text-gray-300 hover:bg-gray-600"
+                                            }`}
+                                        >
+                                            Hand #{h.hand_number}
+                                        </Link>
+                                    ))}
+                                </div>
+                            </div>
+                        )}
+                    </>
+                ) : null}
+            </div>
+        </div>
+    );
+}

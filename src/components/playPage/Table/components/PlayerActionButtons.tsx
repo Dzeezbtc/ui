@@ -1,0 +1,387 @@
+/**
+ * Player Action Buttons Component
+ *
+ * Displays Sit Out button, Sit In method selection panel, and pending state
+ * based on available player actions and player status.
+ * Responsive design for mobile, tablet, and desktop viewports.
+ */
+
+import React, { useState, useEffect, useCallback } from "react";
+
+import { LegalActionDTO, NonPlayerActionType, isTournamentFormat } from "@block52/poker-vm-sdk";
+// Raw sit-in/out hooks THROW on failure (unlike the swallowing handleSitIn/Out
+// wrappers) so the ActionSubmitController can classify + surface the error.
+import { SIT_IN_METHOD_POST_NOW, sitIn, sitOut, useAutoSitOutNextBB } from "../../../../hooks/playerActions";
+import type { NetworkEndpoints } from "../../../../context/NetworkContext";
+import { getPlayerActionDisplay } from "../../../../utils/playerActionDisplayUtils";
+import { toast } from "react-toastify";
+import BuyChipsButton from "../../../BuyChipsButton";
+import { useTableTopUp } from "../../../../hooks/game/useTableTopUp";
+import { useGameStateContext } from "../../../../context/GameStateContext";
+import { useGameSettings } from "../../../../context/GameSettingsContext";
+import { useActionSubmit } from "../../../../context/ActionSubmitContext";
+import { useSitOutIntent } from "../../../../context/SitOutIntentContext";
+import { getCosmosAddressSync } from "../../../../utils/cosmosAccountUtils";
+import { useLanguage } from "../../../../i18n/useLanguage";
+
+export interface PlayerActionButtonsProps {
+    isMobile: boolean;
+    isMobileLandscape: boolean;
+    /** Phone declutter (both orientations): panels become compact chips above
+     *  the safe area, top-up moves to the hamburger menu, and the 6-o'clock
+     *  toggle only renders while unseated (as a full-width button). */
+    isCompactMobile?: boolean;
+    legalActions: LegalActionDTO[];
+    tableId: string | undefined;
+    currentNetwork: NetworkEndpoints;
+    playerStatus: string | null;
+    sitInMethod: string | null;
+    pendingSitOut: string | null;
+    totalSeatedPlayers: number;
+    handNumber: number;
+    hasActivePlayers: boolean;
+    currentStack: string;
+    minBuyIn: string;
+    maxBuyIn: string;
+    walletBalance: string;
+    isCurrentUserSeated: boolean;
+    isTableFull: boolean;
+}
+
+export const PlayerActionButtons: React.FC<PlayerActionButtonsProps> = ({
+    isMobile,
+    isMobileLandscape,
+    isCompactMobile = false,
+    legalActions,
+    tableId,
+    currentNetwork,
+    playerStatus,
+    sitInMethod,
+    pendingSitOut,
+    totalSeatedPlayers,
+    handNumber,
+    hasActivePlayers,
+    currentStack,
+    minBuyIn,
+    maxBuyIn,
+    walletBalance,
+    isCurrentUserSeated,
+    isTableFull
+}) => {
+    const { t } = useLanguage();
+    const isCompact = isMobile || isMobileLandscape || isCompactMobile;
+    const positionClass = isMobileLandscape ? "bottom-2 left-2" : isMobile ? "bottom-[260px] right-4" : "bottom-20 left-4";
+    // Compact phones: panels sit above the on-demand action bar's zone, clear of
+    // the home-indicator safe area; the bar style is for content that can never
+    // coexist with the action bar (waiting/spectating).
+    const compactPanelStyle: React.CSSProperties = { bottom: "calc(env(safe-area-inset-bottom) + 100px)" };
+    const compactBarStyle: React.CSSProperties = { bottom: "calc(env(safe-area-inset-bottom) + 8px)" };
+
+    // Sit-out intent is shared with the phone's hamburger drawer, which offers
+    // the same two boxes (#684) — one owner, or the two copies drift and the
+    // next-BB auto-submit fires twice.
+    const { nextHandChecked: isChecked, toggleNextHand: handleToggleSitOutNextHand, nextBbQueued: sitOutNextBbQueued, toggleNextBb } =
+        useSitOutIntent();
+
+    // Sit-in/out submission runs through the shared ActionSubmitController: it
+    // dedupes double-clicks, serializes, retries transport errors safely, holds
+    // the spinner until the chain confirms a signal (ui#364), runs the 8s
+    // escape-hatch, and toasts failures — replacing the hand-rolled dirty-state
+    // this component used to carry.
+    const { gameState, gameFormat } = useGameStateContext();
+    const { seatAtBottom, toggleSeatAtBottom, sitInOptions } = useGameSettings();
+    const { submit, loadingAction } = useActionSubmit();
+    const sittingIn = loadingAction === "sit-in";
+
+    const display = getPlayerActionDisplay({
+        playerStatus,
+        sitInMethod,
+        legalActions,
+        totalSeatedPlayers,
+        handNumber,
+        hasActivePlayers,
+        sitInOptions,
+        gameFormat
+    });
+
+    // Auto-drive (ui#550, sitInOptions OFF by default): when the panel resolves to
+    // "auto-sit-in", sit the player in automatically (post-now → dealt in next hand)
+    // instead of showing the method UI. Rising-edge latch so it fires once; reset
+    // when we leave the auto-sit-in state.
+    const autoSitInFired = React.useRef(false);
+    useEffect(() => {
+        if (display.kind === "auto-sit-in" && !autoSitInFired.current && tableId) {
+            autoSitInFired.current = true;
+            submit({ actionName: "sit-in", run: () => sitIn(tableId, currentNetwork, SIT_IN_METHOD_POST_NOW) });
+        }
+        if (display.kind !== "auto-sit-in") {
+            autoSitInFired.current = false;
+        }
+    }, [display.kind, tableId, currentNetwork, submit]);
+
+    // Top-up: never available in SNG games
+    const isSNG = isTournamentFormat(gameFormat);
+    const { topUp } = useTableTopUp(tableId || "", currentNetwork);
+
+    const handleTopUp = async (amount: string) => {
+        await topUp(amount);
+    };
+
+    // Bottom-right position for buy chips button (opposite side from action buttons)
+    const buyChipsPositionClass = isMobileLandscape ? "bottom-2 right-2" : isMobile ? "bottom-[260px] left-4" : "bottom-20 right-4";
+
+    // Bootstrap (empty table) no longer auto-sends SIT_IN (ui#50): a joiner lands
+    // SEATED and must explicitly click Sit In — see the "sit-in-bootstrap" case,
+    // which renders a single "Sit In" button wired to handleSitInClick below.
+
+    // Post Required Blinds Now (post-now): enter on the next legal hand posting the
+    // blind. Fired on selecting the radio (or the single bootstrap button).
+    const handleSitInClick = () => {
+        if (!tableId) return toast.error("Table ID is missing. Cannot sit in.");
+        submit({ actionName: "sit-in", run: () => sitIn(tableId, currentNetwork, SIT_IN_METHOD_POST_NOW) });
+    };
+
+    // Top-Up Chips button: always VISIBLE while the user is seated (#401), hidden
+    // only in SNG games where top-ups aren't allowed (#2172). It's ENABLED exactly
+    // when the backend offers TOP_UP as a legal action — the engine omits it while
+    // the player is in the hand (ACTIVE/ALL_IN), so we read that rather than
+    // re-deriving "in the hand" client-side (#597). Applied at the next hand.
+    const canTopUp = legalActions.some(a => a.action === NonPlayerActionType.TOP_UP);
+    // On portrait phones the top-up entry lives in the hamburger menu
+    // (MobileTableHeader) — the floating button is landscape/desktop only.
+    const buyChipsElement =
+        !isCompactMobile && isCurrentUserSeated && tableId && !isSNG ? (
+            <div data-part="side-actions" className={`fixed z-30 ${buyChipsPositionClass}`}>
+                <BuyChipsButton
+                    tableId={tableId}
+                    currentStack={currentStack}
+                    minBuyIn={minBuyIn}
+                    maxBuyIn={maxBuyIn}
+                    walletBalance={walletBalance}
+                    onTopUp={handleTopUp}
+                    disabled={!canTopUp}
+                    disabledReason="You can top up between hands — not while you're in the current hand."
+                />
+            </div>
+        ) : null;
+
+    // Seat-orientation toggle (#392): a pure local view preference that rotates
+    // the table so the local player sits at 6 o'clock. It is a persistent view
+    // setting with no settings-sidebar equivalent, so it is rendered ALWAYS while
+    // the local player is seated — above every panel (sit-in, waiting, sit-out) —
+    // via `seatedFrame` below, rather than only in the sit-in states (#392/#2139).
+    const seatAtBottomToggle = (
+        <div data-part="seat-at-bottom" className={`backdrop-blur-sm rounded-lg shadow-lg border border-white/20 bg-black/60 ${isCompact ? "p-2" : "p-3"}`}>
+            <label className="flex items-center cursor-pointer">
+                <input
+                    type="checkbox"
+                    checked={seatAtBottom}
+                    onChange={toggleSeatAtBottom}
+                    className="form-checkbox h-4 w-4 text-amber-500 border-gray-500 rounded focus:ring-0"
+                />
+                <span className={`ml-2 ${seatAtBottom ? "text-amber-300" : "text-white"} ${isCompact ? "text-xs" : "text-sm"}`}>
+                    {t("seat.atBottom")}
+                </span>
+            </label>
+        </div>
+    );
+
+    // Every seated-state panel shares the same anchored column: the 6-o'clock
+    // toggle pinned at the top, the state-specific panel(s) stacked beneath it.
+    // Each switch case now returns just its own panel content via this wrapper,
+    // so the toggle is guaranteed to render regardless of sit-in/out/waiting.
+    // Compact phones drop the always-on toggle (it's offered while unseated
+    // instead) and center the panel above the action-bar zone. Panels that can
+    // never coexist with the action bar (waiting-for-players — no hand, no
+    // legal actions) pass atBar to sit at bar level, OUTSIDE the felt.
+    const seatedFrame = (panel: React.ReactNode, opts?: { atBar?: boolean }) =>
+        isCompactMobile ? (
+            <>
+                {buyChipsElement}
+                {panel && (
+                    <div data-part="side-actions" className="fixed z-30 left-1/2 -translate-x-1/2" style={opts?.atBar ? compactBarStyle : compactPanelStyle}>
+                        {panel}
+                    </div>
+                )}
+            </>
+        ) : (
+            <>
+                {buyChipsElement}
+                <div data-part="side-actions" className={`fixed z-30 ${positionClass} flex flex-col gap-2`}>
+                    {seatAtBottomToggle}
+                    {panel}
+                </div>
+            </>
+        );
+
+    if (!isCurrentUserSeated) {
+        if (isCompactMobile) {
+            // Phone: NOTHING is pinned below the felt while spectating (#684).
+            // The spectate hint and the 6-o'clock view preference both live in
+            // the hamburger drawer (MobileTableHeader) — they are a status line
+            // and a persisted setting, neither worth permanent screen space on a
+            // 393px-wide table. Taking a seat is unaffected: that is still done
+            // by tapping an open seat's "Click to Join".
+            return null;
+        }
+        return (
+            <>
+                {buyChipsElement}
+                <div data-part="side-actions" className="fixed z-30 bottom-8 left-1/2 -translate-x-1/2">
+                    <div className={`backdrop-blur-sm rounded-lg shadow-lg border border-white/20 bg-black/60 ${isCompact ? "p-2" : "p-3"}`}>
+                        <div className="flex items-center gap-2">
+                            <div className="animate-pulse w-2 h-2 rounded-full bg-blue-400" />
+                            <span className={`text-blue-300 font-medium ${isCompact ? "text-xs" : "text-sm"}`}>{t("seat.spectating")}</span>
+                        </div>
+                        {!isTableFull && (
+                            <div className="flex items-center gap-2">
+                                <div className="animate-pulse w-2 h-2 rounded-full bg-blue-400" />
+                                <span className={`text-blue-300 font-medium ${isCompact ? "text-xs" : "text-sm"}`}>
+                                    {t("seat.clickToJoin")}
+                                </span>
+                            </div>
+                        )}
+                    </div>
+                </div>
+            </>
+        );
+    }
+    switch (display.kind) {
+        case "pending":
+            return seatedFrame(
+                <div className={`backdrop-blur-sm rounded-lg shadow-lg border border-white/20 bg-black/60 ${isCompact ? "p-2" : "p-3"}`}>
+                    <div className="flex items-center gap-2">
+                        <div className="animate-pulse w-2 h-2 rounded-full bg-yellow-400" />
+                        <span className={`text-yellow-300 font-medium ${isCompact ? "text-xs" : "text-sm"}`}>{display.waitingMessage}</span>
+                    </div>
+                </div>
+            );
+
+        case "sit-in-options":
+            // Ignition model: a sat-out player returns with a single "I am back"
+            // button — one intent, no method choice (the two-radio Next-Hand/Next-BB
+            // picker is gone). Sits in post-now; the engine decides re-entry (posts
+            // the BB on entry, dead-SB on the SB seat — no deadlock, #2553/#2556).
+            return seatedFrame(
+                <button
+                    onClick={handleSitInClick}
+                    disabled={sittingIn}
+                    className={`flex items-center justify-center gap-2 rounded-lg shadow-lg border-2 font-bold tracking-wide uppercase transition-all duration-150 ${
+                        sittingIn
+                            ? "bg-green-700 border-green-600 text-green-200 cursor-wait"
+                            : "bg-green-600 border-green-400 text-white hover:bg-green-500 hover:border-green-300 hover:scale-105 active:scale-95"
+                    } ${isCompact ? "px-3 py-2 text-xs" : "px-5 py-3 text-sm"}`}
+                >
+                    {sittingIn ? (
+                        <>
+                            <div className="w-3 h-3 border-2 border-green-200 border-t-transparent rounded-full animate-spin" />
+                            {t("seat.sittingIn")}
+                        </>
+                    ) : (
+                        "I am back"
+                    )}
+                </button>
+            );
+
+        case "sit-in-bootstrap":
+            // Empty table (ui#50): a joiner lands SEATED and must explicitly sit in
+            // before the first hand starts. Next-BB vs Post-Now is meaningless with
+            // no orbit yet, so offer a single "Sit In" button (posts on the first
+            // hand once both seats have sat in).
+            return seatedFrame(
+                <button
+                    onClick={handleSitInClick}
+                    disabled={sittingIn}
+                    className={`flex items-center gap-2 rounded-lg shadow-lg border-2 font-bold tracking-wide uppercase transition-all duration-150 ${
+                        sittingIn
+                            ? "bg-green-700 border-green-600 text-green-200 cursor-wait"
+                            : "bg-green-600 border-green-400 text-white hover:bg-green-500 hover:border-green-300 hover:scale-105 active:scale-95 animate-pulse"
+                    } ${isCompact ? "px-3 py-2 text-xs" : "px-5 py-3 text-sm"}`}
+                >
+                    {sittingIn ? (
+                        <>
+                            <div className="w-3 h-3 border-2 border-green-200 border-t-transparent rounded-full animate-spin" />
+                            {t("seat.sittingIn")}
+                        </>
+                    ) : (
+                        "Sit In"
+                    )}
+                </button>
+            );
+
+        case "auto-sit-in":
+            // Default flow (ui#550): sitting in happens automatically (see the
+            // effect above) — show a brief indicator, no method UI.
+            return seatedFrame(
+                <div className={`backdrop-blur-sm rounded-lg shadow-lg border border-white/20 bg-black/60 ${isCompact ? "p-2" : "p-3"}`}>
+                    <div className="flex items-center gap-2">
+                        <div className="w-3 h-3 border-2 border-green-300 border-t-transparent rounded-full animate-spin" />
+                        <span className={`text-green-300 font-medium ${isCompact ? "text-xs" : "text-sm"}`}>{t("seat.sittingIn")}</span>
+                    </div>
+                </div>
+            );
+
+        case "sit-out-button":
+            // Two INDEPENDENT checkboxes, not radios (#763, matches Ignition): the
+            // boxes are separate queued conditions — "next hand" fires at the next
+            // hand boundary, "next big blind" holds you in until the BB rotates back
+            // to your seat (so you don't waste blinds already paid this orbit). Both
+            // may be checked; per #763 "the first applicable condition triggers".
+            // Phones offer both boxes in the hamburger drawer instead, so nothing
+            // is pinned over the felt (#684). Desktop keeps the panel.
+            if (isCompactMobile) {
+                return seatedFrame(null);
+            }
+            return seatedFrame(
+                <div className={`backdrop-blur-sm rounded-lg shadow-lg border border-white/20 bg-black/60 ${isCompact ? "p-2" : "p-3"} flex flex-col gap-1`}>
+                    <label className="flex items-center cursor-pointer">
+                        <input
+                            type="checkbox"
+                            checked={isChecked}
+                            onChange={handleToggleSitOutNextHand}
+                            className="form-checkbox h-4 w-4 text-amber-500 border-gray-500 rounded focus:ring-0"
+                        />
+                        <span className={`ml-2 ${isChecked ? "text-amber-300" : "text-white"} ${isCompact ? "text-xs" : "text-sm"}`}>
+                            {t("seat.sitOutNextHand")}
+                        </span>
+                    </label>
+                    <label className="flex items-center cursor-pointer">
+                        <input
+                            type="checkbox"
+                            checked={sitOutNextBbQueued}
+                            onChange={toggleNextBb}
+                            className="form-checkbox h-4 w-4 text-amber-500 border-gray-500 rounded focus:ring-0"
+                        />
+                        <span className={`ml-2 ${sitOutNextBbQueued ? "text-amber-300" : "text-white"} ${isCompact ? "text-xs" : "text-sm"}`}>
+                            {t("seat.sitOutNextBigBlind")}
+                        </span>
+                    </label>
+                </div>
+            );
+
+        case "waiting-for-players":
+            // Compact phones: an inline status chip, not a panel — placed at bar
+            // level, OUTSIDE the felt (waiting means no hand, so the action bar
+            // can never appear at the same time and the slot is free).
+            return seatedFrame(
+                <div
+                    className={`backdrop-blur-sm shadow-lg border border-white/20 bg-black/60 ${
+                        isCompactMobile ? "rounded-full px-3 py-1" : `rounded-lg ${isCompact ? "p-2" : "p-3"}`
+                    }`}
+                >
+                    <div className="flex items-center gap-2">
+                        <div className="animate-pulse w-2 h-2 rounded-full bg-blue-400" />
+                        <span className={`text-blue-300 font-medium whitespace-nowrap ${isCompactMobile ? "text-[11px]" : isCompact ? "text-xs" : "text-sm"}`}>
+                            {t("seat.waitingForPlayers")}
+                        </span>
+                    </div>
+                </div>,
+                { atBar: true }
+            );
+
+        case "none":
+            // Seated but no panel to show (e.g. mid-hand): still surface the
+            // 6-o'clock toggle so it is always reachable while seated.
+            return seatedFrame(null);
+    }
+};

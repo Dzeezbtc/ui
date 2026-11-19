@@ -1,0 +1,347 @@
+/* The chat in the four table skins (block52-chat#2). brandClass() adds
+   ".b52-sk .b52-sk-<skin>" to the chat, seat-bubble and throw roots when the
+   host sets the brand to the player's table skin. Fonts come from the skin's
+   own stylesheet in the UI. */
+
+/* ═══ Block52 Flagship: night glass, fuchsia → violet → blue, Unbounded ═══ */
+.b52-sk-flagship {
+    --chat-bg: rgba(13, 11, 23, 0.92);
+    --chat-raised: rgba(255, 255, 255, 0.06);
+    --chat-line: rgba(255, 255, 255, 0.09);
+    --chat-brand: #a78bfa;
+    --chat-accent: #c026d3;
+    --chat-text: #f4f2fa;
+    --chat-muted: #9a95b0;
+    --sk-grad: linear-gradient(120deg, #c026d3 0%, #7c3aed 50%, #3b82f6 100%);
+    font-family: Inter, ui-sans-serif, system-ui, sans-serif;
+}
+.b52-sk-flagship .b52-chat__panel {
+    background: radial-gradient(120% 70% at 85% -10%, #7c3aed33, transparent 55%), var(--chat-bg);
+    border: 1px solid var(--chat-line);
+    border-radius: 18px;
+    backdrop-filter: blur(14px);
+    box-shadow: 0 24px 60px -24px #7c3aed88;
+}
+.b52-sk-flagship .b52-chat__title {
+    font-family: Unbounded, Inter, sans-serif;
+    font-weight: 700;
+    letter-spacing: 0.04em;
+}
+.b52-sk-flagship .b52-chat__tab {
+    border-radius: 999px;
+}
+.b52-sk-flagship .b52-chat__tab.is-active,
+.b52-sk-flagship .b52-chat__send,
+.b52-sk-flagship .b52-chat__msg--mine .b52-chat__text {
+    background: var(--sk-grad);
+    color: #fff;
+}
+.b52-sk-flagship .b52-chat__fab {
+    border: 1px solid transparent;
+    background: linear-gradient(#0d0b17, #0d0b17) padding-box, var(--sk-grad) border-box;
+    color: #fff;
+}
+.b52-sk-flagship .b52-chat__from {
+    color: #c4b5fd;
+}
+.b52-sk-flagship .b52-chat__quick-btn:hover,
+.b52-sk-flagship .b52-chat__emoji-btn:hover {
+    background: rgba(167, 139, 250, 0.12);
+    box-shadow: 0 0 18px -4px #7c3aed;
+}
+.b52-seat-bubble-layer.b52-sk-flagship .b52-seat-bubble--text {
+    background: linear-gradient(#0d0b17, #0d0b17) padding-box, var(--sk-grad) border-box;
+    border: 1.5px solid transparent;
+    color: #f4f2fa;
+    box-shadow: 0 10px 30px -10px #7c3aedaa;
+}
+.b52-throw-layer.b52-sk-flagship .b52-throw-item {
+    filter: drop-shadow(0 0 6px #a78bfaaa);
+}
+
+/* ═══ Chip and a Chair: comic sticker sheet, ink outlines, hard shadows ═══ */
+.b52-sk-chipchair {
+    --chat-bg: #fbfbf8;
+    --chat-raised: #ffffff;
+    --chat-line: #0e0e10;
+    --chat-brand: #3d7bff;
+    --chat-accent: #ff6fb5;
+    --chat-text: #0e0e10;
+    --chat-muted: #55555e;
+    font-family: "DM Sans", ui-sans-serif, system-ui, sans-serif;
+}
+.b52-sk-chipchair .b52-chat__panel {
+    background-color: var(--chat-bg);
+    background-image: linear-gradient(rgba(40, 90, 255, 0.07) 1px, transparent 1px), linear-gradient(90deg, rgba(40, 90, 255, 0.07) 1px, transparent 1px);
+    background-size: 22px 22px;
+    border: 3px solid #0e0e10;
+    border-radius: 14px;
+    box-shadow: 5px 5px 0 #0e0e10;
+    color: var(--chat-text);
+}
+.b52-sk-chipchair .b52-chat__title {
+    font-family: "Dela Gothic One", "Arial Black", sans-serif;
+    font-weight: 400;
+    color: #0e0e10;
+}
+.b52-sk-chipchair .b52-chat__tab,
+.b52-sk-chipchair .b52-chat__input,
+.b52-sk-chipchair .b52-chat__select,
+.b52-sk-chipchair .b52-chat__text {
+    border: 2px solid #0e0e10;
+    border-radius: 10px;
+    background: #fff;
+    color: #0e0e10;
+    font-weight: 700;
+}
+.b52-sk-chipchair .b52-chat__tab.is-active,
+.b52-sk-chipchair .b52-chat__send {
+    background: #ffd23f;
+    color: #0e0e10;
+    border: 2px solid #0e0e10;
+    box-shadow: 2px 2px 0 #0e0e10;
+}
+.b52-sk-chipchair .b52-chat__msg--mine .b52-chat__text {
+    background: #7fd4ff;
+}
+.b52-sk-chipchair .b52-chat__from {
+    color: #3d7bff;
+}
+.b52-sk-chipchair .b52-chat__fab {
+    background: #ffd23f;
+    color: #0e0e10;
+    border: 3px solid #0e0e10;
+    box-shadow: 4px 4px 0 #0e0e10;
+    font-family: "Dela Gothic One", "Arial Black", sans-serif;
+}
+.b52-sk-chipchair .b52-chat__quick-btn,
+.b52-sk-chipchair .b52-chat__throw-btn,
+.b52-sk-chipchair .b52-chat__emoji-btn {
+    background: transparent;
+}
+.b52-sk-chipchair .b52-chat__quick-btn:hover,
+.b52-sk-chipchair .b52-chat__emoji-btn:hover {
+    background: #ffd23f55;
+}
+.b52-seat-bubble-layer.b52-sk-chipchair .b52-seat-bubble--text {
+    background: #fff;
+    color: #0e0e10;
+    border: 3px solid #0e0e10;
+    border-radius: 14px;
+    box-shadow: 4px 4px 0 #0e0e10;
+    font-family: "DM Sans", system-ui, sans-serif;
+    font-weight: 700;
+}
+
+/* ═══ Bad Beat: sports broadcast, steel, hard italic caps, red ═══ */
+.b52-sk-badbeat {
+    --chat-bg: #111419;
+    --chat-raised: #181c22;
+    --chat-line: rgba(220, 228, 240, 0.12);
+    --chat-brand: #ff2d55;
+    --chat-accent: #f5c542;
+    --chat-text: #eef1f5;
+    --chat-muted: #8d96a3;
+    font-family: Inter, ui-sans-serif, system-ui, sans-serif;
+}
+.b52-sk-badbeat .b52-chat__panel {
+    background: repeating-linear-gradient(0deg, rgba(255, 255, 255, 0.012) 0 2px, transparent 2px 4px), linear-gradient(180deg, #151920, #0a0c0f);
+    border: 1px solid var(--chat-line);
+    border-radius: 6px;
+}
+.b52-sk-badbeat .b52-chat__title {
+    font-family: "Barlow Condensed", "Arial Narrow", sans-serif;
+    font-style: italic;
+    font-weight: 900;
+    text-transform: uppercase;
+    letter-spacing: 0.02em;
+    font-size: 15px;
+}
+.b52-sk-badbeat .b52-chat__tab {
+    border-radius: 3px;
+    font-family: "IBM Plex Mono", ui-monospace, monospace;
+    text-transform: uppercase;
+    letter-spacing: 0.08em;
+}
+.b52-sk-badbeat .b52-chat__tab.is-active,
+.b52-sk-badbeat .b52-chat__send {
+    background: #ff2d55;
+    color: #fff;
+}
+.b52-sk-badbeat .b52-chat__from {
+    color: #ff5c7a;
+    font-family: "Barlow Condensed", "Arial Narrow", sans-serif;
+    font-weight: 800;
+    text-transform: uppercase;
+    letter-spacing: 0.03em;
+}
+.b52-sk-badbeat .b52-chat__text,
+.b52-sk-badbeat .b52-chat__input,
+.b52-sk-badbeat .b52-chat__select {
+    border-radius: 3px;
+}
+.b52-sk-badbeat .b52-chat__msg--mine .b52-chat__text {
+    background: #262b33;
+    border-left: 3px solid #ff2d55;
+}
+.b52-sk-badbeat .b52-chat__fab {
+    border-radius: 3px;
+    background: #ff2d55;
+    color: #fff;
+    font-family: "Barlow Condensed", "Arial Narrow", sans-serif;
+    font-style: italic;
+    font-weight: 800;
+    text-transform: uppercase;
+    clip-path: polygon(8px 0, 100% 0, calc(100% - 8px) 100%, 0 100%);
+}
+.b52-seat-bubble-layer.b52-sk-badbeat .b52-seat-bubble--text {
+    background: #111419;
+    color: #eef1f5;
+    border-radius: 3px;
+    border-left: 4px solid #ff2d55;
+}
+
+/* ═══ Maison 52: private salon, ivory, brass hairlines, serif ═══ */
+.b52-sk-maison {
+    --chat-bg: rgba(251, 248, 243, 0.96);
+    --chat-raised: #f6f1ea;
+    --chat-line: rgba(29, 26, 22, 0.14);
+    --chat-brand: #0f3b2e;
+    --chat-accent: #a9834c;
+    --chat-text: #1d1a16;
+    --chat-muted: #7d7368;
+    font-family: Jost, "Helvetica Neue", Arial, sans-serif;
+}
+.b52-sk-maison .b52-chat__panel {
+    background: var(--chat-bg);
+    border: 1px solid #cdb07f;
+    outline: 1px solid rgba(169, 131, 76, 0.35);
+    outline-offset: -5px;
+    border-radius: 4px;
+    color: var(--chat-text);
+    box-shadow: 0 24px 50px -24px rgba(70, 50, 20, 0.5);
+}
+.b52-sk-maison .b52-chat__title {
+    font-family: "Cormorant Garamond", Georgia, serif;
+    font-style: italic;
+    font-weight: 600;
+    font-size: 17px;
+    letter-spacing: 0;
+    text-transform: none;
+}
+.b52-sk-maison .b52-chat__tab {
+    border-radius: 2px;
+    letter-spacing: 0.18em;
+    text-transform: uppercase;
+    color: #3a342d;
+}
+.b52-sk-maison .b52-chat__tab.is-active,
+.b52-sk-maison .b52-chat__send {
+    background: #0f3b2e;
+    color: #f1e6cf;
+}
+.b52-sk-maison .b52-chat__from {
+    font-family: "Cormorant Garamond", Georgia, serif;
+    font-style: italic;
+    font-weight: 700;
+    font-size: 15px;
+    color: #0f3b2e;
+}
+.b52-sk-maison .b52-chat__text,
+.b52-sk-maison .b52-chat__input,
+.b52-sk-maison .b52-chat__select {
+    border-radius: 2px;
+    background: #fbf8f3;
+    color: #1d1a16;
+    border-color: rgba(29, 26, 22, 0.18);
+}
+.b52-sk-maison .b52-chat__msg--mine .b52-chat__text {
+    background: #efe6d6;
+}
+.b52-sk-maison .b52-chat__fab {
+    border-radius: 2px;
+    background: #0f3b2e;
+    color: #f1e6cf;
+    border: 1px solid #cdb07f;
+    letter-spacing: 0.16em;
+    text-transform: uppercase;
+}
+.b52-seat-bubble-layer.b52-sk-maison .b52-seat-bubble--text {
+    background: #fbf8f3;
+    color: #1d1a16;
+    border: 1px solid #cdb07f;
+    border-radius: 3px;
+    font-family: "Cormorant Garamond", Georgia, serif;
+    font-size: 16px;
+    font-style: italic;
+}
+
+/* ═══ Shared fixes: header, tab strip and timestamps per skin ═══ */
+.b52-sk-flagship .b52-chat__header {
+    background: transparent;
+}
+.b52-sk-flagship .b52-chat__tabs {
+    background: rgba(255, 255, 255, 0.04);
+}
+.b52-sk-chipchair .b52-chat__header {
+    background: #ffd23f;
+    border-bottom: 3px solid #0e0e10;
+}
+.b52-sk-chipchair .b52-chat__tabs {
+    background: transparent;
+    border: 0;
+    gap: 5px;
+}
+.b52-sk-chipchair .b52-chat__time,
+.b52-sk-maison .b52-chat__time {
+    color: var(--chat-muted);
+}
+.b52-sk-chipchair .b52-chat__quick-pack {
+    background: #fbfbf8;
+}
+.b52-sk-badbeat .b52-chat__header {
+    background: linear-gradient(100deg, #ff2d5533, transparent 60%), #0a0c0f;
+    border-bottom: 2px solid #ff2d55;
+}
+.b52-sk-badbeat .b52-chat__tabs {
+    border-radius: 4px;
+    background: #0a0c0f;
+}
+.b52-sk-badbeat .b52-chat__time {
+    font-family: "IBM Plex Mono", ui-monospace, monospace;
+}
+.b52-sk-maison .b52-chat__header {
+    background: transparent;
+    border-bottom: 1px solid #cdb07f;
+}
+.b52-sk-maison .b52-chat__title {
+    color: #1d1a16;
+}
+.b52-sk-maison .b52-chat__tabs {
+    border-radius: 2px;
+    background: transparent;
+    border-color: rgba(29, 26, 22, 0.14);
+}
+.b52-sk-maison .b52-chat__tab {
+    letter-spacing: 0.08em;
+    font-size: 10px;
+}
+.b52-sk-maison .b52-chat__from {
+    text-transform: none;
+    letter-spacing: 0;
+}
+.b52-sk-maison .b52-chat__quick-pack {
+    background: #fbf8f3;
+    color: #a9834c;
+}
+.b52-sk-chipchair .b52-chat__tabs {
+    gap: 3px;
+}
+.b52-sk-chipchair .b52-chat__tab {
+    padding-left: 6px;
+    padding-right: 6px;
+}
+.b52-sk-chipchair .b52-chat__input::placeholder,
+.b52-sk-maison .b52-chat__input::placeholder {
+    color: var(--chat-muted);
+}

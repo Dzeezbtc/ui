@@ -1,0 +1,918 @@
+import React, { useState, useEffect, useCallback, useRef, useMemo } from "react";
+import { useNetwork, NETWORK_PRESETS } from "./NetworkContext";
+import type { TexasHoldemStateDTO, GameFormat, GameVariant } from "@block52/poker-vm-sdk";
+import { createAuthPayload } from "../utils/cosmos/signing";
+import { createLogicalTrack, type LogicalTrack } from "../hooks/playerActions/transportAction";
+import { ClassifiedMessage } from "../bus/ingest";
+import { parseFrame } from "../bus/frame";
+import { GameMessageBus } from "../bus/GameMessageBus";
+import { type GameStreamItem } from "../bus/types";
+import { viteEnv } from "../utils/viteEnv";
+import { toGameFormat, toGameVariant } from "../utils/gameFormatUtils";
+import { hasElements, hasValue, isNullish } from "../utils/guards";
+import type { ValidationError } from "../components/playPage/TableErrorPage";
+import { CosmosApi } from "../apis/Api";
+import { useCometRpcApiFactory } from "./CosmosApiContext";
+import { GAME_STATE_PUBLIC_PATH, handEndedQuery, handStartedQuery, historyNetworks, parseGameRecordResponse, parseGameStateJson, parseTxSearchHeight, snapshotHeights, type ParsedGameState } from "../utils/handReplay";
+import { encodeStringField1, parseAbciStringResponse } from "../utils/abciQuery";
+import { NO_KNOWN_CARDS, overlayKnownHoleCards, type KnownHoleCards } from "../utils/replayCards";
+import { STORAGE_KEYS } from "../constants/storageKeys";
+import { GameDataProvider, useGameData } from "./gameState/GameDataContext";
+import { GameMetaProvider, useGameMeta } from "./gameState/GameMetaContext";
+import { GameUIProvider, useGameUI, PendingAction } from "./gameState/GameUIContext";
+import { ReplayProvider, useReplay } from "./gameState/ReplayContext";
+import { GameActionsProvider, useGameActions } from "./gameState/GameActionsContext";
+import { GameEventsProvider } from "./gameState/GameEventsContext";
+import { LogicalTrackProvider } from "./gameState/LogicalTrackContext";
+import { IDLE_CONNECTION, isConnectionLive, type ConnectionState } from "./gameState/connection";
+import { RECONNECT_MAX_ATTEMPTS, reconnectDelayMs } from "../utils/reconnectBackoff";
+import { AUTH_RENEWAL_CHECK_MS, isAuthRenewalDue, isOwnHandMasked } from "../utils/wsAuth";
+import { registerChatSender, registerLocalAddress, pushChatMessage } from "../chat/chatBus";
+import { getCosmosAddressSync } from "../utils/cosmosAccountUtils";
+
+// Feature toggle for REST fallback (debug only - disabled by default per Commandment 7)
+const ENABLE_REST_FALLBACK = false;
+const AVATAR_SYNC_DEBUG =
+    typeof process !== "undefined" &&
+    process.env.NODE_ENV !== "production" &&
+    ["1", "true"].includes((process.env.VITE_DEBUG_AVATAR_SYNC || "").toLowerCase());
+
+/**
+ * GameStateProvider — owns the WebSocket and the underlying state.
+ *
+ * Internally splits its state across five slice contexts (data, meta, UI,
+ * replay, actions). Components that need only one slice should consume the
+ * dedicated hook (useGameData, useGameMeta, useGameUI, useReplay,
+ * useGameActions) to avoid re-rendering on unrelated updates.
+ *
+ * The legacy useGameStateContext() hook below aggregates all five slices
+ * and preserves the original shape, so existing consumers keep working
+ * without changes during the gradual migration.
+ */
+
+export interface GameStateContextType {
+    gameState: TexasHoldemStateDTO | undefined;
+    gameFormat: GameFormat | undefined;
+    gameVariant: GameVariant | undefined;
+    /** Optional ENS-style table name (poker-vm#337); undefined for unnamed tables. Display-only (rendered track). */
+    gameName: string | undefined;
+    isLoading: boolean;
+    error: Error | null;
+    validationError: ValidationError | null;
+    pendingAction: PendingAction | null;
+    /** Freshness of the live socket (ui#613). Only `live` means the table is current. */
+    connection: ConnectionState;
+    isReplayMode: boolean;
+    replayHandNumber: number | null;
+    replayActionIndex: number | null;
+    subscribeToTable: (tableId: string) => void;
+    unsubscribeFromTable: () => void;
+    sendAction: (action: string, amount?: string) => Promise<void>;
+    /** actionIndex null = the hand's final state (showdown or last action). */
+    loadHistoricalState: (tableId: string, handNumber: number, actionIndex: number | null) => Promise<void>;
+    /** One step of a hand replay (ui#816): the public state at a block height. */
+    loadHistoricalStateAtHeight: (tableId: string, handNumber: number, height: number, step: number | null, known?: KnownHoleCards) => Promise<void>;
+}
+
+interface GameStateProviderProps {
+    children: React.ReactNode;
+}
+
+export const GameStateProvider: React.FC<GameStateProviderProps> = ({ children }) => {
+    const [gameState, setGameState] = useState<TexasHoldemStateDTO | undefined>(undefined);
+    // ui#659: provenance of the snapshot currently on the RENDER track — true
+    // when it is the relay's mempool projection rather than committed state.
+    const [isOptimistic, setIsOptimistic] = useState<boolean>(false);
+    const [gameFormat, setGameFormat] = useState<GameFormat | undefined>(undefined);
+    const [gameVariant, setGameVariant] = useState<GameVariant | undefined>(undefined);
+    // Table name is display-only, so it lives on the RENDER track alongside
+    // format/variant — never read for submission decisions (logical track).
+    const [gameName, setGameName] = useState<string | undefined>(undefined);
+    const [isLoading, setIsLoading] = useState<boolean>(false);
+    const [error, setError] = useState<Error | null>(null);
+    const [validationError, setValidationError] = useState<ValidationError | null>(null);
+    const [pendingAction, setPendingAction] = useState<PendingAction | null>(null);
+    const [isReplayMode, setIsReplayMode] = useState<boolean>(false);
+    const [replayHandNumber, setReplayHandNumber] = useState<number | null>(null);
+    const [replayActionIndex, setReplayActionIndex] = useState<number | null>(null);
+    // Latest committed bus item — drives GameEventsContext / useGameEvents.
+    const [latestStreamItem, setLatestStreamItem] = useState<GameStreamItem | null>(null);
+    const { currentNetwork } = useNetwork();
+    const cometRpcApiFactory = useCometRpcApiFactory();
+
+    // Use ref instead of state for currentTableId to prevent re-renders
+    const currentTableIdRef = useRef<string | null>(null);
+    const wsRef = useRef<WebSocket | null>(null);
+    const hasReceivedMessageRef = useRef<boolean>(false);
+    const fallbackTimeoutRef = useRef<NodeJS.Timeout | null>(null);
+
+    // Connection lifecycle (ui#613). `connection` is what the UI and the
+    // submission gate read; the refs are the socket's bookkeeping.
+    const [connection, setConnection] = useState<ConnectionState>(IDLE_CONNECTION);
+    // Read by the wake-up handlers, which are registered once (ui#867).
+    const connectionRef = useRef<ConnectionState>(connection);
+    connectionRef.current = connection;
+    /** Generation of the live socket: handlers of a superseded socket are ignored. */
+    const socketGenRef = useRef(0);
+    /** Set right before an intentional close (unsubscribe / re-subscribe / replay) so its onclose does not reconnect. */
+    const intentionalCloseRef = useRef(false);
+    const reconnectAttemptRef = useRef(0);
+    const reconnectTimerRef = useRef<NodeJS.Timeout | null>(null);
+    const isReplayModeRef = useRef(false);
+    /** When the live socket's credentials were last signed (ui#953). */
+    const authSignedAtRef = useRef(0);
+    /** Whether the latest committed frame had our own cards masked (ui#953). */
+    const ownHandMaskedRef = useRef(false);
+
+    // This table's LOGICAL track (ui#834) — one per provider, so with several
+    // tables mounted each table's submissions read only its own state.
+    const trackRef = useRef<LogicalTrack | null>(null);
+    if (isNullish(trackRef.current)) {
+        trackRef.current = createLogicalTrack();
+    }
+    const track = trackRef.current;
+
+    // WS Action Bus. Created eagerly in render so it exists before any child
+    // effect calls subscribeToTable. The logical track is fed by the bus at
+    // ingest time; committed items drive the RENDER track via applyRenderTrack
+    // below.
+    const busRef = useRef<GameMessageBus | null>(null);
+    if (isNullish(busRef.current)) {
+        busRef.current = new GameMessageBus({ setLatestGameState: track.set });
+    }
+
+    // Table chat (block52-chat#1) rides the SAME socket as the game: register a
+    // sender that puts a {type:"chat"} frame on the current wire (refs read at
+    // call time, so it survives reconnects and table switches), and tell the chat
+    // which address is ours so our own bubbles appear above our seat.
+    useEffect(() => {
+        registerLocalAddress(getCosmosAddressSync() || undefined);
+        registerChatSender(({ text, sticker, throwId, to }) => {
+            const ws = wsRef.current;
+            const gameId = currentTableIdRef.current;
+            if (ws && ws.readyState === WebSocket.OPEN && gameId) {
+                ws.send(JSON.stringify({ type: "chat", gameId, message: text, sticker, throw: throwId, to, from: getCosmosAddressSync() || undefined, ts: Date.now() }));
+            }
+        });
+        return () => registerChatSender(null);
+    }, []);
+
+    // Stable bridge from the render layer to the bus's animation-ack API (Phase 5).
+    // Exposed via GameEventsContext so animating hooks can report choreography
+    // completion without reaching into the bus directly.
+    const ackAnimation = useCallback((ackId: string) => {
+        busRef.current?.ackAnimation(ackId);
+    }, []);
+
+    // Stable bridge to the bus's run-out state (ui#873): useAutoNewHand defers
+    // the next hand's deal while a protected tournament run-out is still showing.
+    const isPlayingSuspense = useCallback((): boolean => busRef.current?.isPlayingSuspense() ?? false, []);
+
+    // Apply a classified message to the RENDER track (React state). Contains no
+    // logical-track writes — the logical track is updated by the bus at
+    // ingest. setState dispatchers are stable, so this callback never changes
+    // identity.
+    const applyRenderTrack = useCallback((classified: ClassifiedMessage, rawMessage?: { gameId?: string; event?: string }) => {
+        switch (classified.kind) {
+            case "state": {
+                if (AVATAR_SYNC_DEBUG) {
+                    const playersWithAvatars = classified.snapshot.players
+                        .filter(player => Boolean(player.avatar))
+                        .map(player => ({ seat: player.seat, address: player.address, avatar: player.avatar }));
+
+                    if (hasElements(playersWithAvatars)) {
+                        console.info("[ProfileAvatarDebug] Incoming websocket avatars", {
+                            gameId: rawMessage?.gameId,
+                            event: rawMessage?.event,
+                            playersWithAvatars
+                        });
+                    }
+                }
+
+                setGameState(classified.snapshot);
+                setIsOptimistic(classified.optimistic);
+                setGameFormat(classified.format);
+                setGameVariant(classified.variant);
+                setGameName(classified.name);
+                setPendingAction(null);
+
+                if (classified.validationError) {
+                    // Per Commandment 7: NO defaults. Surface the validation
+                    // error but still render what we can.
+                    setValidationError(classified.validationError);
+                } else {
+                    setError(null);
+                    setValidationError(null);
+                }
+                break;
+            }
+            case "validationErrorNoState": {
+                setValidationError(classified.validationError);
+                break;
+            }
+            case "pending": {
+                setPendingAction(classified.pendingAction);
+                break;
+            }
+            case "actionAccepted": {
+                // Acknowledgment that our action was accepted — no state change.
+                break;
+            }
+            case "error": {
+                setError(classified.error);
+                setIsLoading(false);
+                setPendingAction(null);
+                if (classified.clearGameState) {
+                    setGameState(undefined);
+                    setIsOptimistic(false);
+                }
+                break;
+            }
+            case "ignore":
+            default:
+                break;
+        }
+    }, []);
+
+    // Bus lifecycle: subscribe the render track to committed items and expose
+    // the dev-only introspection handle (§5.4). Stripped from prod builds.
+    useEffect(() => {
+        const bus = busRef.current;
+        if (!bus) {
+            return;
+        }
+        const unsubscribe = bus.subscribe(item => {
+            applyRenderTrack(item.classified, item.raw as { gameId?: string; event?: string });
+            // Expose the committed item (with its derived events) to React.
+            setLatestStreamItem(item);
+        });
+        if (!viteEnv.PROD) {
+            window.__B52_BUS__ = bus.introspection;
+        }
+        return () => {
+            unsubscribe();
+            if (!viteEnv.PROD && window.__B52_BUS__ === bus.introspection) {
+                delete window.__B52_BUS__;
+            }
+        };
+    }, [applyRenderTrack]);
+
+    /** Close the live socket and cancel every pending timer. `intentional` keeps its onclose from reconnecting. */
+    const closeSocket = useCallback((intentional: boolean) => {
+        if (reconnectTimerRef.current) {
+            clearTimeout(reconnectTimerRef.current);
+            reconnectTimerRef.current = null;
+        }
+        if (fallbackTimeoutRef.current) {
+            clearTimeout(fallbackTimeoutRef.current);
+            fallbackTimeoutRef.current = null;
+        }
+        if (wsRef.current) {
+            intentionalCloseRef.current = intentional;
+            wsRef.current.close();
+            wsRef.current = null;
+        }
+    }, []);
+
+    // Reconnect scheduling lives behind a ref so the socket handlers (created
+    // once per socket) always call the latest version.
+    const scheduleReconnectRef = useRef<(tableId: string) => void>(() => {});
+
+    /**
+     * Open the socket for `tableId`. `attempt` is 0 for a fresh subscription and
+     * n ≥ 1 for the n-th reconnect (ui#613). Every handler checks the socket's
+     * generation, so a late message, close or error from a superseded socket can
+     * never touch state after a newer one opened.
+     */
+    const openSocket = useCallback(
+        (tableId: string, attempt: number) => {
+            closeSocket(true);
+            const gen = ++socketGenRef.current;
+            intentionalCloseRef.current = false;
+            const isCurrent = () => socketGenRef.current === gen && currentTableIdRef.current === tableId;
+
+            currentTableIdRef.current = tableId;
+            isReplayModeRef.current = false;
+            hasReceivedMessageRef.current = false;
+            setConnection(attempt === 0 ? { status: "connecting", attempt: 0 } : { status: "reconnecting", attempt });
+
+            // A (re)subscribe re-snapshots authoritatively: the relay answers a
+            // subscribe with the full current state. Drop any queued frames and
+            // the event baseline so the catch-up frame renders as a fresh baseline
+            // (no burst of sounds/badges for actions we missed) — the late-mount
+            // path. seq continues monotonically (never reused).
+            busRef.current?.reset();
+            setLatestStreamItem(null);
+
+            // Get Cosmos player address
+            const playerAddress = localStorage.getItem(STORAGE_KEYS.cosmosAddress);
+
+            if (!playerAddress) {
+                setError(new Error("No Block52 wallet address found. Please connect your wallet."));
+                setIsLoading(false);
+                setConnection(IDLE_CONNECTION);
+                return;
+            }
+
+            // Validate that the network has a ws property
+            if (!currentNetwork.ws) {
+                console.error("[GameStateContext] Network missing WebSocket endpoint");
+                setError(new Error("Network configuration missing WebSocket endpoint"));
+                setIsLoading(false);
+                setConnection(IDLE_CONNECTION);
+                return;
+            }
+
+            // Create WebSocket connection to the node WS endpoint.
+            const fullWsUrl = `${currentNetwork.ws}?tableAddress=${tableId}&playerId=${playerAddress}`;
+            const ws = new WebSocket(fullWsUrl);
+            wsRef.current = ws;
+
+            ws.onopen = async () => {
+                if (!isCurrent()) return;
+                // Create authenticated subscription message with signature
+                authSignedAtRef.current = Date.now();
+                const authPayload = await createAuthPayload();
+                if (!isCurrent() || ws.readyState !== WebSocket.OPEN) return;
+
+                const subscriptionMessage = {
+                    type: "subscribe",
+                    gameId: tableId,
+                    playerAddress: authPayload?.playerAddress || playerAddress,
+                    timestamp: authPayload?.timestamp,
+                    signature: authPayload?.signature
+                };
+
+                ws.send(JSON.stringify(subscriptionMessage));
+                setIsLoading(false);
+
+                // No frame within 5 s: on a fresh subscription that is the "server
+                // not responding" error (Commandment 7: surface it); on a reconnect
+                // it is a failed attempt, so close and let the backoff schedule
+                // the next one.
+                fallbackTimeoutRef.current = setTimeout(() => {
+                    fallbackTimeoutRef.current = null;
+                    if (!isCurrent() || hasReceivedMessageRef.current) return;
+                    if (attempt === 0) {
+                        console.error("[GameStateContext] WebSocket server did not respond within 5 seconds");
+                        setError(new Error(
+                            "WebSocket server not responding. The game server may be offline or not broadcasting game state. " +
+                            "Please try refreshing or contact support if the issue persists."
+                        ));
+                        setIsLoading(false);
+                    } else {
+                        console.warn(`[GameStateContext] reconnect attempt ${attempt}: no state within 5 s; retrying`);
+                        ws.close(); // not intentional → onclose schedules the next attempt
+                    }
+                }, 5000);
+            };
+
+            ws.onmessage = event => {
+                if (!isCurrent()) return; // a superseded socket's late frame
+
+                // One JSON document per frame is the relay's contract
+                // (block52/pokerchain#364). parseFrame also tolerates a
+                // newline-batched frame, so a relay regression degrades to "every
+                // document still ingested" rather than "the whole batch dropped".
+                const { messages, failures } = parseFrame(String(event.data));
+
+                // Any bytes from the relay prove it is alive — the "server not
+                // responding" fallback must not fire because a frame was malformed,
+                // and bytes on the current socket make the connection live, also
+                // after a browser `offline` event the socket survived (ui#867).
+                if (!hasReceivedMessageRef.current) {
+                    hasReceivedMessageRef.current = true;
+                    reconnectAttemptRef.current = 0;
+                }
+                setConnection(prev => (isConnectionLive(prev) ? prev : { status: "live", attempt: 0 }));
+
+                if (failures > 0) {
+                    // Surface it (Commandment 7) without blanking the table: a bad
+                    // document is a relay/transport bug to count and log, not a
+                    // reason to replace a live hand with an error page (ui#623).
+                    console.error(
+                        `[GameStateContext] Dropped ${failures} unparseable WebSocket document(s):`,
+                        String(event.data).slice(0, 160)
+                    );
+                    busRef.current?.recordParseFailure(failures);
+                }
+
+                if (!hasElements(messages)) {
+                    return;
+                }
+
+                // WS Action Bus. The bus classifies each message, updates the
+                // logical track at ingest, and drives the render track through
+                // committed items (applyRenderTrack, wired via subscribe).
+                for (const message of messages) {
+                    // Table chat (block52-chat#1) shares this socket but is NOT game
+                    // state: divert it to the chat bus, never into the game pipeline.
+                    // Our own messages come back from the relay too; they were
+                    // already echoed locally, so skip them.
+                    const chat = message as { type?: string; from?: string; message?: string; sticker?: string; throw?: string; to?: string; ts?: number };
+                    if (chat?.type === "chat") {
+                        const me = getCosmosAddressSync()?.toLowerCase();
+                        if (typeof chat.message === "string" && chat.from?.toLowerCase() !== me) {
+                            pushChatMessage({ from: chat.from, text: chat.message, sticker: chat.sticker, throwId: chat.throw, to: chat.to, ts: chat.ts ?? Date.now(), mine: false });
+                        }
+                        continue;
+                    }
+                    busRef.current?.ingest(message, tableId);
+                }
+            };
+
+            ws.onclose = () => {
+                if (socketGenRef.current !== gen) return; // superseded: a newer socket owns the state
+                wsRef.current = null;
+                const intentional = intentionalCloseRef.current;
+                intentionalCloseRef.current = false;
+                if (intentional || currentTableIdRef.current !== tableId) return;
+                scheduleReconnectRef.current(tableId);
+            };
+
+            ws.onerror = () => {
+                if (!isCurrent()) return;
+                // The close event follows and drives the reconnect. A page-level
+                // error here would replace a live table with an error page for a
+                // transient blip (ui#613) — log, and let the banner say "reconnecting".
+                console.warn(`[GameStateContext] WebSocket error on table ${tableId}${attempt > 0 ? ` (reconnect attempt ${attempt})` : ""}`);
+            };
+        },
+        [currentNetwork, closeSocket]
+    );
+
+    /**
+     * Bounded reconnect with exponential backoff and jitter (ui#613). Attempts
+     * reset when a frame arrives, on a fresh subscribe, and on a wake (tab
+     * visible / browser online). While the browser reports no network, wait for
+     * the `online` event instead of burning attempts.
+     */
+    const scheduleReconnect = useCallback(
+        (tableId: string) => {
+            if (typeof navigator !== "undefined" && navigator.onLine === false) {
+                console.warn(`[GameStateContext] connection to ${tableId} dropped while offline; waiting for the network`);
+                setConnection({ status: "offline", attempt: reconnectAttemptRef.current });
+                return;
+            }
+            const attempt = reconnectAttemptRef.current + 1;
+            if (attempt > RECONNECT_MAX_ATTEMPTS) {
+                console.error(`[GameStateContext] gave up reconnecting to ${tableId} after ${RECONNECT_MAX_ATTEMPTS} attempts`);
+                setConnection({ status: "offline", attempt: RECONNECT_MAX_ATTEMPTS });
+                setError(new Error(
+                    `Connection to the table was lost and could not be restored after ${RECONNECT_MAX_ATTEMPTS} attempts. ` +
+                    "Check your network, then retry."
+                ));
+                setIsLoading(false);
+                return;
+            }
+            reconnectAttemptRef.current = attempt;
+            const delay = reconnectDelayMs(attempt);
+            console.warn(`[GameStateContext] connection to ${tableId} dropped; reconnecting in ${delay} ms (attempt ${attempt}/${RECONNECT_MAX_ATTEMPTS})`);
+            setConnection({ status: "reconnecting", attempt });
+            reconnectTimerRef.current = setTimeout(() => {
+                reconnectTimerRef.current = null;
+                if (currentTableIdRef.current !== tableId || isReplayModeRef.current) return;
+                openSocket(tableId, attempt);
+            }, delay);
+        },
+        [openSocket]
+    );
+    scheduleReconnectRef.current = scheduleReconnect;
+
+    const subscribeToTable = useCallback(
+        (tableId: string) => {
+            // Enhanced duplicate check to prevent re-subscription loops
+            if (currentTableIdRef.current === tableId && wsRef.current?.readyState === WebSocket.OPEN) {
+                return;
+            }
+
+            // Prevent rapid re-connection attempts
+            if (wsRef.current?.readyState === WebSocket.CONNECTING) {
+                return;
+            }
+
+            setIsLoading(true);
+            setError(null);
+            setValidationError(null);
+            reconnectAttemptRef.current = 0;
+            openSocket(tableId, 0);
+        },
+        [openSocket]
+    );
+
+    /**
+     * Sign again on the open socket when its credentials are due (ui#953). The
+     * relay overwrites what it stored on a subscribe and answers with a snapshot,
+     * an ordinary state frame on the same socket. So no bus reset and no
+     * reconnecting state: the table never notices.
+     */
+    const renewAuthIfDue = useCallback(async () => {
+        const ws = wsRef.current;
+        const tableId = currentTableIdRef.current;
+        if (isNullish(ws) || ws.readyState !== WebSocket.OPEN || !hasValue(tableId) || isReplayModeRef.current) return;
+
+        const nowMs = Date.now();
+        const ownHandMasked = ownHandMaskedRef.current;
+        if (!isAuthRenewalDue({ nowMs, signedAtMs: authSignedAtRef.current, ownHandMasked })) return;
+        authSignedAtRef.current = nowMs;
+
+        if (ownHandMasked) {
+            console.warn(`[GameStateContext] own cards arrived masked on ${tableId}; signing again`);
+        }
+        const authPayload = await createAuthPayload();
+        // No signature, no subscribe: one without would overwrite the relay's
+        // stored credentials, and they may still be good.
+        if (isNullish(authPayload) || wsRef.current !== ws || ws.readyState !== WebSocket.OPEN || currentTableIdRef.current !== tableId) return;
+        ws.send(JSON.stringify({ type: "subscribe", gameId: tableId, ...authPayload }));
+    }, []);
+
+    // The renewal clock (ui#953). A no-op until a socket is open and due.
+    useEffect(() => {
+        const timer = setInterval(() => void renewAuthIfDue(), AUTH_RENEWAL_CHECK_MS);
+        return () => clearInterval(timer);
+    }, [renewAuthIfDue]);
+
+    // The safety net (ui#953): our own cards masked means the relay's authenticated
+    // query failed, whatever the signature's age. The ref lets the clock above keep
+    // retrying on a quiet table, where no further frame would bring us back here.
+    useEffect(() => {
+        ownHandMaskedRef.current = isOwnHandMasked(gameState, localStorage.getItem(STORAGE_KEYS.cosmosAddress));
+        void renewAuthIfDue();
+    }, [gameState, renewAuthIfDue]);
+
+    // Wake-ups (ui#613): a tab coming back from the background (mobile
+    // browsers drop sockets there, often without a prompt onclose) or the
+    // browser coming back online reconnects immediately with a fresh attempt
+    // count; going offline is surfaced without burning attempts.
+    useEffect(() => {
+        const wake = (reason: string) => {
+            const tableId = currentTableIdRef.current;
+            if (!tableId || isReplayModeRef.current) return;
+            const state = wsRef.current?.readyState;
+            if (state === WebSocket.CONNECTING) return;
+            // An open socket marked offline survived a browser `offline` event: it
+            // may be half-dead or have missed frames, and a quiet table (it is
+            // someone's turn) sends nothing to prove otherwise, so re-subscribe
+            // for a fresh snapshot instead of staying offline (ui#867). Any other
+            // open socket is live or already waiting on its first frame, but it may
+            // have spent long enough in the background to need signing (ui#953).
+            if (state === WebSocket.OPEN && connectionRef.current.status !== "offline") {
+                void renewAuthIfDue();
+                return;
+            }
+            console.warn(`[GameStateContext] ${reason}: socket not live; reconnecting now`);
+            if (reconnectTimerRef.current) {
+                clearTimeout(reconnectTimerRef.current);
+                reconnectTimerRef.current = null;
+            }
+            reconnectAttemptRef.current = 1;
+            openSocket(tableId, 1);
+        };
+        const onVisibilityChange = () => {
+            if (document.visibilityState === "visible") wake("tab visible");
+        };
+        const onOnline = () => wake("browser online");
+        const onOffline = () => {
+            setConnection(prev => (prev.status === "idle" ? prev : { status: "offline", attempt: prev.attempt }));
+        };
+        document.addEventListener("visibilitychange", onVisibilityChange);
+        window.addEventListener("online", onOnline);
+        window.addEventListener("offline", onOffline);
+        return () => {
+            document.removeEventListener("visibilitychange", onVisibilityChange);
+            window.removeEventListener("online", onOnline);
+            window.removeEventListener("offline", onOffline);
+        };
+    }, [openSocket, renewAuthIfDue]);
+
+    const unsubscribeFromTable = useCallback(() => {
+        // An intentional close: no reconnect, no timers left behind.
+        closeSocket(true);
+        reconnectAttemptRef.current = 0;
+        setConnection(IDLE_CONNECTION);
+
+        currentTableIdRef.current = null;
+        hasReceivedMessageRef.current = false;
+        busRef.current?.reset();
+        setLatestStreamItem(null);
+        setGameState(undefined);
+        setIsOptimistic(false);
+        track.set(undefined, { optimistic: false });
+        setGameFormat(undefined);
+        setGameVariant(undefined);
+        setGameName(undefined);
+        setIsLoading(false);
+        setError(null);
+        setValidationError(null);
+        setPendingAction(null);
+    }, [closeSocket, track]);
+
+    // Send action through WebSocket for immediate broadcast
+    const sendAction = useCallback(
+        async (action: string, amount?: string): Promise<void> => {
+            if (!wsRef.current || wsRef.current.readyState !== WebSocket.OPEN) {
+                throw new Error("WebSocket not connected");
+            }
+
+            if (!currentTableIdRef.current) {
+                throw new Error("Not subscribed to a table");
+            }
+
+            // Get Cosmos player address
+            const playerAddress = localStorage.getItem(STORAGE_KEYS.cosmosAddress);
+
+            if (!playerAddress) {
+                throw new Error("No Block52 wallet address found. Please connect your wallet.");
+            }
+
+            const actionMessage = {
+                type: "action",
+                gameId: currentTableIdRef.current,
+                playerAddress: playerAddress,
+                action: action,
+                amount: amount
+            };
+
+            wsRef.current.send(JSON.stringify(actionMessage));
+        },
+        []
+    );
+
+    // Read-only replay for share links (no WebSocket, no actions):
+    //   actionIndex = K    → GameStateAt (pokerchain#160): the current hand only, with
+    //                        previousActions truncated at K.
+    //   actionIndex = null → the hand's FINAL state (showdown or last action), for any
+    //                        hand still in the node's history (~30 days): tx_search the
+    //                        hand_ended event, then the public state AT that block via
+    //                        abci_query. Hole cards come back masked except those shown.
+    const loadHistoricalState = useCallback(
+        async (tableId: string, handNumber: number, actionIndex: number | null): Promise<void> => {
+            // Clean up any existing WebSocket connection — replay mode is a one-shot
+            // fetch, so this close must not reconnect (ui#613).
+            closeSocket(true);
+            isReplayModeRef.current = true;
+            reconnectAttemptRef.current = 0;
+            setConnection(IDLE_CONNECTION);
+
+            // Replay bypasses the bus entirely; drop any queued live frames and
+            // any derived-event state (replay has no pacing/event semantics).
+            busRef.current?.reset();
+            setLatestStreamItem(null);
+
+            setIsLoading(true);
+            setError(null);
+            setValidationError(null);
+            setIsReplayMode(true);
+            setReplayHandNumber(handNumber);
+            setReplayActionIndex(actionIndex);
+            currentTableIdRef.current = tableId;
+
+            // Snapshots are TexasHoldemStateDTOs without the table's format/variant/name,
+            // which never change for a table: read them once from the Game record so
+            // Sit & Go chips aren't rendered as USDC.
+            const restApi = new CosmosApi({ baseUrl: currentNetwork.rest!, secure: false, timeout: 10000 });
+            const tableMeta = restApi
+                .getGame(tableId)
+                .then(parseGameRecordResponse)
+                .catch(err => {
+                    console.error("[GameStateContext] Failed to load table format for replay:", err);
+                    return null;
+                });
+            const apply = async (p: ParsedGameState) => {
+                const meta = await tableMeta;
+                setGameState(p.state);
+                setGameFormat(toGameFormat(p.format ?? meta?.format));
+                setGameVariant(toGameVariant(p.variant ?? meta?.variant));
+                setGameName(p.name ?? meta?.name);
+                setPendingAction(null);
+            };
+
+            try {
+                if (hasValue(actionIndex)) {
+                    const response = (await restApi.getGameStateAt(tableId, handNumber, actionIndex)) as { game_state?: string };
+                    if (!response || !response.game_state) {
+                        throw new Error(`No game state found for hand ${handNumber} at action ${actionIndex}`);
+                    }
+                    await apply(parseGameStateJson(response.game_state));
+                    return;
+                }
+
+                const request = encodeStringField1(tableId);
+                const failures: string[] = [];
+                let skipped = false;
+                for (const network of historyNetworks(currentNetwork, NETWORK_PRESETS)) {
+                    const rpc = cometRpcApiFactory(network.rpc);
+                    const stateAt = async (height: number) =>
+                        parseGameStateJson(parseAbciStringResponse(await rpc.abciQuery(GAME_STATE_PUBLIC_PATH, request, height)));
+                    try {
+                        const endHeight = parseTxSearchHeight(await rpc.txSearch(handEndedQuery(tableId, handNumber)));
+                        if (isNullish(endHeight)) {
+                            // Not ended on this node: it may be the hand being played now.
+                            const now = await stateAt(0);
+                            if (now.state.handNumber === handNumber) {
+                                await apply(now);
+                                return;
+                            }
+                            // Started but never ended: a duplicate new-hand in the same block
+                            // replaces it before any play, so there is nothing to show.
+                            const startHeight = parseTxSearchHeight(await rpc.txSearch(handStartedQuery(tableId, handNumber)));
+                            if (hasValue(startHeight)) {
+                                const atStart = await stateAt(startHeight);
+                                if (atStart.state.handNumber === handNumber) {
+                                    await apply(atStart);
+                                    return;
+                                }
+                                skipped = true;
+                                failures.push(`${network.name}: hand ${handNumber} started at block ${startHeight} and was replaced in the same block`);
+                                continue;
+                            }
+                            failures.push(`${network.name}: no record of hand ${handNumber}`);
+                            continue;
+                        }
+                        // The end block normally holds the final state. If the next hand
+                        // started in the same block, the block before has this hand's last action.
+                        for (const height of snapshotHeights(endHeight)) {
+                            const snap = await stateAt(height);
+                            if (snap.state.handNumber === handNumber) {
+                                await apply(snap);
+                                return;
+                            }
+                        }
+                        failures.push(`${network.name}: hand ${handNumber} ended at block ${endHeight} but its state isn't available`);
+                    } catch (err) {
+                        // Typically pruned history ("version does not exist") or an unreachable node.
+                        failures.push(`${network.name}: ${err instanceof Error ? err.message : String(err)}`);
+                    }
+                }
+                console.error("[GameStateContext] Hand replay lookups failed:", failures);
+                if (skipped) {
+                    throw new Error(`Hand #${handNumber} has nothing to show: the next hand started in the same block, before any cards were played.`);
+                }
+                throw new Error(
+                    `Hand #${handNumber} of this table couldn't be loaded. It may not exist yet, or it may be older than the ~30 days of history the nodes keep.`
+                );
+            } catch (err) {
+                console.error("[GameStateContext] Failed to load historical state:", err);
+                setError(err instanceof Error ? err : new Error("Failed to load historical state"));
+            } finally {
+                setIsLoading(false);
+            }
+        },
+        [currentNetwork, cometRpcApiFactory]
+    );
+
+    /**
+     * One step of a hand replay (ui#816): the table as it stood at `height`,
+     * read like `?hand=N` reads the final state (abci_query of the public game
+     * state at that block — hole cards as revealed by then). Keeps the socket
+     * closed and the bus quiet like loadHistoricalState, but does NOT raise
+     * isLoading: the previous step stays on screen until the next one lands,
+     * so playback never flashes the loading board between steps. `known` holds
+     * the hole cards the viewer is entitled to see across the whole hand (shown
+     * at showdown, or their own): they replace the step's masked hands.
+     */
+    const loadHistoricalStateAtHeight = useCallback(
+        async (tableId: string, handNumber: number, height: number, step: number | null, known: KnownHoleCards = NO_KNOWN_CARDS): Promise<void> => {
+            closeSocket(true);
+            isReplayModeRef.current = true;
+            reconnectAttemptRef.current = 0;
+            setConnection(IDLE_CONNECTION);
+            busRef.current?.reset();
+            setLatestStreamItem(null);
+            setError(null);
+            setValidationError(null);
+            setIsReplayMode(true);
+            setReplayHandNumber(handNumber);
+            setReplayActionIndex(step);
+            currentTableIdRef.current = tableId;
+
+            const request = encodeStringField1(tableId);
+            const failures: string[] = [];
+            for (const network of historyNetworks(currentNetwork, NETWORK_PRESETS)) {
+                try {
+                    const rpc = cometRpcApiFactory(network.rpc);
+                    const snap = parseGameStateJson(parseAbciStringResponse(await rpc.abciQuery(GAME_STATE_PUBLIC_PATH, request, height)));
+                    setGameState(overlayKnownHoleCards(snap.state, known));
+                    // Format/variant/name never change for a table: keep what the
+                    // hand's first load set unless this snapshot carries them.
+                    if (snap.format) setGameFormat(toGameFormat(snap.format));
+                    if (snap.variant) setGameVariant(toGameVariant(snap.variant));
+                    if (snap.name) setGameName(snap.name);
+                    setPendingAction(null);
+                    return;
+                } catch (err) {
+                    failures.push(`${network.name}: ${err instanceof Error ? err.message : String(err)}`);
+                }
+            }
+            console.error("[GameStateContext] Hand replay step failed:", failures);
+            setError(new Error(`Hand #${handNumber}: block ${height} couldn't be loaded. It may be older than the history the nodes keep.`));
+        },
+        [currentNetwork, cometRpcApiFactory]
+    );
+
+    // Cleanup on unmount
+    useEffect(() => {
+        return () => {
+            if (fallbackTimeoutRef.current) {
+                clearTimeout(fallbackTimeoutRef.current);
+            }
+            if (reconnectTimerRef.current) {
+                clearTimeout(reconnectTimerRef.current);
+            }
+            if (wsRef.current) {
+                intentionalCloseRef.current = true;
+                wsRef.current.close();
+            }
+        };
+    }, []);
+
+    return (
+        <LogicalTrackProvider value={track}>
+            <GameActionsProvider
+                subscribeToTable={subscribeToTable}
+                unsubscribeFromTable={unsubscribeFromTable}
+                sendAction={sendAction}
+                loadHistoricalState={loadHistoricalState}
+                loadHistoricalStateAtHeight={loadHistoricalStateAtHeight}
+            >
+                <GameMetaProvider gameFormat={gameFormat} gameVariant={gameVariant} gameName={gameName}>
+                    <ReplayProvider
+                        isReplayMode={isReplayMode}
+                        replayHandNumber={replayHandNumber}
+                        replayActionIndex={replayActionIndex}
+                    >
+                        <GameUIProvider
+                            isLoading={isLoading}
+                            error={error}
+                            validationError={validationError}
+                            pendingAction={pendingAction}
+                            connection={connection}
+                        >
+                            <GameEventsProvider latestItem={latestStreamItem} ackAnimation={ackAnimation} isPlayingSuspense={isPlayingSuspense}>
+                                <GameDataProvider gameState={gameState} isOptimistic={isOptimistic}>
+                                    {children}
+                                </GameDataProvider>
+                            </GameEventsProvider>
+                        </GameUIProvider>
+                    </ReplayProvider>
+                </GameMetaProvider>
+            </GameActionsProvider>
+        </LogicalTrackProvider>
+    );
+};
+
+/**
+ * Legacy aggregator hook. Returns the same shape as the old monolithic context.
+ *
+ * Prefer the granular hooks (useGameData, useGameMeta, useGameUI, useReplay,
+ * useGameActions) in new code so consumers only re-render on the slice they
+ * actually depend on.
+ */
+export const useGameStateContext = (): GameStateContextType => {
+    const { gameState } = useGameData();
+    const { gameFormat, gameVariant, gameName } = useGameMeta();
+    const { isLoading, error, validationError, pendingAction, connection } = useGameUI();
+    const { isReplayMode, replayHandNumber, replayActionIndex } = useReplay();
+    const { subscribeToTable, unsubscribeFromTable, sendAction, loadHistoricalState, loadHistoricalStateAtHeight } = useGameActions();
+
+    return useMemo(
+        () => ({
+            gameState,
+            gameFormat,
+            gameVariant,
+            gameName,
+            isLoading,
+            error,
+            validationError,
+            pendingAction,
+            connection,
+            isReplayMode,
+            replayHandNumber,
+            replayActionIndex,
+            subscribeToTable,
+            unsubscribeFromTable,
+            sendAction,
+            loadHistoricalState,
+            loadHistoricalStateAtHeight
+        }),
+        [
+            gameState,
+            gameFormat,
+            gameVariant,
+            gameName,
+            isLoading,
+            error,
+            validationError,
+            pendingAction,
+            connection,
+            isReplayMode,
+            replayHandNumber,
+            replayActionIndex,
+            subscribeToTable,
+            unsubscribeFromTable,
+            sendAction,
+            loadHistoricalState,
+            loadHistoricalStateAtHeight
+        ]
+    );
+};

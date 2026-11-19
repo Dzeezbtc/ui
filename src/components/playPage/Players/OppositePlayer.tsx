@@ -1,0 +1,238 @@
+/**
+ * OppositePlayer Component
+ *
+ * Represents other players at the poker table (not the current user).
+ * Displays player's cards, stack, status, and winner information.
+ *
+ * Props:
+ * - left/top: Position on the table
+ * - index: Seat number
+ * - color: Player's color theme
+ * - cardBackStyle: Style for card backs
+ */
+
+import * as React from "react";
+import { useTableId } from "../../../context/TableIdContext";
+import Badge from "../common/Badge";
+import { useWinnerInfo } from "../../../hooks/game/useWinnerInfo";
+import { useWinnerCards } from "../../../hooks/game/useWinnerCards";
+import { usePlayerData } from "../../../hooks/player/usePlayerData";
+import { useShowingCardsByAddress } from "../../../hooks/player/useShowingCardsByAddress";
+import { useDealerPosition } from "../../../hooks/game/useDealerPosition";
+import { useSitAndGoPlayerResults } from "../../../hooks/game/useSitAndGoPlayerResults";
+import { getCardImageUrl, getCardBackUrl, CardBackStyle } from "../../../utils/cardImages";
+import { useAllInEquity } from "../../../hooks/player/useAllInEquity";
+import { useProfileAvatar } from "../../../context/profile/ProfileAvatarContext";
+import { usePlayerTimer } from "../../../hooks/player/usePlayerTimer";
+import { hasElements } from "../../../utils/guards";
+import { winnerCardHighlight } from "../../../utils/holeCardLayout";
+import { HoleCardRow } from "./HoleCardRow";
+import { getSeatOpacityClass } from "../../../utils/seatOpacity";
+import SeatChatBubble from "../../../chat/SeatChatBubble";
+import styles from "./PlayersCommon.module.css";
+import { NftAvatarImage } from "../../profile/NftAvatarImage";
+import { usePlayerNote } from "../../../hooks/player/usePlayerNotes";
+import { PlayerNoteTags } from "./PlayerNoteTags";
+import { PlayerNotesPanel } from "./PlayerNotesPanel";
+import { seatGradient } from "../../../utils/cardFace";
+import { getStageDims, holeCardSideFor } from "../../../config/stageGeometry";
+
+type OppositePlayerProps = {
+    left?: string;
+    top?: string;
+    index: number;
+    currentIndex: number;
+    color?: string;
+    status?: string;
+    uiPosition?: number;
+    cardBackStyle?: CardBackStyle;
+};
+
+const OppositePlayer: React.FC<OppositePlayerProps> = React.memo(({ left, top, index, color, uiPosition, cardBackStyle }) => {
+    const id = useTableId();
+    const { playerData, stackValue, isFolded, isAllIn, isSeated, isSittingOut, holeCards, round } = usePlayerData(index);
+    const { winnerInfo, winnerBySeat } = useWinnerInfo();
+    const winnerCards = useWinnerCards();
+    const { isActive: isTurnTimerActive } = usePlayerTimer(id, index);
+    const { equities, shouldShow: shouldShowEquity } = useAllInEquity();
+    const { getAvatarForAddress } = useProfileAvatar();
+
+    // Get equity for this player if available
+    const playerEquity = React.useMemo((): number | null => {
+        if (!shouldShowEquity || !equities.has(index)) return null;
+        return equities.get(index) ?? null;
+    }, [shouldShowEquity, equities, index]);
+    const { showingBySeat } = useShowingCardsByAddress();
+    const { dealerSeat } = useDealerPosition();
+
+    // Check if this seat is the dealer
+    const isDealer = dealerSeat === index;
+
+    // Get tournament results for this seat
+    const { getSeatResult, isSitAndGo } = useSitAndGoPlayerResults();
+    const tournamentResult = React.useMemo(() => {
+        return isSitAndGo ? getSeatResult(index) : null;
+    }, [getSeatResult, isSitAndGo, index]);
+
+    // 1) detect when any winner exists
+    const hasWinner = React.useMemo(() => hasElements(winnerInfo), [winnerInfo]);
+
+    // Check if this player is a winner via the shared seat index (#2455)
+    const isWinner = React.useMemo(() => winnerBySeat.has(index), [winnerBySeat, index]);
+
+    // 2) dim the seat based on how involved this player is in the hand
+    //    (see getSeatOpacityClass — dims seated/sitting-out/sitting-in/busted/folded).
+    const opacityClass = getSeatOpacityClass({ status: playerData?.status, hasWinner, isWinner });
+
+    // Get winner amount if this player is a winner
+    const winnerAmount = React.useMemo(() => {
+        return winnerBySeat.get(index)?.formattedAmount ?? null;
+    }, [winnerBySeat, index]);
+
+    // Get winner hand description (e.g. "Full House") if this player is a winner
+    const winnerHandDescription = React.useMemo(() => {
+        return winnerBySeat.get(index)?.description ?? null;
+    }, [winnerBySeat, index]);
+
+    // Check if this player is showing cards
+    const isShowingCards = showingBySeat.has(index);
+
+    // Get the showing cards for this player if available
+    const showingCards = showingBySeat.get(index)?.holeCards ?? null;
+
+    const selectedAvatarUrl = React.useMemo(() => {
+        return getAvatarForAddress(playerData?.address, playerData?.avatar);
+    }, [getAvatarForAddress, playerData?.address, playerData?.avatar]);
+
+    // Player notes and tags (ui#947): click the seat to open the notes box.
+    const { note } = usePlayerNote(playerData?.address);
+    const seatRef = React.useRef<HTMLDivElement>(null);
+    const [isNotesOpen, setIsNotesOpen] = React.useState(false);
+    const openNotes = React.useCallback(() => setIsNotesOpen(true), []);
+    const closeNotes = React.useCallback(() => setIsNotesOpen(false), []);
+    const handleSeatKeyDown = React.useCallback((e: React.KeyboardEvent) => {
+        if (e.key === "Enter" || e.key === " ") {
+            e.preventDefault();
+            setIsNotesOpen(true);
+        }
+    }, []);
+
+    if (!playerData) {
+        return <></>;
+    }
+
+    return (
+        <>
+            {/* Main player display */}
+            <div
+                key={index}
+                ref={seatRef}
+                className={`${opacityClass} absolute flex flex-col justify-center w-[160px] h-[140px] transform -translate-x-1/2 -translate-y-1/2 cursor-pointer z-[10] ${styles.secondaryText} ${styles.positionTransition}`}
+                style={{
+                    left: left,
+                    top: top
+                }}
+                onClick={openNotes}
+                onKeyDown={handleSeatKeyDown}
+                role="button"
+                tabIndex={0}
+                aria-label={`Player notes for seat ${index}`}
+                data-testid={`opponent-seat-${index}`}
+                data-part="seat"
+                data-card-side={holeCardSideFor(left ?? "0", getStageDims().tableWidth)}
+            >
+                {/* Table chat (block52-chat#3): this player's sticker or message pops up above the seat. */}
+                <SeatChatBubble address={playerData?.address} />
+                {/* Development Mode Debug Info */}
+                {import.meta.env.VITE_NODE_ENV === "development" && (
+                    <div className="absolute top-[-60px] left-1/2 transform -translate-x-1/2 bg-blue-600 bg-opacity-80 text-white px-2 py-1 rounded text-[10px] whitespace-nowrap z-50 border border-blue-400">
+                        <div className="text-blue-200">UI Pos: {uiPosition ?? "N/A"}</div>
+                        <div className="text-yellow-300">Seat: {index}</div>
+                        <div className="text-gray-200">XY: {left}, {top}</div>
+                        <div className="text-orange-300">Addr: ...{playerData?.address ? playerData.address.slice(-3) : "N/A"}</div>
+                    </div>
+                )}
+                <div className="flex justify-center gap-1" data-part="hole-cards" data-shown={isShowingCards && hasElements(showingCards) ? "true" : undefined}>
+                    {hasElements(holeCards) && !isFolded ? (
+                        isShowingCards && hasElements(showingCards) ? (
+                            // Show the actual cards if player is showing
+                            <HoleCardRow
+                                cards={showingCards.map((card, i) => ({
+                                    key: `${i}-${card}`,
+                                    src: getCardImageUrl(card),
+                                    code: card,
+                                    alt: `Player Card ${i + 1}`,
+                                    highlight: winnerCardHighlight(card, isWinner, winnerCards)
+                                }))}
+                            />
+                        ) : (
+                            // Show card backs for opponents (they shouldn't see actual cards);
+                            // one back per dealt card — two for Hold'em, four for Omaha (ui#768)
+                            <HoleCardRow
+                                cards={holeCards.map((_card, i) => ({
+                                    key: `back-${i}`,
+                                    src: getCardBackUrl(cardBackStyle),
+                                    alt: "Opposite Player Card",
+                                    className: "rounded-[5px]"
+                                }))}
+                            />
+                        )
+                    ) : (
+                        <div className="w-[120px] h-[80px]"></div>
+                    )}
+                </div>
+                <div className="relative flex flex-col justify-end mt-[-6px] mx-1">
+                    {/* Flagship skin only: the round gradient avatar (its stylesheet shows it) */}
+                    <span data-part="seat-avatar" aria-hidden="true" style={{ background: seatGradient(index) }} />
+                    {/* Flagship skin only: the dealer button sits on the dealer's own avatar */}
+                    {isDealer && <span data-part="seat-dealer" aria-label="Dealer">D</span>}
+                    {selectedAvatarUrl && (
+                        <NftAvatarImage
+                            src={selectedAvatarUrl}
+                            alt="Player avatar"
+                            imgClassName={styles.avatarImage}
+                            chipClassName={styles.avatarChip}
+                            fallbackClassName={`${styles.avatarChip} ${styles.avatarFallback}`}
+                        />
+                    )}
+                    {/* Spacer preserves the 55px flow height the old status bar occupied */}
+                    <div className="w-full h-[55px]" />
+                    <div className="absolute top-[-10px] w-full">
+                        <Badge
+                            count={index}
+                            value={stackValue}
+                            color={color}
+                            tournamentPlace={tournamentResult?.place}
+                            tournamentPayout={tournamentResult?.payout}
+                            isWinner={isWinner}
+                            winnerAmount={winnerAmount}
+                            winnerHandDescription={winnerHandDescription}
+                            isTurnTimerActive={isTurnTimerActive}
+                            round={round}
+                            isFolded={isFolded}
+                            isAllIn={isAllIn}
+                            isSeated={isSeated}
+                            isSittingOut={isSittingOut}
+                            playerEquity={playerEquity}
+                        />
+                        <PlayerNoteTags note={note} />
+                    </div>
+
+                    {/* Dealer Button */}
+                    {/* Dealer Button — rendered at table level using geometry positions */}
+                </div>
+            </div>
+            {isNotesOpen && <PlayerNotesPanel playerAddress={playerData.address} seat={index} anchor={seatRef.current} onClose={closeNotes} />}
+        </>
+    );
+}, (prevProps, nextProps) => {
+    // Custom comparison function - only re-render if meaningful props change
+    return (
+        prevProps.left === nextProps.left &&
+        prevProps.top === nextProps.top &&
+        prevProps.index === nextProps.index &&
+        prevProps.color === nextProps.color
+    );
+});
+
+export default OppositePlayer;

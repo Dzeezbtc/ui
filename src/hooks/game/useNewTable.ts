@@ -1,0 +1,217 @@
+import { useState, useCallback } from "react";
+import { BettingLimit, GameFormat, GameVariant, COSMOS_CONSTANTS, BlindStructureDTO } from "@block52/poker-vm-sdk";
+import { getSigningClient, getCosmosClient } from "../../utils/cosmos/client";
+import { useNetwork } from "../../context/NetworkContext";
+import { friendlyCreateTableError } from "../../utils/tableName";
+import {  convertBlindsForBlockchain } from "../../utils/gameFormatUtils";
+import { DEFAULT_TIMEOUT_SECONDS } from "../../utils/timerUtils";
+import { usdcToMicroBigInt } from "../../constants/currency";
+import { hasValue } from "../../utils/guards";
+
+// Type for rake configuration options
+export interface RakeOptions {
+    rakeFreeThreshold: number;  // Pot threshold in USDC below which no rake is taken
+    rakePercentage: number;     // Percentage of pot taken as rake (0-100)
+    rakeCap: number;            // Maximum rake amount in USDC per hand
+    owner: string;              // Address that receives the rake
+}
+
+// Type for SNG/Tournament specific options
+export interface SNGOptions {
+    startingStack: number;       // Starting chips for each player (in chips, not dollars)
+    blindLevelDuration?: number; // Minutes per blind level (default: 10)
+    blindStructure?: BlindStructureDTO; // Blind structure (poker-vm#1734, ui#860): a preset or a custom structure; omitted = the blinds double every blindLevelDuration minutes
+    entryFee?: number;           // Flat entry fee in USDC dollars (2dp), skimmed to the creator; omitted/0 = no fee (poker-vm#2118)
+    startTime?: number;          // Scheduled start, unix seconds (poker-vm#2680): a tournament starts then with >= minPlayers, never earlier; a sit-and-go has none
+    lateRegistrationLevels?: number; // Late registration (poker-vm#2731): joins stay open after the start for this many blind levels; needs startTime; omitted = the field is fixed at the start
+}
+
+// Type for creating new table options
+export interface CreateTableOptions {
+    format: GameFormat;
+    variant: GameVariant;       // Texas Hold'em or Omaha (ui#768)
+    bettingLimit: BettingLimit; // no-limit or pot-limit; independent of the variant (poker-vm#2652)
+    minBuyIn: number;
+    maxBuyIn: number;
+    minPlayers: number;
+    maxPlayers: number;
+    smallBlind: number;
+    bigBlind: number;
+    rake?: RakeOptions;         // Optional rake configuration
+    sng?: SNGOptions;           // Optional SNG/Tournament configuration
+    name?: string;              // Optional paid ENS-style table name ($0.10/char); empty = unnamed, free (poker-vm#337)
+}
+
+// Type for useNewTable hook return
+export interface UseNewTableReturn {
+    createTable: (gameOptions: CreateTableOptions) => Promise<{ txHash: string; gameId: string | null } | null>;
+    isCreating: boolean;
+    error: Error | null;
+    newGameId: string | null;
+}
+
+/**
+ * Custom hook to create a new game on Cosmos blockchain using SigningCosmosClient
+ * @returns Object with createTable function, loading state, and error
+ */
+export const useNewTable = (): UseNewTableReturn => {
+    const [isCreating, setIsCreating] = useState(false);
+    const [error, setError] = useState<Error | null>(null);
+    const [newGameId, setNewGameId] = useState<string | null>(null);
+    const { currentNetwork } = useNetwork();
+
+    const createTable = useCallback(async (
+        gameOptions: CreateTableOptions
+    ): Promise<{ txHash: string; gameId: string | null } | null> => {
+        setIsCreating(true);
+        setError(null);
+        setNewGameId(null);
+
+        try {
+            const { signingClient, userAddress: _userAddress } = await getSigningClient(currentNetwork);
+
+            // Convert buy-in amounts from dollars to USDC micro-units (1 USDC = 1,000,000 micro-units)
+            // For both cash games and tournaments, the buy-in is specified in dollars, so we convert to micro-units for blockchain
+            const minBuyInB52USDC = usdcToMicroBigInt(gameOptions.minBuyIn);
+            const maxBuyInB52USDC = usdcToMicroBigInt(gameOptions.maxBuyIn);
+
+            // Convert blind values based on game format using utility function
+            // For cash games: converts from dollars to USDC micro-units
+            // For tournaments: uses chip values directly
+            const { smallBlind: smallBlindB52USDC, bigBlind: bigBlindB52USDC } = convertBlindsForBlockchain(
+                gameOptions.format,
+                gameOptions.smallBlind,
+                gameOptions.bigBlind
+            );
+
+            // Convert rake options if provided
+            let rakeConfig = undefined;
+            if (gameOptions.rake) {
+                const rakeFreeThresholdB52USDC = usdcToMicroBigInt(gameOptions.rake.rakeFreeThreshold);
+                const rakeCapB52USDC = usdcToMicroBigInt(gameOptions.rake.rakeCap);
+
+                rakeConfig = {
+                    rakeFreeThreshold: rakeFreeThresholdB52USDC,
+                    rakePercentage: gameOptions.rake.rakePercentage,
+                    rakeCap: rakeCapB52USDC,
+                    owner: gameOptions.rake.owner
+                };
+            }
+
+            // Convert SNG options if provided. The SDK's SNGConfig requires
+            // blindLevelDuration; when the caller omits it we pass 0 (NO invented
+            // default — Commandment #7). The chain rejects a zero
+            // blindLevelDuration (poker-vm#2282), so a missing value fails loud
+            // at the chain level rather than being papered over in the UI.
+            let sngConfig = undefined;
+            if (gameOptions.sng) {
+                sngConfig = {
+                    startingStack: BigInt(gameOptions.sng.startingStack),
+                    blindLevelDuration: gameOptions.sng.blindLevelDuration ?? 0,
+                    // Blind structure (ui#860): the engine derives every level from it;
+                    // omitted = doubling.
+                    ...(gameOptions.sng.blindStructure && { blindStructure: gameOptions.sng.blindStructure }),
+                    // Entry fee is quoted in USDC dollars (like the buy-in) and
+                    // converted to micro-units for the chain. Omitted/0 = no fee.
+                    entryFee: hasValue(gameOptions.sng.entryFee) ? usdcToMicroBigInt(gameOptions.sng.entryFee) : 0n,
+                    // Scheduled start (poker-vm#2680). Omitted = unscheduled; the SDK
+                    // then leaves the field out of the tx.
+                    ...(hasValue(gameOptions.sng.startTime) && { startTime: gameOptions.sng.startTime }),
+                    // Late registration (poker-vm#2731). Omitted = none.
+                    ...(hasValue(gameOptions.sng.lateRegistrationLevels) && { lateRegistrationLevels: gameOptions.sng.lateRegistrationLevels })
+                };
+            }
+
+            // Game format is already in kebab-case from GameFormat enum
+            const gameFormat = gameOptions.format;
+            const gameVariant = gameOptions.variant;
+
+            // Timeout in seconds from centralised timer config
+            const timeoutSeconds = DEFAULT_TIMEOUT_SECONDS;
+
+            // Optional paid table name (poker-vm#337). Trim and pass through;
+            // empty/omitted = unnamed table, no charge. The chain computes the
+            // per-character fee and debits the creator (SDK computeGameNameFee is
+            // the shared cost formula for the UI preview).
+            const gameName = gameOptions.name?.trim() || undefined;
+
+            // Call SigningCosmosClient.createGame()
+            const txHash = await signingClient.createGame(
+                gameFormat,
+                gameVariant,
+                gameOptions.minPlayers,
+                gameOptions.maxPlayers,
+                minBuyInB52USDC,
+                maxBuyInB52USDC,
+                smallBlindB52USDC,
+                bigBlindB52USDC,
+                timeoutSeconds,
+                rakeConfig,
+                sngConfig,
+                gameName,
+                gameOptions.bettingLimit
+            );
+
+            if (txHash) {
+                setNewGameId(txHash);
+
+                const cosmosClient = getCosmosClient(currentNetwork);
+
+                if (!cosmosClient) {
+                    setError(new Error("Table creation failed - no blockchain client for this network."));
+                    return null;
+                }
+
+                // Wait a moment for the transaction to be indexed
+                await new Promise(resolve => setTimeout(resolve, 2000));
+
+                let tx;
+                try {
+                    tx = await cosmosClient.getTx(txHash);
+                } catch (_txError) {
+                    // Indexer hiccup — tx is on-chain but we couldn't fetch it.
+                    return { txHash, gameId: null };
+                }
+
+                // Chain accepted the tx into a block but the message can still
+                // have failed (non-zero code). Surface the raw_log so the UI
+                // doesn't show a misleading success state.
+                const code = tx?.tx_response?.code;
+                if (hasValue(code) && code !== 0) {
+                    throw new Error(tx?.tx_response?.raw_log || `tx failed with code ${code}`);
+                }
+
+                // Extract game_id from game_created event
+                let gameId: string | null = null;
+                if (tx?.tx_response?.events) {
+                    const gameCreatedEvent = tx.tx_response.events.find((e: any) => e.type === "game_created");
+                    if (gameCreatedEvent) {
+                        const gameIdAttr = gameCreatedEvent.attributes?.find((a: any) => a.key === "game_id");
+                        if (gameIdAttr) {
+                            gameId = gameIdAttr.value;
+                        }
+                    }
+                }
+
+                return { txHash, gameId };
+            } else {
+                setError(new Error("Table creation failed - no transaction hash returned."));
+                return null;
+            }
+        } catch (err) {
+            const errorMessage = err instanceof Error ? err.message : "Failed to create game on blockchain";
+            // One readable sentence, not the chain's wrapped tx error (ui#878).
+            setError(new Error(friendlyCreateTableError(errorMessage)));
+            return null;
+        } finally {
+            setIsCreating(false);
+        }
+    }, [currentNetwork]);
+
+    return {
+        createTable,
+        isCreating,
+        error,
+        newGameId
+    };
+};

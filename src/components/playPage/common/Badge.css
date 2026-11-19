@@ -1,0 +1,419 @@
+/* Badge Component Styles */
+.badge-container {
+  position: relative;
+  display: flex;
+  align-items: center;
+  background-color: #c0d6d9;
+  border-radius: 9999px;
+  padding: 0.125rem 0.5rem 0.125rem 0.125rem;
+  box-shadow: 1px 2px 6px 3px color-mix(in srgb, #000000 30%, transparent);
+}
+
+/* Sits outside the pill, just left of the seat number (ui#19). */
+.badge-leading {
+  position: absolute;
+  right: 100%;
+  top: 50%;
+  transform: translateY(-50%);
+  margin-right: 0.375rem;
+  display: flex;
+  z-index: 21;
+}
+
+.equity-chip {
+  position: absolute;
+  top: -19px;
+  left: -6px;
+  background-color: rgba(0, 0, 0, 0.8);
+  color: #facc15;
+  font-weight: 700;
+  font-size: 0.75rem;
+  line-height: 1;
+  padding: 0.25rem 0.5rem;
+  border-radius: 9999px;
+  border: 1px solid #facc15;
+  box-shadow: 0 2px 6px rgba(0, 0, 0, 0.4);
+  pointer-events: none;
+  z-index: 20;
+  white-space: nowrap;
+}
+
+.badge-number {
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  width: 1.5rem;
+  height: 1.5rem;
+  color: white;
+  font-size: 0.875rem;
+  font-weight: 700;
+  border-radius: 9999px;
+}
+
+.badge-value {
+  margin-left: 0.5rem;
+  font-size: 1.25rem;
+  font-weight: 600;
+  color: black;
+  display: flex;
+  justify-content: space-between;
+  margin-left: auto;
+  margin-right: auto;
+}
+
+@media (min-width: 640px) {
+  .badge-value {
+    font-size: 1.125rem;
+  }
+}
+
+/* Action Display Styles */
+.action-display-container {
+  position: absolute;
+  top: 100%;
+  left: 0;
+  right: 0;
+  margin-top: -22px;
+  height: 55px;
+  overflow: hidden;
+  z-index: -10;
+  display: flex;
+  justify-content: center;
+  align-items: flex-end;
+  transition: transform 0.5s ease-in-out, opacity 0.5s ease-in-out;
+}
+
+/* Unified Seat Banner Shell — single container for all banner modes */
+.seat-banner-shell {
+  position: absolute;
+  top: 100%;
+  left: 0;
+  right: 0;
+  margin-top: -22px;
+  height: 55px;
+  overflow: hidden;
+  z-index: -10;
+  display: flex;
+  justify-content: center;
+  align-items: flex-end;
+  transition: transform 0.3s ease-out, opacity 0.3s ease-out;
+}
+
+.seat-banner-visible {
+  transform: translateY(0);
+  opacity: 1;
+}
+
+.seat-banner-hidden {
+  transform: translateY(-8px);
+  opacity: 0;
+  pointer-events: none;
+}
+
+.seat-banner-box {
+  width: 100%;
+  min-height: 55px;
+  height: 55px;
+  padding: 0.25rem 0.5rem 0.15rem;
+  border-radius: 1rem 1rem 0.375rem 0.375rem;
+  box-shadow: 0 2px 6px color-mix(in srgb, #000000 22%, transparent);
+  border-width: 1px;
+  border-style: solid;
+  color: white;
+  font-weight: 700;
+  font-size: 0.75rem;
+  white-space: normal;
+  text-align: center;
+  display: flex;
+  flex-direction: column;
+  /* align-items defaults to stretch so ProgressBar gets full width */
+  /* justify-content defaults to flex-start so mt-auto in children works */
+  transition: box-shadow 0.3s ease;
+}
+
+.seat-banner-text {
+  color: #ffffff;
+}
+
+/* Inner wrapper — must fill parent flex column so children's mt-auto works */
+.seat-banner-content-inner {
+  display: flex;
+  flex-direction: column;
+  flex: 1;
+  width: 100%;
+  min-height: 0;
+}
+
+/* Content swap animation — used when shell is already visible (e.g. timer→action) */
+.seat-banner-content-swap {
+  animation: seatBannerContentSwap 0.25s ease-out;
+}
+
+@keyframes seatBannerContentSwap {
+  0% {
+    opacity: 0;
+    transform: translateY(4px);
+  }
+  100% {
+    opacity: 1;
+    transform: translateY(0);
+  }
+}
+
+.action-display-bridge {
+  display: none;
+}
+
+.action-display-bridge-enter {
+  animation: actionBridgeIn 0.25s ease-out forwards;
+}
+
+.action-display-bridge-exit {
+  animation: actionBridgeOut 0.35s ease-in forwards;
+}
+
+.action-display-box {
+  width: 100%;
+  min-width: 0;
+  max-width: none;
+  min-height: 55px;
+  height: 55px;
+  padding: 0.25rem 0.5rem 0.15rem;
+  border-radius: 1rem 1rem 0.375rem 0.375rem;
+  box-shadow: 0 2px 6px color-mix(in srgb, #000000 22%, transparent);
+  border-width: 1px;
+  border-style: solid;
+  border-color: color-mix(in srgb, #ffffff 16%, transparent);
+  color: white;
+  font-weight: 700;
+  font-size: 0.75rem;
+  white-space: normal;
+  backdrop-filter: none;
+  text-align: center;
+  display: flex;
+  align-items: flex-end;
+  justify-content: center;
+  transition: box-shadow 0.3s ease;
+}
+
+.action-display-content {
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  gap: 0.25rem;
+  margin-top: auto;
+  margin-bottom: 0.35rem;
+  max-height: 94px;
+  overflow: hidden;
+  transition: opacity 0.15s ease-out, transform 0.15s ease-out, max-height 0.15s ease-out;
+}
+
+.action-display-content-hide {
+  opacity: 0;
+  transform: translateY(-4px);
+  max-height: 0;
+}
+
+.action-display-text {
+  font-size: 0.75rem;
+  font-weight: 800;
+  letter-spacing: 0.05em;
+}
+
+.action-display-amount {
+  font-size: 0.75rem;
+  font-weight: 500;
+  opacity: 0.9;
+}
+
+/* Performance optimized animations */
+.action-display-enter {
+  animation: actionDropDown 0.3s ease-out forwards;
+}
+
+.action-display-exit {
+  animation: actionRollAway 0.5s ease-in forwards;
+}
+
+.action-display-pulse {
+  animation: actionPulse 1s ease-in-out;
+}
+
+@keyframes actionDropDown {
+  from {
+    opacity: 0;
+    transform: translateY(-8px);
+  }
+  to {
+    opacity: 1;
+    transform: translateY(0);
+  }
+}
+
+@keyframes actionRollAway {
+  from {
+    opacity: 1;
+    transform: translateY(0);
+  }
+  to {
+    opacity: 0;
+    transform: translateY(-8px);
+  }
+}
+
+@keyframes actionPulse {
+  0%, 100% { 
+    box-shadow: 0 2px 6px color-mix(in srgb, #000000 22%, transparent); 
+  }
+  50% { 
+    box-shadow: 0 3px 8px color-mix(in srgb, #000000 28%, transparent); 
+  }
+}
+
+@keyframes actionBridgeIn {
+  from {
+    opacity: 0;
+    transform: translateY(-4px);
+  }
+  to {
+    opacity: 1;
+    transform: translateY(0);
+  }
+}
+
+@keyframes actionBridgeOut {
+  from {
+    opacity: 1;
+    transform: translateY(0);
+  }
+  to {
+    opacity: 0;
+    transform: translateY(-2px);
+  }
+}
+
+/* Sit-In "I'm Back" Button on Badge */
+.sit-in-badge-button {
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  width: 100%;
+  margin-top: auto;
+  margin-bottom: 0.25rem;
+  padding: 0.2rem 0.5rem;
+  background-color: #22c55e;
+  color: #fff;
+  font-weight: 800;
+  font-size: 0.7rem;
+  letter-spacing: 0.05em;
+  text-transform: uppercase;
+  border: none;
+  border-radius: 0.25rem;
+  cursor: pointer;
+  transition: background-color 0.15s ease, transform 0.1s ease;
+  animation: sitInBadgePulse 2s ease-in-out infinite;
+}
+
+.sit-in-badge-button:hover {
+  background-color: #16a34a;
+  transform: scale(1.05);
+}
+
+.sit-in-badge-button:active {
+  transform: scale(0.97);
+}
+
+@keyframes sitInBadgePulse {
+  0%, 100% {
+    box-shadow: 0 0 0 0 rgba(34, 197, 94, 0.5);
+  }
+  50% {
+    box-shadow: 0 0 8px 3px rgba(34, 197, 94, 0.35);
+  }
+}
+
+/* Tournament Results Styles */
+.badge-tournament-results {
+  position: absolute;
+  top: -60px;
+  left: 50%;
+  transform: translateX(-50%);
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  gap: 0.25rem;
+  z-index: 40;
+  animation: tournamentResultsFadeIn 0.5s ease-in-out;
+}
+
+.tournament-place {
+  padding: 0.25rem 0.75rem;
+  border-radius: 9999px;
+  font-weight: 800;
+  font-size: 0.875rem;
+  box-shadow: 0 4px 12px color-mix(in srgb, #000000 30%, transparent);
+  white-space: nowrap;
+  text-transform: uppercase;
+  letter-spacing: 0.05em;
+}
+
+.tournament-place-first {
+  background-color: #ffd700;
+  color: #000;
+}
+
+.tournament-place-second {
+  background-color: #c0c0c0;
+  color: #000;
+}
+
+.tournament-place-third {
+  background-color: #cd7f32;
+  color: #000;
+}
+
+.tournament-place-other {
+  background-color: #666;
+  color: #fff;
+}
+
+.tournament-payout {
+  padding: 0.125rem 0.5rem;
+  background-color: color-mix(in srgb, #000000 80%, transparent);
+  border-radius: 0.375rem;
+  font-weight: 600;
+  font-size: 0.75rem;
+  white-space: nowrap;
+  box-shadow: 0 2px 8px color-mix(in srgb, #000000 40%, transparent);
+}
+
+.tournament-payout-win {
+  color: #4ade80;
+}
+
+@keyframes tournamentResultsFadeIn {
+  from {
+    opacity: 0;
+    transform: translateX(-50%) translateY(-10px) scale(0.9);
+  }
+  to {
+    opacity: 1;
+    transform: translateX(-50%) translateY(0) scale(1);
+  }
+}
+
+/* Reduced motion support */
+@media (prefers-reduced-motion: reduce) {
+  .action-display-enter,
+  .action-display-exit,
+  .action-display-pulse,
+  .action-display-bridge-enter,
+  .action-display-bridge-exit,
+  .badge-tournament-results {
+    animation: none;
+  }
+
+  .action-display-content {
+    transition: none;
+  }
+} 

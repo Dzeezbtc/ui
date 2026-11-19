@@ -1,0 +1,374 @@
+/**
+ * SitAndGoResultModal
+ *
+ * One-shot modal shown to the current user once they've finished a
+ * Sit-and-Go tournament. Surfaces the place + payout (or a "thanks
+ * for playing" message for unpaid finishes), with a "Spectate Table"
+ * CTA that fires the chain leave so the table can be reaped.
+ *
+ * Triggering logic lives inside this component (rather than the
+ * parent), so the parent only needs to mount it for SNG tables and
+ * pass `tableId` + `onLeave`. The modal:
+ *   - reads the current user's result via useSitAndGoPlayerResults;
+ *   - returns null if there's no result yet (player still active);
+ *   - returns null if the user has already dismissed it this game
+ *     (localStorage flag keyed on `${tableId}:${userAddress}`).
+ *
+ * Refs block52/ui#371, originally tracked in block52/poker-vm#2106.
+ */
+import React, { useEffect, useMemo, useRef, useState } from "react";
+import { useNavigate } from "react-router-dom";
+import { truncateMiddle } from "../../utils/stringUtils";
+import { useSitAndGoPlayerResults } from "../../hooks/game/useSitAndGoPlayerResults";
+import { useFetchSngClaimSignature } from "../../hooks/game/useFetchSngClaimSignature";
+import { useClaimSngWinNFT } from "../../hooks/wallet/useClaimSngWinNFT";
+import useUserWalletConnect from "../../hooks/wallet/useUserWalletConnect";
+import { formatUSDCToSimpleDollars } from "../../utils/numberUtils";
+import { isNullish } from "../../utils/guards";
+import { STORAGE_KEYS } from "../../constants/storageKeys";
+
+type ClaimState =
+    | { kind: "idle" }
+    | { kind: "fetching" }    // fetching the validator signature from the chain
+    | { kind: "submitting" }  // user has signed in MetaMask; waiting for chain receipt
+    | { kind: "done" }
+    | { kind: "error"; message: string };
+
+const PLACE_SUFFIX = ["1st", "2nd", "3rd", "4th", "5th", "6th", "7th", "8th", "9th", "10th"];
+const ordinal = (place: number): string => PLACE_SUFFIX[place - 1] ?? `${place}th`;
+
+// The chain rejects a second settlement with "... already claimed ...". That
+// means the funds were collected (e.g. in another tab), so treat it as success
+// rather than a failure the player should retry. (ui#737)
+const isAlreadyCollectedError = (e: unknown): boolean =>
+    e instanceof Error && /already claimed/i.test(e.message);
+
+// localStorage flag — once the user has dismissed the modal for this
+// (tableId, userAddress), a page refresh shouldn't re-pop it.
+const dismissKey = (tableId: string, userAddress: string) =>
+    `viewed_sng_result_${tableId}_${userAddress.toLowerCase()}`;
+
+interface SitAndGoResultModalProps {
+    tableId: string | undefined;
+    /**
+     * Invoked when the user clicks "Spectate Table". Should fire the
+     * chain leave action so the finished table can be reaped (see
+     * acceptance criteria in block52/ui#371). The parent passes
+     * `handleLeaveTableConfirm` here.
+     */
+    onLeave: () => void | Promise<void>;
+    /**
+     * Invoked when a paid finisher clicks "Claim winnings". Fires the SNG prize
+     * claim (record hand-end state + settle via MsgLeaveGame). Distinct from
+     * onLeave: post-start the roster is frozen — finishers claim, they don't
+     * leave. (pokerchain#239)
+     */
+    onClaim: () => Promise<void>;
+    /**
+     * True while a live finish is still being shown on the table (ui#874): the
+     * deciding hand's result, then the tournament-winner moment. The modal
+     * waits, so the player sees the hand play out before "You finished 2nd".
+     */
+    held: boolean;
+}
+
+export const SitAndGoResultModal: React.FC<SitAndGoResultModalProps> = ({ tableId, onLeave, onClaim, held }) => {
+    const navigate = useNavigate();
+    const { isSitAndGo, getPlayerResult } = useSitAndGoPlayerResults();
+
+    // Read the user address fresh on mount only. The active wallet
+    // never changes mid-session for a given table view.
+    const userAddress = useMemo(
+        () => localStorage.getItem(STORAGE_KEYS.cosmosAddress)?.toLowerCase() ?? null,
+        [],
+    );
+
+    const playerResult = useMemo(() => {
+        if (!isSitAndGo || isNullish(userAddress)) return null;
+        return getPlayerResult(userAddress);
+    }, [isSitAndGo, getPlayerResult, userAddress]);
+
+    // Seed dismissed state from localStorage so a page refresh after
+    // the user explicitly closed the modal doesn't re-pop it.
+    const [dismissed, setDismissed] = useState<boolean>(() => {
+        if (isNullish(tableId) || isNullish(userAddress)) return false;
+        return localStorage.getItem(dismissKey(tableId, userAddress)) === "true";
+    });
+
+    // If the user lands on the page and the result is already present
+    // (e.g. tournament ended while they were away), the seeded state
+    // above already gates correctly. This effect only matters for the
+    // mid-session transition (result arrives via WS push while modal
+    // is mounted).
+    useEffect(() => {
+        if (isNullish(tableId) || isNullish(userAddress)) return;
+        setDismissed(localStorage.getItem(dismissKey(tableId, userAddress)) === "true");
+    }, [tableId, userAddress]);
+
+    // Claim-NFT flow. Wired but currently gated on
+    // block52/poker-vm#2119 piece 2 (chain signature endpoint) and
+    // piece 1 deploy (contract address). The button surfaces the
+    // structured error from the underlying hook if either is missing
+    // so the user sees a clear "coming soon" message rather than a
+    // silent failure or zero-address tx.
+    const { fetchSignature } = useFetchSngClaimSignature();
+    const { claim, isClaimConfirmed, claimError, hash: claimHash } = useClaimSngWinNFT();
+    const { address: web3Address, isConnected: isWeb3Connected, open: openWalletConnect } = useUserWalletConnect();
+    const [claimState, setClaimState] = useState<ClaimState>({ kind: "idle" });
+    // USDC prize claim (record hand-end + settle), distinct from the NFT claim.
+    const [prizeClaim, setPrizeClaim] = useState<{ kind: "idle" | "claiming" | "done" | "error"; message?: string }>({ kind: "idle" });
+    // Synchronous guard so a double-click can't fire two collections before
+    // React re-renders the disabled button. (ui#737)
+    const collectingRef = useRef(false);
+
+    // Flip to "done" once wagmi's useWaitForTransactionReceipt fires.
+    useEffect(() => {
+        if (isClaimConfirmed && claimState.kind === "submitting") {
+            setClaimState({ kind: "done" });
+        }
+    }, [isClaimConfirmed, claimState.kind]);
+
+    // Wagmi-level error (e.g. user rejected in MetaMask, RPC failed).
+    useEffect(() => {
+        if (claimError && claimState.kind === "submitting") {
+            setClaimState({
+                kind: "error",
+                message: claimError.message || "MetaMask transaction failed",
+            });
+        }
+    }, [claimError, claimState.kind]);
+
+    if (isNullish(playerResult) || dismissed || held) return null;
+    if (isNullish(tableId) || isNullish(userAddress)) return null;
+
+    const { place, payout, isWinner } = playerResult;
+    const isPaid = payout !== "0";
+
+    const handleLeaveClick = async () => {
+        // Persist dismissal first so a slow chain leave doesn't leave
+        // the modal hanging if the user navigates away mid-tx.
+        localStorage.setItem(dismissKey(tableId, userAddress), "true");
+        setDismissed(true);
+        await onLeave();
+    };
+
+    // Dismiss only — closes the modal without firing the chain leave. Used after
+    // a paid finisher has claimed (post-start the roster is frozen; they claim,
+    // they don't leave).
+    const handleDismiss = () => {
+        localStorage.setItem(dismissKey(tableId, userAddress), "true");
+        setDismissed(true);
+    };
+
+    const handleClaimWinningsClick = async () => {
+        if (collectingRef.current || prizeClaim.kind === "claiming" || prizeClaim.kind === "done") return;
+        collectingRef.current = true;
+        try {
+            setPrizeClaim({ kind: "claiming" });
+            await onClaim();
+            setPrizeClaim({ kind: "done" });
+        } catch (e) {
+            setPrizeClaim(
+                isAlreadyCollectedError(e)
+                    ? { kind: "done" }
+                    : { kind: "error", message: e instanceof Error ? e.message : "Collection failed. Please try again." },
+            );
+        } finally {
+            collectingRef.current = false;
+        }
+    };
+
+    // Once collected, the Collect button is replaced by next actions — never
+    // a stuck "Paid" (ui#737). Mirrors TexasHODL/ui: "Spectate table" (closes
+    // the modal so they keep watching) for 3rd place and below, plus
+    // "Return to lobby".
+    const prizeCollected = prizeClaim.kind === "done";
+    const canSpectate = place > 2;
+    const handleReturnToLobby = () => {
+        handleDismiss();
+        navigate("/");
+    };
+
+    const handleClaimClick = async () => {
+        if (!isWeb3Connected || !web3Address) {
+            // Nudge the user to connect MetaMask first.
+            openWalletConnect();
+            return;
+        }
+        try {
+            setClaimState({ kind: "fetching" });
+            const payload = await fetchSignature(tableId, userAddress);
+            setClaimState({ kind: "submitting" });
+            await claim(payload);
+        } catch (e) {
+            const message =
+                e instanceof Error ? e.message : "Failed to claim NFT";
+            setClaimState({ kind: "error", message });
+        }
+    };
+
+    // Copy: paid finishers get the celebratory variant (with payout
+    // line). Unpaid finishers get a softer message with no dollar
+    // amount. Winners get a small celebratory swap.
+    const heading = isWinner
+        ? "🏆 You won the tournament!"
+        : isPaid
+            ? `You finished ${ordinal(place)}!`
+            : `You busted out — finished ${ordinal(place)}.`;
+
+    const subtext = isPaid
+        ? null
+        : "Thanks for playing.";
+
+    return (
+        <div
+            className="fixed inset-0 bg-black bg-opacity-50 flex items-center justify-center z-50 backdrop-blur-sm"
+            data-testid="sng-result-modal"
+        >
+            <div className="bg-gray-800/90 backdrop-blur-md p-8 rounded-xl w-96 shadow-2xl border border-blue-400/20 relative overflow-hidden">
+                <div className="absolute inset-0 bg-gradient-to-br from-blue-600/10 to-purple-600/10 rounded-xl" />
+                <div className="absolute top-0 left-0 w-full h-1 bg-gradient-to-r from-blue-500 via-purple-500 to-blue-500" />
+
+                <div className="relative z-10">
+                    <div className="flex items-center justify-center mb-4">
+                        <img src="/block52.png" alt="Block52 Logo" className="h-16 w-auto object-contain" />
+                    </div>
+
+                    <h2
+                        className="text-2xl font-bold text-white text-center mb-2 text-shadow"
+                        data-testid="sng-result-heading"
+                    >
+                        {heading}
+                    </h2>
+
+                    {subtext && (
+                        <p className="text-gray-300 text-center mb-6 text-sm">
+                            {subtext}
+                        </p>
+                    )}
+
+                    {isPaid && (
+                        <div className="bg-green-500/10 border border-green-500/30 rounded-lg p-4 mb-6 text-center">
+                            <div className="text-xs text-green-300 font-semibold mb-1">
+                                {prizeCollected ? "WINNINGS COLLECTED" : "YOUR PAYOUT"}
+                            </div>
+                            <div
+                                className="text-3xl text-white font-bold"
+                                data-testid="sng-result-payout"
+                            >
+                                ${formatUSDCToSimpleDollars(payout)}
+                            </div>
+                        </div>
+                    )}
+
+                    {isPaid && !prizeCollected && (
+                        <button
+                            onClick={handleClaimWinningsClick}
+                            disabled={prizeClaim.kind === "claiming"}
+                            aria-busy={prizeClaim.kind === "claiming"}
+                            data-testid="sng-result-claim-winnings-btn"
+                            className="w-full py-3 px-4 mb-3 rounded-lg border border-green-500/40 bg-green-500/10 text-green-300 text-sm font-semibold hover:bg-green-500/20 hover:border-green-500/60 transition-colors duration-200 disabled:opacity-60 disabled:cursor-not-allowed"
+                        >
+                            {prizeClaim.kind === "claiming" && "Collecting…"}
+                            {(prizeClaim.kind === "idle" || prizeClaim.kind === "error") && `Collect $${formatUSDCToSimpleDollars(payout)}`}
+                        </button>
+                    )}
+
+                    {prizeCollected && (
+                        <>
+                            <p className="text-sm text-green-300 text-center mb-3" role="status" data-testid="sng-result-prize-collected">
+                                Your winnings have been collected.
+                            </p>
+                            {canSpectate && (
+                                <button
+                                    type="button"
+                                    onClick={handleDismiss}
+                                    data-testid="sng-result-spectate-btn"
+                                    className="w-full py-3 px-4 mb-3 rounded-lg border border-blue-300/70 bg-blue-500/15 text-blue-100 text-sm font-semibold hover:bg-blue-500/30 hover:text-white focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-blue-300 transition-colors duration-200"
+                                >
+                                    Spectate table
+                                </button>
+                            )}
+                            <button
+                                type="button"
+                                onClick={handleReturnToLobby}
+                                data-testid="sng-result-return-to-lobby-btn"
+                                className="w-full py-3 px-4 mb-3 rounded-lg text-white text-sm font-semibold bg-gradient-to-r from-blue-500 to-purple-500 hover:from-blue-600 hover:to-purple-600 focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-purple-300 transition-all duration-200"
+                            >
+                                Return to lobby
+                            </button>
+                        </>
+                    )}
+
+                    {prizeClaim.kind === "error" && (
+                        <p className="text-xs text-red-400 text-center mb-3" data-testid="sng-result-prize-claim-error">
+                            {prizeClaim.message}
+                        </p>
+                    )}
+
+                    {isPaid && (
+                        <button
+                            onClick={handleClaimClick}
+                            disabled={
+                                claimState.kind === "fetching" ||
+                                claimState.kind === "submitting" ||
+                                claimState.kind === "done"
+                            }
+                            data-testid="sng-result-claim-btn"
+                            className="w-full py-3 px-4 mb-3 rounded-lg border border-purple-500/40 bg-purple-500/10 text-purple-300 text-sm font-semibold hover:bg-purple-500/20 hover:border-purple-500/60 transition-colors duration-200 disabled:opacity-60 disabled:cursor-not-allowed"
+                        >
+                            {claimState.kind === "fetching" && "Requesting signature…"}
+                            {claimState.kind === "submitting" && "Confirm in MetaMask…"}
+                            {claimState.kind === "done" && "✓ NFT Claimed"}
+                            {(claimState.kind === "idle" || claimState.kind === "error") && "Claim NFT"}
+                        </button>
+                    )}
+
+                    {claimState.kind === "error" && (
+                        <p
+                            className="text-xs text-red-400 text-center mb-3"
+                            data-testid="sng-result-claim-error"
+                        >
+                            {claimState.message}
+                        </p>
+                    )}
+
+                    {claimState.kind === "done" && claimHash && (
+                        <p className="text-xs text-green-300 text-center mb-3">
+                            Tx:{" "}
+                            <a
+                                href={`https://etherscan.io/tx/${claimHash}`}
+                                target="_blank"
+                                rel="noopener noreferrer"
+                                className="underline hover:text-green-200"
+                            >
+                                {truncateMiddle(claimHash, 10, 8, "…")}
+                            </a>
+                        </p>
+                    )}
+
+                    {/* Paid finishers collect (above), then spectate / return to lobby —
+                        no Leave. Unpaid finishers have no prize, so keep a dismiss. */}
+                    {!isPaid && (
+                        <button
+                            onClick={handleLeaveClick}
+                            data-testid="sng-result-leave-btn"
+                            className="w-full py-3 px-4 rounded-lg border border-red-500/40 bg-red-500/10 text-red-400 text-sm font-semibold hover:bg-red-500/20 hover:border-red-500/60 transition-colors duration-200"
+                        >
+                            Spectate Table
+                        </button>
+                    )}
+
+                    <div className="text-center mt-4">
+                        <div className="flex items-center justify-center gap-1">
+                            <div className="w-2 h-2 rounded-full bg-blue-400 animate-pulse" />
+                            <span className="text-xs text-gray-400">Powered by Block52</span>
+                        </div>
+                    </div>
+                </div>
+            </div>
+        </div>
+    );
+};
+
+export default SitAndGoResultModal;

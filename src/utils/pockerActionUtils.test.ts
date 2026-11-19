@@ -1,0 +1,406 @@
+import { LegalActionDTO, NonPlayerActionType, PlayerActionType, PlayerDTO, PlayerStatus } from "@block52/poker-vm-sdk";
+import { getActionFlags, getFormattedMaxBetAmount, getInitialRaiseAmount, getTotalPotMicro, getUserPlayer, hasSingleBetAmount, isTurnEndingSubmit, playerMoveInFlight, isCappedAllInCall, isMaxAllIn, isShortShoveRaise, shouldShowShowdownBar, timeBankButtonSeconds, timeBankClockState, userInTable, validRaiseAmount } from "./pockerActionUtils";
+
+describe("pockerActionUtils", () => {
+    const players: PlayerDTO[] = [
+        {
+            address: "b521hg93rsm2f5v3zlepf20ru88uweajt3nf492s2p",
+            avatar: undefined,
+            seat: 2,
+            stack: "1000000",
+            isSmallBlind: false,
+            isBigBlind: true,
+            isDealer: false,
+            holeCards: undefined,
+            status: PlayerStatus.FOLDED,
+            lastAction: undefined,
+            legalActions: [],
+            sumOfBets: "1000",
+            timeout: 30,
+            signature: ""
+        },
+        {
+            address: "b521kwcmmsp5zhx8e0j9t9zsusvuep2euht3z0vgu9",
+            avatar: undefined,
+            seat: 2,
+            stack: "1000000",
+            isSmallBlind: true,
+            isBigBlind: false,
+            isDealer: true,
+            holeCards: undefined,
+            status: PlayerStatus.ACTIVE,
+            lastAction: undefined,
+            legalActions: [
+                { action: PlayerActionType.FOLD, min: undefined, max: undefined, index: 0 },
+                { action: PlayerActionType.CALL, min: "1000", max: "1000", index: 1 },
+                { action: PlayerActionType.RAISE, min: "2000", max: "5000000", index: 2 }
+            ] as LegalActionDTO[],
+            sumOfBets: "500",
+            timeout: 30,
+            signature: ""
+        }
+    ];
+    // Add your test cases here
+    beforeEach(() => {
+        // Reset any necessary state before each test
+    });
+
+    afterEach(() => {
+        // Clean up any necessary state after each test
+    });
+
+    it("should return true if player is in the table", () => {
+        const userAddress = "b521kwcmmsp5zhx8e0j9t9zsusvuep2euht3z0vgu9";
+        const result = userInTable(players, userAddress);
+        expect(result).toBe(true);
+    });
+
+    it("should return false if player is not in the table", () => {
+        const userAddress = "b521nonexistentaddress";
+        const result = userInTable(players, userAddress);
+        expect(result).toBe(false);
+    });
+
+    it("should return players info if player is in the table", () => {
+        const userAddress = "b521kwcmmsp5zhx8e0j9t9zsusvuep2euht3z0vgu9";
+        const result = getUserPlayer(players, userAddress);
+        expect(result).toEqual(players[1]);
+    });
+
+    it("should return null if player is not in the table", () => {
+        const userAddress = "b521nonexistentaddress";
+        const result = getUserPlayer(players, userAddress);
+        expect(result).toBeNull();
+    });
+
+    describe("validRaiseAmount", () => {
+        it("should return false when neither raise nor bet action is available", () => {
+            expect(validRaiseAmount(500, false, false, 0, 0, 0, 0)).toBe(false);
+        });
+
+        it("should return false when raise amount is within raise bounds", () => {
+            expect(validRaiseAmount(300, true, false, 200, 500, 0, 0)).toBe(false);
+        });
+
+        it("should return true when raise amount is below min raise", () => {
+            expect(validRaiseAmount(100, true, false, 200, 500, 0, 0)).toBe(true);
+        });
+
+        it("should return true when raise amount is above max raise", () => {
+            expect(validRaiseAmount(600, true, false, 200, 500, 0, 0)).toBe(true);
+        });
+
+        it("should return false when bet amount is within bet bounds", () => {
+            expect(validRaiseAmount(300, false, true, 0, 0, 200, 500)).toBe(false);
+        });
+
+        it("should return true when bet amount is below min bet", () => {
+            expect(validRaiseAmount(100, false, true, 0, 0, 200, 500)).toBe(true);
+        });
+
+        it("should return true when bet amount is above max bet", () => {
+            expect(validRaiseAmount(600, false, true, 0, 0, 200, 500)).toBe(true);
+        });
+
+        it("should use raise bounds when both raise and bet actions are available", () => {
+            expect(validRaiseAmount(250, true, true, 200, 400, 100, 500)).toBe(false);
+            expect(validRaiseAmount(450, true, true, 200, 400, 100, 500)).toBe(true);
+        });
+    });
+
+    describe("getInitialRaiseAmount", () => {
+        it("should return minBet when hasBetAction is true and minBet > 0", () => {
+            expect(getInitialRaiseAmount(true, 200, 400)).toBe(200);
+        });
+
+        it("should return 0 when hasBetAction is true but minBet is 0", () => {
+            expect(getInitialRaiseAmount(true, 0, 400)).toBe(0);
+        });
+
+        it("should return minRaise when hasBetAction is false and minRaise > 0", () => {
+            expect(getInitialRaiseAmount(false, 200, 400)).toBe(400);
+        });
+
+        it("should return 0 when hasBetAction is false and minRaise is 0", () => {
+            expect(getInitialRaiseAmount(false, 200, 0)).toBe(0);
+        });
+    });
+
+    describe("getFormattedMaxBetAmount", () => {
+        it("should return formatted maxBet when hasBetAction is true (cash)", () => {
+            expect(getFormattedMaxBetAmount(true, 10, 20, false)).toBe("$10.00");
+        });
+
+        it("should return formatted maxRaise when hasBetAction is false (cash)", () => {
+            expect(getFormattedMaxBetAmount(false, 10, 20, false)).toBe("$20.00");
+        });
+
+        it("should return formatted maxBet when hasBetAction is true (tournament)", () => {
+            expect(getFormattedMaxBetAmount(true, 1500, 3000, true)).toBe("1,500");
+        });
+
+        it("should return formatted maxRaise when hasBetAction is false (tournament)", () => {
+            expect(getFormattedMaxBetAmount(false, 1500, 3000, true)).toBe("3,000");
+        });
+    });
+
+    describe("getTotalPotMicro", () => {
+        it("should parse raw micro string to bigint", () => {
+            expect(getTotalPotMicro("10000000")).toBe(10_000_000n);
+        });
+
+        it("should strip decimals from micro string", () => {
+            expect(getTotalPotMicro("1500.9")).toBe(1500n);
+        });
+
+        it("should return 0n for empty string", () => {
+            expect(getTotalPotMicro("")).toBe(0n);
+        });
+
+        it("should return 0n for zero string", () => {
+            expect(getTotalPotMicro("0")).toBe(0n);
+        });
+    });
+
+    // poker-vm#2353 / ui#457 — all-in arrives as a normal legal action whose max
+    // equals the stack: an all-in-only RAISE (short shove) or a capped CALL.
+    const legal = (...entries: Array<[PlayerActionType, string, string]>): LegalActionDTO[] =>
+        entries.map(([action, min, max], index) => ({ action, min, max, index }));
+
+    describe("isMaxAllIn (ui#768)", () => {
+        it("is true at no-limit, where the max is the stack", () => {
+            expect(isMaxAllIn(5_000_000n, 5_000_000n)).toBe(true);
+        });
+        it("is false at pot-limit when the pot caps the max below the stack", () => {
+            expect(isMaxAllIn(700_000n, 5_000_000n)).toBe(false);
+        });
+        it("is true at pot-limit when the stack is inside the cap", () => {
+            expect(isMaxAllIn(700_000n, 700_000n)).toBe(true);
+        });
+        it("is false with no stack", () => {
+            expect(isMaxAllIn(0n, 0n)).toBe(false);
+        });
+    });
+
+    describe("isShortShoveRaise", () => {
+        it("true for an all-in-only RAISE (min === max === stack)", () => {
+            const actions = legal([PlayerActionType.CALL, "200", "200"], [PlayerActionType.RAISE, "250", "250"]);
+            expect(isShortShoveRaise(actions, 250n)).toBe(true);
+        });
+
+        it("false for a normal raise range (min < max) — slider handles it", () => {
+            const actions = legal([PlayerActionType.CALL, "200", "200"], [PlayerActionType.RAISE, "400", "5000"]);
+            expect(isShortShoveRaise(actions, 5000n)).toBe(false);
+        });
+
+        it("false when the all-in-only RAISE max does not equal the stack", () => {
+            // Defensive: a min===max raise that isn't the whole stack is not a shove.
+            const actions = legal([PlayerActionType.RAISE, "250", "250"]);
+            expect(isShortShoveRaise(actions, 999n)).toBe(false);
+        });
+
+        it("false when there is no RAISE", () => {
+            expect(isShortShoveRaise(legal([PlayerActionType.CALL, "200", "200"]), 250n)).toBe(false);
+        });
+
+        it("false when the stack is zero", () => {
+            expect(isShortShoveRaise(legal([PlayerActionType.RAISE, "0", "0"]), 0n)).toBe(false);
+        });
+    });
+
+    describe("isCappedAllInCall", () => {
+        it("true when CALL is capped at the whole stack and there is no RAISE", () => {
+            expect(isCappedAllInCall(legal([PlayerActionType.CALL, "150", "150"]), 150n)).toBe(true);
+        });
+
+        it("false when a RAISE is available (not a capped call)", () => {
+            const actions = legal([PlayerActionType.CALL, "150", "150"], [PlayerActionType.RAISE, "250", "250"]);
+            expect(isCappedAllInCall(actions, 150n)).toBe(false);
+        });
+
+        it("false when CALL max is less than the stack (normal call)", () => {
+            expect(isCappedAllInCall(legal([PlayerActionType.CALL, "100", "100"]), 250n)).toBe(false);
+        });
+
+        it("false when there is no CALL", () => {
+            expect(isCappedAllInCall(legal([PlayerActionType.FOLD, "0", "0"]), 150n)).toBe(false);
+        });
+
+        it("false when the stack is zero", () => {
+            expect(isCappedAllInCall(legal([PlayerActionType.CALL, "0", "0"]), 0n)).toBe(false);
+        });
+    });
+
+    describe("getActionFlags", () => {
+        const allActions: LegalActionDTO[] = [
+            { action: PlayerActionType.SMALL_BLIND, min: "500", max: "500", index: 0 },
+            { action: PlayerActionType.BIG_BLIND, min: "1000", max: "1000", index: 1 },
+            { action: PlayerActionType.FOLD, min: undefined, max: undefined, index: 2 },
+            { action: PlayerActionType.CHECK, min: undefined, max: undefined, index: 3 },
+            { action: PlayerActionType.CALL, min: "1000", max: "1000", index: 4 },
+            { action: PlayerActionType.BET, min: "1000", max: "5000000", index: 5 },
+            { action: PlayerActionType.RAISE, min: "2000", max: "5000000", index: 6 },
+            { action: PlayerActionType.MUCK, min: undefined, max: undefined, index: 7 },
+            { action: PlayerActionType.SHOW, min: undefined, max: undefined, index: 8 },
+            { action: NonPlayerActionType.DEAL, min: undefined, max: undefined, index: 9 },
+            { action: NonPlayerActionType.NEW_HAND, min: undefined, max: undefined, index: 10 },
+            { action: NonPlayerActionType.TIME_BANK, min: undefined, max: undefined, index: 11 }
+        ];
+
+        it("should return true for all flags when all actions are present", () => {
+            const flags = getActionFlags(allActions);
+            expect(flags.hasSmallBlindAction).toBe(true);
+            expect(flags.hasBigBlindAction).toBe(true);
+            expect(flags.hasFoldAction).toBe(true);
+            expect(flags.hasCheckAction).toBe(true);
+            expect(flags.hasCallAction).toBe(true);
+            expect(flags.hasBetAction).toBe(true);
+            expect(flags.hasRaiseAction).toBe(true);
+            expect(flags.hasMuckAction).toBe(true);
+            expect(flags.hasShowAction).toBe(true);
+            expect(flags.hasDealAction).toBe(true);
+            expect(flags.hasNewHandAction).toBe(true);
+            expect(flags.hasTimeBankAction).toBe(true);
+        });
+
+        it("should return false for all flags when no actions are present", () => {
+            const flags = getActionFlags([]);
+            Object.values(flags).forEach(flag => expect(flag).toBe(false));
+        });
+
+        it("should return only the flags for actions present", () => {
+            const foldCallActions: LegalActionDTO[] = [
+                { action: PlayerActionType.FOLD, min: undefined, max: undefined, index: 0 },
+                { action: PlayerActionType.CALL, min: "1000", max: "1000", index: 1 }
+            ];
+            const flags = getActionFlags(foldCallActions);
+            expect(flags.hasFoldAction).toBe(true);
+            expect(flags.hasCallAction).toBe(true);
+            expect(flags.hasBetAction).toBe(false);
+            expect(flags.hasRaiseAction).toBe(false);
+            expect(flags.hasCheckAction).toBe(false);
+        });
+    });
+
+    describe("playerMoveInFlight (ui#944)", () => {
+        it("is the player's own move, which holds the buttons", () => {
+            expect(playerMoveInFlight(PlayerActionType.CHECK)).toBe(PlayerActionType.CHECK);
+            expect(playerMoveInFlight(PlayerActionType.RAISE)).toBe(PlayerActionType.RAISE);
+        });
+
+        it("is null for background jobs, which must never disable the buttons", () => {
+            for (const job of ["new-hand", "deal", "small-blind", "big-blind", PlayerActionType.BIG_BLIND, NonPlayerActionType.TIME_BANK]) {
+                expect(playerMoveInFlight(job)).toBeNull();
+            }
+        });
+
+        it("is null when nothing is in flight", () => {
+            expect(playerMoveInFlight(null)).toBeNull();
+            expect(playerMoveInFlight(undefined)).toBeNull();
+        });
+    });
+
+    describe("isTurnEndingSubmit (ui#944)", () => {
+        it("is true for a move, which ends the turn", () => {
+            expect(isTurnEndingSubmit(PlayerActionType.CHECK)).toBe(true);
+            expect(isTurnEndingSubmit(PlayerActionType.FOLD)).toBe(true);
+        });
+
+        it("is false for the time bank, which extends the turn, and when nothing is in flight", () => {
+            expect(isTurnEndingSubmit(NonPlayerActionType.TIME_BANK)).toBe(false);
+            expect(isTurnEndingSubmit(null)).toBe(false);
+            expect(isTurnEndingSubmit(undefined)).toBe(false);
+        });
+    });
+
+    describe("timeBankClockState — the alarm clock on the player's pill (ui#19)", () => {
+        const base = { tableHasTimeBank: true, timeBankSeconds: 45, isSubmitting: false, isArmed: false, isInTimeBank: false };
+
+        it("is ready to tap on our turn with bank left", () => {
+            expect(timeBankClockState(base)).toBe("ready");
+        });
+
+        it("glows (armed) the moment it is tapped, before the chain confirms", () => {
+            expect(timeBankClockState({ ...base, timeBankSeconds: null, isSubmitting: true })).toBe("armed");
+        });
+
+        it("stays armed while the turn clock is still running", () => {
+            expect(timeBankClockState({ ...base, timeBankSeconds: null, isArmed: true })).toBe("armed");
+        });
+
+        it("is running once the turn clock is spent and the bank counts down", () => {
+            expect(timeBankClockState({ ...base, timeBankSeconds: null, isInTimeBank: true })).toBe("running");
+        });
+
+        it("is dim when it isn't our turn or the bank is empty", () => {
+            expect(timeBankClockState({ ...base, timeBankSeconds: null })).toBe("idle");
+        });
+
+        it("goes quiet the moment the player acts, even mid-bank (ui#944)", () => {
+            expect(timeBankClockState({ ...base, isInTimeBank: true, isEndingTurn: true })).toBe("idle");
+            expect(timeBankClockState({ ...base, isArmed: true, isEndingTurn: true })).toBe("idle");
+        });
+
+        it("is hidden on a table without a time bank", () => {
+            expect(timeBankClockState({ ...base, tableHasTimeBank: false })).toBe("hidden");
+        });
+    });
+
+    describe("timeBankButtonSeconds (ui#19)", () => {
+        const base = { hasTimeBankAction: true, isUsersTurn: true, timeBankMs: 30_000 };
+
+        it("shows the extension in seconds when the engine offers it on our turn", () => {
+            expect(timeBankButtonSeconds(base)).toBe(30);
+        });
+
+        it("hides when the engine doesn't offer time-bank (used, empty or off)", () => {
+            expect(timeBankButtonSeconds({ ...base, hasTimeBankAction: false })).toBeNull();
+        });
+
+        it("hides when it isn't our turn", () => {
+            expect(timeBankButtonSeconds({ ...base, isUsersTurn: false })).toBeNull();
+        });
+
+        it("hides when the table has no time bank", () => {
+            expect(timeBankButtonSeconds({ ...base, timeBankMs: 0 })).toBeNull();
+            expect(timeBankButtonSeconds({ ...base, timeBankMs: undefined })).toBeNull();
+            expect(timeBankButtonSeconds({ ...base, timeBankMs: null })).toBeNull();
+        });
+    });
+
+    describe("shouldShowShowdownBar (#697/#678)", () => {
+        const base = { hasShowAction: true, hasMuckAction: true, isUsersTurn: true, controlsPending: false };
+
+        it("shows the bar for the pending player who is offered SHOW/MUCK on their turn", () => {
+            expect(shouldShowShowdownBar(base)).toBe(true);
+        });
+
+        it("shows the bar when only SHOW is offered", () => {
+            expect(shouldShowShowdownBar({ ...base, hasMuckAction: false })).toBe(true);
+        });
+
+        it("hides the bar for a seat that is NOT the actor even if SHOW is in its legal actions (#697)", () => {
+            // An auto-revealed seat can carry a stale SHOW flag but is not nextToAct.
+            expect(shouldShowShowdownBar({ ...base, isUsersTurn: false })).toBe(false);
+        });
+
+        it("hides the bar once the player has submitted, until the next snapshot (#678)", () => {
+            expect(shouldShowShowdownBar({ ...base, controlsPending: true })).toBe(false);
+        });
+
+        it("hides the bar when neither SHOW nor MUCK is offered", () => {
+            expect(shouldShowShowdownBar({ ...base, hasShowAction: false, hasMuckAction: false })).toBe(false);
+        });
+    });
+});
+
+// ui#883: a fixed-limit BET/RAISE has exactly one amount.
+describe("hasSingleBetAmount", () => {
+    it("is true when min equals max", () => {
+        expect(hasSingleBetAmount(200, 200)).toBe(true);
+    });
+    it("is false for a range, or no amount", () => {
+        expect(hasSingleBetAmount(100, 1500)).toBe(false);
+        expect(hasSingleBetAmount(0, 0)).toBe(false);
+    });
+});

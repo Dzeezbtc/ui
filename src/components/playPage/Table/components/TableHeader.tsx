@@ -1,0 +1,381 @@
+/**
+ * TableHeader Component
+ *
+ * Displays the table header with two sections:
+ * 1. Main Header - Table info, network selector, wallet balance, deposit button
+ * 2. Sub Header - Blinds, hand info, action count, sidebar toggle, leave table button
+ *
+ * Hidden in mobile landscape mode.
+ */
+
+import React, { useState } from "react";
+import { FaCopy, FaShare, FaQrcode, FaRedo } from "react-icons/fa";
+import { RxExit } from "react-icons/rx";
+import { QRCodeSVG } from "qrcode.react";
+import { Modal } from "../../../common/Modal";
+import { NetworkSelector } from "../../../NetworkSelector";
+import { features } from "../../../../config/features";
+import { ProfileAvatarButton } from "../../../profile";
+import { formatGameFormatDisplay, formatTableGameDisplay, isTournamentFormat } from "../../../../utils/gameFormatUtils";
+import { displayGameFormat } from "../../../../utils/createGameType";
+import { buildHandShareUrl, buildShareOnXUrl } from "../../../../utils/handReplay";
+import { GameFormat, GameOptionsDTO, GameVariant, PlayerDTO } from "@block52/poker-vm-sdk";
+import { useBlindLevel } from "../../../../hooks/game/useBlindLevel";
+import { formatBlindCountdown } from "../../../../utils/blindStructure";
+import styles from "./TableHeader.module.css";
+import { ProvablyFairBadge } from "../../ProvablyFair/ProvablyFairBadge";
+import { hasValue, isNullish } from "../../../../utils/guards";
+import { useTableHeaderSlot } from "../../../../context/TableHeaderSlotContext";
+import { useLanguage } from "../../../../i18n/useLanguage";
+
+// Re-exported for existing importers (e.g. MobileTableHeader); the formatter
+// itself now lives in utils/blindStructure so the Blinds panel can share it.
+export { formatBlindCountdown };
+
+export interface TableHeaderProps {
+    // Table info
+    tableId: string;
+    /** Optional ENS-style table name (poker-vm#337); falls back to the truncated tableId when absent. */
+    tableName?: string;
+    /** Table radio button, shown beside the provably fair shield (block52-club#46). */
+    radioSlot?: React.ReactNode;
+    isMobileLandscape: boolean;
+
+    // Game data
+    gameFormat: GameFormat | null;
+    gameVariant: GameVariant | undefined;
+    gameOptions: GameOptionsDTO | null;
+    tableActivePlayers: PlayerDTO[];
+
+    // Wallet data
+    publicKey: string | null;
+    formattedAddress: string;
+    isBalanceLoading: boolean;
+    balanceFormatted: string;
+
+    // Sub-header data
+    formattedValues: {
+        smallBlindFormatted: string;
+        bigBlindFormatted: string;
+        isTournamentStyle: boolean;
+    };
+    handNumber: number;
+    actionCount: number;
+    nextToAct: number;
+
+    // Current user state
+    currentPlayerData: PlayerDTO | null;
+
+    // Handlers
+    handleLobbyClick: () => void;
+    handleCopyTableLink: () => void;
+    handleDepositClick: () => void;
+    fetchAccountBalance: () => void;
+    copyToClipboard: (text: string) => void;
+    handleLeaveTableClick: () => void;
+    handleShareHand: () => void;
+    /** Opens the latest completed hand's replay in a new tab (ui#816); absent in replay mode. */
+    handleOpenReplay?: () => void;
+    /** The hand the replay button opens; null before the first hand completes. */
+    replayHand?: number | null;
+}
+
+export const TableHeader: React.FC<TableHeaderProps> = ({
+    tableId,
+    tableName,
+    radioSlot,
+    isMobileLandscape,
+    gameFormat,
+    gameVariant,
+    gameOptions,
+    tableActivePlayers,
+    publicKey,
+    formattedAddress,
+    isBalanceLoading,
+    balanceFormatted,
+    formattedValues,
+    handNumber,
+    actionCount,
+    nextToAct,
+    currentPlayerData,
+    handleLobbyClick,
+    handleCopyTableLink,
+    handleDepositClick,
+    fetchAccountBalance,
+    copyToClipboard,
+    handleLeaveTableClick,
+    handleShareHand,
+    handleOpenReplay,
+    replayHand = null,
+}) => {
+    const headerSlot = useTableHeaderSlot();
+    const { t } = useLanguage();
+    // Owned here rather than passed down from Table. The hook ticks once a
+    // second to drive the blind countdown, and TableHeader is its only consumer
+    // — calling it in Table meant that tick re-rendered the entire play-page
+    // tree (9 seats, the board, the action panel) once a second on every
+    // SNG/tournament table. Now it re-renders the header only.
+    const blindLevel = useBlindLevel();
+
+    const [showQR, setShowQR] = useState(false);
+    const tableUrl = `${window.location.origin}/table/${tableId}`;
+
+    // Hidden in mobile landscape
+    if (isMobileLandscape) {
+        return null;
+    }
+
+    return (
+        <div className="flex-shrink-0">
+            {/*//! MAIN HEADER - CASINO STYLE */}
+            <div
+                data-part="header"
+                className={`w-full h-[50px] sm:h-[65px] text-center flex items-center justify-between px-2 sm:px-4 z-[100] relative border-b-2 ${styles.headerRoot}`}
+            >
+                {/* Subtle animated background */}
+                <div className="absolute inset-0 z-0">
+                    {/* Bottom edge glow */}
+                    <div
+                        className={`absolute bottom-0 left-0 right-0 h-[1px] bg-gradient-to-r from-transparent to-transparent opacity-50 ${styles.bottomGlow}`}
+                    ></div>
+                </div>
+
+                {/* Left Section - Table button and Network selector */}
+                <div className="flex items-center space-x-2 sm:space-x-4 z-[9999] relative">
+                    <span
+                        className="text-white text-sm sm:text-[24px] cursor-pointer hover:text-[#ffffff] transition-colors duration-300 font-bold"
+                        onClick={handleLobbyClick}
+                    >
+                        {/* Named tables (poker-vm#337) show their name; unnamed fall back to the truncated id. */}
+                        {tableName ? tableName : `Table ${tableId ? tableId.slice(-5) : ""}`}
+                    </span>
+                    {features.nodeSelector && <NetworkSelector />}
+                    {/* Copy Table Link Button */}
+                    <button
+                        onClick={handleCopyTableLink}
+                        className={`flex items-center gap-1.5 px-3 py-1.5 rounded-lg text-sm font-semibold transition-all duration-200 hover:opacity-80 border ${styles.copyTableButton}`}
+                        title="Copy table link to clipboard"
+                    >
+                        <FaCopy size={12} />
+                        <span className="hidden sm:inline">{t("table.copyLink")}</span>
+                        <span className="sm:hidden">{t("table.copyLinkShort")}</span>
+                    </button>
+                    {/* QR Code Button */}
+                    <button
+                        onClick={() => setShowQR(true)}
+                        className={`flex items-center gap-1.5 px-3 py-1.5 rounded-lg text-sm font-semibold transition-all duration-200 hover:opacity-80 border ${styles.copyTableButton}`}
+                        title="Show QR code for table link"
+                    >
+                        <FaQrcode size={12} />
+                        <span className="hidden sm:inline">{t("table.shareQr")}</span>
+                    </button>
+                    {/* Replay (ui#816): the previous hand, in a new tab, with media controls */}
+                    {handleOpenReplay && (
+                        <button
+                            onClick={handleOpenReplay}
+                            disabled={isNullish(replayHand)}
+                            className={`flex items-center gap-1.5 px-3 py-1.5 rounded-lg text-sm font-semibold transition-all duration-200 hover:opacity-80 border disabled:opacity-40 disabled:cursor-not-allowed ${styles.copyTableButton}`}
+                            title={isNullish(replayHand) ? "No completed hand to replay yet" : `Replay hand #${replayHand} in a new tab`}
+                            data-testid="open-replay"
+                        >
+                            <FaRedo size={12} />
+                            <span className="hidden sm:inline">{t("table.replay")}</span>
+                        </button>
+                    )}
+                    {/* Game Format & Variant Display - Desktop Only */}
+                    {gameOptions && (
+                        <div className={`hidden md:flex items-center ml-4 px-3 py-1 rounded-lg ${styles.gameFormatContainer}`}>
+                            <span className={`text-sm font-semibold ${styles.brandText}`}>
+                                {gameFormat ? `${displayGameFormat(gameFormat, gameOptions.scheduledStartTime, formatGameFormatDisplay)} • ` : ""}
+                                {formatTableGameDisplay(gameVariant, gameOptions.bettingLimit)}
+                                {gameOptions.minPlayers && gameOptions.maxPlayers && (
+                                    <span className={`ml-1 ${styles.secondaryText}`}>
+                                        {t("felt.playerCount", { current: tableActivePlayers.length, max: gameOptions.maxPlayers })}
+                                    </span>
+                                )}
+                            </span>
+                        </div>
+                    )}
+                </div>
+
+                {/* Right Section - Wallet info */}
+                <div className="flex items-center z-10 min-w-0">
+                    <div className={`flex items-center rounded-lg py-1 px-1 sm:px-2 mr-1 sm:mr-3 min-w-0 ${styles.walletInfo}`}>
+                        {isBalanceLoading ? (
+                            <span className="text-xs sm:text-sm">{t("table.loading")}</span>
+                        ) : (
+                            <>
+                                {/* Address */}
+                                <div className="flex items-center mr-1 sm:mr-4 min-w-0">
+                                    <span
+                                        className={`font-mono text-[10px] sm:text-xs truncate max-w-[60px] sm:max-w-none ${styles.brandText}`}
+                                    >
+                                        {formattedAddress}
+                                    </span>
+                                    <FaCopy
+                                        className={`ml-1 sm:ml-1.5 cursor-pointer transition-colors duration-200 hover:opacity-80 ${styles.brandText}`}
+                                        size={9}
+                                        onClick={() => copyToClipboard(publicKey || "")}
+                                        title="Copy full address"
+                                    />
+                                </div>
+
+                                {/* Balance */}
+                                <div className="flex items-center flex-shrink-0">
+                                    <div
+                                        className={`w-3 h-3 sm:w-4 sm:h-4 rounded-full flex items-center justify-center mr-0.5 sm:mr-1.5 ${styles.balanceIcon}`}
+                                    >
+                                        <span className={`font-bold text-[8px] sm:text-[10px] ${styles.brandText}`}>
+                                            $
+                                        </span>
+                                    </div>
+                                    <div>
+                                        <p className="text-white font-medium text-[10px] sm:text-xs">
+                                            ${balanceFormatted}
+                                            <span className="text-[8px] sm:text-[10px] ml-1 text-gray-400">USDC</span>
+                                        </p>
+                                    </div>
+                                    {/* Refresh button */}
+                                    <button
+                                        onClick={fetchAccountBalance}
+                                        disabled={isBalanceLoading}
+                                        className={`ml-1 transition-colors duration-200 disabled:opacity-50 hover:opacity-80 ${styles.brandText}`}
+                                        title="Refresh balance"
+                                    >
+                                        <span className="text-[8px]">↻</span>
+                                    </button>
+                                </div>
+                            </>
+                        )}
+                    </div>
+                    <div className="ml-2 flex-shrink-0">
+                        <ProfileAvatarButton title="Open avatar picker" />
+                    </div>
+                </div>
+            </div>
+
+            {/* SUB HEADER */}
+            <div
+                className={`text-white flex justify-between items-center p-1 sm:p-2 h-[28px] sm:h-[35px] relative overflow-hidden shadow-lg sub-header z-[1] ${styles.subHeaderRoot}`}
+            >
+                {/* Animated background overlay */}
+                <div className="sub-header-overlay shimmer-animation" />
+
+                {/* Bottom edge shadow */}
+                <div className="sub-header-shadow" />
+
+                {/* Left Section */}
+                <div className="flex items-center z-20">
+                    <div className="flex flex-col">
+                        <div className="flex items-center space-x-1 sm:space-x-2">
+                            {blindLevel.isActive ? (
+                                <span data-part="status-blinds" className={`text-[10px] sm:text-[15px] font-semibold ${styles.secondaryText}`}>
+                                    {hasValue(blindLevel.level) && `Level ${blindLevel.level + 1} `}{blindLevel.currentBlindsFormatted} Next {blindLevel.nextBlindsFormatted}
+                                    {blindLevel.hasTimer && (
+                                        <>
+                                            {" ("}
+                                            <span className={blindLevel.secondsRemaining < 0 ? "text-red-500" : "text-yellow-300"}>
+                                                {formatBlindCountdown(blindLevel.secondsRemaining)}
+                                            </span>
+                                            {")"}
+                                        </>
+                                    )}
+                                </span>
+                            ) : (
+                                <span data-part="status-blinds" className={`text-[10px] sm:text-[15px] font-semibold ${styles.secondaryText}`}>
+                                    {`$${formattedValues.smallBlindFormatted} / $${formattedValues.bigBlindFormatted}`}
+                                </span>
+                            )}
+
+                            <span data-part="status-hand" className={`text-[10px] sm:text-[15px] font-semibold ${styles.secondaryText}`}>
+                                {t("table.handNumber", { hand: handNumber })}
+                            </span>
+                            <span data-part="status-fair" className="contents">
+                            <ProvablyFairBadge
+                                tableId={tableId}
+                                handNumber={handNumber}
+                                tableName={tableName}
+                                gameLabel={gameOptions ? formatTableGameDisplay(gameVariant, gameOptions.bettingLimit) : undefined}
+                            />
+                            {radioSlot}
+                            </span>
+                            <span data-part="status-actions" className={`hidden sm:inline-block text-[15px] font-semibold ${styles.secondaryText}`}>
+                                <span className="ml-2">{t("felt.actionCount", { count: actionCount })}</span>
+                            </span>
+                            <span data-part="status-next" className={`text-[10px] sm:text-[15px] font-semibold ${styles.secondaryText}`}>
+                                <span className="sm:ml-2">{t("felt.nextToAct", { seat: String(nextToAct) })}</span>
+                            </span>
+                            <button
+                                onClick={handleShareHand}
+                                className={`flex items-center gap-1 text-[10px] sm:text-[15px] font-semibold transition-colors duration-200 hover:opacity-80 ${styles.secondaryText}`}
+                                title={t("table.shareHand")}
+                            >
+                                <FaShare size={10} />
+                                <span className="hidden sm:inline">{t("table.share")}</span>
+                            </button>
+                            <a
+                                href={buildShareOnXUrl(buildHandShareUrl(window.location.origin, tableId, handNumber))}
+                                target="_blank"
+                                rel="noopener noreferrer"
+                                title={t("table.shareX")}
+                                className={`transition-colors duration-200 hover:opacity-80 ${styles.secondaryText}`}
+                            >
+                                <svg className="w-3 h-3 sm:w-4 sm:h-4" viewBox="0 0 24 24" fill="currentColor">
+                                    <path d="M18.244 2.25h3.308l-7.227 8.26 8.502 11.24H16.17l-5.214-6.817L4.99 21.75H1.68l7.73-8.835L1.254 2.25H8.08l4.713 6.231zm-1.161 17.52h1.833L7.084 4.126H5.117z" />
+                                </svg>
+                            </a>
+                        </div>
+                    </div>
+                </div>
+
+                {/* Header slot (ui#55): the multi-tabling pill bar sits here, in the
+                    row's free middle, so it never covers a header control. */}
+                {headerSlot && <div data-part="header-slot" className="flex flex-1 min-w-0 items-center justify-end z-20 px-2">{headerSlot}</div>}
+
+                {/* Right Section */}
+                <div className="flex items-center z-10 mr-1 sm:mr-3">
+                    {/* Panel tab controls removed — the floating panel's own tab bar
+                        (History / Settings) switches tabs now (ui#752). */}
+                    {/* Only show Leave Table button if user is seated — and never
+                        for SNG, where the roster is frozen once play starts
+                        (poker-vm#2343) and leave/claim is handled by the SNG
+                        modals (block52/ui#465). */}
+                    {currentPlayerData && !(gameFormat && isTournamentFormat(gameFormat)) && (
+                        <span
+                            className={`text-xs sm:text-[16px] cursor-pointer flex items-center gap-0.5 transition-colors duration-300 ml-2 sm:ml-3 ${styles.leaveTableButton}`}
+                            onClick={handleLeaveTableClick}
+                            title={t("table.leave")}
+                        >
+                            <span className="hidden sm:inline">{t("table.leave")}</span>
+                            <span className="sm:hidden">{t("table.leaveShort")}</span>
+                            <RxExit size={12} />
+                        </span>
+                    )}
+                </div>
+            </div>
+
+            {/* QR Code Modal */}
+            <Modal
+                isOpen={showQR}
+                onClose={() => setShowQR(false)}
+                title={t("table.scanToJoin")}
+                titleIcon={<FaQrcode size={16} />}
+                widthClass="w-80"
+                patternId="hexagons-qr"
+                scrollable={false}
+            >
+                <div className="flex flex-col items-center gap-4">
+                    <div className="bg-white p-4 rounded-xl">
+                        <QRCodeSVG value={tableUrl} size={240} />
+                    </div>
+                    <button
+                        onClick={() => setShowQR(false)}
+                        className="w-full py-2 rounded-lg bg-gray-700 text-white text-sm font-semibold hover:bg-gray-600 transition-colors"
+                    >
+                        {t("table.close")}
+                    </button>
+                </div>
+            </Modal>
+        </div>
+    );
+};

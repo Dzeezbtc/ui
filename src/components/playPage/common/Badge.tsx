@@ -1,0 +1,290 @@
+import React from "react";
+import { hasValue } from "../../../utils/guards";
+import { usePlayerActionDropBox } from "../../../hooks/player/usePlayerActionDropBox";
+import { WinAmountFloat } from "./WinAmountFloat";
+import { useSeatJoinNotification } from "../../../hooks/notifications/useSeatJoinNotification";
+import { useGameStateContext } from "../../../context/GameStateContext";
+import { isTournamentFormat } from "../../../utils/gameFormatUtils";
+import { formatUSDCToSimpleDollars, bigBlindInStackUnits, formatSeatStack } from "../../../utils/numberUtils";
+import { useStacksInBigBlinds } from "../../../context/GameSettingsContext";
+import ProgressBar from "./ProgressBar";
+import { colors } from "../../../utils/colorConfig";
+import { seatBannerMode, type SeatBannerMode } from "../../../utils/seatBannerMode";
+import "./Badge.css";
+import { t } from "../../../i18n";
+
+type BadgeProps = {
+    count: number; // Seat index
+    value: number; // Stack value
+    color?: string;
+    // Sit & Go tournament results
+    tournamentPlace?: number;
+    tournamentPayout?: string;
+    // Seat banner state — passed from parent player component
+    isWinner?: boolean;
+    winnerAmount?: string | null;
+    winnerHandDescription?: string | null;
+    isTurnTimerActive?: boolean;
+    round?: string | null;
+    isFolded?: boolean;
+    isAllIn?: boolean;
+    isSeated?: boolean;
+    isSittingOut?: boolean;
+    playerEquity?: number | null;
+    onSitIn?: () => void;
+    // Rendered just outside the pill, left of the seat number: the player's
+    // own seat puts the time bank alarm clock here (ui#19). The pill's right
+    // end is where an NFT avatar sits, so nothing goes there.
+    leading?: React.ReactNode;
+};
+
+const Badge: React.FC<BadgeProps> = React.memo(({
+    count, value, color,
+    tournamentPlace, tournamentPayout,
+    isWinner, winnerAmount, winnerHandDescription, isTurnTimerActive,
+    round, isFolded, isAllIn, isSeated, isSittingOut, playerEquity, onSitIn, leading
+}) => {
+    // Track previous banner mode so we can detect timer→action transitions
+    const prevBannerModeRef = React.useRef<string>("hidden");
+
+    // Get game format to determine if it's a tournament-style game
+    const { gameFormat, gameState } = useGameStateContext();
+    const isTournament = isTournamentFormat(gameFormat);
+
+    // "45.5 BB" if the player turned on stacks in big blinds for this format
+    // (ui#895), else "$100.00" (cash) or "10,000" (tournament chips).
+    const showInBigBlinds = useStacksInBigBlinds(isTournament);
+    const bigBlind = showInBigBlinds ? bigBlindInStackUnits(gameState?.gameOptions?.bigBlind, isTournament) : null;
+    const formattedValue = formatSeatStack(value, isTournament, bigBlind);
+
+    // Get action display data for this player
+    const actionDisplay = usePlayerActionDropBox(count);
+
+    // Get seat join notification data for this player
+    const seatJoinNotification = useSeatJoinNotification(count);
+
+    // Determine if a transient (action/seat-join) message is active
+    const hasTransientMessage =
+        actionDisplay.isVisible ||
+        actionDisplay.isAnimatingOut ||
+        seatJoinNotification.isVisible ||
+        seatJoinNotification.isAnimatingOut;
+
+    // --- Unified banner mode resolution (priority order) ---
+    // See seatBannerMode for the order.
+    const bannerMode: SeatBannerMode = seatBannerMode({
+        isWinner: Boolean(isWinner),
+        isOnTheClock: Boolean(isTurnTimerActive) && round !== "showdown",
+        hasActionBadge: actionDisplay.isVisible || actionDisplay.isAnimatingOut,
+        hasSeatJoinNotice: seatJoinNotification.isVisible || seatJoinNotification.isAnimatingOut,
+        hasStatusLine: Boolean(isTurnTimerActive)
+    });
+
+    const isBannerVisible = bannerMode !== "hidden";
+
+    // Derive transient animation flags for action / seat-join content
+    const isTransientAnimatingOut = bannerMode === "action"
+        ? actionDisplay.isAnimatingOut
+        : bannerMode === "seat-join"
+            ? seatJoinNotification.isAnimatingOut
+            : false;
+
+    const isTextHiding = bannerMode === "action"
+        ? actionDisplay.isTextHiding
+        : bannerMode === "seat-join"
+            ? seatJoinNotification.isTextHiding
+            : false;
+
+    // Banner shell colour
+    const bannerBg = isWinner
+        ? colors.accent.success
+        : (color || "#6b7280");
+
+    const bannerStyle: React.CSSProperties = bannerMode === "action" || bannerMode === "seat-join"
+        ? {
+            backgroundColor: `${color || "#3b82f6"}dd`,
+            borderColor: color || "#3b82f6",
+            boxShadow: `0 4px 12px ${color || "#3b82f6"}40, 0 2px 4px rgba(0,0,0,0.3)`
+        }
+        : {
+            backgroundColor: `${bannerBg}dd`,
+            borderColor: bannerBg,
+            borderWidth: "1px",
+            borderStyle: "solid",
+            boxShadow: `0 4px 12px ${bannerBg}40, 0 2px 4px rgba(0,0,0,0.3)`
+        };
+
+    // When the banner was already showing (e.g. timer) and an action arrives,
+    // skip the shell dropdown animation — just swap the content inside.
+    const wasAlreadyVisible = prevBannerModeRef.current !== "hidden";
+    const isTransitionFromTimer = wasAlreadyVisible
+        && (bannerMode === "action" || bannerMode === "seat-join")
+        && !isTransientAnimatingOut;
+
+    // Update the ref AFTER we've read the previous value
+    React.useEffect(() => {
+        prevBannerModeRef.current = bannerMode;
+    }, [bannerMode]);
+
+    // --- Transient (action / seat-join) enter/exit CSS class ---
+    // If shell was already visible (timer was showing), skip the enter animation.
+    const transientAnimClass = isTransientAnimatingOut
+        ? "action-display-exit"
+        : isTransitionFromTimer
+            ? ""  // shell stays put — no enter animation needed
+            : (bannerMode === "action" || bannerMode === "seat-join")
+                ? "action-display-enter"
+                : "";
+
+    // Get place suffix (1st, 2nd, 3rd, 4th)
+    const getPlaceSuffix = (place: number) => {
+        if (place === 1) return "1st";
+        if (place === 2) return "2nd";
+        if (place === 3) return "3rd";
+        return `${place}th`;
+    };
+
+    const getTournamentPlaceClass = (place: number) => {
+        if (place === 1) return "tournament-place-first";
+        if (place === 2) return "tournament-place-second";
+        if (place === 3) return "tournament-place-third";
+        return "tournament-place-other";
+    };
+
+    // --- Render inner content based on mode ---
+    const renderBannerContent = () => {
+        switch (bannerMode) {
+            case "winner":
+                return (
+                    <div className="seat-banner-text flex flex-col items-center justify-center w-full mt-[14px] gap-0.5">
+                        <span className="font-bold text-base leading-tight">
+                            WINS
+                        </span>
+                        {winnerHandDescription && (
+                            <span className="font-semibold text-[0.65rem] uppercase tracking-wider leading-tight opacity-95">
+                                {winnerHandDescription}
+                            </span>
+                        )}
+                    </div>
+                );
+
+            case "action":
+                return (
+                    <div className={`action-display-content ${isTextHiding ? "action-display-content-hide" : ""}`}>
+                        <span className="action-display-text">
+                            {actionDisplay.action}
+                        </span>
+                        {actionDisplay.amount && (
+                            <span className="action-display-amount">
+                                {actionDisplay.amount}
+                            </span>
+                        )}
+                    </div>
+                );
+
+            case "seat-join":
+                return (
+                    <div className={`action-display-content ${isTextHiding ? "action-display-content-hide" : ""}`}>
+                        <span className="action-display-text">
+                            {t("felt.yourSeat")}
+                        </span>
+                    </div>
+                );
+
+            case "timer": {
+                // Timer mode: show progress bar + status text
+                return (
+                    <>
+                        {round !== "showdown" && <ProgressBar index={count} />}
+                        {isSeated && (
+                            <span className="seat-banner-text font-bold animate-progress delay-2000 flex items-center w-full h-2 mb-2 mt-auto gap-2 justify-center">
+                                SEATED
+                            </span>
+                        )}
+                        {isSittingOut && (
+                            onSitIn ? (
+                                <button
+                                    className="sit-in-badge-button"
+                                    onClick={(e) => { e.stopPropagation(); onSitIn(); }}
+                                >
+                                    I'm Back
+                                </button>
+                            ) : (
+                                <span className="seat-banner-text font-bold animate-progress delay-2000 flex items-center w-full h-2 mb-2 mt-auto gap-2 justify-center">
+                                    SITTING OUT
+                                </span>
+                            )
+                        )}
+                        {isFolded && (
+                            <span className="seat-banner-text animate-progress delay-2000 flex items-center w-full h-2 mb-2 mt-auto gap-2 justify-center">
+                                FOLD
+                            </span>
+                        )}
+                        {isAllIn && (
+                            <span className="seat-banner-text animate-progress delay-2000 flex items-center w-full h-2 mb-2 mt-auto gap-2 justify-center">
+                                ALL IN
+                            </span>
+                        )}
+                    </>
+                );
+            }
+
+            default:
+                return null;
+        }
+    };
+
+    const showEquityChip = hasValue(playerEquity);
+
+    return (
+        <div className="badge-container">
+            {leading && <div className="badge-leading">{leading}</div>}
+            <div style={{ backgroundColor: color }} className="badge-number">
+                {count}
+            </div>
+            <div className="badge-value">
+                {formattedValue}
+            </div>
+
+            {showEquityChip && (
+                <div className="equity-chip">
+                    {playerEquity!.toFixed(1)}%
+                </div>
+            )}
+
+            {/* Tournament Results Display */}
+            {tournamentPlace && (
+                <div className="badge-tournament-results">
+                    <div className={`tournament-place ${getTournamentPlaceClass(tournamentPlace)}`}>
+                        {getPlaceSuffix(tournamentPlace)} Place
+                    </div>
+                    {tournamentPayout && tournamentPayout !== "0" && (
+                        <div className="tournament-payout tournament-payout-win">
+                            Won: ${formatUSDCToSimpleDollars(tournamentPayout)}
+                        </div>
+                    )}
+                </div>
+            )}
+
+            {/* Unified seat banner — single animated container for all modes */}
+            <div className={`seat-banner-shell ${isBannerVisible ? "seat-banner-visible" : "seat-banner-hidden"} ${transientAnimClass}`}>
+                <div
+                    className={`seat-banner-box ${
+                        (bannerMode === "action" && !isTransientAnimatingOut) ? "action-display-pulse" : ""
+                    }`}
+                    style={bannerStyle}
+                >
+                    <div className={`seat-banner-content-inner ${isTransitionFromTimer ? "seat-banner-content-swap" : ""}`}>
+                        {renderBannerContent()}
+                    </div>
+                </div>
+            </div>
+
+            {/* Floating "+amount" pill on a winning seat (ui#861) */}
+            {isWinner && <WinAmountFloat formattedAmount={winnerAmount} isTournament={isTournament} />}
+
+        </div>
+    );
+});
+
+export default Badge;

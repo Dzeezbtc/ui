@@ -1,0 +1,325 @@
+{
+ "handStarted": {
+  "txs": [
+   {
+    "body": {
+     "messages": [
+      {
+       "@type": "/pokerchain.poker.v1.MsgPerformAction",
+       "player": "b521m6gnxt06yq9upq4xz5kd74wvw39x3xja6n24kw",
+       "game_id": "0xba95ed78a7e5bc05423ee914a24e9f84311efa3654776bda237c06feae9135f4",
+       "action": "new-hand",
+       "amount": "0",
+       "data": "seed=b982e48dd60c628ba3f746dc3a7be681ad012d5567acae9ca63c749009149b7d"
+      }
+     ]
+    }
+   }
+  ],
+  "tx_responses": [
+   {
+    "height": "260780",
+    "txhash": "125C57933AFC646CF8ED2C7DB41DA7D5AB4EB7795DE9341612525B662034EF77",
+    "timestamp": "2026-11-01T02:50:19Z",
+    "events": [
+     {
+      "type": "hand_started",
+      "attributes": [
+       {
+        "key": "game_id",
+        "value": "0xba95ed78a7e5bc05423ee914a24e9f84311efa3654776bda237c06feae9135f4",
+        "index": true
+       },
+       {
+        "key": "hand_number",
+        "value": "5",
+        "index": true
+       },
+       {
+        "key": "block_height",
+        "value": "260780",
+        "index": true
+       },
+       {
+        "key": "deck_seed",
+        "value": "241b7a902ad35476ac5f3ed7cf10c2e91255ec7cf2de257d8108d266f8af814c",
+        "index": true
+       },
+       {
+        "key": "msg_index",
+        "value": "0",
+        "index": true
+       }
+      ]
+     }
+    ]
+   }
+  ]
+ },
+ "handCompleted": {
+  "txs": [
+   {
+    "body": {
+     "messages": [
+      {
+       "@type": "/pokerchain.poker.v1.MsgPerformAction",
+       "player": "b521m6gnxt06yq9upq4xz5kd74wvw39x3xja6n24kw",
+       "game_id": "0xba95ed78a7e5bc05423ee914a24e9f84311efa3654776bda237c06feae9135f4",
+       "action": "check",
+       "amount": "0",
+       "data": ""
+      }
+     ]
+    }
+   }
+  ],
+  "tx_responses": [
+   {
+    "height": "260802",
+    "txhash": "CB2075C8C0D1A328115BF228355C2E7BDC37FEE3E015C723E71E9DBC8200DBF3",
+    "timestamp": "2026-11-01T02:50:46Z",
+    "events": [
+     {
+      "type": "hand_ended",
+      "attributes": [
+       {
+        "key": "game_id",
+        "value": "0xba95ed78a7e5bc05423ee914a24e9f84311efa3654776bda237c06feae9135f4",
+        "index": true
+       },
+       {
+        "key": "hand_number",
+        "value": "5",
+        "index": true
+       },
+       {
+        "key": "round",
+        "value": "end",
+        "index": true
+       },
+       {
+        "key": "winner_count",
+        "value": "1",
+        "index": true
+       },
+       {
+        "key": "block_height",
+        "value": "260802",
+        "index": true
+       },
+       {
+        "key": "msg_index",
+        "value": "0",
+        "index": true
+       }
+      ]
+     },
+     {
+      "type": "hand_completed",
+      "attributes": [
+       {
+        "key": "game_id",
+        "value": "0xba95ed78a7e5bc05423ee914a24e9f84311efa3654776bda237c06feae9135f4",
+        "index": true
+       },
+       {
+        "key": "hand_number",
+        "value": "5",
+        "index": true
+       },
+       {
+        "key": "block_height",
+        "value": "260802",
+        "index": true
+       },
+       {
+        "key": "round",
+        "value": "end",
+        "index": true
+       },
+       {
+        "key": "community_cards",
+        "value": "6H,5H,AH,JD,7D",
+        "index": true
+       },
+       {
+        "key": "revealed_hole_cards",
+        "value": "8S,8H,2S,6S",
+        "index": true
+       },
+       {
+        "key": "winner_count",
+        "value": "1",
+        "index": true
+       },
+       {
+        "key": "msg_index",
+        "value": "0",
+        "index": true
+       }
+      ]
+     }
+    ]
+   }
+  ]
+ },
+ "gameCreated": {
+  "txs": [
+   {
+    "body": {
+     "messages": [
+      {
+       "@type": "/pokerchain.poker.v1.MsgCreateGame",
+       "creator": "b521m6gnxt06yq9upq4xz5kd74wvw39x3xja6n24kw",
+       "game_variant": "texas-holdem",
+       "player_seed": null,
+       "name": "live-test-1101"
+      }
+     ]
+    }
+   }
+  ],
+  "tx_responses": [
+   {
+    "height": "260213",
+    "txhash": "5D718321485F081F882ECDC8FBAFF93E6DDA3E74D30EEDDA8C3FCDBF1B276CC1",
+    "timestamp": "2026-11-01T02:39:10Z",
+    "events": [
+     {
+      "type": "game_created",
+      "attributes": [
+       {
+        "key": "game_id",
+        "value": "0xba95ed78a7e5bc05423ee914a24e9f84311efa3654776bda237c06feae9135f4",
+        "index": true
+       },
+       {
+        "key": "creator",
+        "value": "b521m6gnxt06yq9upq4xz5kd74wvw39x3xja6n24kw",
+        "index": true
+       },
+       {
+        "key": "game_format",
+        "value": "cash",
+        "index": true
+       },
+       {
+        "key": "game_variant",
+        "value": "texas-holdem",
+        "index": true
+       },
+       {
+        "key": "min_players",
+        "value": "2",
+        "index": true
+       },
+       {
+        "key": "max_players",
+        "value": "2",
+        "index": true
+       },
+       {
+        "key": "min_buy_in",
+        "value": "400000",
+        "index": true
+       },
+       {
+        "key": "max_buy_in",
+        "value": "2000000",
+        "index": true
+       },
+       {
+        "key": "entry_fee",
+        "value": "0",
+        "index": true
+       },
+       {
+        "key": "msg_index",
+        "value": "0",
+        "index": true
+       }
+      ]
+     }
+    ]
+   }
+  ]
+ },
+ "deckSeeds": {
+  "txs": [
+   {
+    "body": {
+     "messages": [
+      {
+       "@type": "/pokerchain.poker.v1.MsgRecordDeckSeeds",
+       "submitter": "b521x7lzte7r8nas0lhep7gf80hhvl69g7k7p2ret8",
+       "seeds": [
+        {
+         "game_id": "0xba95ed78a7e5bc05423ee914a24e9f84311efa3654776bda237c06feae9135f4",
+         "hand_number": "5",
+         "vrf_output": "oWFk6bBVNANGrfixT0AuEIKz/Yqo1DvrlwaZQqMYFr4P/yRq0131VmC0/mDlP/+J2KnzztCGMfd4TuSVwUJ/MQ==",
+         "vrf_proof": "++/1QrAlbc19yPT0/XYq/fRKtv9vdg1BQKc5JJNtUNdtIOjW0EHHDoehM1CZzS0ymH6/f/+kTrMXtZh7KHe5o1vdU6eq8VXiCMkLVcAmAQk=",
+         "proposer_pubkey": "F46k19XKqm5GudhE6HY0Od1JFFtUWSjSSoVT6qOKWXE=",
+         "prev_block_hash": "AAAAAAAD+qw=",
+         "player_seed": "uYLkjdYMYouj90bcOnvmga0BLVVnrK6cpjx0kAkUm30="
+        }
+       ]
+      }
+     ]
+    }
+   }
+  ],
+  "tx_responses": [
+   {
+    "height": "260780",
+    "txhash": "286AA19055BCA2876A500D24FF108C673041A713E740908B9A5E6D87BBB93FAB",
+    "timestamp": "2026-11-01T02:50:19Z",
+    "events": []
+   }
+  ]
+ },
+ "deckSeedsHand1": {
+  "txs": [
+   {
+    "body": {
+     "messages": [
+      {
+       "@type": "/pokerchain.poker.v1.MsgRecordDeckSeeds",
+       "submitter": "b521x7lzte7r8nas0lhep7gf80hhvl69g7k7p2ret8",
+       "seeds": [
+        {
+         "game_id": "0xba95ed78a7e5bc05423ee914a24e9f84311efa3654776bda237c06feae9135f4",
+         "hand_number": "1",
+         "vrf_output": "D1W3bVU0RG6FhY0dir9awnZiiYEQG9B4J5e+WpF2Yoo8hP10rz5hCggioMx7Jo0KI8yoTurW1uGKBEZXoH7CZw==",
+         "vrf_proof": "F2Qx5BlbygOymuQ2raSEhK9f6+oMXSKAQOFEeGz5IJ4OlpBuPTX9fxrdg5uLVbZNe0QCio++gEQBOuPNmQQVkv5fjTRrguXNl1djipqobgA=",
+         "proposer_pubkey": "F46k19XKqm5GudhE6HY0Od1JFFtUWSjSSoVT6qOKWXE=",
+         "prev_block_hash": "AAAAAAAD+HU=",
+         "player_seed": null
+        }
+       ]
+      }
+     ]
+    }
+   }
+  ],
+  "tx_responses": [
+   {
+    "height": "260213",
+    "txhash": "36E7CDB6147876105873EB70A890DA73A45557C9E4BC739764F846E346F9FC96",
+    "timestamp": "2026-11-01T02:39:10Z",
+    "events": []
+   }
+  ]
+ },
+ "block": {
+  "result": {
+   "block": {
+    "header": {
+     "height": "260780",
+     "time": "2026-11-01T02:50:19.211344Z",
+     "proposer_address": "37BE25E7C33CFB07FEF90F9093BEF767F4547ADE",
+     "app_hash": "241B7A902AD35476AC5F3ED7CF10C2E91255EC7CF2DE257D8108D266F8AF814C"
+    }
+   }
+  }
+ }
+}

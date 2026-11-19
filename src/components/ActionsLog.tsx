@@ -1,0 +1,274 @@
+import React, { useMemo, useState, useSyncExternalStore } from "react";
+import { buildHandShareUrl } from "../utils/handReplay";
+import { useTableId } from "../context/TableIdContext";
+import { useGameProgress } from "../hooks/game/useGameProgress";
+import { useWinnerInfo } from "../hooks/game/useWinnerInfo";
+import { isTournamentFormat } from "../utils/gameFormatUtils";
+import { getBeatenHandDescription } from "../utils/showdownSummary";
+import { getLastHandResult, subscribeLastHandResult } from "../utils/lastHandResult";
+import { ActionDTO } from "@block52/poker-vm-sdk";
+import { formatActionAmount, formatActionName, formatRoundName, getActionLine, getWinnerLine, shouldShowWinnerSummary } from "./ActionsLog.utils";
+import { FaCopy, FaCheck, FaFileDownload, FaShare } from "react-icons/fa";
+import { toast } from "react-toastify";
+import { useGameStateContext } from "../context/GameStateContext";
+import { isEmpty, hasElements } from "../utils/guards";
+import styles from "./ActionsLog.module.css";
+import { t } from "../i18n";
+
+// Simple component to display only the action log
+const ActionsLog: React.FC = () => {
+    const id = useTableId();
+    const { previousActions } = useGameProgress(id);
+    const { gameState, gameFormat, gameVariant } = useGameStateContext();
+    const { winnerInfo } = useWinnerInfo();
+    const showWinnerSummary = shouldShowWinnerSummary(gameState, winnerInfo);
+
+    // The strongest revealed LOSING hand — the "over Pair, Kings" clause on the
+    // live winner rows. Evaluated client-side; null when nothing was revealed.
+    const beatenDescription = useMemo(
+        () => (showWinnerSummary ? getBeatenHandDescription(gameState, winnerInfo, gameVariant) : null),
+        [showWinnerSummary, gameState, winnerInfo, gameVariant]
+    );
+
+    // The PREVIOUS hand's summary, retained across the hand boundary (and this
+    // sidebar's own unmount) so a showdown that flew by — an all-in runout
+    // resolves in one engine step — can still be read afterwards. Hidden while
+    // the same hand's live winner rows are on screen.
+    const lastHandResult = useSyncExternalStore(subscribeLastHandResult, getLastHandResult);
+    const showLastHandBlock =
+        !!lastHandResult &&
+        lastHandResult.tableId === id &&
+        !(showWinnerSummary && lastHandResult.handNumber === gameState?.handNumber);
+
+    // Monotonic fingerprint of the action log — changes only when a new action
+    // lands, not on every gameState identity flip (same approach as
+    // usePlayerChipData). `previousActions` is a fresh array on every WS frame,
+    // so without this the rows below were rebuilt several times a second —
+    // formatAmount runs ethers formatting PER ROW, across 40-80 rows — and the
+    // sidebar hides with a CSS class rather than unmounting, so it happened even
+    // while nobody could see it.
+    const lastActionIndex = hasElements(previousActions) ? previousActions[previousActions.length - 1].index : -1;
+    const actionsFingerprint = `${previousActions.length}:${lastActionIndex}`;
+    const [copied, setCopied] = useState(false);
+    const [copiedJSON, setCopiedJSON] = useState(false);
+    const [copiedShare, setCopiedShare] = useState(false);
+
+    // Reusable utility function for copying text to clipboard
+    const copyTextToClipboard = (text: string, onSuccess: () => void, errorMessage: string) => {
+        // Copy to clipboard with fallback for older browsers
+        if (navigator.clipboard && navigator.clipboard.writeText) {
+            navigator.clipboard
+                .writeText(text)
+                .then(() => {
+                    onSuccess();
+                })
+                .catch((err) => {
+                    console.error("Failed to copy:", err);
+                    toast.error(errorMessage);
+                });
+        } else {
+            // Fallback for older browsers or non-HTTPS contexts using deprecated execCommand
+            // This is intentionally used as a legacy fallback for browsers without Clipboard API
+            try {
+                const textArea = document.createElement("textarea");
+                textArea.value = text;
+                textArea.style.position = "fixed";
+                textArea.style.left = "-9999px"; // Hide off-screen
+                document.body.appendChild(textArea);
+                textArea.select();
+                const success = document.execCommand("copy"); // Deprecated but needed for legacy browsers
+                document.body.removeChild(textArea);
+                if (success) {
+                    onSuccess();
+                } else {
+                    console.error("execCommand copy failed");
+                    toast.error(errorMessage);
+                }
+            } catch (err) {
+                console.error("Failed to copy:", err);
+                toast.error(errorMessage);
+            }
+        }
+    };
+
+    // Function to copy action log to clipboard
+    const handleCopyLog = () => {
+        if (isEmpty(previousActions)) {
+            toast.info("No actions to copy");
+            return;
+        }
+
+        // Format actions for clipboard
+        const isTournament = isTournamentFormat(gameFormat);
+        const actionLines = previousActions.map((action: ActionDTO) => getActionLine(action, isTournament));
+
+        // Append winner summary rows when the hand has ended
+        const winnerLines = showWinnerSummary && winnerInfo
+            ? winnerInfo.map(getWinnerLine)
+            : [];
+
+        const logText = [...actionLines, ...winnerLines].join("\n");
+
+        copyTextToClipboard(
+            logText,
+            () => {
+                setCopied(true);
+                toast.success("Action log copied to clipboard!");
+                setTimeout(() => setCopied(false), 2000);
+            },
+            "Failed to copy log"
+        );
+    };
+
+    // Function to copy hand history as JSON
+    const handleCopyJSON = () => {
+        if (!gameState) {
+            toast.info("No game state available to export");
+            return;
+        }
+
+        try {
+            // Create comprehensive hand history JSON with error handling for serialization
+            const handHistoryJSON = JSON.stringify(gameState, null, 2);
+            
+            copyTextToClipboard(
+                handHistoryJSON,
+                () => {
+                    setCopiedJSON(true);
+                    toast.success("Hand history JSON copied to clipboard!");
+                    setTimeout(() => setCopiedJSON(false), 2000);
+                },
+                "Failed to copy JSON"
+            );
+        } catch (err) {
+            console.error("Failed to serialize game state:", err);
+            toast.error("Failed to serialize game state to JSON");
+        }
+    };
+
+    const handleShareHand = () => {
+        if (!id || !gameState?.handNumber) {
+            toast.info("No hand data available to share");
+            return;
+        }
+
+        // `?hand=N` opens the hand's final state (showdown or last action) read-only,
+        // and keeps working after the hand ends.
+        const shareUrl = buildHandShareUrl(window.location.origin, id, gameState.handNumber);
+
+        copyTextToClipboard(
+            shareUrl,
+            () => {
+                setCopiedShare(true);
+                toast.success("Table replay URL copied to clipboard!");
+                setTimeout(() => setCopiedShare(false), 2000);
+            },
+            "Failed to copy share URL"
+        );
+    };
+
+    // previousActions deliberately omitted — actionsFingerprint covers it.
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+    const actionRows = useMemo(
+        () =>
+            previousActions.map((action: ActionDTO, index: number) => (
+                <div key={index} className={`text-xs py-1 border-b ${styles.actionRow}`}>
+                    <div className="flex justify-between">
+                        <span className={styles.actionText}>
+                            {formatActionName(action.action)}
+                            {formatActionAmount(action, isTournamentFormat(gameFormat))}
+                        </span>
+                        <span className={`text-[10px] ${styles.secondaryText}`}>
+                            Seat {action.seat} · {formatRoundName(action.round)}
+                        </span>
+                    </div>
+                </div>
+            )),
+        [actionsFingerprint, gameFormat]
+    );
+
+    // winnerInfo now has a stable identity across frames that do not change the
+    // winners (see useWinnerInfo), so this memo actually holds.
+    const winnerRows = useMemo(
+        () =>
+            showWinnerSummary
+                ? winnerInfo?.map((w, i) => (
+                      <div key={`winner-${i}`} className={`text-xs py-1 border-b ${styles.actionRow} ${styles.winnerRow}`}>
+                          <div className="flex justify-between">
+                              <span className={styles.winnerText}>
+                                  WINS {w.formattedAmount}
+                                  {w.description && ` — ${w.description}`}
+                                  {w.description && beatenDescription && ` over ${beatenDescription}`}
+                              </span>
+                              <span className={`text-[10px] ${styles.secondaryText}`}>
+                                  Seat {w.seat} · {w.winType === "showdown" ? "Showdown" : "Uncontested"}
+                              </span>
+                          </div>
+                      </div>
+                  ))
+                : null,
+        [showWinnerSummary, winnerInfo, beatenDescription]
+    );
+
+    return (
+        <div
+            className={`rounded w-full h-full overflow-y-auto scrollbar-hide backdrop-blur-sm ${styles.container}`}
+        >
+            <div 
+                className={`flex justify-between items-center p-2 border-b ${styles.header}`}
+            >
+                <h3 className="text-sm font-semibold">{t("panel.history")}</h3>
+                <div className="flex gap-2">
+                    <button
+                        onClick={handleCopyLog}
+                        title="Copy history to clipboard"
+                        className={`p-1.5 rounded hover:bg-white/10 transition-colors duration-200 ${copied ? styles.copyButtonCopied : styles.copyButtonDefault}`}
+                    >
+                        {copied ? <FaCheck size={12} /> : <FaCopy size={12} />}
+                    </button>
+                    <button
+                        onClick={handleCopyJSON}
+                        title="Copy hand history as JSON"
+                        className={`p-1.5 rounded hover:bg-white/10 transition-colors duration-200 ${copiedJSON ? styles.copyButtonCopied : styles.copyButtonDefault}`}
+                    >
+                        {copiedJSON ? <FaCheck size={12} /> : <FaFileDownload size={12} />}
+                    </button>
+                    <button
+                        onClick={handleShareHand}
+                        title="Share hand replay URL"
+                        className={`p-1.5 rounded hover:bg-white/10 transition-colors duration-200 ${copiedShare ? styles.copyButtonCopied : styles.copyButtonDefault}`}
+                    >
+                        {copiedShare ? <FaCheck size={12} /> : <FaShare size={12} />}
+                    </button>
+                </div>
+            </div>
+            
+            {/* Previous hand's result, pinned above the current hand's actions */}
+            {showLastHandBlock && lastHandResult && (
+                <div className={`text-xs p-2 border-b ${styles.actionRow} ${styles.winnerRow}`}>
+                    <div className={`text-[10px] ${styles.secondaryText}`}>Last hand #{lastHandResult.handNumber}</div>
+                    {lastHandResult.lines.map((line, i) => (
+                        <div key={`last-hand-${i}`} className={styles.winnerText}>
+                            {line}
+                        </div>
+                    ))}
+                </div>
+            )}
+
+            {hasElements(previousActions) ? (
+                <div className="space-y-0.5 p-2">
+                    {actionRows}
+                    {winnerRows}
+                </div>
+            ) : (
+                <p
+                    className={`text-xs p-3 ${styles.secondaryText}`}
+                >
+                    {t("felt.noActions")}
+                </p>
+            )}
+        </div>
+    );
+};
+
+export default ActionsLog; 
