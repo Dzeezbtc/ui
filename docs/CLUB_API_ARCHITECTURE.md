@@ -45,9 +45,9 @@ When you add the next piece (table state through the API, say), give it a switch
     nothing is signed in the browser (`src/utils/custody/session.ts`).
 - **The Game Wallet panel** is where the account shows: username, address, USDC balance, Deposit and Sign out. A club
   account has no seed phrase, so it shows no create, import, seed settings, withdraw or send.
-- **Known gap:** the club's network and location seat check (`seatRefusal`) needs a signature from the seed phrase, so it is
-  skipped for club accounts. The club's rule check (`canSit`) and deposit limits still apply. Tracked in
-  block52-club#59.
+- **Seat check for club accounts:** a club account has no seed phrase to sign the network and location seat check
+  (`seatRefusal`), so it sends its player token to `/public/seat-check/account` instead and gets the same check. The club
+  API reads the address from the token, never from the request (block52-club#59).
 - **The browser holds only a player token.** Never put a key, a seed phrase or the signer's KEK in the app. Making,
   freezing and limiting accounts is the club API's job (it seals the keys); the Go function only reads them and signs.
 

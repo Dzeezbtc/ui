@@ -2,7 +2,7 @@ import { Secp256k1HdWallet } from "@cosmjs/amino";
 import { Secp256k1, Secp256k1Signature, sha256 } from "@cosmjs/crypto";
 import { fromBase64 } from "@cosmjs/encoding";
 import { signedBytes } from "./clubLogin";
-import { keyBytes, chatRefusal, protect, protectionText, payoutLabel, referralLink, newNotifications, saveNotifications, type NotificationApi, canSubmitJoin, claimBonus, clubAsksForKyc, offerText, type ClaimApi, joinButtonLabel, joinClub, joiningText, membershipText, seatRefusal, depositRefusal, submitKyc, tableSummary, type ClubTerms, type JoinApi, type KycApi, type PublicClubTable, type SeatApi } from "./clubService";
+import { keyBytes, chatRefusal, protect, protectionText, payoutLabel, referralLink, newNotifications, saveNotifications, type NotificationApi, canSubmitJoin, claimBonus, clubAsksForKyc, offerText, type ClaimApi, joinButtonLabel, joinClub, joiningText, membershipText, seatRefusal, seatProofFrom, depositRefusal, submitKyc, tableSummary, type ClubTerms, type JoinApi, type KycApi, type PublicClubTable, type SeatApi } from "./clubService";
 
 // The standard BIP-39 test phrase: a throwaway wallet, never funded.
 const MNEMONIC = "abandon abandon abandon abandon abandon abandon abandon abandon abandon abandon abandon about";
@@ -137,6 +137,7 @@ describe("seat rules", () => {
         canSit: async () => ({ allowed: true }),
         getSeatChallenge: async () => ({ nonce: "n", text: "Check a seat at a Block52 club table" }),
         checkSeat: async () => ({ allowed: true }),
+        checkSeatAsAccount: async () => ({ allowed: true }),
         ...over
     });
 
@@ -156,6 +157,39 @@ describe("seat rules", () => {
         const refusing = api({ checkSeat: async () => ({ allowed: false, reason: "Same place." }) });
         expect(await seatRefusal(refusing, "0x1", "b521a", MNEMONIC)).toBe("Same place.");
         expect(await seatRefusal(refusing, "0x1", "b521a")).toBeNull();
+    });
+
+    it("checks a club account with its player token, not a signature (block52-club#59)", async () => {
+        const calls: { token: string; body: { club: string; gameId: string; lat?: number } }[] = [];
+        const refusing = api({
+            getSeatChallenge: async () => {
+                throw new Error("a club account has nothing to sign with");
+            },
+            checkSeatAsAccount: async (token, body) => {
+                calls.push({ token, body });
+                return { allowed: false, reason: "Same network." };
+            }
+        });
+        expect(await seatRefusal(refusing, "0x1", "b521a", { accountToken: "tok" })).toBe("Same network.");
+        expect(calls).toEqual([{ token: "tok", body: { club: "block52", gameId: "0x1" } }]);
+    });
+
+    it("sends a club account's token, else the wallet's seed phrase", () => {
+        expect(seatProofFrom({ token: "tok" }, MNEMONIC)).toEqual({ accountToken: "tok" });
+        expect(seatProofFrom(null, MNEMONIC)).toBe(MNEMONIC);
+        expect(seatProofFrom(null, null)).toBeNull();
+    });
+
+    it("asks a club account for its location when the club needs it", async () => {
+        const sent: { lat?: number }[] = [];
+        const needs = api({
+            checkSeatAsAccount: async (_token, b) => {
+                sent.push(b);
+                return b.lat === undefined ? { allowed: false, locationNeeded: true } : { allowed: true };
+            }
+        });
+        expect(await seatRefusal(needs, "0x1", "b521a", { accountToken: "tok" }, async () => ({ lat: 1, lon: 2 }))).toBeNull();
+        expect(sent.map(b => b.lat)).toEqual([undefined, 1]);
     });
 
     it("only asks for location when the club needs it, and sends it", async () => {
