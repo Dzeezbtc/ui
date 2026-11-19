@@ -15,7 +15,7 @@ import { BLIND_LEVELS, DEFAULT_BLIND_LEVEL_INDEX, DEFAULT_SNG_BLIND_LEVEL_MINUTE
 import { usdcToMicroBigInt, formatMicroAsUsdc, microToUsdc } from "../constants/currency";
 
 import { WithdrawalModal, USDCDepositModal, UpcomingSngModal } from "../components/modals";
-import TableList from "../components/TableList";
+import Lobby from "../components/lobby/Lobby";
 import WalletPanel from "../components/WalletPanel";
 import TransactionPanel from "../components/TransactionPanel";
 import { AnimatedBackground } from "../components/common";
@@ -1243,54 +1243,36 @@ const Dashboard: React.FC = () => {
                         </div>
                     )}
 
-                    {/* Two-column layout: Wallet (fixed width) on left, Tables (flex) on right */}
-                    <div className="w-full max-w-[1600px] mx-auto px-4 sm:px-6 lg:px-8 z-10 mt-8 sm:mt-12 lg:mt-16">
-                        <div className="flex flex-col lg:flex-row gap-4 sm:gap-6">
-                            {/* Left column: Wallet and Transactions (fixed width) */}
-                            <div className="w-full lg:w-[400px] flex-shrink-0 space-y-4">
-                                <WalletPanel
-                                    onDeposit={handleDepositClick}
-                                    onWithdraw={handleWithdrawClick}
-                                    onTransfer={() => setShowCosmosTransferModal(true)}
-                                    onCreateWallet={handleCreateNewWallet}
-                                    onImportWallet={() => setShowCosmosImportModal(true)}
-                                    onRefresh={cosmosWallet.refreshBalance}
-                                    usdcBalance={getTransferTokenBalance()}
-                                    cosmosWalletAddress={cosmosWallet.address}
-                                />
-                                <TransactionPanel cosmosWalletAddress={cosmosWallet.address} usdcBalance={getTransferTokenBalance()} />
-                            </div>
-
-                            {/* Right column: Table List (takes remaining space) */}
-                            <div className="flex-1 min-w-0">
-                                <TableList
-                                    onCreateTable={() => {
-                                        setCreateGameError("");
-                                        setShowCreateGameModal(true);
-                                    }}
-                                />
-                                {/* Powered by Block52 — shown below table on small/mid screens */}
-                                <div className="flex lg:hidden items-center justify-center opacity-30 py-4">
-                                    <div className="flex flex-col items-center gap-1">
-                                        <span className="text-xs text-white font-medium tracking-wide">POWERED BY</span>
-                                        <img src="/block52.png" alt="Block52 Logo" className="h-5 w-auto object-contain" />
-                                    </div>
-                                </div>
-                            </div>
-                        </div>
+                    {/* Lobby (redesign): balance, quick seat and next Sit & Go on top; every table as a
+                        picture of the felt, grouped by game; the wallet panel and transactions at the bottom. */}
+                    <div className="w-full max-w-[1600px] mx-auto px-4 sm:px-6 lg:px-8 z-10 mt-6 sm:mt-10 mb-16">
+                        <Lobby
+                            balance={getTransferTokenBalance()}
+                            address={cosmosWallet.address}
+                            onDeposit={handleDepositClick}
+                            onCreateTable={() => {
+                                setCreateGameError("");
+                                setShowCreateGameModal(true);
+                            }}
+                            walletSlot={
+                                <>
+                                    <WalletPanel
+                                        onDeposit={handleDepositClick}
+                                        onWithdraw={handleWithdrawClick}
+                                        onTransfer={() => setShowCosmosTransferModal(true)}
+                                        onCreateWallet={handleCreateNewWallet}
+                                        onImportWallet={() => setShowCosmosImportModal(true)}
+                                        onRefresh={cosmosWallet.refreshBalance}
+                                        usdcBalance={getTransferTokenBalance()}
+                                        cosmosWalletAddress={cosmosWallet.address}
+                                    />
+                                    <TransactionPanel cosmosWalletAddress={cosmosWallet.address} usdcBalance={getTransferTokenBalance()} />
+                                </>
+                            }
+                        />
                     </div>
 
                     {/* Reset blockchain button was here, now commented out by user */}
-
-                    {/* Powered by Block52 — fixed on large screens only */}
-                    <div className="hidden lg:flex fixed bottom-4 left-4 items-center z-10 opacity-30">
-                        <div className="flex flex-col items-start bg-transparent px-3 py-2 rounded-lg backdrop-blur-sm border-0">
-                            <div className="text-left mb-1">
-                                <span className="text-xs text-white font-medium tracking-wide">POWERED BY</span>
-                            </div>
-                            <img src="/block52.png" alt="Block52 Logo" className="h-6 w-auto object-contain interaction-none" />
-                        </div>
-                    </div>
 
                     {showWithdrawalModal && (
                         <WithdrawalModal

@@ -25,5 +25,7 @@ export const STORAGE_KEYS = {
     /** Bearer token injected by HTTPClient on secure requests. */
     authToken: "token",
     /** Whether the viewer has dismissed the upcoming Sit & Go welcome modal. */
-    seenUpcomingSngModal: "seen_upcoming_sng_modal"
+    seenUpcomingSngModal: "seen_upcoming_sng_modal",
+    /** Lobby filters a player keeps between visits (stakes, sizes, sort, treasury only). */
+    lobbyFilters: "lobby_filters"
 } as const;
