@@ -48,3 +48,18 @@ describe("club login hand-off", () => {
         expect(new URLSearchParams(url.split("#")[1]).get("signature")).toBe("s+/=");
     });
 });
+
+describe("a club service under a path (block52-club#19)", () => {
+    const hosted = parseAllowList("https://block52-club-xc92p.ondigitalocean.app/api");
+    const hostedConsole = parseAllowList("https://block52-club-xc92p.ondigitalocean.app");
+    const ret = "https://block52-club-xc92p.ondigitalocean.app/login";
+    it("is accepted with its path, and the path is kept for the challenge", () => {
+        const r = readClubLoginRequest(q("block52", "https://block52-club-xc92p.ondigitalocean.app/api", ret), hostedConsole, hosted);
+        expect(r).toEqual({ ok: true, request: { club: "block52", api: "https://block52-club-xc92p.ondigitalocean.app/api", returnTo: ret } });
+        expect(readClubLoginRequest(q("block52", "https://block52-club-xc92p.ondigitalocean.app/api/", ret), hostedConsole, hosted).ok).toBe(true);
+    });
+    it("is refused at another path on the same site", () => {
+        expect(readClubLoginRequest(q("block52", "https://block52-club-xc92p.ondigitalocean.app", ret), hostedConsole, hosted).ok).toBe(false);
+        expect(readClubLoginRequest(q("block52", "https://block52-club-xc92p.ondigitalocean.app/evil", ret), hostedConsole, hosted).ok).toBe(false);
+    });
+});
