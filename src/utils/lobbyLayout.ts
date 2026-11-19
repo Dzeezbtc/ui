@@ -16,7 +16,7 @@ import { hasValue } from "./guards";
 import { formatMicroAsUsdc, microToUsdc } from "../constants/currency";
 import { computeSngEntryBreakdown } from "./buyInUtils";
 import { cashBlind } from "./blindsLabel";
-import { hasContent, hasElements, isBoolean, isRecord, isString } from "./guards";
+import { hasContent, hasElements, isBoolean, isNumber, isRecord, isString } from "./guards";
 
 /** A lobby section: one per cash game (by name), plus Sit & Go and Tournaments. */
 export interface LobbySection {
@@ -236,44 +236,12 @@ export const totalOpenSeats = (games: Pick<GameWithFormat, "maxPlayers" | "curre
 export const toLobbySort = (value: string): LobbySort | undefined =>
     value === "stakes-up" || value === "stakes-down" || value === "most-players" || value === "most-open" ? value : undefined;
 
-/**
- * One stake level: every table in a section with the same blinds (cash) or the
- * same buy-in (Sit & Go / tournament) and the same table size. The lobby shows
- * one card per level (its lead table) and the rest one tap away, so a row of
- * identical empty tables collapses into a single card.
- */
-export interface StakeLevel {
-    key: string;
-    /** The table the card shows and Join opens. */
-    lead: GameWithFormat;
-    /** Every table at this level, the lead first. */
-    tables: GameWithFormat[];
-    seated: number;
-    open: number;
-    /** What the lobby row shows: the tables with players, then one empty table (if any). */
-    shown: GameWithFormat[];
-    /** Empty tables at this level the row leaves out. */
-    hiddenEmpty: number;
-}
-
 /** Which level a table belongs to: section + blinds (cash) or buy-in (tournaments) + table size. */
 export const levelKeyOf = (game: GameWithFormat): string =>
     isCashTable(game) ? `${sectionKeyOf(game)}|${game.smallBlind}|${game.bigBlind}|${game.maxPlayers}` : `${sectionKeyOf(game)}|${game.minBuyIn}|${game.maxPlayers}`;
 
 /** A table the lobby lists: everything except a scheduled tournament that was cancelled for too few players. */
 export const isListedTable = (game: GameWithFormat, nowMs: number): boolean => lobbyPhase(game, nowMs) !== "cancelled";
-
-/**
- * The table a level's card leads with: one you can sit at (open seat) with the
- * most players already there, earliest scheduled start breaking ties; if every
- * table is full, the one with the most players.
- */
-export const pickLead = (tables: GameWithFormat[]): GameWithFormat => {
-    const byBusy = (a: GameWithFormat, b: GameWithFormat) =>
-        b.currentPlayers - a.currentPlayers || (a.scheduledStartTime ?? 0) - (b.scheduledStartTime ?? 0) || a.gameId.localeCompare(b.gameId);
-    const open = tables.filter(t => openSeats(t) > 0).sort(byBusy);
-    return hasElements(open) ? open[0] : [...tables].sort(byBusy)[0];
-};
 
 /**
  * The tables a stake level's row shows: every table with players (most players
@@ -285,25 +253,6 @@ export const visibleLevelTables = (tables: GameWithFormat[]): GameWithFormat[] =
     const occupied = tables.filter(t => t.currentPlayers > 0).sort((a, b) => b.currentPlayers - a.currentPlayers || openSeats(a) - openSeats(b) || a.gameId.localeCompare(b.gameId));
     const empty = tables.filter(t => t.currentPlayers === 0).sort((a, b) => a.gameId.localeCompare(b.gameId));
     return [...occupied, ...empty.slice(0, 1)];
-};
-
-/** Collapse a section's (already sorted) tables into stake levels, in the order each level first appears. */
-export const groupLevels = (games: GameWithFormat[]): StakeLevel[] => {
-    const map = new Map<string, GameWithFormat[]>();
-    for (const g of games) map.set(levelKeyOf(g), [...(map.get(levelKeyOf(g)) ?? []), g]);
-    return [...map.entries()].map(([key, tables]) => {
-        const lead = pickLead(tables);
-        const shown = visibleLevelTables(tables);
-        return {
-            key,
-            lead,
-            tables: [lead, ...tables.filter(t => t !== lead)],
-            seated: seatedTotal(tables),
-            open: totalOpenSeats(tables),
-            shown,
-            hiddenEmpty: tables.length - shown.length
-        };
-    });
 };
 
 /** A table is "in play" when at least two players are seated. */
@@ -346,10 +295,19 @@ export interface LobbyPrefs {
     sizes: SizeBand[];
     sort: LobbySort;
     treasuryOnly: boolean;
+    /** Table sizes switched on in each stake row, by stake key. A stake with no entry starts on its busiest size. */
+    rowSizes: Record<string, number[]>;
 }
 
 const isStakeBand = (v: unknown): v is StakeBand => v === "micro" || v === "low" || v === "mid" || v === "high";
 const isSizeBand = (v: unknown): v is SizeBand => v === "heads-up" || v === "6-max" || v === "9-max";
+
+const parseRowSizes = (raw: Record<string, unknown>): Record<string, number[]> =>
+    Object.fromEntries(
+        Object.entries(raw)
+            .map(([key, v]): [string, number[]] => [key, Array.isArray(v) ? v.filter((n): n is number => isNumber(n) && Number.isInteger(n) && n > 1) : []])
+            .filter(([, v]) => hasElements(v))
+    );
 
 /** Read saved lobby filters (JSON from storage). Anything missing or unrecognised falls back to `defaults`. */
 export const parseLobbyPrefs = (raw: string | null, defaults: LobbyPrefs): LobbyPrefs => {
@@ -361,7 +319,8 @@ export const parseLobbyPrefs = (raw: string | null, defaults: LobbyPrefs): Lobby
             stakes: Array.isArray(data.stakes) ? data.stakes.filter(isStakeBand) : defaults.stakes,
             sizes: Array.isArray(data.sizes) ? data.sizes.filter(isSizeBand) : defaults.sizes,
             sort: isString(data.sort) ? (toLobbySort(data.sort) ?? defaults.sort) : defaults.sort,
-            treasuryOnly: isBoolean(data.treasuryOnly) ? data.treasuryOnly : defaults.treasuryOnly
+            treasuryOnly: isBoolean(data.treasuryOnly) ? data.treasuryOnly : defaults.treasuryOnly,
+            rowSizes: isRecord(data.rowSizes) ? parseRowSizes(data.rowSizes) : defaults.rowSizes
         };
     } catch {
         return defaults;
@@ -373,3 +332,99 @@ export const occupiedTables = (tables: GameWithFormat[]): GameWithFormat[] => ta
 
 /** Tables with a game going (two or more players), matching the cards' In play badge. */
 export const inPlayTables = (tables: GameWithFormat[]): GameWithFormat[] => tables.filter(isInPlay);
+
+/** Which stake row a table belongs to: section + blinds (cash) or buy-in (tournaments), any table size. */
+export const stakeKeyOf = (game: GameWithFormat): string =>
+    isCashTable(game) ? `${sectionKeyOf(game)}|${game.smallBlind}|${game.bigBlind}` : `${sectionKeyOf(game)}|${game.minBuyIn}`;
+
+/** One table size inside a stake row. */
+export interface RowSize {
+    size: number;
+    tables: GameWithFormat[];
+    /** Players seated at this size. */
+    seated: number;
+    /** Tables with a game going (2+ players) at this size. */
+    inPlay: number;
+}
+
+/** One stake inside a game section: every table at those stakes, split by table size for the row's size chips. */
+export interface StakeRow {
+    key: string;
+    /** A table at these stakes, for the row's label. */
+    sample: GameWithFormat;
+    /** Sizes at this stake, largest first. */
+    sizes: RowSize[];
+    seated: number;
+    open: number;
+}
+
+/** Group a section's tables into stake rows (all sizes together). */
+export const groupStakeRows = (games: GameWithFormat[]): StakeRow[] => {
+    const map = new Map<string, GameWithFormat[]>();
+    for (const g of games) map.set(stakeKeyOf(g), [...(map.get(stakeKeyOf(g)) ?? []), g]);
+    return [...map.entries()].map(([key, tables]) => {
+        const bySize = new Map<number, GameWithFormat[]>();
+        for (const t of tables) bySize.set(t.maxPlayers, [...(bySize.get(t.maxPlayers) ?? []), t]);
+        const sizes = [...bySize.entries()]
+            .sort(([a], [b]) => b - a)
+            .map(([size, list]) => ({ size, tables: list, seated: seatedTotal(list), inPlay: list.filter(isInPlay).length }));
+        return { key, sample: tables[0], sizes, seated: seatedTotal(tables), open: totalOpenSeats(tables) };
+    });
+};
+
+/** A stake where nobody is sitting at any size; it folds into the section's "No one playing yet" line. */
+export const isQuietStake = (row: StakeRow): boolean => row.seated === 0;
+
+/** The size a row starts on: the size with the most players (larger size on a tie), else the largest size. */
+export const busiestSize = (row: StakeRow): number => [...row.sizes].sort((a, b) => b.seated - a.seated || b.size - a.size)[0].size;
+
+/** The sizes switched on for a row: the saved choice (sizes that still exist), else the busiest size. Never empty. */
+export const rowSizeSelection = (row: StakeRow, saved: number[] | undefined): number[] => {
+    const valid = (saved ?? []).filter(n => row.sizes.some(s => s.size === n));
+    return hasElements(valid) ? valid : [busiestSize(row)];
+};
+
+/** Switch a size on or off in a row; the last size can't be switched off. */
+export const toggleRowSize = (selected: number[], size: number): number[] => {
+    if (!selected.includes(size)) return [...selected, size];
+    const next = selected.filter(n => n !== size);
+    return hasElements(next) ? next : selected;
+};
+
+/**
+ * The cards a row shows for the sizes switched on: tables with players (most
+ * first), then one spare empty table for each size switched on, so turning on
+ * a size always shows somewhere to sit at that size.
+ */
+export const rowTables = (row: StakeRow, selected: number[]): GameWithFormat[] => {
+    const on = row.sizes.filter(s => selected.includes(s.size));
+    const occupied = visibleLevelTables(on.flatMap(s => s.tables)).filter(t => t.currentPlayers > 0);
+    const spares = on.flatMap(s => s.tables.filter(t => t.currentPlayers === 0).sort((a, b) => a.gameId.localeCompare(b.gameId)).slice(0, 1));
+    return [...occupied, ...spares];
+};
+
+/** Order stake rows: busiest first (players seated), or by stakes, or by open seats. */
+export const sortStakeRows = (rows: StakeRow[], sort: LobbySort): StakeRow[] => {
+    const bb = (r: StakeRow) => Number(r.sample.bigBlind) || Number(r.sample.minBuyIn);
+    return [...rows].sort((a, b) => {
+        if (sort === "most-players") return b.seated - a.seated || bb(a) - bb(b);
+        if (sort === "stakes-down") return bb(b) - bb(a);
+        if (sort === "most-open") return b.open - a.open || bb(a) - bb(b);
+        return bb(a) - bb(b);
+    });
+};
+
+/** For a quiet stake: the empty table its "No one playing yet" chip opens (the largest size). */
+export const quietStakeTable = (row: StakeRow): GameWithFormat => row.sizes[0].tables[0];
+
+/** What a row shows for the sizes switched on: its cards, and the in-play / open-seat counts for those sizes. */
+export const rowView = (row: StakeRow, selected: number[]): { cards: GameWithFormat[]; inPlay: number; open: number } => {
+    const on = row.sizes.filter(s => selected.includes(s.size));
+    return { cards: rowTables(row, selected), inPlay: on.reduce((n, s) => n + s.inPlay, 0), open: on.reduce((n, s) => n + totalOpenSeats(s.tables), 0) };
+};
+
+/** Split a section into stake rows with players (sorted) and quiet stakes (nobody seated, by stakes). */
+export const sectionRows = (games: GameWithFormat[], sort: LobbySort): { active: StakeRow[]; quiet: StakeRow[] } => {
+    const rows = groupStakeRows(games);
+    return { active: sortStakeRows(rows.filter(r => !isQuietStake(r)), sort), quiet: sortStakeRows(rows.filter(isQuietStake), "stakes-up") };
+};

@@ -156,6 +156,7 @@ const strings: Translations = {
     "lobby.noTables": "Ei vapaita pöytiä",
     "lobby.createFirst": "Luo ensimmäinen pöytä ja aloita pelaaminen!",
     "lobby.createTable": "Luo pöytä",
+    "lobby.quietStakes": "Kukaan ei vielä pelaa panoksilla",
     "lobby.createSimilar": "Luo tällainen pöytä",
     "lobby.emptyTable": "Tyhjä pöytä",
     "lobby.joinSimilar": "Liity samanlaiseen pöytään",

@@ -156,6 +156,7 @@ const strings: Translations = {
     "lobby.noTables": "참여 가능한 테이블이 없습니다",
     "lobby.createFirst": "첫 테이블을 만들고 게임을 시작하세요!",
     "lobby.createTable": "테이블 만들기",
+    "lobby.quietStakes": "아직 아무도 플레이하지 않는 스테이크",
     "lobby.createSimilar": "이런 테이블 만들기",
     "lobby.emptyTable": "빈 테이블",
     "lobby.joinSimilar": "비슷한 테이블 참가",

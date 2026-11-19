@@ -156,6 +156,7 @@ const strings: Translations = {
     "lobby.noTables": "Ingen borde ledige",
     "lobby.createFirst": "Opret det første bord og begynd at spille!",
     "lobby.createTable": "Opret bord",
+    "lobby.quietStakes": "Ingen spiller endnu ved",
     "lobby.createSimilar": "Opret et bord som dette",
     "lobby.emptyTable": "Tomt bord",
     "lobby.joinSimilar": "Gå med ved lignende bord",

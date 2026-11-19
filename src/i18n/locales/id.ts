@@ -156,6 +156,7 @@ const strings: Translations = {
     "lobby.noTables": "Tidak ada meja tersedia",
     "lobby.createFirst": "Buat meja pertama untuk mulai bermain!",
     "lobby.createTable": "Buat meja",
+    "lobby.quietStakes": "Belum ada yang main di",
     "lobby.createSimilar": "Buat meja seperti ini",
     "lobby.emptyTable": "Meja kosong",
     "lobby.joinSimilar": "Gabung meja serupa",

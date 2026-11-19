@@ -156,6 +156,7 @@ const strings: Translations = {
     "lobby.noTables": "Uygun masa yok",
     "lobby.createFirst": "Oynamaya başlamak için ilk masayı oluşturun!",
     "lobby.createTable": "Masa oluştur",
+    "lobby.quietStakes": "Henüz kimse oynamıyor:",
     "lobby.createSimilar": "Böyle bir masa oluştur",
     "lobby.emptyTable": "Boş masa",
     "lobby.joinSimilar": "Benzer masaya katıl",

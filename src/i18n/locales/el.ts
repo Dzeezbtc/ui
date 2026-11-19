@@ -156,6 +156,7 @@ const strings: Translations = {
     "lobby.noTables": "Δεν υπάρχουν διαθέσιμα τραπέζια",
     "lobby.createFirst": "Φτιάξε το πρώτο τραπέζι για να αρχίσεις!",
     "lobby.createTable": "Νέο τραπέζι",
+    "lobby.quietStakes": "Κανείς δεν παίζει ακόμα στα",
     "lobby.createSimilar": "Δημιούργησε τέτοιο τραπέζι",
     "lobby.emptyTable": "Άδειο τραπέζι",
     "lobby.joinSimilar": "Μπες σε παρόμοιο τραπέζι",

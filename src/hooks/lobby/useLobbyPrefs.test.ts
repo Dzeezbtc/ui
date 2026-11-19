@@ -3,7 +3,7 @@ import { useLobbyPrefs } from "./useLobbyPrefs";
 import { STORAGE_KEYS } from "../../constants/storageKeys";
 import type { LobbyPrefs } from "../../utils/lobbyLayout";
 
-const defaults: LobbyPrefs = { stakes: [], sizes: [], sort: "stakes-up", treasuryOnly: true };
+const defaults: LobbyPrefs = { stakes: [], sizes: [], sort: "most-players", treasuryOnly: true, rowSizes: {} };
 
 describe("useLobbyPrefs", () => {
     beforeEach(() => localStorage.clear());

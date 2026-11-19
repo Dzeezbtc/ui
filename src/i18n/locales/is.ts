@@ -156,6 +156,7 @@ const strings: Translations = {
     "lobby.noTables": "Engin borð laus",
     "lobby.createFirst": "Búðu til fyrsta borðið og byrjaðu að spila!",
     "lobby.createTable": "Búa til borð",
+    "lobby.quietStakes": "Enginn að spila enn á",
     "lobby.createSimilar": "Búa til svona borð",
     "lobby.emptyTable": "Tómt borð",
     "lobby.joinSimilar": "Setjast við svipað borð",

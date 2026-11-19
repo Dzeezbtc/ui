@@ -18,6 +18,17 @@ import {
     sectionAnchorId,
     svgSafeId,
     lobbyPhase,
+    rowView,
+    sectionRows,
+    stakeKeyOf,
+    groupStakeRows,
+    isQuietStake,
+    busiestSize,
+    rowSizeSelection,
+    toggleRowSize,
+    rowTables,
+    sortStakeRows,
+    quietStakeTable,
     inPlayTables,
     occupiedTables,
     visibleLevelTables,
@@ -28,9 +39,7 @@ import {
     hasBalance,
     othersAtLevel,
     activeFilterCount,
-    groupLevels,
     levelKeyOf,
-    pickLead,
     isListedTable,
     isInPlay,
     sectionCount,
@@ -342,28 +351,6 @@ describe("stake levels", () => {
         expect(levelKeyOf(sng("s", 0, 6))).toBe(levelKeyOf(sng("t", 3, 6)));
     });
 
-    it("leads with the busiest table that still has a seat", () => {
-        expect(pickLead([cash("a", 1, 2, 0, 9), cash("b", 1, 2, 9, 9), cash("c", 1, 2, 4, 9)]).gameId).toBe("c");
-    });
-
-    it("leads with the busiest table when every one is full", () => {
-        expect(pickLead([cash("a", 1, 2, 6, 6), cash("b", 1, 2, 6, 6)]).gameId).toBe("a");
-    });
-
-    it("breaks ties by the earliest scheduled start", () => {
-        expect(pickLead([sng("late", 1, 9, { scheduledStartTime: 2000 }), sng("soon", 1, 9, { scheduledStartTime: 1000 })]).gameId).toBe("soon");
-    });
-
-    it("collapses identical tables into one level, keeping the first-seen order", () => {
-        const levels = groupLevels([cash("a", 0.01, 0.02, 0, 9), cash("b", 0.01, 0.02, 1, 9), cash("c", 1, 2, 3, 9), cash("d", 0.01, 0.02, 0, 9)]);
-        expect(levels).toHaveLength(2);
-        expect(levels[0].lead.gameId).toBe("b");
-        expect(levels[0].tables.map(t => t.gameId)).toEqual(["b", "a", "d"]);
-        expect(levels[0].seated).toBe(1);
-        expect(levels[0].open).toBe(26);
-        expect(levels[1].lead.gameId).toBe("c");
-    });
-
     it("lists everything except cancelled scheduled tournaments", () => {
         const now = 1_800_000_000_000;
         expect(isListedTable(cash("a", 1, 2, 0, 9), now)).toBe(true);
@@ -408,11 +395,6 @@ describe("what a stake level shows", () => {
         expect(visibleLevelTables([cash("b", 1, 2, 0, 9), cash("a", 1, 2, 0, 9)]).map(t => t.gameId)).toEqual(["a"]);
     });
 
-    it("counts the empty tables it leaves out", () => {
-        const [level] = groupLevels([cash("a", 1, 2, 0, 9), cash("b", 1, 2, 0, 9), cash("c", 1, 2, 3, 9), cash("d", 1, 2, 0, 9)]);
-        expect(level.shown.map(t => t.gameId)).toEqual(["c", "a"]);
-        expect(level.hiddenEmpty).toBe(2);
-    });
 });
 
 describe("similarOpenTable", () => {
@@ -443,11 +425,11 @@ describe("multi-select filters", () => {
 });
 
 describe("parseLobbyPrefs", () => {
-    const defaults = { stakes: [] as StakeBand[], sizes: [] as SizeBand[], sort: "stakes-up" as const, treasuryOnly: true };
+    const defaults = { stakes: [] as StakeBand[], sizes: [] as SizeBand[], sort: "stakes-up" as const, treasuryOnly: true, rowSizes: {} as Record<string, number[]> };
 
     it("reads saved filters", () => {
-        const raw = JSON.stringify({ stakes: ["low", "mid"], sizes: ["6-max"], sort: "most-players", treasuryOnly: false });
-        expect(parseLobbyPrefs(raw, defaults)).toEqual({ stakes: ["low", "mid"], sizes: ["6-max"], sort: "most-players", treasuryOnly: false });
+        const raw = JSON.stringify({ stakes: ["low", "mid"], sizes: ["6-max"], sort: "most-players", treasuryOnly: false, rowSizes: { "cash:x|1|2": [9, 6], bad: ["9", 1, 2.5] } });
+        expect(parseLobbyPrefs(raw, defaults)).toEqual({ stakes: ["low", "mid"], sizes: ["6-max"], sort: "most-players", treasuryOnly: false, rowSizes: { "cash:x|1|2": [9, 6] } });
     });
 
     it("drops unknown values and falls back for missing ones", () => {
@@ -470,5 +452,84 @@ describe("occupiedTables", () => {
 describe("inPlayTables", () => {
     it("keeps tables with two or more players", () => {
         expect(inPlayTables([cash("a", 1, 2, 1, 9), cash("b", 1, 2, 2, 9), cash("c", 1, 2, 0, 9)]).map(g => g.gameId)).toEqual(["b"]);
+    });
+});
+
+describe("stake rows", () => {
+    const games = [
+        cash("n1", 0.01, 0.02, 3, 9),
+        cash("n2", 0.01, 0.02, 0, 9),
+        cash("n3", 0.01, 0.02, 0, 9),
+        cash("h1", 0.01, 0.02, 2, 2),
+        cash("h2", 0.01, 0.02, 2, 2),
+        cash("h3", 0.01, 0.02, 0, 2),
+        cash("f1", 0.01, 0.02, 0, 4),
+        cash("q1", 2, 5, 0, 9),
+        cash("q2", 2, 5, 0, 6)
+    ];
+    const rows = groupStakeRows(games);
+    const micro = rows.find(r => r.sample.bigBlind === "20000")!;
+    const quiet = rows.find(r => r.sample.bigBlind === "5000000")!;
+
+    it("puts every size of one stake in one row, sizes largest first", () => {
+        expect(rows).toHaveLength(2);
+        expect(stakeKeyOf(cash("a", 1, 2, 0, 9))).toBe(stakeKeyOf(cash("b", 1, 2, 0, 2)));
+        expect(micro.sizes.map(s => s.size)).toEqual([9, 4, 2]);
+        expect(micro.sizes.map(s => s.inPlay)).toEqual([1, 0, 2]);
+        expect(micro.seated).toBe(7);
+    });
+
+    it("folds stakes with nobody seated", () => {
+        expect(isQuietStake(micro)).toBe(false);
+        expect(isQuietStake(quiet)).toBe(true);
+        expect(quietStakeTable(quiet).maxPlayers).toBe(9);
+    });
+
+    it("starts a row on the size with the most players, else the largest", () => {
+        // 4 players at heads-up beat 3 at 9-max
+        expect(busiestSize(micro)).toBe(2);
+        expect(busiestSize(quiet)).toBe(9);
+        const hu = groupStakeRows([cash("a", 1, 2, 2, 2), cash("b", 1, 2, 2, 2), cash("c", 1, 2, 1, 9)])[0];
+        expect(busiestSize(hu)).toBe(2);
+    });
+
+    it("uses the saved sizes that still exist, never an empty selection", () => {
+        expect(rowSizeSelection(micro, undefined)).toEqual([2]);
+        expect(rowSizeSelection(micro, [9, 6])).toEqual([9]);
+        expect(rowSizeSelection(micro, [6])).toEqual([2]);
+    });
+
+    it("switches sizes on and off but keeps at least one", () => {
+        expect(toggleRowSize([9], 2)).toEqual([9, 2]);
+        expect(toggleRowSize([9, 2], 9)).toEqual([2]);
+        expect(toggleRowSize([9], 9)).toEqual([9]);
+    });
+
+    it("shows tables with players for the sizes on, then one spare per size on", () => {
+        expect(rowTables(micro, [9]).map(g => g.gameId)).toEqual(["n1", "n2"]);
+        expect(rowTables(micro, [9, 2]).map(g => g.gameId)).toEqual(["n1", "h1", "h2", "n2", "h3"]);
+        expect(rowTables(micro, [9, 4]).map(g => g.gameId)).toEqual(["n1", "n2", "f1"]);
+    });
+
+    it("orders rows busiest first, or by stakes", () => {
+        expect(sortStakeRows(rows, "most-players")[0]).toBe(micro);
+        expect(sortStakeRows(rows, "stakes-down")[0]).toBe(quiet);
+        expect(sortStakeRows(rows, "stakes-up")[0]).toBe(micro);
+    });
+});
+
+describe("rowView and sectionRows", () => {
+    const games = [cash("a", 1, 2, 3, 9), cash("b", 1, 2, 2, 2), cash("c", 1, 2, 0, 9), cash("d", 5, 10, 0, 9)];
+
+    it("counts in-play tables and open seats for the sizes switched on", () => {
+        const [row] = groupStakeRows(games.slice(0, 3));
+        expect(rowView(row, [9])).toEqual({ cards: [games[0], games[2]], inPlay: 1, open: 15 });
+        expect(rowView(row, [9, 2]).inPlay).toBe(2);
+    });
+
+    it("splits busy stake rows from quiet ones", () => {
+        const { active, quiet } = sectionRows(games, "most-players");
+        expect(active).toHaveLength(1);
+        expect(quiet.map(r => r.sample.gameId)).toEqual(["d"]);
     });
 });

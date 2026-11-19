@@ -172,6 +172,7 @@ export const en = {
     "lobby.noTables": "No tables available",
     "lobby.createFirst": "Create the first table to start playing!",
     "lobby.createTable": "Create table",
+    "lobby.quietStakes": "No one playing yet at",
     "lobby.createSimilar": "Create a table like this",
     "lobby.emptyTable": "Empty table",
     "lobby.joinSimilar": "Join similar table",

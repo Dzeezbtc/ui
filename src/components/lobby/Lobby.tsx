@@ -11,7 +11,11 @@ import {
     filterLobbyGames,
     hasBalance,
     firstSectionOf,
-    groupLevels,
+    sectionRows,
+    rowSizeSelection,
+    rowView,
+    toggleRowSize,
+    quietStakeTable,
     groupLobbySections,
     isListedTable,
     isTableCreator,
@@ -19,7 +23,6 @@ import {
     lobbyBalanceLabel,
     othersAtLevel,
     occupiedTables,
-    inPlayTables,
     similarOpenTable,
     toggleBand,
     lobbyStakesLabel,
@@ -77,8 +80,8 @@ const Lobby: React.FC<LobbyProps> = ({ balance, address, onDeposit, onCreateTabl
 
     const [query, setQuery] = useState("");
     // Stakes, sizes, sort and treasury-only are remembered between visits; search is not.
-    const [prefs, setPrefs] = useLobbyPrefs({ stakes: [], sizes: [], sort: "stakes-up", treasuryOnly: hasContent(treasuryAddress) });
-    const { stakes, sizes, sort, treasuryOnly } = prefs;
+    const [prefs, setPrefs] = useLobbyPrefs({ stakes: [], sizes: [], sort: "most-players", treasuryOnly: hasContent(treasuryAddress), rowSizes: {} });
+    const { stakes, sizes, sort, treasuryOnly, rowSizes } = prefs;
     const [filtersOpen, setFiltersOpen] = useState(false);
     const [previewId, setPreviewId] = useState<string | null>(null);
     const [deleteId, setDeleteId] = useState<string | null>(null);
@@ -97,7 +100,7 @@ const Lobby: React.FC<LobbyProps> = ({ balance, address, onDeposit, onCreateTabl
         () => filterLobbyGames(rawGames, { query, stakes, sizes, treasuryOnly, treasuryAddress, clubNames }),
         [rawGames, query, stakes, sizes, treasuryOnly, clubNames]
     );
-    const sections = useMemo(() => groupLobbySections(games, sort).map(s => ({ ...s, levels: groupLevels(s.games) })), [games, sort]);
+    const sections = useMemo(() => groupLobbySections(games, sort).map(s => ({ ...s, ...sectionRows(s.games, sort) })), [games, sort]);
     const cashSections = useMemo(() => groupLobbySections(rawGames, "stakes-up").filter(s => s.kind === "cash"), [rawGames]);
     const preview = hasContent(previewId) ? rawGames.find(g => g.gameId === previewId) : undefined;
     const filterCount = activeFilterCount({ query, stakes, sizes });
@@ -292,21 +295,53 @@ const Lobby: React.FC<LobbyProps> = ({ balance, address, onDeposit, onCreateTabl
                                     <small>{t("lobby.sectionCount", { count: section.games.length, open: totalOpenSeats(section.games) })}</small>
                                 </div>
                             </div>
-                            {section.levels.map(level => (
-                                <div key={level.key} className={styles.levelBlock}>
-                                    <div className={styles.levelHead}>
-                                        <b className={styles.mono}>{isCashTable(level.lead) ? lobbyStakesLabel(level.lead) : lobbyBuyInLabel(level.lead)}</b>
-                                        <span>{tableSizeLabel(level.lead.maxPlayers)}</span>
-                                        <span className={styles.levelStat}>{t("lobby.levelInPlay", { count: inPlayTables(level.tables).length })}</span>
-                                        <span className={styles.levelStat}>{t("lobby.openShort", { count: level.open })}</span>
+                            {section.active.map(row => {
+                                const selected = rowSizeSelection(row, rowSizes[row.key]);
+                                const view = rowView(row, selected);
+                                return (
+                                    <div key={row.key} className={styles.levelBlock}>
+                                        <div className={styles.levelHead}>
+                                            <b className={styles.mono}>{isCashTable(row.sample) ? lobbyStakesLabel(row.sample) : lobbyBuyInLabel(row.sample)}</b>
+                                            <span className={styles.sizeChips} role="group" aria-label={t("lobby.seats")}>
+                                                {row.sizes.map(sz => {
+                                                    const on = selected.includes(sz.size);
+                                                    return (
+                                                        <button
+                                                            key={sz.size}
+                                                            type="button"
+                                                            className={`${styles.sizeChip} ${on ? styles.sizeChipOn : ""}`}
+                                                            aria-pressed={on}
+                                                            onClick={() => setPrefs({ rowSizes: { ...rowSizes, [row.key]: toggleRowSize(selected, sz.size) } })}
+                                                        >
+                                                            {sz.inPlay > 0 ? <i className={styles.sizeDot} /> : null}
+                                                            {tableSizeLabel(sz.size)}
+                                                        </button>
+                                                    );
+                                                })}
+                                            </span>
+                                            <span className={styles.levelStats}>
+                                                <span>{t("lobby.levelInPlay", { count: view.inPlay })}</span>
+                                                <span className={styles.levelStat}>{t("lobby.openShort", { count: view.open })}</span>
+                                            </span>
+                                        </div>
+                                        <div className={styles.row}>
+                                            {view.cards.map(g => (
+                                                <TableCard key={g.gameId} game={g} clubName={clubOf(g.gameId)} isTreasury={isTreasuryTable(g, treasuryAddress)} nowMs={nowMs} onOpen={setPreviewId} />
+                                            ))}
+                                        </div>
                                     </div>
-                                    <div className={styles.row}>
-                                        {level.shown.map(g => (
-                                            <TableCard key={g.gameId} game={g} clubName={clubOf(g.gameId)} isTreasury={isTreasuryTable(g, treasuryAddress)} nowMs={nowMs} onOpen={setPreviewId} />
-                                        ))}
-                                    </div>
+                                );
+                            })}
+                            {hasElements(section.quiet) ? (
+                                <div className={styles.quiet}>
+                                    <span className={styles.quietLabel}>{t("lobby.quietStakes")}</span>
+                                    {section.quiet.map(row => (
+                                        <button key={row.key} type="button" className={styles.quietChip} onClick={() => setPreviewId(quietStakeTable(row).gameId)}>
+                                            {isCashTable(row.sample) ? lobbyStakesLabel(row.sample) : lobbyBuyInLabel(row.sample)}
+                                        </button>
+                                    ))}
                                 </div>
-                            ))}
+                            ) : null}
                         </section>
                     );
                 })

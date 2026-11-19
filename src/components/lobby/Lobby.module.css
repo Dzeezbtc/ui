@@ -154,6 +154,16 @@ a.pill:hover { color: #fff; }
 .levelHead { display: flex; align-items: baseline; gap: 10px; flex-wrap: wrap; margin-bottom: 8px; font-size: 13px; color: var(--muted); }
 .levelHead b { color: var(--fg); font-size: 15px; font-weight: 600; }
 .levelStat { padding-left: 10px; border-left: 1px solid var(--line2); }
+.levelStats { display: inline-flex; gap: 10px; align-items: baseline; }
+.sizeChips { display: inline-flex; gap: 6px; flex-wrap: wrap; }
+.sizeChip { display: inline-flex; align-items: center; gap: 6px; height: 28px; padding: 0 11px; border-radius: 999px; border: 1px solid var(--line); background: var(--panel); color: var(--muted); font-size: 12.5px; font-weight: 600; cursor: pointer; white-space: nowrap; }
+.sizeChip:hover { color: var(--fg); border-color: var(--line2); }
+.sizeChipOn { color: #fff; background: rgba(124, 58, 237, 0.28); border-color: rgba(196, 181, 253, 0.55); }
+.sizeDot { width: 6px; height: 6px; border-radius: 50%; background: var(--good); box-shadow: 0 0 8px var(--good); }
+.quiet { display: flex; align-items: center; gap: 8px; flex-wrap: wrap; margin-top: 14px; padding: 12px 14px; border-radius: 16px; border: 1px dashed var(--line2); }
+.quietLabel { font-size: 13px; color: var(--muted); font-weight: 600; margin-right: 4px; }
+.quietChip { height: 30px; padding: 0 12px; border-radius: 999px; border: 1px solid var(--line); background: var(--panel2); color: var(--fg); font-family: var(--mono); font-size: 12.5px; font-weight: 600; cursor: pointer; }
+.quietChip:hover { border-color: rgba(77, 208, 248, 0.5); color: var(--cy); }
 .row { display: grid; grid-auto-flow: column; grid-auto-columns: 216px; gap: 12px; overflow-x: auto; scroll-snap-type: x mandatory; padding-bottom: 6px; scrollbar-width: thin; scrollbar-color: rgba(196, 181, 253, 0.3) transparent; }
 .row > * { scroll-snap-align: start; }
 .cardEmpty { border-style: dashed; border-color: rgba(77, 208, 248, 0.3); }
@@ -259,7 +269,9 @@ a.pill:hover { color: #fff; }
     .grid { grid-template-columns: none; grid-auto-flow: column; grid-auto-columns: 44%; gap: 10px; overflow-x: auto; scroll-snap-type: x mandatory; margin: 0 -16px; padding: 0 16px 4px; scroll-padding: 0 16px; scrollbar-width: none; }
     .grid > * { scroll-snap-align: start; }
     .row { grid-auto-columns: 44%; gap: 10px; margin: 0 -16px; padding: 0 16px 4px; scroll-padding: 0 16px; scrollbar-width: none; }
-    .levelHead { font-size: 12px; }
+    .levelHead { font-size: 12px; row-gap: 8px; }
+    .sizeChips { order: 3; width: 100%; overflow-x: auto; flex-wrap: nowrap; scrollbar-width: none; }
+    .levelStats { margin-left: auto; }
     .levelHead b { font-size: 14px; }
     .gridAll { grid-auto-flow: row; grid-template-columns: 1fr 1fr; grid-auto-columns: auto; overflow: visible; margin: 0; padding: 0; }
     .card { border-radius: 16px; }

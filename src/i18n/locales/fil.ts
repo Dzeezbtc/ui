@@ -156,6 +156,7 @@ const strings: Translations = {
     "lobby.noTables": "Walang bakanteng mesa",
     "lobby.createFirst": "Gumawa ng unang mesa para makapaglaro!",
     "lobby.createTable": "Gumawa ng mesa",
+    "lobby.quietStakes": "Wala pang naglalaro sa",
     "lobby.createSimilar": "Gumawa ng ganitong mesa",
     "lobby.emptyTable": "Bakanteng mesa",
     "lobby.joinSimilar": "Sumali sa katulad na mesa",

@@ -156,6 +156,7 @@ const strings: Translations = {
     "lobby.noTables": "Không có bàn nào",
     "lobby.createFirst": "Hãy tạo bàn đầu tiên để bắt đầu chơi!",
     "lobby.createTable": "Tạo bàn",
+    "lobby.quietStakes": "Chưa có ai chơi ở mức",
     "lobby.createSimilar": "Tạo bàn giống thế này",
     "lobby.emptyTable": "Bàn trống",
     "lobby.joinSimilar": "Vào bàn tương tự",

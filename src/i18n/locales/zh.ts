@@ -156,6 +156,7 @@ const strings: Translations = {
     "lobby.noTables": "暂无可用牌桌",
     "lobby.createFirst": "创建第一张牌桌,开始游戏吧!",
     "lobby.createTable": "创建牌桌",
+    "lobby.quietStakes": "这些级别暂时没人在玩",
     "lobby.createSimilar": "创建同样的牌桌",
     "lobby.emptyTable": "空桌",
     "lobby.joinSimilar": "加入类似牌桌",
