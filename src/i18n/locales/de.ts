@@ -91,8 +91,6 @@ const strings: Translations = {
     "settings.bbCashHelp": "Zeigt alle Stacks in Big Blinds (z. B. 45,5 BB) statt in Dollar an Cash-Tischen.",
     "settings.bbTournament": "Stacks in Big Blinds – Turniere",
     "settings.bbTournamentHelp": "Zeigt alle Stacks in Big Blinds (z. B. 30 BB) statt in Chips bei Sit & Gos und Turnieren. Nutzt den Big Blind des aktuellen Levels.",
-    "settings.celebration": "Gewinn-Animation",
-    "settings.celebrationHelp": "Spielt die Goldchip-Animation am Platz des Gewinners ab. Für einen ruhigeren Tisch ausschalten – der Pot wird trotzdem ausgezahlt, nur ohne Animation.",
     "settings.hideBusted": "Ausgeschiedene Spieler ausblenden",
     "settings.hideBustedHelp": "Bei Sit & Go und Turnieren verschwindet ein ausgeschiedener Spieler vom Tisch und sein Platz bleibt leer. Ausschalten, um ihn abgedunkelt am Tisch zu lassen.",
     "settings.potChips": "Pot als Chips",

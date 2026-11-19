@@ -91,8 +91,6 @@ const strings: Translations = {
     "settings.bbCashHelp": "Muestra las fichas en ciegas grandes (p. ej. 45,5 BB) en lugar de dólares en las mesas de cash.",
     "settings.bbTournament": "Fichas en ciegas grandes: torneos",
     "settings.bbTournamentHelp": "Muestra las fichas en ciegas grandes (p. ej. 30 BB) en Sit & Go y torneos. Usa la ciega grande del nivel actual.",
-    "settings.celebration": "Celebración de victoria",
-    "settings.celebrationHelp": "Reproduce la animación de fichas doradas en el asiento ganador. Desactívala para una mesa más tranquila: el bote se entrega igual, sin la animación.",
     "settings.hideBusted": "Ocultar jugadores eliminados",
     "settings.hideBustedHelp": "En Sit & Go y torneos, el jugador eliminado desaparece de la mesa y su asiento queda en blanco. Desactívalo para mantenerlos en la mesa, atenuados.",
     "settings.potChips": "Bote en fichas",

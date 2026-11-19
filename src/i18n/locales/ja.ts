@@ -91,8 +91,6 @@ const strings: Translations = {
     "settings.bbCashHelp": "キャッシュテーブルでスタックをドルではなくBB(例:45.5 BB)で表示します。",
     "settings.bbTournament": "スタックをBB表示:トーナメント",
     "settings.bbTournamentHelp": "Sit & Goとトーナメントでスタックをチップ数ではなくBB(例:30 BB)で表示します。現在のレベルのBBを使います。",
-    "settings.celebration": "勝利の演出",
-    "settings.celebrationHelp": "勝者のシートに金色チップのアニメーションを表示します。オフにしてもポットは通常どおり支払われます。",
     "settings.hideBusted": "脱落したプレイヤーを非表示",
     "settings.hideBustedHelp": "Sit & Go とトーナメントでは、脱落したプレイヤーがテーブルから消え、席は空白になります。オフにすると暗く表示したまま残ります。",
     "settings.potChips": "ポットをチップ表示",

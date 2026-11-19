@@ -91,8 +91,6 @@ const strings: Translations = {
     "settings.bbCashHelp": "캐시 테이블에서 스택을 달러 대신 빅 블라인드(예: 45.5 BB)로 표시합니다.",
     "settings.bbTournament": "스택을 빅 블라인드로 표시: 토너먼트",
     "settings.bbTournamentHelp": "Sit & Go와 토너먼트에서 스택을 칩 대신 빅 블라인드(예: 30 BB)로 표시합니다. 현재 레벨의 빅 블라인드를 사용합니다.",
-    "settings.celebration": "승리 축하 효과",
-    "settings.celebrationHelp": "승리한 자리에 금색 칩 애니메이션을 재생합니다. 꺼도 팟은 그대로 지급되며 애니메이션만 나오지 않습니다.",
     "settings.hideBusted": "탈락한 플레이어 숨기기",
     "settings.hideBustedHelp": "Sit & Go와 토너먼트에서 탈락한 플레이어는 테이블에서 사라지고 좌석은 비어 보입니다. 끄면 흐리게 테이블에 남습니다.",
     "settings.potChips": "팟을 칩으로 표시",

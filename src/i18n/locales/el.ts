@@ -91,8 +91,6 @@ const strings: Translations = {
     "settings.bbCashHelp": "Δείχνει κάθε stack σε big blinds (π.χ. 45,5 BB) αντί για δολάρια στα cash τραπέζια.",
     "settings.bbTournament": "Stacks σε big blinds — τουρνουά",
     "settings.bbTournamentHelp": "Δείχνει κάθε stack σε big blinds (π.χ. 30 BB) αντί για μάρκες σε Sit & Go και τουρνουά. Χρησιμοποιεί το big blind του τρέχοντος επιπέδου.",
-    "settings.celebration": "Γιορτή νίκης",
-    "settings.celebrationHelp": "Παίζει το εφέ με τις χρυσές μάρκες στη θέση που κερδίζει. Απενεργοποίησέ το για πιο ήσυχο τραπέζι — το pot δίνεται κανονικά, απλώς χωρίς εφέ.",
     "settings.hideBusted": "Απόκρυψη αποκλεισμένων παικτών",
     "settings.hideBustedHelp": "Σε Sit & Go και τουρνουά, ο παίκτης που αποκλείεται εξαφανίζεται από το τραπέζι και η θέση του μένει κενή. Απενεργοποίησέ το για να μένουν στο τραπέζι, αχνοί.",
     "settings.potChips": "Pot ως μάρκες",

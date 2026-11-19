@@ -91,8 +91,6 @@ const strings: Translations = {
     "settings.bbCashHelp": "Affiche les tapis en grosses blinds (ex. 45,5 BB) plutôt qu'en dollars aux tables de cash.",
     "settings.bbTournament": "Tapis en grosses blinds : tournois",
     "settings.bbTournamentHelp": "Affiche les tapis en grosses blinds (ex. 30 BB) plutôt qu'en jetons en Sit & Go et en tournoi. Utilise la grosse blind du niveau en cours.",
-    "settings.celebration": "Célébration de victoire",
-    "settings.celebrationHelp": "Joue l'animation de jetons dorés sur le siège gagnant. Désactivez-la pour une table plus calme : le pot est versé quand même, sans animation.",
     "settings.hideBusted": "Masquer les joueurs éliminés",
     "settings.hideBustedHelp": "En Sit & Go et en tournoi, un joueur éliminé disparaît de la table et son siège reste vide. Désactivez pour les garder à la table, estompés.",
     "settings.potChips": "Pot en jetons",

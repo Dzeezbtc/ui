@@ -252,14 +252,6 @@ export interface PlayerProps {
     status?: string;
 }
 
-export interface TurnAnimationProps {
-    index: number;
-}
-
-export interface WinAnimationProps {
-    index: number;
-}
-
 // ============================================================================
 // HOOK RETURN TYPES
 // ============================================================================

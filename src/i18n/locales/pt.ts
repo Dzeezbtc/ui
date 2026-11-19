@@ -91,8 +91,6 @@ const strings: Translations = {
     "settings.bbCashHelp": "Mostra as fichas em big blinds (ex.: 45,5 BB) em vez de dólares nas mesas de cash.",
     "settings.bbTournament": "Fichas em big blinds: torneios",
     "settings.bbTournamentHelp": "Mostra as fichas em big blinds (ex.: 30 BB) em Sit & Go e torneios. Usa o big blind do nível atual.",
-    "settings.celebration": "Comemoração de vitória",
-    "settings.celebrationHelp": "Toca a animação de fichas douradas no assento vencedor. Desative para uma mesa mais calma: o pote é pago do mesmo jeito, sem a animação.",
     "settings.hideBusted": "Ocultar jogadores eliminados",
     "settings.hideBustedHelp": "Em Sit & Go e torneios, o jogador eliminado desaparece da mesa e o lugar fica em branco. Desative para mantê-los na mesa, esmaecidos.",
     "settings.potChips": "Pote em fichas",

@@ -91,8 +91,6 @@ const strings: Translations = {
     "settings.bbCashHelp": "Näytä jokainen pino big blindeinä (esim. 45,5 BB) dollarien sijaan käteispöydissä.",
     "settings.bbTournament": "Pinot big blindeinä — turnaukset",
     "settings.bbTournamentHelp": "Näytä jokainen pino big blindeinä (esim. 30 BB) pelimerkkien sijaan Sit & Go -peleissä ja turnauksissa. Käyttää nykyisen tason big blindiä.",
-    "settings.celebration": "Voiton juhlinta",
-    "settings.celebrationHelp": "Näytä kultamerkkianimaatio voittavalla paikalla. Kytke pois rauhallisempaa pöytää varten — potti jaetaan silti, vain ilman animaatiota.",
     "settings.hideBusted": "Piilota pudonneet pelaajat",
     "settings.hideBustedHelp": "Sit & Go -peleissä ja turnauksissa pudonnut pelaaja katoaa pöydästä ja hänen paikkansa jää tyhjäksi. Poista käytöstä, jos haluat heidän jäävän pöytään himmennettyinä.",
     "settings.potChips": "Potti pelimerkkeinä",

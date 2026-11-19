@@ -91,8 +91,6 @@ const strings: Translations = {
     "settings.bbCashHelp": "Sýna hvern stafla í big blinds (t.d. 45,5 BB) í stað dollara við cash-borð.",
     "settings.bbTournament": "Staflar í big blinds — mót",
     "settings.bbTournamentHelp": "Sýna hvern stafla í big blinds (t.d. 30 BB) í stað spilapeninga í Sit & Go og mótum. Notar big blind núverandi stigs.",
-    "settings.celebration": "Sigurfögnuður",
-    "settings.celebrationHelp": "Spila gullpeningahreyfimyndina á sætinu sem vinnur. Slökktu fyrir rólegra borð — potturinn er samt greiddur út, bara án hreyfimyndar.",
     "settings.hideBusted": "Fela leikmenn sem eru úr leik",
     "settings.hideBustedHelp": "Í Sit & Go og mótum hverfur leikmaður sem fellur úr leik af borðinu og sætið verður autt. Slökktu á þessu til að hafa þá áfram við borðið, dofna.",
     "settings.potChips": "Pottur sem spilapeningar",

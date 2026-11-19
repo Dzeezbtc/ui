@@ -91,8 +91,6 @@ const strings: Translations = {
     "settings.bbCashHelp": "Menampilkan stack dalam big blind (mis. 45,5 BB) alih-alih dolar di meja cash.",
     "settings.bbTournament": "Stack dalam big blind: turnamen",
     "settings.bbTournamentHelp": "Menampilkan stack dalam big blind (mis. 30 BB) alih-alih chip di Sit & Go dan turnamen. Memakai big blind level saat ini.",
-    "settings.celebration": "Perayaan kemenangan",
-    "settings.celebrationHelp": "Memutar animasi chip emas di kursi pemenang. Matikan agar meja lebih tenang: pot tetap diberikan, hanya tanpa animasi.",
     "settings.hideBusted": "Sembunyikan pemain tersingkir",
     "settings.hideBustedHelp": "Di Sit & Go dan turnamen, pemain yang tersingkir hilang dari meja dan kursinya kosong. Matikan agar mereka tetap di meja dalam keadaan redup.",
     "settings.potChips": "Pot sebagai chip",

@@ -91,8 +91,6 @@ const strings: Translations = {
     "settings.bbCashHelp": "Ipakita ang bawat stack sa big blinds (hal. 45.5 BB) sa halip na dolyar sa cash table.",
     "settings.bbTournament": "Stack sa big blinds — torneo",
     "settings.bbTournamentHelp": "Ipakita ang bawat stack sa big blinds (hal. 30 BB) sa halip na chips sa Sit & Go at torneo. Gamit ang big blind ng kasalukuyang level.",
-    "settings.celebration": "Selebrasyon ng panalo",
-    "settings.celebrationHelp": "Ipakita ang animation ng gintong chips sa nanalong upuan. I-off para sa mas tahimik na mesa — maibibigay pa rin ang pot, walang animation lang.",
     "settings.hideBusted": "Itago ang mga na-bust na manlalaro",
     "settings.hideBustedHelp": "Sa Sit & Go at mga torneo, nawawala sa mesa ang manlalarong na-bust at nagiging blangko ang upuan niya. I-off para manatili sila sa mesa, malabo.",
     "settings.potChips": "Pot bilang chips",

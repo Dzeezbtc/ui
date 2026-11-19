@@ -208,12 +208,6 @@ export const TableSettingsMenu: React.FC<TableSettingsMenuProps> = props => {
                             onToggle={settings.toggleStacksInBBTournament}
                         />
                         <ToggleRow
-                            label={t("settings.celebration")}
-                            description={t("settings.celebrationHelp")}
-                            checked={settings.winCelebration}
-                            onToggle={settings.toggleWinCelebration}
-                        />
-                        <ToggleRow
                             label={t("settings.hideBusted")}
                             description={t("settings.hideBustedHelp")}
                             checked={settings.hideBustedPlayers}

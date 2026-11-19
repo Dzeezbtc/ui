@@ -91,8 +91,6 @@ const strings: Translations = {
     "settings.bbCashHelp": "Mostra gli stack in big blind (es. 45,5 BB) invece che in dollari ai tavoli cash.",
     "settings.bbTournament": "Stack in big blind: tornei",
     "settings.bbTournamentHelp": "Mostra gli stack in big blind (es. 30 BB) invece che in chip nei Sit & Go e nei tornei. Usa il big blind del livello attuale.",
-    "settings.celebration": "Festa per la vincita",
-    "settings.celebrationHelp": "Riproduce l'animazione delle chip dorate sul posto vincente. Disattivala per un tavolo più tranquillo: il piatto viene assegnato comunque, senza animazione.",
     "settings.hideBusted": "Nascondi i giocatori eliminati",
     "settings.hideBustedHelp": "Nei Sit & Go e nei tornei, un giocatore eliminato scompare dal tavolo e il suo posto resta vuoto. Disattiva per lasciarli al tavolo, attenuati.",
     "settings.potChips": "Piatto in chip",

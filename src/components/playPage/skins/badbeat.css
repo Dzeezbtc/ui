@@ -257,10 +257,7 @@
     letter-spacing: 0.04em;
 }
 
-/* ---------- whose turn on the table ---------- */
-[data-skin="flagship"][data-look="badbeat"] .turn-animation-ring {
-    background: radial-gradient(closest-side, rgba(255, 45, 85, 0.35), rgba(255, 45, 85, 0.1) 60%, transparent);
-}
+/* ---------- whose turn on the table: the clock ---------- */
 [data-skin="flagship"][data-look="badbeat"] [data-part="turn-clock-fill"] {
     background: var(--bb-red) !important;
 }
