@@ -52,7 +52,10 @@ export const skinForTheme = (theme: string): TableStyle | null => THEME_SKINS[th
  * the tools under the balance, the settings cog, the even seats and bets in
  * front. Each brings its own look (Bad Beat restyles the flagship's parts).
  */
-export const usesFlagshipLayout = (style: TableStyle): boolean => style === "flagship" || isThreeTableStyle(style);
+export const usesFlagshipLayout = (style: TableStyle): boolean => style === "flagship" || style === "chipchair" || isThreeTableStyle(style);
+
+/** True for the styles that deal the board and shown hands face down, roll them over and lift them flat (Bad Beat, Maison 52, Chip and a Chair). */
+export const dealsFaceDown = (style: TableStyle): boolean => style === "chipchair" || isThreeTableStyle(style);
 
 /** True for the styles drawn as a 3D table (Bad Beat, Maison 52): a WebGL table under the plates, cards and chips. */
 export const isThreeTableStyle = (style: TableStyle): style is "badbeat" | "maison" => style === "badbeat" || style === "maison";
@@ -64,4 +67,7 @@ export const isThreeTableStyle = (style: TableStyle): style is "badbeat" | "mais
 export const skinAttrFor = (style: TableStyle): TableStyle => (usesFlagshipLayout(style) ? "flagship" : style);
 
 /** The stage shape a style lays out on: the flagship's phone table (a wide oval); a 3D table (Bad Beat, Maison 52) has its own camera and fit. */
-export const stageShapeFor = (style: TableStyle): StageShape => (isThreeTableStyle(style) ? style : usesFlagshipLayout(style) ? "flagship" : "standard");
+export const stageShapeFor = (style: TableStyle): StageShape => (isThreeTableStyle(style) || style === "chipchair" ? style : usesFlagshipLayout(style) ? "flagship" : "standard");
+
+/** The flat chip set a style draws (BadBeatChip), for the styles that draw their own. */
+export const flatChipLookFor = (style: TableStyle): "badbeat" | "maison" | "chipchair" => (style === "maison" || style === "chipchair" ? style : "badbeat");

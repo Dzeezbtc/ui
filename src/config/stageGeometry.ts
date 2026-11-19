@@ -153,7 +153,7 @@ export const STAGE_DIMS: Record<StageOrientation, StageDims> = {
  * wide oval on phones. Landscape is the same for both. Set by the table when
  * its style changes ({@link setStageShape}); the layout cache is keyed on it.
  */
-export type StageShape = "standard" | "flagship" | "badbeat" | "maison";
+export type StageShape = "standard" | "flagship" | "badbeat" | "maison" | "chipchair";
 let stageShape: StageShape = "standard";
 
 /** Switch the stage shape. Returns true when it changed (the caller re-lays out). */
@@ -181,6 +181,42 @@ export const FLAGSHIP_PORTRAIT_DIMS: StageDims = {
     originX: 123,
     originY: 250
 };
+
+/**
+ * Chip and a Chair's stage on every screen (Dzeezbtc/ui#40): the concept's
+ * round, overly table — a 720×960 oval, a little taller than it is wide — on a 900×1240
+ * stage, its seats round the rim ({@link chipChairSeats}).
+ */
+export const CHIPCHAIR_DIMS: StageDims = {
+    stageWidth: 900,
+    stageHeight: 1240,
+    tableWidth: 720,
+    tableHeight: 960,
+    centerX: 450,
+    centerY: 630,
+    originX: 90,
+    originY: 150
+};
+/** Chip and a Chair's controls column on the right (TV, desktop) and on a phone held sideways (px). */
+export const CHIPCHAIR_COLUMN = { desktop: 400, phone: 290 } as const;
+/** …and its block along the bottom of an upright phone (px): the blue "You" bar, the bet sizes and the buttons. */
+export const CHIPCHAIR_PORTRAIT_DOCK = 250;
+/** How far (px) outside the oval's rim a plate's centre sits, upright. */
+export const CHIPCHAIR_SEAT_OUT = 18;
+
+/**
+ * Chip and a Chair's upright seats: evenly round the oval, you at the bottom,
+ * each plate centred just outside the rim, as in the concept.
+ */
+export function chipChairSeats(tableSize: number): [number, number][] {
+    const d = CHIPCHAIR_DIMS;
+    const rx = d.tableWidth / 2 + 30 + CHIPCHAIR_SEAT_OUT;
+    const ry = d.tableHeight / 2 + 30 + CHIPCHAIR_SEAT_OUT;
+    return Array.from({ length: tableSize }, (_, i) => {
+        const a = Math.PI / 2 + (i * 2 * Math.PI) / tableSize;
+        return [Math.round((d.centerX + Math.cos(a) * rx) * 10) / 10, Math.round((d.centerY + Math.sin(a) * ry) * 10) / 10];
+    });
+}
 
 /** True on the flagship's shapes: the flagship itself and Bad Beat (the same table, its own fit on phones). */
 function isFlagshipShape(): boolean {
@@ -218,6 +254,7 @@ export function threeTableCamera(shape: StageShape = stageShape): TableCameraSpe
 
 /** On a phone held sideways, how wide (px) the controls' column on the right is (0 when there is none). */
 function sideColumnWidth(mode: ViewportMode): number {
+    if (stageShape === "chipchair") return mode === "mobile-landscape" ? CHIPCHAIR_COLUMN.phone : mode === "mobile-portrait" ? 0 : CHIPCHAIR_COLUMN.desktop;
     if (mode !== "mobile-landscape") return 0;
     if (stageShape === "badbeat") return BADBEAT_SIDE_COLUMN;
     if (stageShape === "maison") return MAISON_SIDE_COLUMN;
@@ -226,6 +263,7 @@ function sideColumnWidth(mode: ViewportMode): number {
 
 /** What the stage keeps clear (px) at the bottom: the footer, a 3D table's dock, or just room for your plate beside a column. */
 function bottomReserve(mode: ViewportMode, footerOverlay: number): number {
+    if (stageShape === "chipchair" && mode === "mobile-portrait") return CHIPCHAIR_PORTRAIT_DOCK;
     if (sideColumnWidth(mode) > 0) return BADBEAT_SIDE_BOTTOM;
     if (stageShape === "maison") return mode === "mobile-portrait" ? MAISON_PORTRAIT_DOCK : MAISON_DOCK_HEIGHT;
     return footerOverlay;
@@ -236,6 +274,8 @@ export function getStageOrientation(): StageOrientation {
 }
 
 export function getStageDims(): StageDims {
+    // Chip and a Chair is the concept's round, overly table on every screen (ui#40)
+    if (stageShape === "chipchair") return CHIPCHAIR_DIMS;
     if (isFlagshipPortrait()) return FLAGSHIP_PORTRAIT_DIMS;
     return STAGE_DIMS[getStageOrientation()];
 }
@@ -385,6 +425,7 @@ const FLAGSHIP_LANDSCAPE_SEAT_COORDS: Record<number, [number, number][]> = {
 
 /** Seat coordinates for the current orientation's stage. */
 export function getSeatCoords(tableSize: TableSize): [number, number][] {
+    if (stageShape === "chipchair") return chipChairSeats(tableSize);
     if (isFlagshipPortrait()) return FLAGSHIP_PORTRAIT_SEAT_COORDS[tableSize];
     if (isFlagshipShape()) return FLAGSHIP_LANDSCAPE_SEAT_COORDS[tableSize];
     return getStageOrientation() === "portrait" ? PORTRAIT_SEAT_COORDS[tableSize] : SEAT_COORDS[tableSize];

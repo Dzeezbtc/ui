@@ -1,4 +1,4 @@
-import { TABLE_STYLES, TABLE_STYLE_LABELS, isTableStyle, nextTableStyle, skinAttrFor, skinForTheme, stageShapeFor, tableStyleFromEnv, usesFlagshipLayout, isThreeTableStyle } from "./tableStyle";
+import { TABLE_STYLES, TABLE_STYLE_LABELS, dealsFaceDown, flatChipLookFor, isTableStyle, nextTableStyle, skinAttrFor, skinForTheme, stageShapeFor, tableStyleFromEnv, usesFlagshipLayout, isThreeTableStyle } from "./tableStyle";
 
 describe("tableStyle", () => {
     it("knows every style and names each one", () => {
@@ -48,7 +48,6 @@ describe("tableStyle", () => {
         expect(stageShapeFor("badbeat")).toBe("badbeat");
         expect(stageShapeFor("maison")).toBe("maison");
         expect(stageShapeFor("modern")).toBe("standard");
-        expect(stageShapeFor("chipchair")).toBe("standard");
     });
 
     it("lays Bad Beat out like the flagship, under the flagship's stylesheet", () => {
@@ -60,9 +59,19 @@ describe("tableStyle", () => {
         expect(isThreeTableStyle("badbeat")).toBe(true);
         expect(isThreeTableStyle("flagship")).toBe(false);
         expect(usesFlagshipLayout("flagship")).toBe(true);
-        expect(usesFlagshipLayout("chipchair")).toBe(false);
         expect(skinAttrFor("badbeat")).toBe("flagship");
-        expect(skinAttrFor("chipchair")).toBe("chipchair");
         expect(skinForTheme("badbeat")).toBe("badbeat");
+    });
+
+    it("lays Chip and a Chair out like the flagship, and deals it face down", () => {
+        expect(usesFlagshipLayout("chipchair")).toBe(true);
+        expect(skinAttrFor("chipchair")).toBe("flagship");
+        expect(stageShapeFor("chipchair")).toBe("chipchair");
+        expect(dealsFaceDown("chipchair")).toBe(true);
+        expect(dealsFaceDown("maison")).toBe(true);
+        expect(dealsFaceDown("flagship")).toBe(false);
+        expect(flatChipLookFor("chipchair")).toBe("chipchair");
+        expect(flatChipLookFor("maison")).toBe("maison");
+        expect(flatChipLookFor("badbeat")).toBe("badbeat");
     });
 });
