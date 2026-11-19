@@ -91,8 +91,6 @@ const strings: Translations = {
     "settings.bbCashHelp": "在现金桌上以大盲(如 45.5 BB)代替美元显示筹码。",
     "settings.bbTournament": "以大盲显示筹码:锦标赛",
     "settings.bbTournamentHelp": "在 Sit & Go 和锦标赛中以大盲(如 30 BB)代替筹码数显示,使用当前级别的大盲。",
-    "settings.celebration": "胜利庆祝",
-    "settings.celebrationHelp": "在获胜座位上播放金色筹码动画。关闭后牌桌更安静,底池照常发放,只是没有动画。",
     "settings.hideBusted": "隐藏已淘汰玩家",
     "settings.hideBustedHelp": "在 Sit & Go 和锦标赛中，被淘汰的玩家会从牌桌上消失，座位留空。关闭后他们会以变暗的样子留在牌桌上。",
     "settings.potChips": "以筹码显示底池",

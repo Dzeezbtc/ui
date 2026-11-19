@@ -91,8 +91,6 @@ const strings: Translations = {
     "settings.bbCashHelp": "Hiển thị stack theo big blind (ví dụ 45,5 BB) thay vì đô la ở bàn cash.",
     "settings.bbTournament": "Stack theo big blind: giải đấu",
     "settings.bbTournamentHelp": "Hiển thị stack theo big blind (ví dụ 30 BB) thay vì chip trong Sit & Go và giải đấu. Dùng big blind của cấp hiện tại.",
-    "settings.celebration": "Ăn mừng chiến thắng",
-    "settings.celebrationHelp": "Phát hiệu ứng chip vàng ở ghế thắng. Tắt để bàn yên tĩnh hơn: pot vẫn được trao, chỉ không có hiệu ứng.",
     "settings.hideBusted": "Ẩn người chơi bị loại",
     "settings.hideBustedHelp": "Trong Sit & Go và giải đấu, người chơi bị loại sẽ biến mất khỏi bàn và ghế để trống. Tắt để giữ họ trên bàn ở dạng mờ.",
     "settings.potChips": "Pot dạng chip",

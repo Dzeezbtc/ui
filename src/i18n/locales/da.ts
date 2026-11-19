@@ -91,8 +91,6 @@ const strings: Translations = {
     "settings.bbCashHelp": "Vis hver stak i big blinds (f.eks. 45,5 BB) i stedet for dollars ved cash-borde.",
     "settings.bbTournament": "Stakke i big blinds — turneringer",
     "settings.bbTournamentHelp": "Vis hver stak i big blinds (f.eks. 30 BB) i stedet for chips i Sit & Go og turneringer. Bruger det nuværende niveaus big blind.",
-    "settings.celebration": "Sejrsfejring",
-    "settings.celebrationHelp": "Afspil guldchip-animationen på den vindende plads. Slå fra for et roligere bord — potten udbetales stadig, bare uden animation.",
     "settings.hideBusted": "Skjul spillere, der er ude",
     "settings.hideBustedHelp": "I Sit & Go og turneringer forsvinder en spiller, der er ude, fra bordet, og pladsen bliver tom. Slå fra for at beholde dem ved bordet, nedtonet.",
     "settings.potChips": "Potten som chips",

@@ -522,10 +522,7 @@
     text-transform: none;
 }
 
-/* ---------- whose turn on the table: a soft yellow glow; the clock in red and yellow stripes ---------- */
-[data-skin="flagship"][data-look="chipchair"] .turn-animation-ring {
-    background: radial-gradient(closest-side, rgba(255, 210, 63, 0.55), rgba(255, 210, 63, 0.15) 60%, transparent);
-}
+/* ---------- whose turn on the table: the clock in red and yellow stripes ---------- */
 [data-skin="flagship"][data-look="chipchair"] [data-part="turn-clock-fill"] {
     background: repeating-linear-gradient(-45deg, var(--cc-red) 0 7px, var(--cc-yel) 7px 14px) !important;
 }

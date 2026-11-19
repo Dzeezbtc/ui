@@ -104,8 +104,6 @@ export const en = {
     "settings.bbCashHelp": "Show every stack in big blinds (e.g. 45.5 BB) instead of dollars at cash tables.",
     "settings.bbTournament": "Stacks in Big Blinds — Tournaments",
     "settings.bbTournamentHelp": "Show every stack in big blinds (e.g. 30 BB) instead of chips in Sit & Gos and tournaments. Uses the current level's big blind.",
-    "settings.celebration": "Win Celebration",
-    "settings.celebrationHelp": "Play the gold-chip celebration animation on the winning seat. Turn off for a calmer table — the pot still awards, just without the animation.",
     "settings.hideBusted": "Hide busted players",
     "settings.hideBustedHelp": "In Sit & Go and tournaments, a player who busts disappears from the table and their seat goes blank. Turn off to keep them on the table, dimmed.",
     "settings.potChips": "Pot as Chips",

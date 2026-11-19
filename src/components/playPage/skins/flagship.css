@@ -819,21 +819,6 @@
     width: 120px !important;
 }
 
-/* whose turn: a soft violet glow behind the plate, not grey ripples */
-[data-skin="flagship"] .turn-animation-ring {
-    background: radial-gradient(closest-side, rgba(var(--fs-vi-rgb), 0.45), rgba(var(--fs-mag-rgb), 0.18) 60%, transparent);
-}
-@media (prefers-reduced-motion: reduce) {
-    [data-skin="flagship"] .turn-animation-ring {
-        animation: none;
-        opacity: 0.6;
-        transform: scale(0.9);
-    }
-    [data-skin="flagship"] .turn-animation-ring:not(.turn-animation-ring-0) {
-        display: none;
-    }
-}
-
 /* phone: the hand-strength label is a small pill in the corner, clear of your cards */
 [data-skin="flagship"][data-orient="portrait"] [data-part="hand-strength"] {
     right: 8px !important;

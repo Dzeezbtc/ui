@@ -91,8 +91,6 @@ const strings: Translations = {
     "settings.bbCashHelp": "Visa varje stack i big blinds (t.ex. 45,5 BB) i stället för dollar vid cashbord.",
     "settings.bbTournament": "Stackar i big blinds — turneringar",
     "settings.bbTournamentHelp": "Visa varje stack i big blinds (t.ex. 30 BB) i stället för marker i Sit & Go och turneringar. Använder nuvarande nivås big blind.",
-    "settings.celebration": "Vinstfirande",
-    "settings.celebrationHelp": "Spela guldmarksanimationen på den vinnande platsen. Stäng av för ett lugnare bord — potten delas ändå ut, bara utan animation.",
     "settings.hideBusted": "Dölj utslagna spelare",
     "settings.hideBustedHelp": "I Sit & Go och turneringar försvinner en utslagen spelare från bordet och platsen blir tom. Stäng av för att behålla dem vid bordet, nedtonade.",
     "settings.potChips": "Potten som marker",

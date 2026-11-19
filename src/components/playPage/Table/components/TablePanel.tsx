@@ -96,7 +96,6 @@ const SettingsTab: React.FC = () => {
         callClock,
         sitInOptions,
         preSelectCheck,
-        winCelebration,
         hideBustedPlayers,
         potAsChips,
         chipStyle,
@@ -108,7 +107,6 @@ const SettingsTab: React.FC = () => {
         toggleCallClock,
         toggleSitInOptions,
         togglePreSelectCheck,
-        toggleWinCelebration,
         toggleHideBustedPlayers,
         togglePotAsChips,
         setChipStyle
@@ -140,12 +138,6 @@ const SettingsTab: React.FC = () => {
                 description={t("settings.bbTournamentHelp")}
                 checked={stacksInBBTournament}
                 onToggle={toggleStacksInBBTournament}
-            />
-            <ToggleRow
-                label={t("settings.celebration")}
-                description={t("settings.celebrationHelp")}
-                checked={winCelebration}
-                onToggle={toggleWinCelebration}
             />
             <ToggleRow
                 label={t("settings.hideBusted")}

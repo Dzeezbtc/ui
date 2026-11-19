@@ -19,16 +19,12 @@ import { UseTableLayoutReturn } from "../../../../hooks/game/useTableLayout";
 import Player from "../../Players/Player";
 import OppositePlayer from "../../Players/OppositePlayer";
 import VacantPlayer from "../../Players/VacantPlayer";
-import TurnAnimation from "../../Animations/TurnAnimation";
-import WinAnimation from "../../Animations/WinAnimation";
 import { CardBackStyle } from "../../../../utils/cardImages";
 import { useGameSettings } from "../../../../context/GameSettingsContext";
 import { useGameStateContext } from "../../../../context/GameStateContext";
 import { hasTournamentStarted } from "../../../../utils/scheduledSng";
 import { playersLeft, seatDisplay } from "../../../../utils/seatDisplay";
 
-// Memoize TurnAnimation
-const MemoizedTurnAnimation = React.memo(TurnAnimation);
 
 export interface PlayerSeatingProps {
     // Table configuration
@@ -84,7 +80,7 @@ export const PlayerSeating: React.FC<PlayerSeatingProps> = ({
         return bySeat;
     }, [tableDataPlayers]);
 
-    const { winCelebration, hideBustedPlayers } = useGameSettings();
+    const { hideBustedPlayers } = useGameSettings();
     const { gameState, gameFormat } = useGameStateContext();
     const tournamentStarted = React.useMemo(() => hasTournamentStarted(gameState), [gameState]);
     const stillIn = React.useMemo(() => playersLeft(tableActivePlayers.map(p => p.status)), [tableActivePlayers]);
@@ -229,18 +225,6 @@ export const PlayerSeating: React.FC<PlayerSeatingProps> = ({
 
                 return (
                     <div key={positionIndex} className="z-[10]">
-                        {/* Turn indicator — offset down to center on badge */}
-                        {!hasWinner && !isSitAndGoWaitingForPlayers && (
-                            <MemoizedTurnAnimation
-                                index={seatNum - 1}
-                                position={tableLayout.positions.turnAnimations[positionIndex]}
-                                tableActivePlayers={tableActivePlayers}
-                            />
-                        )}
-
-                        {/* Winner ripple — same position as player */}
-                        {isWinnerSeat && winCelebration && <WinAnimation index={seatNum - 1} position={position} />}
-
                         {componentToRender}
                     </div>
                 );

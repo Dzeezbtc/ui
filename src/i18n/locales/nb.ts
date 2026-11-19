@@ -91,8 +91,6 @@ const strings: Translations = {
     "settings.bbCashHelp": "Vis hver stack i big blinds (f.eks. 45,5 BB) i stedet for dollar ved cash-bord.",
     "settings.bbTournament": "Stacker i big blinds — turneringer",
     "settings.bbTournamentHelp": "Vis hver stack i big blinds (f.eks. 30 BB) i stedet for sjetonger i Sit & Go og turneringer. Bruker gjeldende nivås big blind.",
-    "settings.celebration": "Seiersfeiring",
-    "settings.celebrationHelp": "Spill gullsjetong-animasjonen på den vinnende plassen. Slå av for et roligere bord — potten deles fortsatt ut, bare uten animasjon.",
     "settings.hideBusted": "Skjul spillere som er ute",
     "settings.hideBustedHelp": "I Sit & Go og turneringer forsvinner en spiller som er ute fra bordet, og plassen blir tom. Slå av for å beholde dem ved bordet, nedtonet.",
     "settings.potChips": "Potten som sjetonger",

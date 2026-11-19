@@ -91,8 +91,6 @@ const strings: Translations = {
     "settings.bbCashHelp": "Nakit masalarda fişleri dolar yerine büyük blind olarak gösterir (ör. 45,5 BB).",
     "settings.bbTournament": "Büyük blind olarak fişler: turnuva",
     "settings.bbTournamentHelp": "Sit & Go ve turnuvalarda fişleri büyük blind olarak gösterir (ör. 30 BB). Geçerli seviyenin büyük blind'ını kullanır.",
-    "settings.celebration": "Kazanma kutlaması",
-    "settings.celebrationHelp": "Kazanan koltukta altın fiş animasyonu oynatır. Daha sakin bir masa için kapatın: pot yine verilir, yalnızca animasyon olmaz.",
     "settings.hideBusted": "Elenen oyuncuları gizle",
     "settings.hideBustedHelp": "Sit & Go ve turnuvalarda elenen oyuncu masadan kaybolur ve koltuğu boş kalır. Masada soluk olarak kalmaları için kapatın.",
     "settings.potChips": "Fiş olarak pot",
