@@ -37,6 +37,16 @@ export const nextTableStyle = (style: TableStyle): TableStyle => TABLE_STYLES[(T
  */
 export const tableStyleFromEnv = (value: unknown): TableStyle => (isTableStyle(value) ? value : "modern");
 
+/**
+ * The style a table link asks for with ?style= (e.g. /table/0x…?style=maison,
+ * a demo link that opens straight into one skin), or the fallback when the
+ * link names no style or an unknown one. Case and spaces are ignored.
+ */
+export const tableStyleFromUrl = (search: string, fallback: TableStyle): TableStyle => {
+    const asked = new URLSearchParams(search).get("style")?.trim().toLowerCase();
+    return isTableStyle(asked) ? asked : fallback;
+};
+
 /** Club themes (block52-club setting profile.theme) that come with their own table skin. */
 const THEME_SKINS: Record<string, TableStyle> = {
     chipandachair: "chipchair",

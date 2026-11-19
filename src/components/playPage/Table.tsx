@@ -83,7 +83,7 @@ import { CardBackStyle } from "../../utils/cardImages";
 import { useClubLook } from "../../hooks/club/useClubLook";
 import { TableRadio } from "./TableRadio";
 import { tableStyleForLook } from "../../utils/clubLook";
-import { TABLE_STYLE_LABELS, TableStyle, dealsFaceDown, isThreeTableStyle, nextTableStyle, skinAttrFor, stageShapeFor, tableStyleFromEnv, usesFlagshipLayout } from "../../utils/tableStyle";
+import { TABLE_STYLE_LABELS, TableStyle, dealsFaceDown, isThreeTableStyle, nextTableStyle, skinAttrFor, stageShapeFor, tableStyleFromEnv, tableStyleFromUrl, usesFlagshipLayout } from "../../utils/tableStyle";
 import { TableStyleProvider } from "../../context/TableStyleContext";
 import "./skins/chipchair.css";
 import "./skins/flagship.css";
@@ -957,7 +957,7 @@ const Table = React.memo(({ tableId }: TableProps = {}) => {
     // fallback (9) while loading; the loading guard below still prevents any
     // fabricated board from being PAINTED until tableSize is real (#466), so this
     // computed-but-unrendered layout causes no flash.
-    const [tableStyle, setTableStyle] = useState<TableStyle>(() => tableStyleFromEnv(import.meta.env.VITE_TABLE_STYLE));
+    const [tableStyle, setTableStyle] = useState<TableStyle>(() => tableStyleFromUrl(window.location.search, tableStyleFromEnv(import.meta.env.VITE_TABLE_STYLE)));
     // A club table starts in the club theme's skin, or its felt. The player can still switch it.
     const clubFelt = clubLook?.felt;
     const clubTheme = clubLook?.theme;
