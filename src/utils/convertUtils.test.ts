@@ -29,6 +29,13 @@ describe("convertUtils", () => {
             expect(convertGameListItemToGameWithFormat(makeGameListItem()).bettingLimit).toBeUndefined();
         });
 
+        it("passes the list's player count through unchanged, so the lobby needs no per-table lookup (block52-club#58)", () => {
+            const full = convertGameListItemToGameWithFormat(makeGameListItem({ currentPlayers: 9 }));
+            expect(full.currentPlayers).toBe(9);
+            expect(full.maxPlayers).toBe(9);
+            expect(convertGameListItemToGameWithFormat(makeGameListItem({ currentPlayers: 3 })).currentPlayers).toBe(3);
+        });
+
         it("should convert a complete GameListItem", () => {
             const game = makeGameListItem();
             const result = convertGameListItemToGameWithFormat(game);

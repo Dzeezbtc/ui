@@ -63,12 +63,7 @@ This document tracks which hooks have been migrated to use Cosmos SDK vs old PVM
   - Returns: Parsed JSON game state object
   - Location: `/src/hooks/useTableData.ts`
 
-- [ ] **`useTablePlayerCounts.ts`** - Gets player counts for games
-  - Current: Uses PVM REST API
-  - **SDK Method**: `CosmosClient.getGame(gameId)` ✅
-  - **SDK Endpoint**: `/block52/pokerchain/poker/v1/game/{gameId}`
-  - Returns: Game object with player array (count = `players.length`)
-  - Location: `/src/hooks/useTablePlayerCounts.ts`
+- [x] **`useTablePlayerCounts.ts`** - removed: the lobby reads `currentPlayers` from the club API's table list (block52-club#58)
 
 - [ ] **`useMinAndMaxBuyIns.ts`** - Gets buy-in limits for a game
   - Current: Uses PVM REST API
@@ -304,8 +299,7 @@ These can be migrated **immediately** using `CosmosClient` methods:
 1. **`useTableData.ts`** → Use `CosmosClient.getGameState(gameId)`
    - Returns full game state with all player data, cards, pot, etc.
 
-2. **`useTablePlayerCounts.ts`** → Use `CosmosClient.getGame(gameId)`
-   - Returns game metadata with `players` array (length = player count)
+2. ~~`useTablePlayerCounts.ts`~~ removed (block52-club#58)
 
 3. **`useMinAndMaxBuyIns.ts`** → Use `CosmosClient.getGame(gameId)`
    - Returns game object with `minBuyIn` and `maxBuyIn` fields

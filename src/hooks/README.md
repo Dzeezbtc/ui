@@ -131,17 +131,8 @@ const {
 
 ### Table Metadata Hooks
 
-#### `useTablePlayerCounts()`
-Tracks active, sitting out, and total player counts.
-
-```typescript
-const {
-  activePlayers,
-  sittingOutPlayers,
-  totalPlayers,
-  maxPlayers
-} = useTablePlayerCounts();
-```
+Player counts in the lobby come from the club API's table list (`GET /chain/tables`): each item's `currentPlayers`
+and `gameOptions.maxPlayers`. There is no per-table hook for them (block52-club#58).
 
 #### `useTableTopUp()`
 Handles automatic top-up functionality for cash games.

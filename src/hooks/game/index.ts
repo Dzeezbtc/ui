@@ -20,7 +20,6 @@ export { useNewTable } from "./useNewTable";
 export { useGameOptions } from "./useGameOptions";
 
 // Table Metadata Hooks
-export { useTablePlayerCounts } from "./useTablePlayerCounts";
 export { useTableTopUp } from "./useTableTopUp";
 export { useMinAndMaxBuyIns } from "./useMinAndMaxBuyIns";
 
