@@ -1,0 +1,153 @@
+/* Texas Hodl's look for the chat (texashodl.net): ink #030305 / panel #09090e,
+   1px white-10% lines, the orange → red → pink gradient, Geist, square corners
+   with a 45° chamfer like their buttons. Applied when configureChatBrand
+   ("texashodl") adds .b52-th to the chat roots (brand.ts). */
+
+.b52-th {
+    --chat-bg: #09090e;
+    --chat-raised: #111119;
+    --chat-line: #ffffff1a;
+    --chat-brand: #f12cff;
+    --chat-accent: #ff8500;
+    --chat-text: #ffffff;
+    --chat-muted: #ffffff8c;
+    --th-grad: linear-gradient(100deg, #ff8500, #ff4f3f, #f12cff);
+    font-family: Geist, "Geist Fallback", Arial, sans-serif;
+}
+
+/* Panel: chamfered, faint grid, violet bloom. */
+.b52-th .b52-chat__panel {
+    border-radius: 0;
+    border: 1px solid var(--chat-line);
+    clip-path: polygon(14px 0, 100% 0, 100% calc(100% - 14px), calc(100% - 14px) 100%, 0 100%, 0 14px);
+    background:
+        radial-gradient(120% 60% at 80% 0%, #6e36ff22, transparent 60%),
+        linear-gradient(#ffffff06 1px, transparent 1px) 0 0 / 28px 28px,
+        linear-gradient(90deg, #ffffff06 1px, transparent 1px) 0 0 / 28px 28px,
+        var(--chat-bg);
+    box-shadow: none;
+}
+
+/* Title as their section label: magenta rule + spaced caps. */
+.b52-th .b52-chat__title {
+    letter-spacing: 0.22em;
+    font-weight: 600;
+    color: var(--chat-muted);
+}
+.b52-th .b52-chat__title::before {
+    content: "";
+    display: inline-block;
+    width: 18px;
+    height: 1px;
+    margin-right: 8px;
+    vertical-align: middle;
+    background: var(--chat-brand);
+}
+
+/* Tabs: square segments, the active one is their gradient button. */
+.b52-th .b52-chat__tabs {
+    border-radius: 0;
+    background: #030305;
+}
+.b52-th .b52-chat__tab {
+    border-radius: 0;
+    text-transform: uppercase;
+    letter-spacing: 0.06em;
+    font: 700 10.5px Geist, "Geist Fallback", Arial, sans-serif;
+}
+.b52-th .b52-chat__tab.is-active {
+    background: var(--th-grad);
+    color: #fff;
+    box-shadow: none;
+    clip-path: polygon(6px 0, 100% 0, 100% calc(100% - 6px), calc(100% - 6px) 100%, 0 100%, 0 6px);
+}
+
+/* The toggle pill becomes a chamfered tag with a gradient edge. */
+.b52-th .b52-chat__fab {
+    border-radius: 0;
+    border: 1px solid transparent;
+    background: linear-gradient(#09090e, #09090e) padding-box, var(--th-grad) border-box;
+    color: #fff;
+    text-transform: uppercase;
+    letter-spacing: 0.12em;
+    font-size: 11px;
+    clip-path: polygon(8px 0, 100% 0, 100% calc(100% - 8px), calc(100% - 8px) 100%, 0 100%, 0 8px);
+}
+
+/* Messages: square cards; mine carry the gradient. */
+.b52-th .b52-chat__text {
+    border-radius: 0;
+    background: var(--chat-raised);
+}
+.b52-th .b52-chat__msg--mine .b52-chat__text {
+    border-radius: 0;
+    background: var(--th-grad);
+    clip-path: polygon(0 0, 100% 0, 100% calc(100% - 6px), calc(100% - 6px) 100%, 0 100%);
+}
+
+.b52-th .b52-chat__input,
+.b52-th .b52-chat__select {
+    border-radius: 0;
+    background: #030305;
+    border-color: var(--chat-line);
+}
+.b52-th .b52-chat__input:focus {
+    border-color: var(--chat-brand);
+}
+.b52-th .b52-chat__send {
+    border-radius: 0;
+    background: var(--th-grad);
+    clip-path: polygon(6px 0, 100% 0, 100% 100%, 0 100%, 0 6px);
+}
+
+/* Sticker and throw tiles: thin-line cells that light up on hover. */
+.b52-th .b52-chat__quick-btn,
+.b52-th .b52-chat__throw-btn,
+.b52-th .b52-chat__target {
+    border-radius: 0;
+    border: 1px solid var(--chat-line);
+    background: #030305;
+}
+.b52-th .b52-chat__quick-btn:hover,
+.b52-th .b52-chat__throw-btn:hover:not(:disabled) {
+    border-color: var(--chat-brand);
+    box-shadow: 0 0 14px #f12cff40, inset 0 0 12px #6e36ff30;
+}
+.b52-th .b52-chat__target.is-active {
+    border-color: var(--chat-accent);
+    box-shadow: 0 0 10px #ff850066;
+}
+.b52-th .b52-chat__quick-pack,
+.b52-th .b52-chat__quick-hint {
+    letter-spacing: 0.18em;
+    color: var(--chat-muted);
+}
+
+/* Throwables: the art gets a neon edge glow, in the picker and in flight,
+   and flies trailing a pink-orange streak. */
+.b52-th .b52-chat__throw-emoji,
+.b52-throw-layer.b52-th .b52-throw-item {
+    filter: drop-shadow(0 0 1.5px #f12cff) drop-shadow(0 0 6px #6e36ffaa) saturate(1.15);
+}
+.b52-throw-layer.b52-th .b52-throw-item::after {
+    content: "";
+    position: absolute;
+    inset: 30% 60% 30% -60%;
+    background: linear-gradient(90deg, transparent, #ff850055, #f12cff88);
+    filter: blur(3px);
+    z-index: -1;
+}
+
+/* Typed speech above a seat: a dark chamfered card with a gradient edge. */
+.b52-seat-bubble-layer.b52-th .b52-seat-bubble--text {
+    border-radius: 0;
+    border: 1px solid transparent;
+    background: linear-gradient(#09090e, #09090e) padding-box, linear-gradient(100deg, #ff8500, #ff4f3f, #f12cff) border-box;
+    color: #fff;
+    font-family: Geist, "Geist Fallback", Arial, sans-serif;
+    clip-path: polygon(10px 0, 100% 0, 100% calc(100% - 10px), calc(100% - 10px) 100%, 0 100%, 0 10px);
+}
+.b52-seat-bubble-layer.b52-th .b52-seat-bubble--text::after,
+.b52-seat-bubble-layer.b52-th .b52-seat-bubble--text::before {
+    display: none;
+}

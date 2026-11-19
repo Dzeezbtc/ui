@@ -27,6 +27,8 @@ import { LogicalTrackProvider } from "./gameState/LogicalTrackContext";
 import { IDLE_CONNECTION, isConnectionLive, type ConnectionState } from "./gameState/connection";
 import { RECONNECT_MAX_ATTEMPTS, reconnectDelayMs } from "../utils/reconnectBackoff";
 import { AUTH_RENEWAL_CHECK_MS, isAuthRenewalDue, isOwnHandMasked } from "../utils/wsAuth";
+import { registerChatSender, registerLocalAddress, pushChatMessage } from "../chat/chatBus";
+import { getCosmosAddressSync } from "../utils/cosmosAccountUtils";
 
 // Feature toggle for REST fallback (debug only - disabled by default per Commandment 7)
 const ENABLE_REST_FALLBACK = false;
@@ -138,6 +140,22 @@ export const GameStateProvider: React.FC<GameStateProviderProps> = ({ children }
     if (isNullish(busRef.current)) {
         busRef.current = new GameMessageBus({ setLatestGameState: track.set });
     }
+
+    // Table chat (block52-chat#1) rides the SAME socket as the game: register a
+    // sender that puts a {type:"chat"} frame on the current wire (refs read at
+    // call time, so it survives reconnects and table switches), and tell the chat
+    // which address is ours so our own bubbles appear above our seat.
+    useEffect(() => {
+        registerLocalAddress(getCosmosAddressSync() || undefined);
+        registerChatSender(({ text, sticker, throwId, to }) => {
+            const ws = wsRef.current;
+            const gameId = currentTableIdRef.current;
+            if (ws && ws.readyState === WebSocket.OPEN && gameId) {
+                ws.send(JSON.stringify({ type: "chat", gameId, message: text, sticker, throw: throwId, to, from: getCosmosAddressSync() || undefined, ts: Date.now() }));
+            }
+        });
+        return () => registerChatSender(null);
+    }, []);
 
     // Stable bridge from the render layer to the bus's animation-ack API (Phase 5).
     // Exposed via GameEventsContext so animating hooks can report choreography
@@ -387,6 +405,18 @@ export const GameStateProvider: React.FC<GameStateProviderProps> = ({ children }
                 // logical track at ingest, and drives the render track through
                 // committed items (applyRenderTrack, wired via subscribe).
                 for (const message of messages) {
+                    // Table chat (block52-chat#1) shares this socket but is NOT game
+                    // state: divert it to the chat bus, never into the game pipeline.
+                    // Our own messages come back from the relay too; they were
+                    // already echoed locally, so skip them.
+                    const chat = message as { type?: string; from?: string; message?: string; sticker?: string; throw?: string; to?: string; ts?: number };
+                    if (chat?.type === "chat") {
+                        const me = getCosmosAddressSync()?.toLowerCase();
+                        if (typeof chat.message === "string" && chat.from?.toLowerCase() !== me) {
+                            pushChatMessage({ from: chat.from, text: chat.message, sticker: chat.sticker, throwId: chat.throw, to: chat.to, ts: chat.ts ?? Date.now(), mine: false });
+                        }
+                        continue;
+                    }
                     busRef.current?.ingest(message, tableId);
                 }
             };

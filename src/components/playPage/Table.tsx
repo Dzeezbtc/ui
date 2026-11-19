@@ -43,6 +43,7 @@
  * - ActionsLog: Game history
  */
 
+import { useProfileAvatar } from "../../context/profile/ProfileAvatarContext";
 import { buildHandShareUrl } from "../../utils/handReplay";
 import { useEffect, useState, useMemo, useCallback, memo, useRef } from "react";
 import { isTournamentFormat } from "../../utils/gameFormatUtils";
@@ -132,6 +133,8 @@ import { describeReplayStep, latestCompletedHand } from "../../utils/replayTimel
 import { useReplayTimeline } from "../../hooks/game/useReplayTimeline";
 import { ReplayTransport } from "./ReplayTransport";
 import { getCosmosBalance, getCosmosAddressSync, getFormattedCosmosAddress } from "../../utils/cosmosAccountUtils";
+import TableChatBox from "../../chat/TableChatBox";
+import { setChatTableSkin } from "../../chat/brand";
 import { useGameStateContext } from "../../context/GameStateContext";
 import { useLogicalTrack } from "../../context/gameState/LogicalTrackContext";
 import { useTableId } from "../../context/TableIdContext";
@@ -745,6 +748,17 @@ const Table = React.memo(({ tableId }: TableProps = {}) => {
     const { subscribeToTable, unsubscribeFromTable, gameState, gameFormat, gameVariant, gameName, validationError, error, loadHistoricalState, isReplayMode, replayHandNumber, connection } =
         useGameStateContext();
     const { currentNetwork } = useNetwork();
+    // Who is seated, for chat's "mute spectators" (block52-chat#5).
+    // Who is seated — seat and avatar — so chat shows avatars / "Seat N" instead of
+    // wallet addresses (and for "mute spectators", block52-chat#5).
+    const { getAvatarForAddress } = useProfileAvatar();
+    const chatPlayers = useMemo(
+        () =>
+            (gameState?.players ?? [])
+                .filter(p => Boolean(p.address))
+                .map(p => ({ address: p.address, seat: Number(p.seat), avatar: getAvatarForAddress(p.address, p.avatar) })),
+        [gameState?.players, getAvatarForAddress]
+    );
 
     // Replay mode — read hand/index query params from the readonly share link.
     const { isReplayMode: hasReplayParams, handNumber: replayHandParam, actionIndex: replayActionParam, clearReplayParams, setReplayHand } = useReplayMode();
@@ -948,6 +962,12 @@ const Table = React.memo(({ tableId }: TableProps = {}) => {
     useEffect(() => {
         if (clubFelt && clubTheme) setTableStyle(tableStyleForLook({ theme: clubTheme, felt: clubFelt }));
     }, [clubFelt, clubTheme]);
+    // The chat wears the table's skin (block52-chat#2): flagship, chipchair, badbeat and
+    // maison have their own chat look; plain styles fall back to the player's B52/HODL pick.
+    useEffect(() => {
+        setChatTableSkin(tableStyle);
+        return () => setChatTableSkin(undefined);
+    }, [tableStyle]);
     // The flagship skin brings its own phone table shape (a wide oval).
     const tableLayout = useTableLayout((tableSize || 9) as 2 | 4 | 6 | 9, tableContainerRef, stageShapeFor(tableStyle));
     const { dealerSeat } = useDealerPosition();
@@ -1758,6 +1778,10 @@ const Table = React.memo(({ tableId }: TableProps = {}) => {
             ) : (
                 <TablePanel activeTab={panelTab} onSelectTab={setPanelTab} onCollapse={() => setDesktopPanelCollapsedPersisted(true)} />
             )}
+
+            {/* Table chat (block52-chat#1): chat box with Quick chat stickers and settings.
+                Hidden in replay mode (a read-only view of a past hand). */}
+            {!isReplayMode && <TableChatBox players={chatPlayers} />}
 
             {/* Layout Debug Panel */}
             <LayoutDebugInfo viewportMode={viewportMode} startIndex={startIndex} tableSize={tableSize} results={results} setStartIndex={setStartIndex} />
