@@ -1,4 +1,4 @@
-import { TABLE_STYLES, TABLE_STYLE_LABELS, dealsFaceDown, flatChipLookFor, isTableStyle, nextTableStyle, skinAttrFor, skinForTheme, stageShapeFor, tableStyleFromEnv, usesFlagshipLayout, isThreeTableStyle } from "./tableStyle";
+import { TABLE_STYLES, TABLE_STYLE_LABELS, dealsFaceDown, flatChipLookFor, isTableStyle, nextTableStyle, skinAttrFor, skinForTheme, stageShapeFor, tableStyleFromEnv, tableStyleFromUrl, usesFlagshipLayout, isThreeTableStyle } from "./tableStyle";
 
 describe("tableStyle", () => {
     it("knows every style and names each one", () => {
@@ -73,5 +73,23 @@ describe("tableStyle", () => {
         expect(flatChipLookFor("chipchair")).toBe("chipchair");
         expect(flatChipLookFor("maison")).toBe("maison");
         expect(flatChipLookFor("badbeat")).toBe("badbeat");
+    });
+});
+
+describe("tableStyleFromUrl", () => {
+    it("opens the style a ?style= link names", () => {
+        expect(tableStyleFromUrl("?style=maison", "modern")).toBe("maison");
+        expect(tableStyleFromUrl("?seat=2&style=badbeat", "modern")).toBe("badbeat");
+    });
+
+    it("ignores case and spaces", () => {
+        expect(tableStyleFromUrl("?style=%20Maison%20", "modern")).toBe("maison");
+    });
+
+    it("keeps the fallback when there is no style or an unknown one", () => {
+        expect(tableStyleFromUrl("", "flagship")).toBe("flagship");
+        expect(tableStyleFromUrl("?seat=2", "modern")).toBe("modern");
+        expect(tableStyleFromUrl("?style=neon", "modern")).toBe("modern");
+        expect(tableStyleFromUrl("?style=", "classic")).toBe("classic");
     });
 });
