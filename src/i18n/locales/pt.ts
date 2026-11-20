@@ -114,6 +114,8 @@ const strings: Translations = {
     "settings.hideBustedHelp": "Em Sit & Go e torneios, o jogador eliminado desaparece da mesa e o lugar fica em branco. Desative para mantê-los na mesa, esmaecidos.",
     "settings.potChips": "Pote em fichas",
     "settings.potChipsHelp": "Mostra o pote como uma pilha de fichas com o valor, como as apostas. Desativado, aparece como texto.",
+    "settings.flipBoard": "Virar as cartas da mesa",
+    "settings.flipBoardHelp": "O flop, o turn e o river caem virados para baixo e depois são virados. Desligado, caem virados para cima.",
     "settings.chips": "Fichas",
     "settings.chipsHelp": "Marble é fotorrealista; Flat fica mais nítido em tamanhos pequenos. Cash mostra $ e ¢; torneios mostram pontos.",
     "settings.autoMuck": "Esconder automaticamente",

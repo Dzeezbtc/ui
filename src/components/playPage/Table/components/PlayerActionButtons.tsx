@@ -46,6 +46,8 @@ export interface PlayerActionButtonsProps {
     walletBalance: string;
     isCurrentUserSeated: boolean;
     isTableFull: boolean;
+    /** Shown at the top of the desktop left column (the flagship's turn status), so the column stacks without overlap. */
+    statusSlot?: React.ReactNode;
 }
 
 export const PlayerActionButtons: React.FC<PlayerActionButtonsProps> = ({
@@ -66,7 +68,8 @@ export const PlayerActionButtons: React.FC<PlayerActionButtonsProps> = ({
     maxBuyIn,
     walletBalance,
     isCurrentUserSeated,
-    isTableFull
+    isTableFull,
+    statusSlot
 }) => {
     const { t } = useLanguage();
     const isCompact = isMobile || isMobileLandscape || isCompactMobile;
@@ -208,6 +211,7 @@ export const PlayerActionButtons: React.FC<PlayerActionButtonsProps> = ({
             <>
                 {buyChipsElement}
                 <div data-part="side-actions" className={`fixed z-30 ${positionClass} flex flex-col gap-2`}>
+                    {statusSlot}
                     {seatAtBottomToggle}
                     {panel}
                 </div>

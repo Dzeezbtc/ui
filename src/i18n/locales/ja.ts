@@ -114,6 +114,8 @@ const strings: Translations = {
     "settings.hideBustedHelp": "Sit & Go とトーナメントでは、脱落したプレイヤーがテーブルから消え、席は空白になります。オフにすると暗く表示したまま残ります。",
     "settings.potChips": "ポットをチップ表示",
     "settings.potChipsHelp": "ベットと同じように、ポットを金額付きのチップの山で表示します。オフの場合は文字で表示します。",
+    "settings.flipBoard": "ボードカードをめくる",
+    "settings.flipBoardHelp": "フロップ、ターン、リバーが裏向きに置かれてからめくられます。オフのときは表向きで落ちます。",
     "settings.chips": "チップ",
     "settings.chipsHelp": "Marbleは写実的で、Flatは小さいサイズで最も鮮明です。キャッシュは$と¢、トーナメントはポイントを表示します。",
     "settings.autoMuck": "オートマック",
