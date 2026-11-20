@@ -1,5 +1,6 @@
 import React, { useState, useEffect, useCallback, useRef, useMemo } from "react";
 import { colors, getAnimationGradient, getHexagonStroke, hexToRgba } from "../../utils/colorConfig";
+import { getSiteLook } from "../../utils/siteLook";
 
 /**
  * HexagonPattern component - SVG hexagon pattern overlay
@@ -23,7 +24,18 @@ const HexagonPattern = React.memo(() => {
  * AnimatedBackground component - Provides the Block52 blue animated background
  * with mouse tracking, hexagon pattern overlay, and gradient animations
  */
-export const AnimatedBackground: React.FC = () => {
+/** The Flagship look's page backdrop: violet-black with two slow aurora glows. */
+const FlagshipBackdrop: React.FC = () => (
+    <div className="fixed inset-0 z-0 pointer-events-none overflow-hidden" style={{ background: "#07060d" }} aria-hidden="true">
+        <div className="absolute rounded-full" style={{ width: 640, height: 640, left: "8%", top: -200, background: "#6d28d9", filter: "blur(110px)", opacity: 0.4 }} />
+        <div className="absolute rounded-full" style={{ width: 520, height: 520, right: -140, top: "35%", background: "#1d4ed8", filter: "blur(110px)", opacity: 0.28 }} />
+    </div>
+);
+
+/** The page backdrop: the flagship one in the Flagship look, else the classic animated one. */
+export const AnimatedBackground: React.FC = () => (getSiteLook() === "flagship" ? <FlagshipBackdrop /> : <ClassicAnimatedBackground />);
+
+const ClassicAnimatedBackground: React.FC = () => {
     // Add state for mouse position
     const [mousePosition, setMousePosition] = useState({ x: 0, y: 0 });
     

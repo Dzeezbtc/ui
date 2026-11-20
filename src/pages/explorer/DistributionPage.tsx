@@ -163,7 +163,7 @@ export default function DistributionPage() {
         <div className="min-h-screen p-8 relative">
             <AnimatedBackground />
             <div className="max-w-7xl mx-auto relative z-10">
-                <ExplorerHeader title="Block Explorer" />
+                <ExplorerHeader title="Card distribution" />
 
                 {loading ? (
                     <div className="text-center py-12">
@@ -203,7 +203,7 @@ export default function DistributionPage() {
                                 </div>
                                 <div className="flex gap-6 mt-3 text-xs text-gray-500">
                                     <span>Hands: {indexerStatus.total_hands.toLocaleString()}</span>
-                                    <span>Hands: {indexerStatus.total_games.toLocaleString()}</span>
+                                    <span>Tables: {indexerStatus.total_games.toLocaleString()}</span>
                                     <span>Last block: #{indexerStatus.last_block_indexed.toLocaleString()}</span>
                                 </div>
                             </div>
