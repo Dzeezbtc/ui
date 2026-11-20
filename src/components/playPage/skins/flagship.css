@@ -381,15 +381,10 @@
 }
 
 /* side buttons, hand strength */
-[data-skin="flagship"] [data-part="hand-strength"] {
-    background: var(--fs-glass) !important;
-    border: 1px solid var(--fs-line2) !important;
-    border-radius: 14px !important;
-    backdrop-filter: blur(12px) !important;
-}
-/* The left column (6 o'clock toggle, sit-out boxes, turn status) wears the chat
+/* The side boxes (6 o'clock toggle, sit-out, turn status, hand strength) wear the chat
    button's look: night glass inside a fuchsia -> violet -> blue edge. */
 [data-skin="flagship"] [data-part="side-actions"] > :is(div, button),
+[data-skin="flagship"] [data-part="hand-strength"],
 [data-skin="flagship"] [data-part="turn-status"] {
     border: 1.5px solid transparent !important;
     background: linear-gradient(rgba(var(--fs-glass-rgb), 0.94), rgba(var(--fs-glass-rgb), 0.94)) padding-box, var(--fs-grad) border-box !important;
