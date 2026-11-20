@@ -29,7 +29,12 @@ const PATHS: Record<Glyph, React.ReactNode> = {
             <path d="M12 12l8-4.5M12 12v9M12 12L4 7.5" />
         </>
     ),
-    distribution: <path d="M4 20V13M9.3 20V8M14.6 20v-5M20 20V4M3 20h18" />,
+    fairness: (
+        <>
+            <path d="M12 3l7 3v6c0 4.5-3 7.5-7 9-4-1.5-7-4.5-7-9V6z" />
+            <path d="M9 12l2 2 4-4" />
+        </>
+    ),
     nodes: (
         <>
             <circle cx="12" cy="12" r="9" />
