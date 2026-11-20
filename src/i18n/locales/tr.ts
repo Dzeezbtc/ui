@@ -114,6 +114,8 @@ const strings: Translations = {
     "settings.hideBustedHelp": "Sit & Go ve turnuvalarda elenen oyuncu masadan kaybolur ve koltuğu boş kalır. Masada soluk olarak kalmaları için kapatın.",
     "settings.potChips": "Fiş olarak pot",
     "settings.potChipsHelp": "Potu, oyuncuların bahisleri gibi tutarıyla birlikte fiş yığını olarak gösterir. Kapalıyken metin olarak görünür.",
+    "settings.flipBoard": "Ortak kartları çevir",
+    "settings.flipBoardHelp": "Flop, turn ve river kapalı gelir, sonra çevrilir. Kapalıyken açık düşer.",
     "settings.chips": "Fişler",
     "settings.chipsHelp": "Marble fotogerçekçidir; Flat küçük boyutlarda en nettir. Nakit oyunlar $ ve ¢, turnuvalar puan gösterir.",
     "settings.autoMuck": "Otomatik muck",

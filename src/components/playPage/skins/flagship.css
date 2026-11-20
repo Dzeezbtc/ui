@@ -381,12 +381,27 @@
 }
 
 /* side buttons, hand strength */
-[data-skin="flagship"] [data-part="side-actions"] > :is(div, button),
 [data-skin="flagship"] [data-part="hand-strength"] {
     background: var(--fs-glass) !important;
     border: 1px solid var(--fs-line2) !important;
     border-radius: 14px !important;
     backdrop-filter: blur(12px) !important;
+}
+/* The left column (6 o'clock toggle, sit-out boxes, turn status) wears the chat
+   button's look: night glass inside a fuchsia -> violet -> blue edge. */
+[data-skin="flagship"] [data-part="side-actions"] > :is(div, button),
+[data-skin="flagship"] [data-part="turn-status"] {
+    border: 1.5px solid transparent !important;
+    background: linear-gradient(rgba(var(--fs-glass-rgb), 0.94), rgba(var(--fs-glass-rgb), 0.94)) padding-box, var(--fs-grad) border-box !important;
+    border-radius: 16px !important;
+    backdrop-filter: blur(12px) !important;
+    box-shadow: 0 10px 30px -14px rgba(var(--fs-vi-rgb), 0.6) !important;
+}
+[data-skin="flagship"] [data-part="side-actions"] input[type="checkbox"] {
+    accent-color: var(--fs-vi);
+}
+[data-skin="flagship"] [data-part="side-actions"] :is(.text-amber-300, .text-blue-300, .text-yellow-300) {
+    color: var(--fs-vi2, #c4b5fd) !important;
 }
 
 /* ---------- tournaments ---------- */
@@ -937,11 +952,7 @@
 
 /* ---------- whose turn: "Your turn" / "Waiting (Seat 5's turn)", opposite the hand strength ---------- */
 [data-skin="flagship"] [data-part="turn-status"] {
-    padding: 8px 14px;
-    border-radius: 14px;
-    background: var(--fs-glass);
-    border: 1px solid var(--fs-line2);
-    backdrop-filter: blur(12px);
+    padding: 10px 14px;
     color: var(--fs-fg);
     font-size: 14px;
     white-space: nowrap;
@@ -953,10 +964,7 @@
     color: var(--fs-muted);
 }
 [data-skin="flagship"] [data-part="turn-status"][data-mine] {
-    border-color: transparent;
-    box-shadow:
-        0 0 0 1.5px var(--fs-vi),
-        0 0 26px rgba(var(--fs-vi-rgb), 0.55);
+    box-shadow: 0 0 26px rgba(var(--fs-vi-rgb), 0.65) !important;
 }
 [data-skin="flagship"][data-orient="portrait"] [data-part="turn-status"] {
     left: 8px !important;

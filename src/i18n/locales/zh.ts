@@ -114,6 +114,8 @@ const strings: Translations = {
     "settings.hideBustedHelp": "在 Sit & Go 和锦标赛中，被淘汰的玩家会从牌桌上消失，座位留空。关闭后他们会以变暗的样子留在牌桌上。",
     "settings.potChips": "以筹码显示底池",
     "settings.potChipsHelp": "像玩家下注一样,以筹码堆加金额显示底池。关闭后显示为文字。",
+    "settings.flipBoard": "翻开公共牌",
+    "settings.flipBoardHelp": "翻牌、转牌和河牌先背面朝上落下，再翻开。关闭时直接正面落下。",
     "settings.chips": "筹码",
     "settings.chipsHelp": "Marble 为写实风格;Flat 在小尺寸下最清晰。现金局显示 $ 和 ¢,锦标赛显示点数。",
     "settings.autoMuck": "自动盖牌",
