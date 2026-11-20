@@ -13,6 +13,7 @@ import { hasBalance, lobbyBalanceLabel } from "../../utils/lobbyLayout";
 import { DEPOSIT_PARAM, NAV_ITEMS, activeNavItem, searchTarget, showsSiteNav, usdcMicroOf, type NavItem } from "../../utils/siteNav";
 import { NetworkSelector } from "../NetworkSelector";
 import { LanguagePicker } from "../LanguagePicker";
+import { SiteLookSwitch } from "../SiteLookSwitch";
 import ClubAuthModal from "../modals/ClubAuthModal";
 import { NavGlyph } from "./NavGlyph";
 import styles from "./SiteNav.module.css";
@@ -157,6 +158,9 @@ export const SiteNav: React.FC = () => {
                             <NavGlyph icon="gear" />
                             {t("nav.admin")}
                         </Link>
+                        <div className={styles.menuLook}>
+                            <SiteLookSwitch wide />
+                        </div>
                     </div>
                 </>
             ) : null}
@@ -239,6 +243,7 @@ export const SiteNav: React.FC = () => {
                               </div>
                               <div className={styles.moreRow}>
                                   <LanguagePicker variant="row" />
+                                  <SiteLookSwitch wide />
                                   {features.nodeSelector ? <NetworkSelector /> : null}
                               </div>
                           </div>
@@ -252,10 +257,10 @@ export const SiteNav: React.FC = () => {
     );
 };
 
-/** Wraps the pages so they clear the rail (DESKTOP) or the tab bar (PHONE). Plain on a game table. */
-export const SiteNavPage: React.FC<{ children: React.ReactNode }> = ({ children }) => {
+/** Wraps the pages so they clear the rail (DESKTOP) or the tab bar (PHONE). Plain on a game table and in the Traditional look. */
+export const SiteNavPage: React.FC<{ enabled: boolean; children: React.ReactNode }> = ({ enabled, children }) => {
     const { pathname } = useLocation();
-    return <div className={showsSiteNav(pathname) ? styles.page : undefined}>{children}</div>;
+    return <div className={enabled && showsSiteNav(pathname) ? styles.page : undefined}>{children}</div>;
 };
 
 export default SiteNav;

@@ -17,6 +17,8 @@ import { usdcToMicroBigInt, formatMicroAsUsdc, microToUsdc } from "../constants/
 
 import { WithdrawalModal, USDCDepositModal, UpcomingSngModal } from "../components/modals";
 import Lobby from "../components/lobby/Lobby";
+import TableList from "../components/TableList";
+import { getSiteLook } from "../utils/siteLook";
 import WalletPanel from "../components/WalletPanel";
 import TransactionPanel from "../components/TransactionPanel";
 import { AnimatedBackground } from "../components/common";
@@ -67,6 +69,8 @@ const B52_ADDRESS_REGEX = /^b521[qpzry9x8gf2tvdw0s3jn54khce6mua7l]{38,}$/;
 const SNG_SEAT_OPTIONS = [2, 3, 4, 5, 6, 7, 8, 9];
 
 const Dashboard: React.FC = () => {
+    // The whole site's look: Flagship (new lobby) or Traditional (the old table list).
+    const isFlagshipLook = getSiteLook() === "flagship";
     const navigate = useNavigate();
     // Removed: Game selection state variables - now handled in Create Game modal
     // Removed: Ethereum wallet state - now using Cosmos wallet only
@@ -1254,17 +1258,42 @@ const Dashboard: React.FC = () => {
                         </div>
                     )}
 
-                    {/* Lobby (redesign): balance, quick seat and next Sit & Go on top; every table as a
-                        picture of the felt, grouped by game; the wallet panel and transactions at the bottom. */}
-                    <div className="w-full max-w-[1600px] mx-auto px-4 sm:px-6 lg:px-8 z-10 mt-6 sm:mt-10 mb-16">
-                        <Lobby
-                            address={cosmosWallet.address}
-                            onCreateTable={() => {
-                                setCreateGameError("");
-                                setShowCreateGameModal(true);
-                            }}
-                            walletSlot={
-                                <>
+                    {isFlagshipLook ? (
+                        <>
+                        {/* Lobby (redesign): balance, quick seat and next Sit & Go on top; every table as a
+                            picture of the felt, grouped by game; the wallet panel and transactions at the bottom. */}
+                        <div className="w-full max-w-[1600px] mx-auto px-4 sm:px-6 lg:px-8 z-10 mt-6 sm:mt-10 mb-16">
+                            <Lobby
+                                address={cosmosWallet.address}
+                                onCreateTable={() => {
+                                    setCreateGameError("");
+                                    setShowCreateGameModal(true);
+                                }}
+                                walletSlot={
+                                    <>
+                                        <WalletPanel
+                                            onDeposit={handleDepositClick}
+                                            onWithdraw={handleWithdrawClick}
+                                            onTransfer={() => setShowCosmosTransferModal(true)}
+                                            onCreateWallet={handleCreateNewWallet}
+                                            onImportWallet={() => setShowCosmosImportModal(true)}
+                                            onRefresh={cosmosWallet.refreshBalance}
+                                            usdcBalance={getTransferTokenBalance()}
+                                            cosmosWalletAddress={cosmosWallet.address}
+                                        />
+                                        <TransactionPanel cosmosWalletAddress={cosmosWallet.address} usdcBalance={getTransferTokenBalance()} />
+                                    </>
+                                }
+                            />
+                        </div>
+
+                        </>
+                    ) : (
+                        <>
+                        {/* Traditional look: the old two-column lobby, wallet on the left and the table list on the right. */}
+                        <div className="w-full max-w-[1600px] mx-auto px-4 sm:px-6 lg:px-8 z-10 mt-8 sm:mt-12 lg:mt-16">
+                            <div className="flex flex-col lg:flex-row gap-4 sm:gap-6">
+                                <div className="w-full lg:w-[400px] flex-shrink-0 space-y-4">
                                     <WalletPanel
                                         onDeposit={handleDepositClick}
                                         onWithdraw={handleWithdrawClick}
@@ -1276,10 +1305,19 @@ const Dashboard: React.FC = () => {
                                         cosmosWalletAddress={cosmosWallet.address}
                                     />
                                     <TransactionPanel cosmosWalletAddress={cosmosWallet.address} usdcBalance={getTransferTokenBalance()} />
-                                </>
-                            }
-                        />
-                    </div>
+                                </div>
+                                <div className="flex-1 min-w-0">
+                                    <TableList
+                                        onCreateTable={() => {
+                                            setCreateGameError("");
+                                            setShowCreateGameModal(true);
+                                        }}
+                                    />
+                                </div>
+                            </div>
+                        </div>
+                        </>
+                    )}
 
                     {/* Reset blockchain button was here, now commented out by user */}
 

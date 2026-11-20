@@ -45,6 +45,8 @@ const TechNotesPage = lazy(() => import("./pages/tech-notes/TechNotesPage"));
 const TestSdk = lazy(() => import("./test-sdk").then(m => ({ default: m.TestSdk })));
 import { GameStateProvider } from "./context/GameStateContext";
 import { GameSettingsProvider } from "./context/GameSettingsContext";
+import { getSiteLook, siteLookScopeFor } from "./utils/siteLook";
+import "./styles/flagshipSite.css";
 import { generateCSSVariables } from "./utils/colorConfig";
 import { useEffect, useState, lazy, Suspense } from "react";
 import FaviconSetter from "./components/FaviconSetter";
@@ -55,6 +57,7 @@ import ClubProofPage from "./pages/ClubProofPage";
 import { ClubNotifier } from "./components/ClubNotifier";
 import { ClubApiProvider } from "./context/ClubApiContext";
 import { SiteNav, SiteNavPage } from "./components/nav/SiteNav";
+import { GlobalHeader } from "./components/GlobalHeader";
 import { ClubMessages } from "./components/ClubMessages";
 import { ProfileAvatarProvider } from "./context/profile/ProfileAvatarContext";
 import { ProfileAvatarModal } from "./components/profile";
@@ -98,6 +101,12 @@ function AppContent() {
     const location = useLocation();
     const [showChipDebug, setShowChipDebug] = useState(false);
 
+    // The whole site's look (Flagship or Traditional); the page background follows it.
+    const siteLook = getSiteLook();
+    useEffect(() => {
+        document.documentElement.dataset.siteBg = siteLook;
+    }, [siteLook]);
+
     // Inject CSS variables on mount
     useEffect(() => {
         const style = document.createElement("style");
@@ -122,14 +131,15 @@ function AppContent() {
     }, []);
 
     return (
-        <div className="bg-[#2c3245] min-h-screen">
+        <div className="bg-[#2c3245] min-h-screen" data-site-look={siteLookScopeFor(siteLook, location.pathname)}>
             <FaviconSetter />
-            <SiteNav />
+            {/* Flagship: the icon rail + top bar (tab bar on phones). Traditional: the old header. */}
+            {siteLook === "flagship" ? <SiteNav /> : <GlobalHeader />}
             <ClubMessages />
             <ProfileAvatarModal />
             {/* poker-vm#2097: a throw inside a page shows an error page, not a white
                 screen; keyed by path so navigating away resets it. */}
-            <SiteNavPage>
+            <SiteNavPage enabled={siteLook === "flagship"}>
             <ErrorBoundary key={location.pathname} showDetails={import.meta.env.DEV}>
             {/* ui#779: lazy routes need a Suspense boundary for their load state. */}
             <Suspense fallback={<RouteFallback />}>
