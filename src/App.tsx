@@ -20,6 +20,7 @@ import Dashboard from "./pages/Dashboard";
 const MultiTableRoute = lazy(() => import("./components/MultiTable/MultiTableWorkspace"));
 const CosmosWalletPage = lazy(() => import("./components/CosmosWalletPage"));
 const BlocksPage = lazy(() => import("./pages/explorer/BlocksPage"));
+const ExplorerHome = lazy(() => import("./pages/explorer/ExplorerHome"));
 const BlockDetailPage = lazy(() => import("./pages/explorer/BlockDetailPage"));
 const TransactionPage = lazy(() => import("./pages/explorer/TransactionPage"));
 const AddressPage = lazy(() => import("./pages/explorer/AddressPage"));
@@ -168,7 +169,7 @@ function AppContent() {
                 <Route path="/bridge/manual" element={<ManualBridgeTrigger />} />
                 <Route path="/bridge/admin" element={<BridgeAdminDashboard />} />
                 <Route path="/genesis" element={<GenesisState />} />
-                <Route path="/explorer" element={<BlocksPage />} />
+                <Route path="/explorer" element={siteLook === "flagship" ? <ExplorerHome /> : <BlocksPage />} />
                 <Route path="/explorer/block/:height" element={<BlockDetailPage />} />
                 <Route path="/explorer/tx/:hash" element={<TransactionPage />} />
                 <Route path="/explorer/address" element={<AddressPage />} />
