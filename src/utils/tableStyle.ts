@@ -16,7 +16,7 @@ export const TABLE_STYLES: readonly TableStyle[] = ["modern", "classic", "nouns"
 
 /** What the style button and the mobile menu call each style. */
 export const TABLE_STYLE_LABELS: Record<TableStyle, string> = {
-    modern: "Modern",
+    modern: "Traditional",
     classic: "Classic",
     nouns: "Nouns",
     chipchair: "Chip and a Chair",

@@ -83,7 +83,8 @@ import { CardBackStyle } from "../../utils/cardImages";
 import { useClubLook } from "../../hooks/club/useClubLook";
 import { TableRadio } from "./TableRadio";
 import { tableStyleForLook } from "../../utils/clubLook";
-import { TABLE_STYLE_LABELS, TableStyle, dealsFaceDown, isThreeTableStyle, nextTableStyle, skinAttrFor, stageShapeFor, tableStyleFromEnv, tableStyleFromUrl, usesFlagshipLayout } from "../../utils/tableStyle";
+import { defaultTableStyleFor, getSavedTableStyle, getSiteLook, saveTableStyle } from "../../utils/siteLook";
+import { TABLE_STYLE_LABELS, TableStyle, dealsFaceDown, isThreeTableStyle, nextTableStyle, skinAttrFor, stageShapeFor, tableStyleFromUrl, usesFlagshipLayout } from "../../utils/tableStyle";
 import { TableStyleProvider } from "../../context/TableStyleContext";
 import "./skins/chipchair.css";
 import "./skins/flagship.css";
@@ -957,13 +958,26 @@ const Table = React.memo(({ tableId }: TableProps = {}) => {
     // fallback (9) while loading; the loading guard below still prevents any
     // fabricated board from being PAINTED until tableSize is real (#466), so this
     // computed-but-unrendered layout causes no flash.
-    const [tableStyle, setTableStyle] = useState<TableStyle>(() => tableStyleFromUrl(window.location.search, tableStyleFromEnv(import.meta.env.VITE_TABLE_STYLE)));
-    // A club table starts in the club theme's skin, or its felt. The player can still switch it.
+    // Starts in a ?style= link's skin, else the skin the player last picked, else the site look's
+    // default (Flagship, or the old skin for the Traditional look).
+    const [tableStyle, setTableStyle] = useState<TableStyle>(() =>
+        tableStyleFromUrl(window.location.search, getSavedTableStyle() ?? defaultTableStyleFor(getSiteLook(), import.meta.env.VITE_TABLE_STYLE))
+    );
+    // A club table starts in the club theme's skin, or its felt (Flagship for the Block52 theme
+    // in the Flagship look). The player can still switch it.
     const clubFelt = clubLook?.felt;
     const clubTheme = clubLook?.theme;
     useEffect(() => {
-        if (clubFelt && clubTheme) setTableStyle(tableStyleForLook({ theme: clubTheme, felt: clubFelt }));
+        if (clubFelt && clubTheme) setTableStyle(tableStyleForLook({ theme: clubTheme, felt: clubFelt }, getSiteLook()));
     }, [clubFelt, clubTheme]);
+    // The player's own pick is remembered for the next table.
+    const cycleTableStyle = useCallback(() => {
+        setTableStyle(prev => {
+            const next = nextTableStyle(prev);
+            saveTableStyle(next);
+            return next;
+        });
+    }, []);
     // The chat wears the table's skin (block52-chat#2): flagship, chipchair, badbeat and
     // maison have their own chat look; plain styles fall back to the player's B52/HODL pick.
     useEffect(() => {
@@ -1429,7 +1443,7 @@ const Table = React.memo(({ tableId }: TableProps = {}) => {
                 never sit above modals/overlays (it used to be 999999 and beat everything). */}
             {!isCompactMobile && !usesFlagshipLayout(tableStyle) && (
                 <button
-                    onClick={() => setTableStyle(nextTableStyle)}
+                    onClick={cycleTableStyle}
                     style={{
                         position: "fixed",
                         bottom: 12,
@@ -1477,7 +1491,7 @@ const Table = React.memo(({ tableId }: TableProps = {}) => {
                                     tableId={id}
                                     handNumber={handNumber}
                                     tableStyle={tableStyle}
-                                    onCycleTableStyle={() => setTableStyle(nextTableStyle)}
+                                    onCycleTableStyle={cycleTableStyle}
                                     currentNetwork={currentNetwork}
                                     publicKey={publicKey}
                                     formattedAddress={formattedAddress}
@@ -1526,7 +1540,7 @@ const Table = React.memo(({ tableId }: TableProps = {}) => {
                     maxBuyIn={gameOptions?.maxBuyIn || "0"}
                     walletBalance={accountBalance}
                     tableStyle={tableStyle}
-                    onCycleTableStyle={() => setTableStyle(nextTableStyle)}
+                    onCycleTableStyle={cycleTableStyle}
                     onOpenPanel={tab => {
                         setPanelTab(tab);
                         setMobilePanelOpen(true);

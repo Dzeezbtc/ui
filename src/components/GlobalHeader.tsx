@@ -9,6 +9,7 @@ import { hasElements } from "../utils/guards";
 import styles from "./GlobalHeader.module.css";
 import { features } from "../config/features";
 import { LanguagePicker } from "./LanguagePicker";
+import { SiteLookSwitch } from "./SiteLookSwitch";
 import { useLanguage } from "../i18n/useLanguage";
 import ClubAuthModal from "./modals/ClubAuthModal";
 import { custodyBase, custodySignOut, getCustodySession } from "../utils/custody/session";
@@ -192,6 +193,7 @@ export const GlobalHeader: React.FC = () => {
 
                     {/* Right: Club login + Admin + Network Status & Selector */}
                     <div className="flex items-center gap-4 flex-shrink-0">
+                        <SiteLookSwitch />
                         <LanguagePicker variant="icon" />
                         {authModal && (
                             clubSession ? (
@@ -287,6 +289,9 @@ export const GlobalHeader: React.FC = () => {
                                     )}
                                 </Link>
                             ))}
+                            <div className="px-4 py-2">
+                                <SiteLookSwitch wide />
+                            </div>
                             {authModal && (
                                 <button
                                     type="button"

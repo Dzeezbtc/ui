@@ -5,8 +5,10 @@
  * Colors can be customized via environment variables with fallback defaults.
  */
 
-// Brand Colors
-export const colors = {
+import { getSiteLook } from "./siteLook";
+
+// Traditional (the old blue look). Each value can be set with an environment variable.
+const traditionalColors = {
   // Primary and Secondary Brand Colors
   brand: {
     primary: import.meta.env.VITE_BRAND_COLOR_PRIMARY || "#3b82f6",
@@ -48,6 +50,48 @@ export const colors = {
     textSecondary: import.meta.env.VITE_UI_TEXT_SECONDARY || "#9ca3af", // gray-400 equivalent
   },
 };
+
+/**
+ * Block52 Flagship: violet on violet-black, as on the Flagship table and the new
+ * lobby. It is the default site look; the old blue one is "Traditional" (siteLook.ts).
+ * Env colour settings belong to the Traditional look only.
+ */
+const flagshipColors: typeof traditionalColors = {
+  brand: {
+    primary: "#a78bfa",
+    secondary: "#120c1f",
+  },
+  table: {
+    bgGradientStart: "#120c1f",
+    bgGradientMid: "#241640",
+    bgGradientEnd: "#120c1f",
+    bgBase: "#0b0814",
+    borderColor: "#3b2a63",
+  },
+  animation: {
+    color1: "#4c2a8c",
+    color2: "#2e1a5c",
+    color3: "#5b30a6",
+    color4: "#1a1036",
+    color5: "#3a2275",
+  },
+  accent: {
+    glow: "#c4b5fd",
+    success: "#10b981",
+    danger: "#ef4444",
+    warning: "#f59e0b",
+    withdraw: "#241640",
+  },
+  ui: {
+    bgDark: "#120c1f",
+    bgMedium: "#241b3a",
+    borderColor: "rgba(167,139,250,0.22)",
+    textSecondary: "#b3a9cf",
+  },
+};
+
+/** The colours of the site look in use (Flagship unless the player picked Traditional). */
+export const colors = getSiteLook() === "flagship" ? flagshipColors : traditionalColors;
 
 // Helper function to convert hex to rgba
 export const hexToRgba = (hex: string | undefined, alpha: number): string => {

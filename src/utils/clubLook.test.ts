@@ -29,6 +29,10 @@ it("keeps the club theme", () => {
 it("starts a club table in its theme's skin, else its felt", () => {
     expect(tableStyleForLook({ theme: "chipandachair", felt: "classic" })).toBe("chipchair");
     expect(tableStyleForLook({ theme: "block52", felt: "classic" })).toBe("classic");
+    // The Flagship site look puts Block52-themed club tables in the Flagship skin; themed skins stay.
+    expect(tableStyleForLook({ theme: "block52", felt: "classic" }, "flagship")).toBe("flagship");
+    expect(tableStyleForLook({ theme: "block52", felt: "dark" }, "traditional")).toBe("modern");
+    expect(tableStyleForLook({ theme: "maison", felt: "classic" }, "flagship")).toBe("maison");
     expect(tableStyleForLook({ theme: "maison", felt: "dark" })).toBe("maison");
     expect(tableStyleForLook({ theme: "triplebarrel", felt: "dark" })).toBe("modern");
 });
