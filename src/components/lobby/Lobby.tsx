@@ -9,7 +9,6 @@ import {
     STAKE_BANDS,
     activeFilterCount,
     filterLobbyGames,
-    hasBalance,
     firstSectionOf,
     sectionRows,
     rowSizeSelection,
@@ -20,7 +19,6 @@ import {
     isListedTable,
     isTableCreator,
     isTreasuryTable,
-    lobbyBalanceLabel,
     othersAtLevel,
     occupiedTables,
     similarOpenTable,
@@ -47,9 +45,7 @@ import TablePreview from "./TablePreview";
 import styles from "./Lobby.module.css";
 
 interface LobbyProps {
-    balance: string;
     address: string | null;
-    onDeposit: () => void;
     onCreateTable?: () => void;
     /** The wallet panel and recent transactions, shown at the bottom of the lobby. */
     walletSlot: React.ReactNode;
@@ -68,10 +64,10 @@ const DEFAULT_CLUB_NAME = import.meta.env.VITE_CLUB_NAME || "Texas Hodl";
  * every table with the same game, stakes and size collapses into one card that
  * leads with the busiest table with a free seat; the rest are listed in the
  * preview ("+N more"). Sections: each cash game, then Sit & Go, then
- * Tournaments. A one-line heading with your balance, a slim Quick seat bar,
+ * Tournaments. A one-line heading (the balance lives in the site top bar), a slim Quick seat bar,
  * and a Filters button keep the tables near the top of the screen.
  */
-const Lobby: React.FC<LobbyProps> = ({ balance, address, onDeposit, onCreateTable, walletSlot }) => {
+const Lobby: React.FC<LobbyProps> = ({ address, onCreateTable, walletSlot }) => {
     const { t } = useLanguage();
     const tableClubs = useTableClubs();
     const { games: allGames, isLoading, error, refetch } = useFindGames();
@@ -131,8 +127,6 @@ const Lobby: React.FC<LobbyProps> = ({ balance, address, onDeposit, onCreateTabl
         }
     }, [forceCloseTarget, forceCloseGame, refetch]);
 
-    const hasFunds = hasBalance(balance);
-
     return (
         <div className={styles.lobby}>
             <div className={styles.backdrop} aria-hidden="true">
@@ -152,15 +146,6 @@ const Lobby: React.FC<LobbyProps> = ({ balance, address, onDeposit, onCreateTabl
                     </span>
                     <span>{t("lobby.tablesRunning", { count: rawGames.length })}</span>
                     <span>{t("lobby.playersSeated", { count: seatedTotal(rawGames) })}</span>
-                </div>
-                <div className={styles.balancePill}>
-                    <button type="button" className={styles.balanceText} onClick={() => document.getElementById("lobby-wallet")?.scrollIntoView({ behavior: "smooth", block: "start" })}>
-                        <small>{t("lobby.balance")}</small>
-                        <b className={styles.mono}>{lobbyBalanceLabel(balance)}</b>
-                    </button>
-                    <button type="button" className={`${styles.btn} ${styles.btnSm} ${styles.btnGrad}`} onClick={onDeposit} disabled={!hasContent(address)} title={hasContent(address) ? "" : t("lobby.noWallet")}>
-                        {hasFunds ? t("lobby.deposit") : t("lobby.addFunds")}
-                    </button>
                 </div>
             </div>
 

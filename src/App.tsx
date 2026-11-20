@@ -54,7 +54,7 @@ import ClubPage from "./pages/ClubPage";
 import ClubProofPage from "./pages/ClubProofPage";
 import { ClubNotifier } from "./components/ClubNotifier";
 import { ClubApiProvider } from "./context/ClubApiContext";
-import { GlobalHeader } from "./components/GlobalHeader";
+import { SiteNav, SiteNavPage } from "./components/nav/SiteNav";
 import { ClubMessages } from "./components/ClubMessages";
 import { ProfileAvatarProvider } from "./context/profile/ProfileAvatarContext";
 import { ProfileAvatarModal } from "./components/profile";
@@ -124,11 +124,12 @@ function AppContent() {
     return (
         <div className="bg-[#2c3245] min-h-screen">
             <FaviconSetter />
-            <GlobalHeader />
+            <SiteNav />
             <ClubMessages />
             <ProfileAvatarModal />
             {/* poker-vm#2097: a throw inside a page shows an error page, not a white
                 screen; keyed by path so navigating away resets it. */}
+            <SiteNavPage>
             <ErrorBoundary key={location.pathname} showDetails={import.meta.env.DEV}>
             {/* ui#779: lazy routes need a Suspense boundary for their load state. */}
             <Suspense fallback={<RouteFallback />}>
@@ -177,6 +178,7 @@ function AppContent() {
             </Routes>
             </Suspense>
             </ErrorBoundary>
+            </SiteNavPage>
             <ToastContainer
                 position="top-right"
                 autoClose={3000}

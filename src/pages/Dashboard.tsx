@@ -1,6 +1,7 @@
 import React, { useEffect, useState, useCallback, useMemo } from "react";
 import { localDateTimeToUnixSeconds, LATE_REGISTRATION_LEVEL_OPTIONS, lateRegistrationOptionLabel } from "../utils/scheduledSng";
-import { useNavigate } from "react-router-dom"; // Import useNavigate for navigation
+import { useNavigate, useSearchParams } from "react-router-dom"; // Import useNavigate for navigation
+import { DEPOSIT_PARAM } from "../utils/siteNav";
 
 import "./Dashboard.css"; // Import the CSS file with animations
 import styles from "./Dashboard.module.css";
@@ -471,6 +472,16 @@ const Dashboard: React.FC = () => {
     const handleDepositClick = useCallback(() => {
         setShowUSDCDepositModal(true);
     }, []);
+
+    // The site top bar's Deposit button (any page) comes here with ?deposit=1: open the deposit window, then drop the flag.
+    const [searchParams, setSearchParams] = useSearchParams();
+    useEffect(() => {
+        if (!searchParams.has(DEPOSIT_PARAM)) return;
+        setShowUSDCDepositModal(true);
+        const next = new URLSearchParams(searchParams);
+        next.delete(DEPOSIT_PARAM);
+        setSearchParams(next, { replace: true });
+    }, [searchParams, setSearchParams]);
 
     // Memoized Withdrawal callback
     const handleWithdrawClick = useCallback(() => {
@@ -1247,9 +1258,7 @@ const Dashboard: React.FC = () => {
                         picture of the felt, grouped by game; the wallet panel and transactions at the bottom. */}
                     <div className="w-full max-w-[1600px] mx-auto px-4 sm:px-6 lg:px-8 z-10 mt-6 sm:mt-10 mb-16">
                         <Lobby
-                            balance={getTransferTokenBalance()}
                             address={cosmosWallet.address}
-                            onDeposit={handleDepositClick}
                             onCreateTable={() => {
                                 setCreateGameError("");
                                 setShowCreateGameModal(true);
