@@ -173,7 +173,7 @@ export default function AddressPage() {
 
             <div className="max-w-5xl mx-auto relative z-10">
                 {/* Explorer Navigation Header */}
-                <ExplorerHeader title="Block Explorer" />
+                <ExplorerHeader title="Address lookup" />
 
                 <ExplorerSearchInput value={address} onChange={setAddress} placeholder="Search by address (b52…)" onSubmit={submitSearch} busy={loading} />
 
