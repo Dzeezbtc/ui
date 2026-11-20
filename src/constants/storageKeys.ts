@@ -27,5 +27,9 @@ export const STORAGE_KEYS = {
     /** Whether the viewer has dismissed the upcoming Sit & Go welcome modal. */
     seenUpcomingSngModal: "seen_upcoming_sng_modal",
     /** Lobby filters a player keeps between visits (stakes, sizes, sort, treasury only). */
-    lobbyFilters: "lobby_filters"
+    lobbyFilters: "lobby_filters",
+    /** The site look a player chose: "flagship" (default) or "traditional". */
+    siteLook: "site_look",
+    /** The table skin a player last picked at a table (cleared when the site look changes). */
+    tableStyle: "table_style"
 } as const;

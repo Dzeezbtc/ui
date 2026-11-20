@@ -1,5 +1,6 @@
 import { isString } from "./guards";
 import { TableStyle, skinForTheme } from "./tableStyle";
+import type { SiteLook } from "./siteLook";
 /** How a club looks to players (block52-club#39), as the club service sends it. */
 export interface ClubLook {
     /** The club's theme (setting profile.theme), e.g. "block52" or "chipandachair". */
@@ -43,10 +44,12 @@ export const tableStyleFor = (felt: string): "classic" | "modern" => (felt === "
 
 /**
  * The table style a club table starts in: the club theme's own skin when it has
- * one (Chip and a Chair), otherwise whatever its felt choice maps to.
+ * one (Chip and a Chair, Bad Beat, Maison 52). Otherwise Flagship in the Flagship
+ * site look, or whatever its felt choice maps to in the Traditional look.
  * A player can still switch it themselves.
  */
-export const tableStyleForLook = (look: Pick<ClubLook, "theme" | "felt">): TableStyle => skinForTheme(look.theme) ?? tableStyleFor(look.felt);
+export const tableStyleForLook = (look: Pick<ClubLook, "theme" | "felt">, siteLook: SiteLook = "traditional"): TableStyle =>
+    skinForTheme(look.theme) ?? (siteLook === "flagship" ? "flagship" : tableStyleFor(look.felt));
 
 /** A social link's short name, from its address. */
 export const socialLabel = (url: string): string => {

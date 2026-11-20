@@ -1,0 +1,41 @@
+.switch {
+  display: inline-flex;
+  padding: 3px;
+  gap: 2px;
+  border-radius: 999px;
+  background-color: color-mix(in srgb, var(--ui-bg-dark) 70%, transparent);
+  border: 1px solid color-mix(in srgb, var(--brand-primary) 25%, transparent);
+}
+
+.wide {
+  display: flex;
+  width: 100%;
+}
+
+.wide button {
+  flex: 1;
+}
+
+.switch button {
+  padding: 4px 12px;
+  border-radius: 999px;
+  font-size: 12px;
+  font-weight: 600;
+  line-height: 18px;
+  white-space: nowrap;
+  transition: background-color 0.15s ease, color 0.15s ease;
+}
+
+.on {
+  color: #fff;
+  background-color: var(--site-look-on, #7c3aed);
+}
+
+.off {
+  color: var(--ui-text-secondary);
+  background-color: transparent;
+}
+
+.off:hover {
+  color: #fff;
+}
