@@ -2,6 +2,7 @@ import React, { useEffect, useState, useCallback, useMemo } from "react";
 import { localDateTimeToUnixSeconds, LATE_REGISTRATION_LEVEL_OPTIONS, lateRegistrationOptionLabel } from "../utils/scheduledSng";
 import { useNavigate, useSearchParams } from "react-router-dom"; // Import useNavigate for navigation
 import { DEPOSIT_PARAM } from "../utils/siteNav";
+import { SEND_PARAM } from "../utils/walletView";
 
 import "./Dashboard.css"; // Import the CSS file with animations
 import styles from "./Dashboard.module.css";
@@ -479,11 +480,16 @@ const Dashboard: React.FC = () => {
 
     // The site top bar's Deposit button (any page) comes here with ?deposit=1: open the deposit window, then drop the flag.
     const [searchParams, setSearchParams] = useSearchParams();
+    // The Wallet page's Send button comes here with ?send=1 (the Send window lives in the lobby).
     useEffect(() => {
-        if (!searchParams.has(DEPOSIT_PARAM)) return;
-        setShowUSDCDepositModal(true);
+        const deposit = searchParams.has(DEPOSIT_PARAM);
+        const send = searchParams.has(SEND_PARAM);
+        if (!deposit && !send) return;
+        if (deposit) setShowUSDCDepositModal(true);
+        if (send) setShowCosmosTransferModal(true);
         const next = new URLSearchParams(searchParams);
         next.delete(DEPOSIT_PARAM);
+        next.delete(SEND_PARAM);
         setSearchParams(next, { replace: true });
     }, [searchParams, setSearchParams]);
 
