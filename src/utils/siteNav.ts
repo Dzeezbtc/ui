@@ -2,7 +2,7 @@ import { hasContent } from "./guards";
 import type { TranslationKey } from "../i18n";
 
 /** Which icon a navigation item draws (the SVG paths live in the nav component). */
-export type NavIcon = "play" | "wallet" | "hands" | "explorer" | "distribution" | "nodes" | "players" | "awards" | "notes";
+export type NavIcon = "play" | "wallet" | "hands" | "explorer" | "fairness" | "nodes" | "players" | "awards" | "notes";
 
 /** Where an item sits: the main group, the network/data group, or pinned to the bottom of the rail. */
 export type NavGroup = "main" | "data" | "foot";
@@ -23,7 +23,7 @@ export const NAV_ITEMS: NavItem[] = [
     { path: "/wallet", label: "nav.wallet", icon: "wallet", group: "main", tab: true },
     { path: "/hands", label: "nav.hands", icon: "hands", group: "main", tab: true },
     { path: "/explorer", label: "nav.explorerShort", icon: "explorer", group: "data", tab: true },
-    { path: "/explorer/distribution", label: "nav.distributionShort", icon: "distribution", group: "data", tab: false },
+    { path: "/fairness", label: "nav.fairness", icon: "fairness", group: "data", tab: false },
     { path: "/nodes", label: "nav.nodes", icon: "nodes", group: "data", tab: false },
     { path: "/players", label: "nav.players", icon: "players", group: "data", tab: false },
     { path: "/awards", label: "nav.awards", icon: "awards", group: "data", tab: false },
