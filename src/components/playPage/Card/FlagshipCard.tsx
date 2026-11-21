@@ -1,5 +1,6 @@
 import React from "react";
 import { cardFace } from "../../../utils/cardFace";
+import "./FlagshipCard.css";
 
 /**
  * A Block52 flagship card, drawn as markup: pearl-white face, rank and small

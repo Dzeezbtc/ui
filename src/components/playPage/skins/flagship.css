@@ -381,12 +381,22 @@
 }
 
 /* side buttons, hand strength */
+/* The side boxes (6 o'clock toggle, sit-out, turn status, hand strength) wear the chat
+   button's look: night glass inside a fuchsia -> violet -> blue edge. */
 [data-skin="flagship"] [data-part="side-actions"] > :is(div, button),
-[data-skin="flagship"] [data-part="hand-strength"] {
-    background: var(--fs-glass) !important;
-    border: 1px solid var(--fs-line2) !important;
-    border-radius: 14px !important;
+[data-skin="flagship"] [data-part="hand-strength"],
+[data-skin="flagship"] [data-part="turn-status"] {
+    border: 1.5px solid transparent !important;
+    background: linear-gradient(rgba(var(--fs-glass-rgb), 0.94), rgba(var(--fs-glass-rgb), 0.94)) padding-box, var(--fs-grad) border-box !important;
+    border-radius: 16px !important;
     backdrop-filter: blur(12px) !important;
+    box-shadow: 0 10px 30px -14px rgba(var(--fs-vi-rgb), 0.6) !important;
+}
+[data-skin="flagship"] [data-part="side-actions"] input[type="checkbox"] {
+    accent-color: var(--fs-vi);
+}
+[data-skin="flagship"] [data-part="side-actions"] :is(.text-amber-300, .text-blue-300, .text-yellow-300) {
+    color: var(--fs-vi2, #c4b5fd) !important;
 }
 
 /* ---------- tournaments ---------- */
@@ -418,85 +428,7 @@
  * the parts that match the Block52 flagship concept, not just its colours.
  * ===================================================================== */
 
-/* ---------- cards: pearl faces, pink and ink, a slow holo sheen ---------- */
-.fs-card {
-    container-type: inline-size;
-    position: relative;
-    flex: none;
-    aspect-ratio: 5 / 7;
-    border-radius: 12% / 8.6%;
-    overflow: hidden;
-    background: linear-gradient(160deg, #ffffff, #eeeaf8);
-    color: #0e0b1c;
-    font-family: "Unbounded", ui-sans-serif, system-ui, sans-serif;
-    box-shadow:
-        inset 0 0 0 1px rgba(0, 0, 0, 0.06),
-        0 10px 18px -6px rgba(10, 0, 40, 0.75);
-}
-.fs-card.fs-red {
-    color: #d9195f;
-}
-.fs-card::after {
-    content: "";
-    position: absolute;
-    inset: 0;
-    background: linear-gradient(115deg, transparent 30%, rgba(var(--fs-mag-rgb), 0.18) 42%, rgba(var(--fs-cyan-rgb), 0.2) 52%, transparent 64%);
-    background-size: 250% 100%;
-    animation: fs-holo 5s ease-in-out infinite;
-    mix-blend-mode: multiply;
-    pointer-events: none;
-}
-@keyframes fs-holo {
-    0%,
-    100% {
-        background-position: 100% 0;
-    }
-    50% {
-        background-position: 0 0;
-    }
-}
-.fs-card .fs-r {
-    position: absolute;
-    left: 10%;
-    top: 5%;
-    font-size: 36cqw;
-    font-weight: 700;
-    line-height: 1;
-    letter-spacing: -0.04em;
-}
-.fs-card .fs-s {
-    position: absolute;
-    left: 11%;
-    top: calc(8% + 37cqw);
-    font-size: 20cqw;
-    line-height: 1;
-    font-family: "Inter", ui-sans-serif, system-ui, sans-serif;
-}
-.fs-card .fs-pip {
-    position: absolute;
-    right: 8%;
-    bottom: 4%;
-    font-size: 52cqw;
-    line-height: 1;
-    font-family: "Inter", ui-sans-serif, system-ui, sans-serif;
-}
-.fs-card.fs-back {
-    background: linear-gradient(120deg, var(--fs-mag) 0%, var(--fs-vi) 50%, var(--fs-blue) 100%);
-    box-shadow:
-        inset 0 0 0 3px var(--fs-fg),
-        0 6px 12px -4px rgba(0, 0, 0, 0.6);
-}
-.fs-card.fs-back::after {
-    animation: none;
-    background: url("../../../assets/flagship/back52.svg") center / 62% no-repeat;
-    mix-blend-mode: normal;
-    opacity: 0.92;
-}
-@media (prefers-reduced-motion: reduce) {
-    .fs-card::after {
-        animation: none;
-    }
-}
+/* ---------- cards: drawn by FlagshipCard (its own FlagshipCard.css, so they look the same off the table) ---------- */
 
 /* board: the five cards, same size as before, pearl not image */
 [data-skin="flagship"] .card:has(> .fs-board) {
@@ -937,11 +869,7 @@
 
 /* ---------- whose turn: "Your turn" / "Waiting (Seat 5's turn)", opposite the hand strength ---------- */
 [data-skin="flagship"] [data-part="turn-status"] {
-    padding: 8px 14px;
-    border-radius: 14px;
-    background: var(--fs-glass);
-    border: 1px solid var(--fs-line2);
-    backdrop-filter: blur(12px);
+    padding: 10px 14px;
     color: var(--fs-fg);
     font-size: 14px;
     white-space: nowrap;
@@ -953,10 +881,7 @@
     color: var(--fs-muted);
 }
 [data-skin="flagship"] [data-part="turn-status"][data-mine] {
-    border-color: transparent;
-    box-shadow:
-        0 0 0 1.5px var(--fs-vi),
-        0 0 26px rgba(var(--fs-vi-rgb), 0.55);
+    box-shadow: 0 0 26px rgba(var(--fs-vi-rgb), 0.65) !important;
 }
 [data-skin="flagship"][data-orient="portrait"] [data-part="turn-status"] {
     left: 8px !important;
