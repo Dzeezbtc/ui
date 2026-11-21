@@ -45,6 +45,8 @@ const strings: Translations = {
     "nav.awards": "奖项",
     "nav.techNotesShort": "技术笔记",
     "nav.more": "更多",
+    "nav.explore": "探索",
+    "nav.network": "网络",
     "nav.main": "主菜单",
     "nav.search": "搜索区块、交易、牌桌或玩家",
     "nav.searchShort": "搜索",

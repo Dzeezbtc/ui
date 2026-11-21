@@ -45,6 +45,8 @@ const strings: Translations = {
     "nav.awards": "Verðlaun",
     "nav.techNotesShort": "Tæknilegar athugasemdir",
     "nav.more": "Meira",
+    "nav.explore": "Kanna",
+    "nav.network": "Net",
     "nav.main": "Aðalvalmynd",
     "nav.search": "Leitaðu að blokk, færslu, borði eða spilara",
     "nav.searchShort": "Leita",

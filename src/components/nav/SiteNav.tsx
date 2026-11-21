@@ -1,16 +1,15 @@
 import React, { useEffect, useRef, useState } from "react";
 import { createPortal } from "react-dom";
-import { Link, useLocation, useNavigate } from "react-router-dom";
+import { Link, useLocation } from "react-router-dom";
 import { useLanguage } from "../../i18n/useLanguage";
 import { useCosmosWallet } from "../../hooks/wallet/useCosmosWallet";
-import { useLatestBlockHeight } from "../../hooks/nodes/useLatestBlockHeight";
 import { useProfileAvatar } from "../../context/profile/ProfileAvatarContext";
 import { features } from "../../config/features";
 import { formatMicroAsUsdc } from "../../constants/currency";
 import { custodyBase, custodySignOut, getCustodySession } from "../../utils/custody/session";
 import { hasContent } from "../../utils/guards";
 import { hasBalance, lobbyBalanceLabel } from "../../utils/lobbyLayout";
-import { NAV_ITEMS, activeNavItem, searchTarget, showsSiteNav, usdcMicroOf, type NavItem } from "../../utils/siteNav";
+import { NAV_ITEMS, activeNavItem, showsSiteNav, usdcMicroOf, type NavItem } from "../../utils/siteNav";
 import { NetworkSelector } from "../NetworkSelector";
 import { LanguagePicker } from "../LanguagePicker";
 import { SiteLookSwitch } from "../SiteLookSwitch";
@@ -20,8 +19,9 @@ import { WalletSheet } from "./WalletSheet";
 import styles from "./SiteNav.module.css";
 
 const CLUB_CONSOLE_URL = (import.meta.env.VITE_CLUB_CONSOLE_URLS ?? "").split(",")[0]?.trim().replace(/\/+$/, "");
+const EXPLORE = NAV_ITEMS.filter(i => i.group === "explore");
 
-/** One link in the rail, the tab bar or the More sheet. */
+/** One link in the Explore menu, the tab bar or the More sheet. */
 const NavLink: React.FC<{ item: NavItem; active: boolean; className: string; onClick?: () => void }> = ({ item, active, className, onClick }) => {
     const { t } = useLanguage();
     return (
@@ -33,104 +33,64 @@ const NavLink: React.FC<{ item: NavItem; active: boolean; className: string; onC
 };
 
 /**
- * The site navigation (flagship look). DESKTOP/TV: an icon rail down the left
- * and a slim top bar (page name, search, live block, language, balance +
- * Deposit, avatar menu). PHONE (< 860px): a top bar with the logo, balance and
- * avatar, and a tab bar along the bottom (Play, Wallet, Hands, Explorer, More).
- * Hidden on a game table. Pages get room for it from `SiteNavPage`.
+ * The site navigation (Flagship look), kept to the essentials.
+ * DESKTOP/TV: one slim bar: the logo, Play · My hands · Explore (menu), then
+ * the balance (opens the Game wallet) and your avatar (avatar, language,
+ * network, look, sign-in, admin). PHONE (< 860px): logo, balance and avatar on
+ * top; Play · Hands · Wallet · More along the bottom. Hidden on a game table.
  */
 export const SiteNav: React.FC = () => {
     const location = useLocation();
-    const navigate = useNavigate();
     const { t } = useLanguage();
     const shown = showsSiteNav(location.pathname);
     const wallet = useCosmosWallet();
-    const block = useLatestBlockHeight(shown);
     const { selectedAvatar, openDrawer } = useProfileAvatar();
-    const [query, setQuery] = useState("");
-    const [noMatch, setNoMatch] = useState(false);
     const [menuOpen, setMenuOpen] = useState(false);
+    const [exploreOpen, setExploreOpen] = useState(false);
     const [moreOpen, setMoreOpen] = useState(false);
     const [authOpen, setAuthOpen] = useState(false);
     const [walletOpen, setWalletOpen] = useState(false);
-    const searchRef = useRef<HTMLInputElement>(null);
+    const exploreRef = useRef<HTMLDivElement>(null);
 
-    // "/" jumps to the search box, as on most sites with one.
+    // Escape closes the menus and the More sheet.
     useEffect(() => {
-        const onKey = (e: KeyboardEvent) => {
-            const el = e.target as HTMLElement;
-            if (e.key !== "/" || el.isContentEditable || ["INPUT", "TEXTAREA", "SELECT"].includes(el.tagName)) return;
-            e.preventDefault();
-            searchRef.current?.focus();
-        };
-        window.addEventListener("keydown", onKey);
-        return () => window.removeEventListener("keydown", onKey);
-    }, []);
-
-    // Escape closes the avatar menu and the More sheet.
-    useEffect(() => {
-        if (!menuOpen && !moreOpen) return;
+        if (!menuOpen && !moreOpen && !exploreOpen) return;
         const onKey = (e: KeyboardEvent) => {
             if (e.key !== "Escape") return;
             setMenuOpen(false);
             setMoreOpen(false);
+            setExploreOpen(false);
         };
         window.addEventListener("keydown", onKey);
         return () => window.removeEventListener("keydown", onKey);
-    }, [menuOpen, moreOpen]);
+    }, [menuOpen, moreOpen, exploreOpen]);
+
+    // The Explore menu closes on an outside click.
+    useEffect(() => {
+        if (!exploreOpen) return;
+        const onDown = (e: MouseEvent) => {
+            if (e.target instanceof Node && !exploreRef.current?.contains(e.target)) setExploreOpen(false);
+        };
+        document.addEventListener("mousedown", onDown);
+        return () => document.removeEventListener("mousedown", onDown);
+    }, [exploreOpen]);
 
     if (!shown) return null;
 
     const active = activeNavItem(location.pathname);
+    const inExplore = active?.group === "explore";
     const balance = formatMicroAsUsdc(usdcMicroOf(wallet.balance), 6);
     const hasWallet = hasContent(wallet.address);
     const clubAuth = features.clubAuthModal && features.clubAccounts && !!custodyBase();
     const clubSession = clubAuth ? getCustodySession() : null;
 
-    const submitSearch = (e: React.FormEvent) => {
-        e.preventDefault();
-        const to = searchTarget(query);
-        setNoMatch(!to);
-        if (!to) return;
-        setQuery("");
-        setMoreOpen(false);
-        navigate(to);
-    };
-
     // The balance and Deposit open the game wallet panel here, on any page.
-    const deposit = () => setWalletOpen(true);
+    const openWallet = () => setWalletOpen(true);
 
     const signOutClub = () => {
         custodySignOut();
         window.location.reload();
     };
-
-    const search = (
-        <form className={styles.search} role="search" onSubmit={submitSearch}>
-            <NavGlyph icon="search" />
-            <input
-                ref={searchRef}
-                value={query}
-                onChange={e => {
-                    setQuery(e.target.value);
-                    setNoMatch(false);
-                }}
-                placeholder={t("nav.search")}
-                title={t("nav.search")}
-                aria-label={t("nav.searchShort")}
-                aria-invalid={noMatch}
-                aria-describedby={noMatch ? "site-search-hint" : undefined}
-                autoComplete="off"
-                spellCheck={false}
-            />
-            <kbd>/</kbd>
-            {noMatch ? (
-                <span id="site-search-hint" className={styles.searchHint} role="status">
-                    {t("nav.searchNoMatch")}
-                </span>
-            ) : null}
-        </form>
-    );
 
     const avatar = (
         <span className={styles.meWrap}>
@@ -145,6 +105,10 @@ export const SiteNav: React.FC = () => {
                             <NavGlyph icon="user" />
                             {t("nav.changeAvatar")}
                         </button>
+                        <Link role="menuitem" to="/wallet" onClick={() => setMenuOpen(false)}>
+                            <NavGlyph icon="wallet" />
+                            {t("nav.wallet")}
+                        </Link>
                         {clubAuth ? (
                             <button type="button" role="menuitem" onClick={() => { setMenuOpen(false); if (clubSession) signOutClub(); else setAuthOpen(true); }}>
                                 <NavGlyph icon="key" />
@@ -161,7 +125,14 @@ export const SiteNav: React.FC = () => {
                             <NavGlyph icon="gear" />
                             {t("nav.admin")}
                         </Link>
-                        <div className={styles.menuLook}>
+                        <div className={styles.menuSettings}>
+                            <LanguagePicker variant="row" />
+                            {features.nodeSelector ? (
+                                <div className={styles.menuRow}>
+                                    <span>{t("nav.network")}</span>
+                                    <NetworkSelector />
+                                </div>
+                            ) : null}
                             <SiteLookSwitch wide />
                         </div>
                     </div>
@@ -172,61 +143,52 @@ export const SiteNav: React.FC = () => {
 
     return (
         <>
-            <nav className={styles.rail} aria-label={t("nav.main")}>
-                <Link to="/" className={styles.mark} aria-label="Block52">
-                    <img src="/logo1080.png" alt="" />
-                </Link>
-                {NAV_ITEMS.filter(i => i.group === "main").map(i => (
-                    <NavLink key={i.path} item={i} active={active === i} className={styles.ri} />
-                ))}
-                <span className={styles.sep} />
-                {NAV_ITEMS.filter(i => i.group === "data").map(i => (
-                    <NavLink key={i.path} item={i} active={active === i} className={styles.ri} />
-                ))}
-                <span className={styles.grow} />
-                {NAV_ITEMS.filter(i => i.group === "foot").map(i => (
-                    <NavLink key={i.path} item={i} active={active === i} className={styles.ri} />
-                ))}
-            </nav>
-
             <header className={styles.top}>
                 <Link to="/" className={styles.wordmark} aria-label="Block52">
                     <img src="/logo1080.png" alt="" />
                 </Link>
-                <span className={styles.title}>{active ? t(active.label) : ""}</span>
-                <div className={styles.searchSlot}>{search}</div>
-                {hasContent(block.height) ? (
-                    <Link to={`/explorer/block/${block.height}`} className={styles.blk} title={t("nav.latestBlock")}>
-                        <span className={`${styles.dot} ${block.hasError ? styles.dotBad : ""}`} />
-                        <span>#{Number(block.height).toLocaleString("en-US")}</span>
-                    </Link>
-                ) : null}
-                {features.nodeSelector ? (
-                    <span className={styles.desktopOnly}>
-                        <NetworkSelector />
-                    </span>
-                ) : null}
-                <span className={styles.lang}>
-                    <LanguagePicker variant="icon" />
-                </span>
-                <div className={styles.bal}>
-                    <button type="button" className={styles.balText} onClick={deposit} disabled={!hasWallet} aria-label={t("walletSheet.title")}>
-                        <small>{t("lobby.balance")}</small>
-                        <b>{lobbyBalanceLabel(balance)}</b>
-                    </button>
-                    <button type="button" className={styles.dep} onClick={deposit} disabled={!hasWallet} title={hasWallet ? "" : t("lobby.noWallet")}>
-                        <span className={styles.depLong}>{hasBalance(balance) ? t("lobby.deposit") : t("lobby.addFunds")}</span>
-                        <span className={styles.depShort}>{t("lobby.deposit")}</span>
-                    </button>
+
+                <nav className={styles.links} aria-label={t("nav.main")}>
+                    {NAV_ITEMS.filter(i => i.top).map(i => (
+                        <Link key={i.path} to={i.path} className={`${styles.link} ${active === i ? styles.linkOn : ""}`} aria-current={active === i ? "page" : undefined}>
+                            {t(i.label)}
+                        </Link>
+                    ))}
+                    <div className={styles.exploreWrap} ref={exploreRef}>
+                        <button type="button" className={`${styles.link} ${inExplore ? styles.linkOn : ""}`} onClick={() => setExploreOpen(o => !o)} aria-expanded={exploreOpen} aria-haspopup="menu">
+                            {t("nav.explore")}
+                            <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth={2} aria-hidden="true">
+                                <path d="M6 9l6 6 6-6" />
+                            </svg>
+                        </button>
+                        {exploreOpen ? (
+                            <div className={styles.exploreMenu} role="menu">
+                                {EXPLORE.map(i => (
+                                    <NavLink key={i.path} item={i} active={active === i} className={styles.exploreItem} onClick={() => setExploreOpen(false)} />
+                                ))}
+                            </div>
+                        ) : null}
+                    </div>
+                </nav>
+
+                <div className={styles.right}>
+                    <div className={styles.bal}>
+                        <button type="button" className={styles.balText} onClick={openWallet} disabled={!hasWallet} aria-label={t("walletSheet.title")}>
+                            <b>{lobbyBalanceLabel(balance)}</b>
+                        </button>
+                        <button type="button" className={styles.dep} onClick={openWallet} disabled={!hasWallet} title={hasWallet ? "" : t("lobby.noWallet")}>
+                            {hasBalance(balance) ? t("lobby.deposit") : t("lobby.addFunds")}
+                        </button>
+                    </div>
+                    {avatar}
                 </div>
-                {avatar}
             </header>
 
             <nav className={styles.tabbar} aria-label={t("nav.main")}>
                 {NAV_ITEMS.filter(i => i.tab).map(i => (
                     <NavLink key={i.path} item={i} active={active === i} className={styles.tab} />
                 ))}
-                <button type="button" className={`${styles.tab} ${active && !active.tab ? styles.on : ""}`} onClick={() => setMoreOpen(true)} aria-expanded={moreOpen}>
+                <button type="button" className={`${styles.tab} ${inExplore ? styles.on : ""}`} onClick={() => setMoreOpen(true)} aria-expanded={moreOpen}>
                     <NavGlyph icon="more" />
                     <span>{t("nav.more")}</span>
                 </button>
@@ -238,16 +200,10 @@ export const SiteNav: React.FC = () => {
                           <button type="button" className={styles.scrim} aria-label={t("table.close")} onClick={() => setMoreOpen(false)} />
                           <div className={styles.sheet} role="dialog" aria-modal="true" aria-label={t("nav.more")}>
                               <span className={styles.grab} />
-                              {search}
                               <div className={styles.moreGrid}>
-                                  {NAV_ITEMS.filter(i => !i.tab).map(i => (
+                                  {EXPLORE.map(i => (
                                       <NavLink key={i.path} item={i} active={active === i} className={styles.moreItem} onClick={() => setMoreOpen(false)} />
                                   ))}
-                              </div>
-                              <div className={styles.moreRow}>
-                                  <LanguagePicker variant="row" />
-                                  <SiteLookSwitch wide />
-                                  {features.nodeSelector ? <NetworkSelector /> : null}
                               </div>
                           </div>
                       </div>,
@@ -264,7 +220,7 @@ export const SiteNav: React.FC = () => {
     );
 };
 
-/** Wraps the pages so they clear the rail (DESKTOP) or the tab bar (PHONE). Plain on a game table and in the Traditional look. */
+/** Wraps the pages so they clear the tab bar (PHONE). Plain on a game table and in the Traditional look. */
 export const SiteNavPage: React.FC<{ enabled: boolean; children: React.ReactNode }> = ({ enabled, children }) => {
     const { pathname } = useLocation();
     return <div className={enabled && showsSiteNav(pathname) ? styles.page : undefined}>{children}</div>;

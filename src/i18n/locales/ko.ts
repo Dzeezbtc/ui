@@ -45,6 +45,8 @@ const strings: Translations = {
     "nav.awards": "어워드",
     "nav.techNotesShort": "기술 노트",
     "nav.more": "더보기",
+    "nav.explore": "탐색",
+    "nav.network": "네트워크",
     "nav.main": "메인",
     "nav.search": "블록, 거래, 테이블 또는 플레이어 검색",
     "nav.searchShort": "검색",

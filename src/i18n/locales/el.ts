@@ -45,6 +45,8 @@ const strings: Translations = {
     "nav.awards": "Βραβεία",
     "nav.techNotesShort": "Τεχνικές σημειώσεις",
     "nav.more": "Περισσότερα",
+    "nav.explore": "Εξερεύνηση",
+    "nav.network": "Δίκτυο",
     "nav.main": "Κύριο",
     "nav.search": "Αναζήτηση μπλοκ, συναλλαγής, τραπεζιού ή παίκτη",
     "nav.searchShort": "Αναζήτηση",

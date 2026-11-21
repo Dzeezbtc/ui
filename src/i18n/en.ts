@@ -48,6 +48,8 @@ export const en = {
     "nav.awards": "Awards",
     "nav.techNotesShort": "Tech notes",
     "nav.more": "More",
+    "nav.explore": "Explore",
+    "nav.network": "Network",
     "nav.main": "Main",
     "nav.search": "Search a block, transaction, table or player",
     "nav.searchShort": "Search",

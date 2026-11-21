@@ -45,6 +45,8 @@ const strings: Translations = {
     "nav.awards": "الجوائز",
     "nav.techNotesShort": "ملاحظات تقنية",
     "nav.more": "المزيد",
+    "nav.explore": "استكشف",
+    "nav.network": "الشبكة",
     "nav.main": "الرئيسية",
     "nav.search": "ابحث عن كتلة أو معاملة أو طاولة أو لاعب",
     "nav.searchShort": "بحث",

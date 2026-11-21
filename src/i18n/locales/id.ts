@@ -45,6 +45,8 @@ const strings: Translations = {
     "nav.awards": "Penghargaan",
     "nav.techNotesShort": "Catatan teknis",
     "nav.more": "Lainnya",
+    "nav.explore": "Jelajahi",
+    "nav.network": "Jaringan",
     "nav.main": "Utama",
     "nav.search": "Cari blok, transaksi, meja, atau pemain",
     "nav.searchShort": "Cari",

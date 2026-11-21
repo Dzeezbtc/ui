@@ -45,6 +45,8 @@ const strings: Translations = {
     "nav.awards": "アワード",
     "nav.techNotesShort": "技術ノート",
     "nav.more": "その他",
+    "nav.explore": "探す",
+    "nav.network": "ネットワーク",
     "nav.main": "メイン",
     "nav.search": "ブロック、取引、テーブル、プレイヤーを検索",
     "nav.searchShort": "検索",

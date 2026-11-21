@@ -45,6 +45,8 @@ const strings: Translations = {
     "nav.awards": "Награды",
     "nav.techNotesShort": "Технические заметки",
     "nav.more": "Ещё",
+    "nav.explore": "Обзор",
+    "nav.network": "Сеть",
     "nav.main": "Главное",
     "nav.search": "Найти блок, транзакцию, стол или игрока",
     "nav.searchShort": "Поиск",

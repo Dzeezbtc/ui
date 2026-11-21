@@ -45,6 +45,8 @@ const strings: Translations = {
     "nav.awards": "पुरस्कार",
     "nav.techNotesShort": "तकनीकी नोट्स",
     "nav.more": "और",
+    "nav.explore": "खोजें",
+    "nav.network": "नेटवर्क",
     "nav.main": "मुख्य",
     "nav.search": "ब्लॉक, लेनदेन, टेबल या खिलाड़ी खोजें",
     "nav.searchShort": "खोजें",

@@ -45,6 +45,8 @@ const strings: Translations = {
     "nav.awards": "Premios",
     "nav.techNotesShort": "Notas técnicas",
     "nav.more": "Más",
+    "nav.explore": "Explorar",
+    "nav.network": "Red",
     "nav.main": "Principal",
     "nav.search": "Busca un bloque, transacción, mesa o jugador",
     "nav.searchShort": "Buscar",

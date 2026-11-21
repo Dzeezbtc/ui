@@ -45,6 +45,8 @@ const strings: Translations = {
     "nav.awards": "Mga parangal",
     "nav.techNotesShort": "Mga tech note",
     "nav.more": "Iba pa",
+    "nav.explore": "Tuklasin",
+    "nav.network": "Network",
     "nav.main": "Pangunahin",
     "nav.search": "Maghanap ng block, transaksyon, mesa o manlalaro",
     "nav.searchShort": "Maghanap",

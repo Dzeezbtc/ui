@@ -45,6 +45,8 @@ const strings: Translations = {
     "nav.awards": "Priser",
     "nav.techNotesShort": "Tekniske noter",
     "nav.more": "Mere",
+    "nav.explore": "Udforsk",
+    "nav.network": "Netværk",
     "nav.main": "Hovedmenu",
     "nav.search": "Søg efter en blok, transaktion, et bord eller en spiller",
     "nav.searchShort": "Søg",
