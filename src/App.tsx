@@ -40,6 +40,7 @@ const NodesPage = lazy(() => import("./pages/NodesPage"));
 const PlayersPage = lazy(() => import("./pages/PlayersPage"));
 const PlayerAwardsPage = lazy(() => import("./pages/PlayerAwardsPage"));
 const MyHandsPage = lazy(() => import("./pages/MyHandsPage"));
+const HandsHome = lazy(() => import("./pages/hands/HandsHome"));
 const PlayerProfilePage = lazy(() => import("./pages/PlayerProfilePage"));
 const TechNotesPage = lazy(() => import("./pages/tech-notes/TechNotesPage"));
 // test-sdk only has a named export; re-shape it to a default for React.lazy.
@@ -178,7 +179,7 @@ function AppContent() {
                 <Route path="/explorer/distribution" element={<DistributionPage />} />
                 <Route path="/explorer/hand/:gameId/:handNumber" element={<HandReplayPage />} />
                 <Route path="/explorer/hand/:gameId" element={<HandPage />} />
-                <Route path="/hands" element={<MyHandsPage />} />
+                <Route path="/hands" element={siteLook === "flagship" ? <HandsHome /> : <MyHandsPage />} />
                 <Route path="/players" element={<PlayersPage />} />
                 <Route path="/players/:address" element={<PlayerProfilePage />} />
                 <Route path="/awards" element={<PlayerAwardsPage />} />
