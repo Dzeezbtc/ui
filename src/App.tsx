@@ -19,6 +19,7 @@ import Dashboard from "./pages/Dashboard";
 // It statically imports Table, so Table ships in this lazy chunk.
 const MultiTableRoute = lazy(() => import("./components/MultiTable/MultiTableWorkspace"));
 const CosmosWalletPage = lazy(() => import("./components/CosmosWalletPage"));
+const WalletHome = lazy(() => import("./pages/wallet/WalletHome"));
 const BlocksPage = lazy(() => import("./pages/explorer/BlocksPage"));
 const BlockDetailPage = lazy(() => import("./pages/explorer/BlockDetailPage"));
 const TransactionPage = lazy(() => import("./pages/explorer/TransactionPage"));
@@ -149,7 +150,7 @@ function AppContent() {
                 <Route path="/test-sdk" element={<TestSdk />} />
                 <Route path="/table/:id" element={<MultiTableRoute />} />
                 <Route path="/table/admin" element={<TableAdminPage />} /> {/* Legacy - keep for backwards compat */}
-                <Route path="/wallet" element={<CosmosWalletPage />} />
+                <Route path="/wallet" element={siteLook === "flagship" ? <WalletHome /> : <CosmosWalletPage />} />
                 {features.clubAccounts && <Route path="/signin" element={<SignInPage />} />}
                 <Route path="/club-login" element={<ClubLoginPage />} />
                 <Route path="/club/:handle" element={<ClubPage />} />
