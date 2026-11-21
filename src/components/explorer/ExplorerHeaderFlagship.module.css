@@ -1,0 +1,5 @@
+/* ExplorerHeader in the Flagship look: the flagship page heading. */
+.head { margin: 8px 0 28px; display: flex; flex-direction: column; align-items: flex-start; gap: 8px; }
+.head h1 { font-family: "Unbounded", ui-sans-serif, system-ui, sans-serif; font-weight: 600; font-size: clamp(28px, 3.2vw, 42px); letter-spacing: -0.02em; line-height: 1.1; margin: 0; color: #f4f2fa; }
+.crumb { font-size: 13.5px; font-weight: 600; color: #c4b5fd; text-decoration: none; }
+.crumb:hover { text-decoration: underline; }

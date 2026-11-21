@@ -343,7 +343,7 @@ export default function AllAccountsPage() {
 
             <div className="max-w-5xl mx-auto relative z-10">
                 {/* Explorer Navigation Header */}
-                <ExplorerHeader title="Block Explorer" />
+                <ExplorerHeader title="All accounts" />
 
                 <ExplorerSearchInput
                     value={searchInput}

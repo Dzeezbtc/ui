@@ -1,4 +1,8 @@
-import { useLocation } from "react-router-dom";
+import { Link, useLocation } from "react-router-dom";
+import { getSiteLook } from "../../utils/siteLook";
+import { explorerCrumb } from "../../utils/explorerCrumb";
+import { useLanguage } from "../../i18n/useLanguage";
+import flagship from "./ExplorerHeaderFlagship.module.css";
 import styles from "./ExplorerHeader.module.css";
 
 interface ExplorerHeaderProps {
@@ -15,6 +19,24 @@ interface NavLink {
 export const ExplorerHeader = ({ title = "Block Explorer" }: ExplorerHeaderProps) => {
     const location = useLocation();
     const currentPath = location.pathname;
+    const { t } = useLanguage();
+
+    // Flagship look: the site's rail already links every page, so the page gets the
+    // flagship heading (and a way back to the explorer from its inner pages) instead
+    // of the centred title and tile menu.
+    if (getSiteLook() === "flagship") {
+        const crumb = explorerCrumb(currentPath);
+        return (
+            <header className={flagship.head}>
+                {crumb ? (
+                    <Link to={crumb} className={flagship.crumb}>
+                        ← {t("nav.explorerShort")}
+                    </Link>
+                ) : null}
+                <h1>{title}</h1>
+            </header>
+        );
+    }
 
     const navLinks: NavLink[] = [
         {
