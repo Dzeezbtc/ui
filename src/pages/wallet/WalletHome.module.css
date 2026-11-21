@@ -1,0 +1,99 @@
+/* Wallet page (Flagship look). Fonts come from the site nav / lobby imports. */
+.page {
+    --bg: #07060d;
+    --panel: rgba(255, 255, 255, 0.035);
+    --panel2: rgba(255, 255, 255, 0.06);
+    --line: rgba(255, 255, 255, 0.08);
+    --line2: rgba(255, 255, 255, 0.15);
+    --fg: #f4f2fa;
+    --muted: #9a95b0;
+    --faint: #7a7494;
+    --vi: #7c3aed;
+    --vi2: #c4b5fd;
+    --cy: #4dd0f8;
+    --good: #34d399;
+    --gold: #f59e0b;
+    --grad: linear-gradient(120deg, #c026d3 0%, #7c3aed 50%, #3b82f6 100%);
+    --disp: "Unbounded", ui-sans-serif, system-ui, sans-serif;
+    --mono: "Geist Mono", ui-monospace, Menlo, monospace;
+    position: relative;
+    isolation: isolate;
+    max-width: 1440px;
+    margin: 0 auto;
+    padding: 32px 32px 80px;
+    color: var(--fg);
+    font-family: "Inter", ui-sans-serif, system-ui, -apple-system, sans-serif;
+    display: flex;
+    flex-direction: column;
+    gap: 28px;
+    min-height: 100vh;
+}
+
+.backdrop { position: fixed; inset: 0; z-index: -1; pointer-events: none; background: var(--bg); overflow: hidden; }
+.backdrop i { position: absolute; border-radius: 50%; filter: blur(110px); opacity: 0.45; }
+.backdrop i:nth-child(1) { width: 640px; height: 640px; left: 8%; top: -180px; background: #6d28d9; }
+.backdrop i:nth-child(2) { width: 520px; height: 520px; right: -120px; top: 30%; background: #1d4ed8; opacity: 0.3; }
+
+.top { display: grid; grid-template-columns: minmax(0, 1.25fr) minmax(0, 1fr); gap: 20px; align-items: start; }
+.col { display: flex; flex-direction: column; gap: 20px; min-width: 0; }
+
+.box { border-radius: 24px; background: var(--panel); border: 1px solid var(--line); padding: 24px; backdrop-filter: blur(10px); display: flex; flex-direction: column; gap: 14px; min-width: 0; }
+.eyebrow { font-size: 12px; font-weight: 700; letter-spacing: 0.12em; text-transform: uppercase; color: var(--muted); }
+.muted { color: var(--muted); font-size: 14px; line-height: 1.45; margin: 0; }
+.row { display: flex; justify-content: space-between; align-items: center; gap: 10px; }
+.row svg { width: 18px; height: 18px; color: var(--vi2); }
+.pill { font-size: 12px; font-weight: 600; padding: 4px 10px; border-radius: 999px; color: var(--vi2); background: rgba(124, 58, 237, 0.18); border: 1px solid rgba(196, 181, 253, 0.3); white-space: nowrap; }
+
+.balance { padding: 32px; gap: 10px; background: radial-gradient(120% 140% at 0% 0%, rgba(124, 58, 237, 0.28), transparent 55%), var(--panel); }
+.bignum { font-family: var(--disp); font-weight: 600; font-size: clamp(48px, 6vw, 84px); letter-spacing: -0.03em; line-height: 1; font-variant-numeric: tabular-nums; margin-top: 6px; }
+.bignum small { font-size: 0.45em; color: var(--muted); letter-spacing: 0; }
+
+.actions { display: grid; grid-template-columns: repeat(3, 1fr); gap: 12px; margin-top: 22px; }
+.act { display: flex; flex-direction: column; align-items: flex-start; gap: 4px; padding: 18px; border-radius: 18px; background: var(--panel2); border: 1px solid var(--line); color: var(--fg); text-align: left; cursor: pointer; transition: border-color 0.15s, transform 0.15s; }
+.act:hover { border-color: rgba(196, 181, 253, 0.45); transform: translateY(-1px); }
+.act b { font-size: 16px; font-weight: 700; margin-top: 10px; }
+.act small { font-size: 12.5px; color: var(--muted); }
+.ic { width: 42px; height: 42px; border-radius: 14px; display: grid; place-items: center; }
+.ic svg { width: 21px; height: 21px; }
+.icGood { color: var(--good); background: rgba(52, 211, 153, 0.14); }
+.icVi { color: var(--vi2); background: rgba(124, 58, 237, 0.2); }
+.icCy { color: var(--cy); background: rgba(77, 208, 248, 0.14); }
+
+.addr { display: flex; align-items: center; gap: 10px; padding: 10px 10px 10px 14px; border-radius: 14px; background: rgba(0, 0, 0, 0.28); border: 1px solid var(--line); font-family: var(--mono); font-size: 13.5px; }
+.addr span { flex: 1; min-width: 0; overflow-wrap: anywhere; }
+.copy { flex: none; height: 32px; padding: 0 12px; border-radius: 10px; border: 1px solid var(--line2); background: var(--panel2); color: var(--fg); font-weight: 600; font-size: 13px; cursor: pointer; font-family: "Inter", ui-sans-serif, system-ui, sans-serif; }
+
+.btns { display: flex; flex-wrap: wrap; gap: 10px; align-items: center; }
+.btnO, .btnGrad, .btnText { height: 38px; padding: 0 16px; border-radius: 12px; font-weight: 600; font-size: 13.5px; cursor: pointer; }
+.btnO { border: 1px solid var(--line2); background: transparent; color: var(--fg); }
+.btnO:hover { border-color: rgba(196, 181, 253, 0.5); }
+.btnGrad { border: 0; background: var(--grad); color: #fff; }
+.btnText { border: 0; background: none; color: var(--muted); margin-left: auto; padding: 0 4px; }
+.btnText:hover { color: #fb7185; }
+
+.qr { align-self: flex-start; padding: 12px; border-radius: 16px; background: #fff; }
+.qr svg { display: block; }
+
+.warn { margin: 0; padding: 12px 14px; border-radius: 14px; font-size: 13.5px; line-height: 1.45; color: #fde68a; background: rgba(245, 158, 11, 0.1); border: 1px solid rgba(245, 158, 11, 0.3); }
+.words { list-style: none; margin: 0; padding: 0; display: grid; grid-template-columns: repeat(4, minmax(0, 1fr)); gap: 8px; }
+.words li { display: flex; align-items: center; gap: 8px; padding: 8px 10px; border-radius: 10px; background: rgba(0, 0, 0, 0.3); border: 1px solid var(--line); font-family: var(--mono); font-size: 13px; }
+.words i { font-style: normal; color: var(--faint); font-size: 11px; min-width: 16px; }
+
+.activity { display: flex; flex-direction: column; gap: 14px; }
+.secHead h2 { font-family: var(--disp); font-weight: 600; font-size: 24px; letter-spacing: -0.01em; margin: 0; }
+.secHead p { margin: 4px 0 0; color: var(--muted); font-size: 14px; }
+
+@media (max-width: 1060px) {
+    .top { grid-template-columns: 1fr; }
+}
+
+@media (max-width: 860px) {
+    .page { padding: 18px 16px 40px; gap: 20px; }
+    .box { padding: 18px; border-radius: 20px; }
+    .balance { padding: 22px 18px; }
+    .actions { gap: 8px; margin-top: 16px; }
+    .act { padding: 12px 10px; align-items: center; text-align: center; }
+    .act b { font-size: 14px; margin-top: 6px; }
+    .act small { display: none; }
+    .words { grid-template-columns: repeat(3, minmax(0, 1fr)); }
+}

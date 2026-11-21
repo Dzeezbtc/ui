@@ -931,7 +931,7 @@ const Table = React.memo(({ tableId }: TableProps = {}) => {
     } = useNextToActInfo(id);
 
     // Enable turn-to-act notifications (tab flashing + optional sound)
-    const { turnNotificationSound, playerActionSounds, seatAtBottom } = useGameSettings();
+    const { turnNotificationSound, playerActionSounds, seatAtBottom, flipBoardCards } = useGameSettings();
     useTurnNotification(isCurrentUserTurn, {
         enableSound: turnNotificationSound,
         soundVolume: 0.3,
@@ -1403,7 +1403,7 @@ const Table = React.memo(({ tableId }: TableProps = {}) => {
     return (
         <SitOutIntentProvider tableId={id} network={currentNetwork} pendingSitOut={pendingSitOut} legalActions={playerLegalActions}>
         <TableStyleProvider value={tableStyle}>
-        <div className="table-container" data-connection={connection.status} data-skin={skinAttrFor(tableStyle)} data-look={tableStyle} data-three={isThreeTableStyle(tableStyle) ? "true" : undefined} data-deal={dealsFaceDown(tableStyle) ? "roll" : undefined} data-orient={isMobilePortrait ? "portrait" : "landscape"}>
+        <div className="table-container" data-connection={connection.status} data-skin={skinAttrFor(tableStyle)} data-look={tableStyle} data-three={isThreeTableStyle(tableStyle) ? "true" : undefined} data-deal={dealsFaceDown(tableStyle, flipBoardCards) ? "roll" : undefined} data-orient={isMobilePortrait ? "portrait" : "landscape"}>
             {/* Connection freshness (ui#613): shown whenever the live socket is not live */}
             {!isReplayMode && id && (
                 <ConnectionBanner
@@ -1743,7 +1743,8 @@ const Table = React.memo(({ tableId }: TableProps = {}) => {
 
                 {/* Live Hand Strength Display */}
                 <LiveHandStrengthDisplay />
-                {usesFlagshipLayout(tableStyle) && <TurnStatusLabel nextToAct={nextToAct} mySeat={currentUserSeat} />}
+                {/* Phones: the turn status floats on its own; desktop stacks it in the left column (statusSlot below). */}
+                {usesFlagshipLayout(tableStyle) && isCompactMobile && <TurnStatusLabel nextToAct={isGameInProgress ? nextToAct : 0} mySeat={currentUserSeat} />}
                 {isThreeTableStyle(tableStyle) && <StreetTracker round={gameState?.round} />}
                 {tableStyle === "badbeat" && <BadBeatHeroDock />}
                 {tableStyle === "maison" && <MaisonDock />}
@@ -1824,6 +1825,11 @@ const Table = React.memo(({ tableId }: TableProps = {}) => {
                     walletBalance={accountBalance}
                     isCurrentUserSeated={isCurrentUserSeated}
                     isTableFull={isTableFull}
+                    statusSlot={
+                        usesFlagshipLayout(tableStyle) && !isCompactMobile ? (
+                            <TurnStatusLabel inline nextToAct={isGameInProgress ? nextToAct : 0} mySeat={currentUserSeat} />
+                        ) : undefined
+                    }
                 />
             )}
 

@@ -189,6 +189,14 @@ export const TableSettingsMenu: React.FC<TableSettingsMenuProps> = props => {
                             value={settings.chipStyle}
                             onChange={settings.setChipStyle}
                         />
+                        {props.tableStyle === "flagship" ? (
+                            <ToggleRow
+                                label={t("settings.flipBoard")}
+                                description={t("settings.flipBoardHelp")}
+                                checked={settings.flipBoardCards}
+                                onToggle={settings.toggleFlipBoardCards}
+                            />
+                        ) : null}
                         <ToggleRow
                             label={t("settings.potChips")}
                             description={t("settings.potChipsHelp")}

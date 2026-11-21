@@ -19,6 +19,7 @@ import Dashboard from "./pages/Dashboard";
 // It statically imports Table, so Table ships in this lazy chunk.
 const MultiTableRoute = lazy(() => import("./components/MultiTable/MultiTableWorkspace"));
 const CosmosWalletPage = lazy(() => import("./components/CosmosWalletPage"));
+const WalletHome = lazy(() => import("./pages/wallet/WalletHome"));
 const BlocksPage = lazy(() => import("./pages/explorer/BlocksPage"));
 const ExplorerHome = lazy(() => import("./pages/explorer/ExplorerHome"));
 const BlockDetailPage = lazy(() => import("./pages/explorer/BlockDetailPage"));
@@ -40,6 +41,7 @@ const NodesPage = lazy(() => import("./pages/NodesPage"));
 const PlayersPage = lazy(() => import("./pages/PlayersPage"));
 const PlayerAwardsPage = lazy(() => import("./pages/PlayerAwardsPage"));
 const MyHandsPage = lazy(() => import("./pages/MyHandsPage"));
+const HandsHome = lazy(() => import("./pages/hands/HandsHome"));
 const PlayerProfilePage = lazy(() => import("./pages/PlayerProfilePage"));
 const TechNotesPage = lazy(() => import("./pages/tech-notes/TechNotesPage"));
 // test-sdk only has a named export; re-shape it to a default for React.lazy.
@@ -149,7 +151,7 @@ function AppContent() {
                 <Route path="/test-sdk" element={<TestSdk />} />
                 <Route path="/table/:id" element={<MultiTableRoute />} />
                 <Route path="/table/admin" element={<TableAdminPage />} /> {/* Legacy - keep for backwards compat */}
-                <Route path="/wallet" element={<CosmosWalletPage />} />
+                <Route path="/wallet" element={siteLook === "flagship" ? <WalletHome /> : <CosmosWalletPage />} />
                 {features.clubAccounts && <Route path="/signin" element={<SignInPage />} />}
                 <Route path="/club-login" element={<ClubLoginPage />} />
                 <Route path="/club/:handle" element={<ClubPage />} />
@@ -178,7 +180,7 @@ function AppContent() {
                 <Route path="/explorer/distribution" element={<DistributionPage />} />
                 <Route path="/explorer/hand/:gameId/:handNumber" element={<HandReplayPage />} />
                 <Route path="/explorer/hand/:gameId" element={<HandPage />} />
-                <Route path="/hands" element={<MyHandsPage />} />
+                <Route path="/hands" element={siteLook === "flagship" ? <HandsHome /> : <MyHandsPage />} />
                 <Route path="/players" element={<PlayersPage />} />
                 <Route path="/players/:address" element={<PlayerProfilePage />} />
                 <Route path="/awards" element={<PlayerAwardsPage />} />
