@@ -40,6 +40,8 @@ const NodeStatusPage = lazy(() => import("./pages/NodeStatusPage"));
 const NodesPage = lazy(() => import("./pages/NodesPage"));
 const PlayersPage = lazy(() => import("./pages/PlayersPage"));
 const PlayerAwardsPage = lazy(() => import("./pages/PlayerAwardsPage"));
+const PlayersHome = lazy(() => import("./pages/players/PlayersHome"));
+const AwardsHome = lazy(() => import("./pages/players/AwardsHome"));
 const MyHandsPage = lazy(() => import("./pages/MyHandsPage"));
 const HandsHome = lazy(() => import("./pages/hands/HandsHome"));
 const PlayerProfilePage = lazy(() => import("./pages/PlayerProfilePage"));
@@ -181,9 +183,9 @@ function AppContent() {
                 <Route path="/explorer/hand/:gameId/:handNumber" element={<HandReplayPage />} />
                 <Route path="/explorer/hand/:gameId" element={<HandPage />} />
                 <Route path="/hands" element={siteLook === "flagship" ? <HandsHome /> : <MyHandsPage />} />
-                <Route path="/players" element={<PlayersPage />} />
+                <Route path="/players" element={siteLook === "flagship" ? <PlayersHome /> : <PlayersPage />} />
                 <Route path="/players/:address" element={<PlayerProfilePage />} />
-                <Route path="/awards" element={<PlayerAwardsPage />} />
+                <Route path="/awards" element={siteLook === "flagship" ? <AwardsHome /> : <PlayerAwardsPage />} />
                 <Route path="/nodes" element={<NodesPage />} />
                 <Route path="/node/:name" element={<NodeStatusPage />} />
                 <Route path="/tech-notes" element={<TechNotesPage />} />
