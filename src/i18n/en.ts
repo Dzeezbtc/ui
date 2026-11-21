@@ -127,6 +127,8 @@ export const en = {
     "settings.hideBustedHelp": "In Sit & Go and tournaments, a player who busts disappears from the table and their seat goes blank. Turn off to keep them on the table, dimmed.",
     "settings.potChips": "Pot as Chips",
     "settings.potChipsHelp": "Show the pot as a chip stack with the amount, like the bets in front of players. When off, it shows as plain text.",
+    "settings.flipBoard": "Flip the board cards over",
+    "settings.flipBoardHelp": "The flop, turn and river land face down, then turn over. When off, they drop in face up.",
     "settings.chips": "Chips",
     "settings.chipsHelp": "Marble is photoreal; Flat is sharpest at small sizes. Cash games show $ and ¢; tournaments show plain point values.",
     "settings.autoMuck": "Auto Muck",

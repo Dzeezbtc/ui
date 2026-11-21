@@ -56,7 +56,8 @@ export const TableBoard: React.FC<TableBoardProps> = ({
     // into place when its staggered flag turns on, one after another. Late mount /
     // replay reveals already-dealt slots immediately.
     const { revealedSlots } = useCardAnimations();
-    const { potAsChips } = useGameSettings();
+    const { potAsChips, flipBoardCards } = useGameSettings();
+    const faceDown = dealsFaceDown(tableTheme, flipBoardCards);
 
     // Memoize community cards rendering
     const communityCardsElements = useMemo(() => {
@@ -91,10 +92,10 @@ export const TableBoard: React.FC<TableBoardProps> = ({
                 return (
                     <div
                         key={`${idx}-${card}`}
-                        className={`card${dealsFaceDown(tableTheme) ? "" : " animate-fall"}${isWinCard ? " animate-win-card" : ""}${shouldMute ? " opacity-40" : ""}`}
+                        className={`card${faceDown ? "" : " animate-fall"}${isWinCard ? " animate-win-card" : ""}${shouldMute ? " opacity-40" : ""}`}
                     >
-                        {dealsFaceDown(tableTheme) ? (
-                            // Bad Beat, Maison 52, Chip and a Chair: the card lands face down on the felt, is rolled over, then lifts up flat (ui#36)
+                        {faceDown ? (
+                            // Bad Beat, Maison 52, Chip and a Chair (and the Flagship when picked): the card lands face down on the felt, is rolled over, then lifts up flat (ui#36)
                             <div className="bb-flip">
                                 <div className="bb-flip-in">
                                     <FlagshipCard code={card} className="fs-board bb-flip-front" />

@@ -114,6 +114,8 @@ const strings: Translations = {
     "settings.hideBustedHelp": "En Sit & Go et en tournoi, un joueur éliminé disparaît de la table et son siège reste vide. Désactivez pour les garder à la table, estompés.",
     "settings.potChips": "Pot en jetons",
     "settings.potChipsHelp": "Affiche le pot sous forme de pile de jetons avec le montant, comme les mises. Désactivé, il s'affiche en texte.",
+    "settings.flipBoard": "Retourner les cartes du tableau",
+    "settings.flipBoardHelp": "Le flop, le turn et la river arrivent face cachée puis se retournent. Désactivé, elles tombent face visible.",
     "settings.chips": "Jetons",
     "settings.chipsHelp": "Marble est photoréaliste ; Flat est le plus net en petit format. Le cash affiche $ et ¢ ; les tournois, des points.",
     "settings.autoMuck": "Muck automatique",

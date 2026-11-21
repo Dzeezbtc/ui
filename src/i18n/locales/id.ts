@@ -114,6 +114,8 @@ const strings: Translations = {
     "settings.hideBustedHelp": "Di Sit & Go dan turnamen, pemain yang tersingkir hilang dari meja dan kursinya kosong. Matikan agar mereka tetap di meja dalam keadaan redup.",
     "settings.potChips": "Pot sebagai chip",
     "settings.potChipsHelp": "Menampilkan pot sebagai tumpukan chip beserta jumlahnya, seperti taruhan pemain. Jika mati, tampil sebagai teks.",
+    "settings.flipBoard": "Balik kartu meja",
+    "settings.flipBoardHelp": "Flop, turn, dan river jatuh tertutup lalu dibalik. Jika mati, jatuh terbuka.",
     "settings.chips": "Chip",
     "settings.chipsHelp": "Marble tampak nyata; Flat paling tajam pada ukuran kecil. Cash game menampilkan $ dan ¢; turnamen menampilkan poin.",
     "settings.autoMuck": "Muck otomatis",

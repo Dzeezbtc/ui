@@ -114,6 +114,8 @@ const strings: Translations = {
     "settings.hideBustedHelp": "I Sit & Go och turneringar försvinner en utslagen spelare från bordet och platsen blir tom. Stäng av för att behålla dem vid bordet, nedtonade.",
     "settings.potChips": "Potten som marker",
     "settings.potChipsHelp": "Visa potten som en markhög med beloppet, som betten framför spelarna. När det är av visas den som vanlig text.",
+    "settings.flipBoard": "Vänd brädets kort",
+    "settings.flipBoardHelp": "Floppen, turn och river landar med baksidan upp och vänds sedan. Av: de faller med framsidan upp.",
     "settings.chips": "Marker",
     "settings.chipsHelp": "Marmor är fotorealistisk; Platt är skarpast i små storlekar. Cashgame visar $ och ¢; turneringar visar vanliga poäng.",
     "settings.autoMuck": "Automatisk muck",

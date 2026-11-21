@@ -114,6 +114,8 @@ const strings: Translations = {
     "settings.hideBustedHelp": "Sa Sit & Go at mga torneo, nawawala sa mesa ang manlalarong na-bust at nagiging blangko ang upuan niya. I-off para manatili sila sa mesa, malabo.",
     "settings.potChips": "Pot bilang chips",
     "settings.potChipsHelp": "Ipakita ang pot bilang patong ng chips kasama ang halaga, gaya ng mga taya sa harap ng mga manlalaro. Kapag naka-off, teksto lang.",
+    "settings.flipBoard": "Baligtarin ang board cards",
+    "settings.flipBoardHelp": "Ang flop, turn at river ay bumabagsak nang nakataob, saka binabaligtad. Kapag naka-off, bumabagsak nang nakaharap.",
     "settings.chips": "Chips",
     "settings.chipsHelp": "Mukhang totoo ang Marble; pinakamalinaw ang Flat sa maliit na sukat. Sa cash game may $ at ¢; sa torneo puntos lang.",
     "settings.autoMuck": "Auto-muck",

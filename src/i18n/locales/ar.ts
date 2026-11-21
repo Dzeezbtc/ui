@@ -114,6 +114,8 @@ const strings: Translations = {
     "settings.hideBustedHelp": "في Sit & Go والبطولات، يختفي اللاعب المقصى من الطاولة ويبقى مقعده فارغًا. أوقف الخيار لإبقائهم على الطاولة بشكل باهت.",
     "settings.potChips": "الوعاء كرقائق",
     "settings.potChipsHelp": "يعرض الوعاء كومة رقائق مع المبلغ مثل رهانات اللاعبين. عند التعطيل يظهر كنص.",
+    "settings.flipBoard": "اقلب أوراق الطاولة",
+    "settings.flipBoardHelp": "يصل الفلوب والترن والريفر مقلوبة ثم تنقلب. عند الإيقاف تسقط مكشوفة.",
     "settings.chips": "الرقائق",
     "settings.chipsHelp": "Marble واقعي الشكل، وFlat أوضح في الأحجام الصغيرة. تعرض الطاولات النقدية $ و¢، والبطولات النقاط.",
     "settings.autoMuck": "إخفاء تلقائي",
