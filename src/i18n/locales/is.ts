@@ -352,7 +352,6 @@ const strings: Translations = {
     "lobby.deleteTable": "Eyða borði",
     "lobby.deposit": "Leggja inn",
     "lobby.findSeat": "Finna mér sæti",
-    "lobby.sitMeDown": "Setja mig við borð",
     "lobby.full": "Fullt",
     "lobby.heading": "Veldu sæti.",
     "lobby.headingAccent": "Gefðu mér.",

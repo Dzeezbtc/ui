@@ -352,7 +352,6 @@ const strings: Translations = {
     "lobby.deleteTable": "टेबल हटाएँ",
     "lobby.deposit": "जमा करें",
     "lobby.findSeat": "मेरी सीट ढूँढें",
-    "lobby.sitMeDown": "मुझे बिठाएँ",
     "lobby.full": "भरी हुई",
     "lobby.heading": "एक सीट चुनें।",
     "lobby.headingAccent": "मुझे पत्ते बाँटो।",

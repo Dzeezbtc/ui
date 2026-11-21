@@ -352,7 +352,6 @@ const strings: Translations = {
     "lobby.deleteTable": "Διαγραφή τραπεζιού",
     "lobby.deposit": "Κατάθεση",
     "lobby.findSeat": "Βρες μου θέση",
-    "lobby.sitMeDown": "Κάτσε με",
     "lobby.full": "Γεμάτο",
     "lobby.heading": "Διάλεξε θέση.",
     "lobby.headingAccent": "Μοίρασέ μου.",

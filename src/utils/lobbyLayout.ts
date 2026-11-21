@@ -439,18 +439,6 @@ export const sectionRows = (games: GameWithFormat[], sort: LobbySort): { active:
 };
 
 /**
- * Sit me down: the table a stake row seats you at, in the sizes switched on:
- * the one with the most players that still has a free seat (earliest ID on a
- * tie). Undefined when every table is full.
- */
-export const rowSeat = (row: StakeRow, selected: number[]): GameWithFormat | undefined =>
-    row.sizes
-        .filter(s => selected.includes(s.size))
-        .flatMap(s => s.tables)
-        .filter(t => openSeats(t) > 0)
-        .sort((a, b) => b.currentPlayers - a.currentPlayers || a.gameId.localeCompare(b.gameId))[0];
-
-/**
  * What a lobby card writes on its felt: the stakes (cash) or the buy-in
  * (Sit & Go / tournament, without the fee split) as the big line, and the game
  * and table size underneath. `gameName` is the game as the lobby names it

@@ -352,7 +352,6 @@ const strings: Translations = {
     "lobby.deleteTable": "Удалить стол",
     "lobby.deposit": "Пополнить",
     "lobby.findSeat": "Найти место",
-    "lobby.sitMeDown": "Сесть за стол",
     "lobby.full": "Занят",
     "lobby.heading": "Выберите место.",
     "lobby.headingAccent": "Раздавайте.",

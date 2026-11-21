@@ -352,7 +352,6 @@ const strings: Translations = {
     "lobby.deleteTable": "حذف الطاولة",
     "lobby.deposit": "إيداع",
     "lobby.findSeat": "ابحث عن مقعدي",
-    "lobby.sitMeDown": "اجلسني",
     "lobby.full": "ممتلئة",
     "lobby.heading": "اختر مقعدًا.",
     "lobby.headingAccent": "وزّع لي.",

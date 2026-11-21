@@ -19,7 +19,6 @@ import {
     svgSafeId,
     lobbyPhase,
     feltLabels,
-    rowSeat,
     rowView,
     sectionRows,
     stakeKeyOf,
@@ -533,21 +532,6 @@ describe("rowView and sectionRows", () => {
         const { active, quiet } = sectionRows(games, "most-players");
         expect(active).toHaveLength(1);
         expect(quiet.map(r => r.sample.gameId)).toEqual(["d"]);
-    });
-});
-
-describe("rowSeat", () => {
-    const rows = groupStakeRows([cash("a", 1, 2, 3, 9), cash("b", 1, 2, 9, 9), cash("c", 1, 2, 5, 9), cash("d", 1, 2, 1, 2), cash("e", 1, 2, 0, 9)]);
-    const row = rows[0];
-
-    it("seats you at the busiest table with a free seat in the sizes on", () => {
-        expect(rowSeat(row, [9])?.gameId).toBe("c");
-        expect(rowSeat(row, [2])?.gameId).toBe("d");
-    });
-
-    it("finds nothing when every table is full", () => {
-        const full = groupStakeRows([cash("x", 1, 2, 9, 9)])[0];
-        expect(rowSeat(full, [9])).toBeUndefined();
     });
 });
 

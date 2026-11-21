@@ -368,7 +368,6 @@ export const en = {
     "lobby.deleteTable": "Delete table",
     "lobby.deposit": "Deposit",
     "lobby.findSeat": "Find my seat",
-    "lobby.sitMeDown": "Sit me down",
     "lobby.full": "Full",
     "lobby.heading": "Pick a seat.",
     "lobby.headingAccent": "Deal me in.",

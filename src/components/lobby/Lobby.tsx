@@ -12,7 +12,6 @@ import {
     sectionRows,
     rowSizeSelection,
     rowView,
-    rowSeat,
     toggleRowSize,
     quietStakeTable,
     isListedTable,
@@ -60,8 +59,8 @@ const DEFAULT_CLUB_NAME = import.meta.env.VITE_CLUB_NAME || "Texas Hodl";
  * Lobby (Flagship look). Three tabs (Cash games, Sit & Go, Tournaments), the
  * game types of the open tab as one row of chips with search and filters at
  * its end, then that game's tables as stake rows. Tournaments also lists the
- * upcoming scheduled events. Each stake row has Sit me down (its busiest table
- * with a free seat); the wallet lives in the site top bar. The tab and game type are remembered.
+ * upcoming scheduled events. Search, filters and Create table sit together at
+ * the end of the game-type row; the wallet lives in the site top bar. The tab and game type are remembered.
  */
 const Lobby: React.FC<LobbyProps> = ({ address, onCreateTable }) => {
     const { t } = useLanguage();
@@ -150,13 +149,6 @@ const Lobby: React.FC<LobbyProps> = ({ address, onCreateTable }) => {
                     <span className={styles.dot} />
                     {t("lobby.liveLine", { tables: rawGames.length, players: seatedTotal(rawGames) })}
                 </span>
-                <div className={styles.tabActions}>
-                    {onCreateTable ? (
-                        <button type="button" className={`${styles.btn} ${styles.btnGhost} ${styles.hidePhone}`} onClick={onCreateTable}>
-                            {t("lobby.createTable")}
-                        </button>
-                    ) : null}
-                </div>
             </div>
 
             {/* Game types of the open tab, with search and filters at the end of the row. */}
@@ -212,6 +204,14 @@ const Lobby: React.FC<LobbyProps> = ({ address, onCreateTable }) => {
                         </svg>
                         {filterCount > 0 ? <span className={styles.badgeCount}>{filterCount}</span> : null}
                     </button>
+                    {onCreateTable ? (
+                        <button type="button" className={styles.createBtn} onClick={onCreateTable} aria-label={t("lobby.createTable")} title={t("lobby.createTable")}>
+                            <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2.2" aria-hidden="true">
+                                <path d="M12 5v14M5 12h14" />
+                            </svg>
+                            <span>{t("lobby.createTable")}</span>
+                        </button>
+                    ) : null}
                 </div>
             </div>
 
@@ -254,11 +254,6 @@ const Lobby: React.FC<LobbyProps> = ({ address, onCreateTable }) => {
                             {t("lobby.treasuryOnly")}
                         </button>
                     ) : null}
-                    {onCreateTable ? (
-                        <button type="button" className={`${styles.btn} ${styles.btnSm} ${styles.btnGhost} ${styles.showPhone}`} onClick={onCreateTable}>
-                            {t("lobby.createTable")}
-                        </button>
-                    ) : null}
                 </div>
             ) : null}
 
@@ -294,7 +289,6 @@ const Lobby: React.FC<LobbyProps> = ({ address, onCreateTable }) => {
                     {active.map(row => {
                         const selected = rowSizeSelection(row, rowSizes[row.key]);
                         const view = rowView(row, selected);
-                        const seat = rowSeat(row, selected);
                         return (
                             <div key={row.key} className={styles.levelBlock}>
                                 <div className={styles.levelHead}>
@@ -320,11 +314,6 @@ const Lobby: React.FC<LobbyProps> = ({ address, onCreateTable }) => {
                                         <span>{t("lobby.levelInPlay", { count: view.inPlay })}</span>
                                         <span className={styles.levelStat}>{t("lobby.openShort", { count: view.open })}</span>
                                     </span>
-                                    {hasValue(seat) ? (
-                                        <button type="button" className={`${styles.btn} ${styles.btnSm} ${styles.btnGrad} ${styles.sitMe}`} onClick={() => setPreviewId(seat.gameId)}>
-                                            {t("lobby.sitMeDown")}
-                                        </button>
-                                    ) : null}
                                 </div>
                                 <div className={styles.row}>
                                     {view.cards.map(g => (

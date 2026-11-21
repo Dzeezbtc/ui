@@ -349,12 +349,6 @@ a.pill:hover { color: #fff; }
     .events { grid-template-columns: 1fr; }
 }
 
-/* Sit me down: at the end of each stake row's header. */
-.sitMe { margin-left: auto; }
-@media (max-width: 860px) {
-    .sitMe { order: 2; margin-left: auto; }
-    .levelHead .levelStats { order: 4; margin-left: 0; }
-}
 
 /* Lobby cards v2: status + seats on one line above the table, the stakes on the felt, nothing below. */
 .cardTop { display: flex; align-items: center; justify-content: space-between; gap: 8px; padding: 10px 12px 0; min-height: 36px; }
@@ -369,4 +363,19 @@ a.pill:hover { color: #fff; }
     .event { flex-wrap: wrap; row-gap: 10px; }
     .eventMain { flex-basis: 100%; }
     .event .btn { margin-left: auto; }
+}
+
+/* Create table joins search and filters: one toolbar at the end of the game-type row. */
+.createBtn { height: 44px; padding: 0 16px 0 13px; border-radius: 12px; border: 1px solid rgba(196, 181, 253, 0.35); background: rgba(124, 58, 237, 0.18); color: var(--fg); font: inherit; font-weight: 600; font-size: 14px; display: inline-flex; align-items: center; gap: 8px; cursor: pointer; white-space: nowrap; }
+.createBtn svg { width: 17px; height: 17px; color: var(--vi2); }
+.createBtn:hover { border-color: rgba(196, 181, 253, 0.6); background: rgba(124, 58, 237, 0.28); }
+@media (max-width: 860px) {
+    /* Phone: the tab counts and the live line go; the tabs say enough. */
+    .liveLine { display: none; }
+    .createBtn { width: 40px; height: 40px; padding: 0; justify-content: center; }
+    .createBtn span { display: none; }
+}
+@media (max-width: 860px) {
+    /* The game types swipe sideways; a soft fade at the edge says there is more. */
+    .types { mask-image: linear-gradient(90deg, #000 82%, transparent); -webkit-mask-image: linear-gradient(90deg, #000 82%, transparent); padding-right: 24px; }
 }

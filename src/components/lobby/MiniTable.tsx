@@ -68,11 +68,11 @@ const MiniTable: React.FC<MiniTableProps> = ({ maxPlayers, currentPlayers, large
             <ellipse cx={CX} cy={CY} rx={RX - 16} ry={RY - 14} fill="none" stroke="rgba(196,181,253,.12)" />
             {title ? (
                 <>
-                    <text x={CX} y={sub ? CY + 4 : CY + 12} textAnchor="middle" fontFamily="Unbounded, ui-sans-serif, system-ui, sans-serif" fontWeight="600" fontSize="34" fill="#F4F2FA" letterSpacing="-0.5">
+                    <text x={CX} y={sub ? CY - 2 : CY + 12} textAnchor="middle" fontFamily="Unbounded, ui-sans-serif, system-ui, sans-serif" fontWeight="600" fontSize="34" fill="#F4F2FA" letterSpacing="-0.5">
                         {title}
                     </text>
                     {sub ? (
-                        <text x={CX} y={CY + 30} textAnchor="middle" fontFamily="Inter, ui-sans-serif, system-ui, sans-serif" fontWeight="600" fontSize="14.5" fill="#C4B5FD">
+                        <text x={CX} y={CY + 28} textAnchor="middle" fontFamily="Inter, ui-sans-serif, system-ui, sans-serif" fontWeight="600" fontSize="18" fill="#C4B5FD">
                             {sub}
                         </text>
                     ) : null}

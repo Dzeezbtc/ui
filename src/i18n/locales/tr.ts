@@ -352,7 +352,6 @@ const strings: Translations = {
     "lobby.deleteTable": "Masayı sil",
     "lobby.deposit": "Yatır",
     "lobby.findSeat": "Yerimi bul",
-    "lobby.sitMeDown": "Otur",
     "lobby.full": "Dolu",
     "lobby.heading": "Bir yer seç.",
     "lobby.headingAccent": "Dağıt bana.",

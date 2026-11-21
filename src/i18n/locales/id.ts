@@ -352,7 +352,6 @@ const strings: Translations = {
     "lobby.deleteTable": "Hapus meja",
     "lobby.deposit": "Setor",
     "lobby.findSeat": "Cari kursiku",
-    "lobby.sitMeDown": "Duduk sekarang",
     "lobby.full": "Penuh",
     "lobby.heading": "Pilih kursi.",
     "lobby.headingAccent": "Bagikan kartuku.",

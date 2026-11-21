@@ -352,7 +352,6 @@ const strings: Translations = {
     "lobby.deleteTable": "删除牌桌",
     "lobby.deposit": "充值",
     "lobby.findSeat": "帮我找座位",
-    "lobby.sitMeDown": "帮我入座",
     "lobby.full": "已满",
     "lobby.heading": "选个座位。",
     "lobby.headingAccent": "给我发牌。",

@@ -352,7 +352,6 @@ const strings: Translations = {
     "lobby.deleteTable": "Burahin ang mesa",
     "lobby.deposit": "Mag-deposito",
     "lobby.findSeat": "Hanapan ako ng upuan",
-    "lobby.sitMeDown": "Paupuin ako",
     "lobby.full": "Puno",
     "lobby.heading": "Pumili ng upuan.",
     "lobby.headingAccent": "Bigyan mo ako ng baraha.",

@@ -352,7 +352,6 @@ const strings: Translations = {
     "lobby.deleteTable": "テーブルを削除",
     "lobby.deposit": "入金",
     "lobby.findSeat": "席を探す",
-    "lobby.sitMeDown": "着席する",
     "lobby.full": "満席",
     "lobby.heading": "席を選ぼう。",
     "lobby.headingAccent": "配ってくれ。",

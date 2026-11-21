@@ -352,7 +352,6 @@ const strings: Translations = {
     "lobby.deleteTable": "테이블 삭제",
     "lobby.deposit": "입금",
     "lobby.findSeat": "내 자리 찾기",
-    "lobby.sitMeDown": "자리에 앉기",
     "lobby.full": "만석",
     "lobby.heading": "자리를 고르세요.",
     "lobby.headingAccent": "카드 주세요.",
