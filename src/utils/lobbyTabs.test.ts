@@ -1,6 +1,6 @@
 import { BettingLimit, GameFormat, GameVariant } from "@block52/poker-vm-sdk";
 import type { GameWithFormat } from "./convertUtils";
-import { activeGameType, activeTab, gameTypeOf, gameTypesIn, gamesFor, isLobbyTab, tabCounts, tabOf } from "./lobbyTabs";
+import { activeGameType, activeTab, gameTypeOf, gameTypesIn, gamesFor, isLobbyTab, shortGameType, tabCounts, tabOf } from "./lobbyTabs";
 
 const cash = (id: string, seated: number, extra: Partial<GameWithFormat> = {}): GameWithFormat => ({
     gameId: id,
@@ -61,5 +61,14 @@ describe("lobbyTabs", () => {
     it("recognises tab names", () => {
         expect(isLobbyTab("cash")).toBe(true);
         expect(isLobbyTab("poker")).toBe(false);
+    });
+});
+
+describe("shortGameType", () => {
+    it("shortens the game names players know", () => {
+        expect(shortGameType("Texas Hold'em")).toBe("Hold'em");
+        expect(shortGameType("Pot-Limit Omaha")).toBe("PLO");
+        expect(shortGameType("Omaha")).toBe("Omaha");
+        expect(shortGameType("Stud")).toBe("Stud");
     });
 });

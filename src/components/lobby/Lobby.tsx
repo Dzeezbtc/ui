@@ -30,7 +30,7 @@ import {
     type SizeBand,
     type StakeBand
 } from "../../utils/lobbyLayout";
-import { LOBBY_TABS, activeGameType, activeTab, gameTypesIn, gamesFor, isLobbyTab, tabCounts, type LobbyTab } from "../../utils/lobbyTabs";
+import { LOBBY_TABS, shortGameType, activeGameType, activeTab, gameTypesIn, gamesFor, isLobbyTab, tabCounts, type LobbyTab } from "../../utils/lobbyTabs";
 import { hasContent, hasElements, hasValue, isEmpty } from "../../utils/guards";
 import { useLanguage } from "../../i18n/useLanguage";
 import type { TranslationKey } from "../../i18n";
@@ -135,8 +135,12 @@ const Lobby: React.FC<LobbyProps> = ({ address, onCreateTable }) => {
                 <i />
             </div>
 
-            {/* Tabs: the three areas, a live count, Quick seat and Create table. */}
+            {/* Tabs: the three areas, with the live count above their right end. */}
             <div className={styles.tabBar}>
+                <span className={styles.liveLine}>
+                    <span className={styles.dot} />
+                    {t("lobby.liveLine", { tables: rawGames.length, players: seatedTotal(rawGames) })}
+                </span>
                 <div className={styles.tabs} role="tablist" aria-label={t("lobby.areas")}>
                     {LOBBY_TABS.map(tb => (
                         <button key={tb} type="button" role="tab" aria-selected={tab === tb} className={tab === tb ? styles.tabOn : styles.tab} onClick={() => setPrefs({ tab: tb })}>
@@ -145,10 +149,6 @@ const Lobby: React.FC<LobbyProps> = ({ address, onCreateTable }) => {
                         </button>
                     ))}
                 </div>
-                <span className={styles.liveLine}>
-                    <span className={styles.dot} />
-                    {t("lobby.liveLine", { tables: rawGames.length, players: seatedTotal(rawGames) })}
-                </span>
             </div>
 
             {/* Game types of the open tab, with search and filters at the end of the row. */}
@@ -162,7 +162,8 @@ const Lobby: React.FC<LobbyProps> = ({ address, onCreateTable }) => {
                             className={c.type === type ? styles.typeOn : styles.type}
                             onClick={() => setPrefs({ types: { ...prefs.types, [tab]: c.type } })}
                         >
-                            {c.type}
+                            <span className={styles.hidePhone}>{c.type}</span>
+                            <span className={styles.showPhone}>{shortGameType(c.type)}</span>
                             <i>{c.tables}</i>
                         </button>
                     ))}
@@ -205,7 +206,7 @@ const Lobby: React.FC<LobbyProps> = ({ address, onCreateTable }) => {
                         {filterCount > 0 ? <span className={styles.badgeCount}>{filterCount}</span> : null}
                     </button>
                     {onCreateTable ? (
-                        <button type="button" className={styles.createBtn} onClick={onCreateTable} aria-label={t("lobby.createTable")} title={t("lobby.createTable")}>
+                        <button type="button" className={`${styles.createBtn} ${styles.hidePhone}`} onClick={onCreateTable} aria-label={t("lobby.createTable")} title={t("lobby.createTable")}>
                             <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2.2" aria-hidden="true">
                                 <path d="M12 5v14M5 12h14" />
                             </svg>
@@ -252,6 +253,11 @@ const Lobby: React.FC<LobbyProps> = ({ address, onCreateTable }) => {
                         <button type="button" role="switch" aria-checked={treasuryOnly} className={`${styles.switch} ${treasuryOnly ? styles.switchOn : ""}`} onClick={() => setPrefs({ treasuryOnly: !treasuryOnly })}>
                             <i />
                             {t("lobby.treasuryOnly")}
+                        </button>
+                    ) : null}
+                    {onCreateTable ? (
+                        <button type="button" className={`${styles.btn} ${styles.btnSm} ${styles.btnGhost} ${styles.showPhone}`} onClick={onCreateTable}>
+                            {t("lobby.createTable")}
                         </button>
                     ) : null}
                 </div>
@@ -309,10 +315,6 @@ const Lobby: React.FC<LobbyProps> = ({ address, onCreateTable }) => {
                                                 </button>
                                             );
                                         })}
-                                    </span>
-                                    <span className={styles.levelStats}>
-                                        <span>{t("lobby.levelInPlay", { count: view.inPlay })}</span>
-                                        <span className={styles.levelStat}>{t("lobby.openShort", { count: view.open })}</span>
                                     </span>
                                 </div>
                                 <div className={styles.row}>

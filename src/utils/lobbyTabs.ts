@@ -59,3 +59,11 @@ export const activeTab = (counts: Record<LobbyTab, number>, saved: LobbyTab | un
 /** The tables a tab shows for one game type. */
 export const gamesFor = (games: GameWithFormat[], tab: LobbyTab, type: string | undefined): GameWithFormat[] =>
     games.filter(g => tabOf(g) === tab && gameTypeOf(g) === type);
+
+/** A game type's short name for a phone's chip row ("Hold'em", "PLO"); unknown types keep their name. */
+export const shortGameType = (type: string): string => {
+    const t = type.toLowerCase();
+    if (t.includes("omaha")) return t.includes("pot-limit") || t.includes("pot limit") ? "PLO" : "Omaha";
+    if (t.includes("hold")) return "Hold'em";
+    return type;
+};

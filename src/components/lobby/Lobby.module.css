@@ -370,12 +370,16 @@ a.pill:hover { color: #fff; }
 .createBtn svg { width: 17px; height: 17px; color: var(--vi2); }
 .createBtn:hover { border-color: rgba(196, 181, 253, 0.6); background: rgba(124, 58, 237, 0.28); }
 @media (max-width: 860px) {
-    /* Phone: the tab counts and the live line go; the tabs say enough. */
-    .liveLine { display: none; }
     .createBtn { width: 40px; height: 40px; padding: 0; justify-content: center; }
     .createBtn span { display: none; }
 }
+
+/* The live count sits above the tabs, lined up with their right end. */
+.tabBar { flex-direction: column; align-items: flex-start; gap: 8px; }
+.tabBar .liveLine { order: -1; }
+.tabBar { display: inline-flex; align-self: flex-start; }
+.tabBar .liveLine { align-self: flex-end; }
 @media (max-width: 860px) {
-    /* The game types swipe sideways; a soft fade at the edge says there is more. */
-    .types { mask-image: linear-gradient(90deg, #000 82%, transparent); -webkit-mask-image: linear-gradient(90deg, #000 82%, transparent); padding-right: 24px; }
+    .tabBar { display: flex; align-self: stretch; }
+    .createBtn.hidePhone { display: none; }
 }
