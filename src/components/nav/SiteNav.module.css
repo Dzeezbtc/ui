@@ -147,7 +147,7 @@
 .desktopOnly { display: inline-flex; }
 
 .bal { display: flex; align-items: center; gap: 10px; height: 44px; padding: 0 5px 0 14px; border-radius: 14px; background: var(--panel2); border: 1px solid var(--line); white-space: nowrap; }
-.balText { color: var(--fg); text-decoration: none; line-height: 1.1; }
+.balText { color: var(--fg); text-decoration: none; line-height: 1.1; background: none; border: 0; padding: 0; text-align: left; cursor: pointer; font: inherit; }
 .balText small { display: block; font-size: 11px; color: var(--muted); font-weight: 600; margin-bottom: 2px; }
 .balText b { font-family: var(--mono); font-weight: 600; font-size: 15px; font-variant-numeric: tabular-nums; }
 .dep { height: 34px; padding: 0 13px; border: 0; border-radius: 10px; background: var(--grad); color: #fff; font-weight: 700; font-size: 13px; cursor: pointer; }

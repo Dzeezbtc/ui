@@ -10,12 +10,13 @@ import { formatMicroAsUsdc } from "../../constants/currency";
 import { custodyBase, custodySignOut, getCustodySession } from "../../utils/custody/session";
 import { hasContent } from "../../utils/guards";
 import { hasBalance, lobbyBalanceLabel } from "../../utils/lobbyLayout";
-import { DEPOSIT_PARAM, NAV_ITEMS, activeNavItem, searchTarget, showsSiteNav, usdcMicroOf, type NavItem } from "../../utils/siteNav";
+import { NAV_ITEMS, activeNavItem, searchTarget, showsSiteNav, usdcMicroOf, type NavItem } from "../../utils/siteNav";
 import { NetworkSelector } from "../NetworkSelector";
 import { LanguagePicker } from "../LanguagePicker";
 import { SiteLookSwitch } from "../SiteLookSwitch";
 import ClubAuthModal from "../modals/ClubAuthModal";
 import { NavGlyph } from "./NavGlyph";
+import { WalletSheet } from "./WalletSheet";
 import styles from "./SiteNav.module.css";
 
 const CLUB_CONSOLE_URL = (import.meta.env.VITE_CLUB_CONSOLE_URLS ?? "").split(",")[0]?.trim().replace(/\/+$/, "");
@@ -51,6 +52,7 @@ export const SiteNav: React.FC = () => {
     const [menuOpen, setMenuOpen] = useState(false);
     const [moreOpen, setMoreOpen] = useState(false);
     const [authOpen, setAuthOpen] = useState(false);
+    const [walletOpen, setWalletOpen] = useState(false);
     const searchRef = useRef<HTMLInputElement>(null);
 
     // "/" jumps to the search box, as on most sites with one.
@@ -95,7 +97,8 @@ export const SiteNav: React.FC = () => {
         navigate(to);
     };
 
-    const deposit = () => navigate(`/?${DEPOSIT_PARAM}=1`);
+    // The balance and Deposit open the game wallet panel here, on any page.
+    const deposit = () => setWalletOpen(true);
 
     const signOutClub = () => {
         custodySignOut();
@@ -207,10 +210,10 @@ export const SiteNav: React.FC = () => {
                     <LanguagePicker variant="icon" />
                 </span>
                 <div className={styles.bal}>
-                    <Link to="/wallet" className={styles.balText}>
+                    <button type="button" className={styles.balText} onClick={deposit} disabled={!hasWallet} aria-label={t("walletSheet.title")}>
                         <small>{t("lobby.balance")}</small>
                         <b>{lobbyBalanceLabel(balance)}</b>
-                    </Link>
+                    </button>
                     <button type="button" className={styles.dep} onClick={deposit} disabled={!hasWallet} title={hasWallet ? "" : t("lobby.noWallet")}>
                         <span className={styles.depLong}>{hasBalance(balance) ? t("lobby.deposit") : t("lobby.addFunds")}</span>
                         <span className={styles.depShort}>{t("lobby.deposit")}</span>
@@ -251,6 +254,10 @@ export const SiteNav: React.FC = () => {
                       document.body
                   )
                 : null}
+
+            {walletOpen && hasContent(wallet.address) ? (
+                <WalletSheet address={wallet.address} usdc={balance} onClose={() => setWalletOpen(false)} onRefresh={wallet.refreshBalance} />
+            ) : null}
 
             {clubAuth ? createPortal(<ClubAuthModal isOpen={authOpen} onClose={() => setAuthOpen(false)} />, document.body) : null}
         </>

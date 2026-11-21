@@ -297,6 +297,10 @@ export interface LobbyPrefs {
     treasuryOnly: boolean;
     /** Table sizes switched on in each stake row, by stake key. A stake with no entry starts on its busiest size. */
     rowSizes: Record<string, number[]>;
+    /** The tab the lobby was last on: "cash", "sit-and-go" or "tournament". */
+    tab: string;
+    /** The game type picked in each tab, by tab. */
+    types: Record<string, string>;
 }
 
 const isStakeBand = (v: unknown): v is StakeBand => v === "micro" || v === "low" || v === "mid" || v === "high";
@@ -309,6 +313,9 @@ const parseRowSizes = (raw: Record<string, unknown>): Record<string, number[]> =
             .filter(([, v]) => hasElements(v))
     );
 
+const parseTypes = (raw: Record<string, unknown>): Record<string, string> =>
+    Object.fromEntries(Object.entries(raw).filter((e): e is [string, string] => isString(e[1])));
+
 /** Read saved lobby filters (JSON from storage). Anything missing or unrecognised falls back to `defaults`. */
 export const parseLobbyPrefs = (raw: string | null, defaults: LobbyPrefs): LobbyPrefs => {
     if (!hasContent(raw)) return defaults;
@@ -320,7 +327,9 @@ export const parseLobbyPrefs = (raw: string | null, defaults: LobbyPrefs): Lobby
             sizes: Array.isArray(data.sizes) ? data.sizes.filter(isSizeBand) : defaults.sizes,
             sort: isString(data.sort) ? (toLobbySort(data.sort) ?? defaults.sort) : defaults.sort,
             treasuryOnly: isBoolean(data.treasuryOnly) ? data.treasuryOnly : defaults.treasuryOnly,
-            rowSizes: isRecord(data.rowSizes) ? parseRowSizes(data.rowSizes) : defaults.rowSizes
+            rowSizes: isRecord(data.rowSizes) ? parseRowSizes(data.rowSizes) : defaults.rowSizes,
+            tab: isString(data.tab) ? data.tab : defaults.tab,
+            types: isRecord(data.types) ? parseTypes(data.types) : defaults.types
         };
     } catch {
         return defaults;

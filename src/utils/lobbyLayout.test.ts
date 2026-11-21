@@ -425,11 +425,11 @@ describe("multi-select filters", () => {
 });
 
 describe("parseLobbyPrefs", () => {
-    const defaults = { stakes: [] as StakeBand[], sizes: [] as SizeBand[], sort: "stakes-up" as const, treasuryOnly: true, rowSizes: {} as Record<string, number[]> };
+    const defaults = { stakes: [] as StakeBand[], sizes: [] as SizeBand[], sort: "stakes-up" as const, treasuryOnly: true, rowSizes: {} as Record<string, number[]>, tab: "cash", types: {} as Record<string, string> };
 
     it("reads saved filters", () => {
-        const raw = JSON.stringify({ stakes: ["low", "mid"], sizes: ["6-max"], sort: "most-players", treasuryOnly: false, rowSizes: { "cash:x|1|2": [9, 6], bad: ["9", 1, 2.5] } });
-        expect(parseLobbyPrefs(raw, defaults)).toEqual({ stakes: ["low", "mid"], sizes: ["6-max"], sort: "most-players", treasuryOnly: false, rowSizes: { "cash:x|1|2": [9, 6] } });
+        const raw = JSON.stringify({ stakes: ["low", "mid"], sizes: ["6-max"], sort: "most-players", treasuryOnly: false, rowSizes: { "cash:x|1|2": [9, 6], bad: ["9", 1, 2.5] }, tab: "tournament", types: { cash: "Pot-Limit Omaha", bad: 3 } });
+        expect(parseLobbyPrefs(raw, defaults)).toEqual({ stakes: ["low", "mid"], sizes: ["6-max"], sort: "most-players", treasuryOnly: false, rowSizes: { "cash:x|1|2": [9, 6] }, tab: "tournament", types: { cash: "Pot-Limit Omaha" } });
     });
 
     it("drops unknown values and falls back for missing ones", () => {

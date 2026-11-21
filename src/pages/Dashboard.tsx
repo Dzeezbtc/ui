@@ -1268,28 +1268,13 @@ const Dashboard: React.FC = () => {
                         <>
                         {/* Lobby (redesign): balance, quick seat and next Sit & Go on top; every table as a
                             picture of the felt, grouped by game; the wallet panel and transactions at the bottom. */}
-                        <div className="w-full max-w-[1600px] mx-auto px-4 sm:px-6 lg:px-8 z-10 mt-6 sm:mt-10 mb-16">
+                        <div className="w-full max-w-[1600px] mx-auto px-4 sm:px-6 lg:px-8 z-10 mt-4 sm:mt-6 mb-16">
                             <Lobby
                                 address={cosmosWallet.address}
                                 onCreateTable={() => {
                                     setCreateGameError("");
                                     setShowCreateGameModal(true);
                                 }}
-                                walletSlot={
-                                    <>
-                                        <WalletPanel
-                                            onDeposit={handleDepositClick}
-                                            onWithdraw={handleWithdrawClick}
-                                            onTransfer={() => setShowCosmosTransferModal(true)}
-                                            onCreateWallet={handleCreateNewWallet}
-                                            onImportWallet={() => setShowCosmosImportModal(true)}
-                                            onRefresh={cosmosWallet.refreshBalance}
-                                            usdcBalance={getTransferTokenBalance()}
-                                            cosmosWalletAddress={cosmosWallet.address}
-                                        />
-                                        <TransactionPanel cosmosWalletAddress={cosmosWallet.address} usdcBalance={getTransferTokenBalance()} />
-                                    </>
-                                }
                             />
                         </div>
 
