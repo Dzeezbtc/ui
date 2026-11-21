@@ -437,3 +437,15 @@ export const sectionRows = (games: GameWithFormat[], sort: LobbySort): { active:
     const rows = groupStakeRows(games);
     return { active: sortStakeRows(rows.filter(r => !isQuietStake(r)), sort), quiet: sortStakeRows(rows.filter(isQuietStake), "stakes-up") };
 };
+
+/**
+ * Sit me down: the table a stake row seats you at, in the sizes switched on:
+ * the one with the most players that still has a free seat (earliest ID on a
+ * tie). Undefined when every table is full.
+ */
+export const rowSeat = (row: StakeRow, selected: number[]): GameWithFormat | undefined =>
+    row.sizes
+        .filter(s => selected.includes(s.size))
+        .flatMap(s => s.tables)
+        .filter(t => openSeats(t) > 0)
+        .sort((a, b) => b.currentPlayers - a.currentPlayers || a.gameId.localeCompare(b.gameId))[0];

@@ -83,12 +83,12 @@
 .exploreItem.on { background: rgba(124, 58, 237, 0.2); }
 
 .right { margin-left: auto; display: flex; align-items: center; gap: 12px; }
-.bal { display: flex; align-items: center; gap: 10px; height: 44px; padding: 0 5px 0 14px; border-radius: 14px; background: var(--panel2); border: 1px solid var(--line); white-space: nowrap; }
-.balText { color: var(--fg); line-height: 1; background: none; border: 0; padding: 0; cursor: pointer; font: inherit; }
-.balText b { font-family: var(--mono); font-weight: 600; font-size: 15px; font-variant-numeric: tabular-nums; }
-.dep { height: 34px; padding: 0 13px; border: 0; border-radius: 10px; background: var(--grad); color: #fff; font-weight: 700; font-size: 13px; cursor: pointer; }
-.dep:disabled,
-.balText:disabled { opacity: 0.45; cursor: not-allowed; }
+/* My wallet: one button with the balance; the panel it opens is where you add funds. */
+.wallet { display: inline-flex; align-items: center; gap: 10px; height: 44px; padding: 0 16px 0 14px; border-radius: 14px; background: var(--panel2); border: 1px solid rgba(196, 181, 253, 0.35); color: var(--fg); font: inherit; font-size: 14px; font-weight: 600; cursor: pointer; white-space: nowrap; }
+.wallet svg { width: 19px; height: 19px; color: var(--vi2); }
+.wallet b { font-family: var(--mono); font-weight: 600; font-size: 15px; font-variant-numeric: tabular-nums; padding-left: 10px; border-left: 1px solid var(--line2); }
+.wallet:hover { border-color: rgba(196, 181, 253, 0.6); background: rgba(124, 58, 237, 0.16); }
+.wallet:disabled { opacity: 0.45; cursor: not-allowed; }
 
 /* ---------- avatar menu ---------- */
 .meWrap { position: relative; flex: none; }
@@ -191,9 +191,8 @@
     .top { height: 60px; gap: 10px; padding: 0 max(14px, env(safe-area-inset-right, 0px)) 0 max(14px, env(safe-area-inset-left, 0px)); }
     .wordmark img { width: 104px; }
     .links { display: none; }
-    .bal { height: 40px; padding-left: 12px; }
-    .balText b { font-size: 14px; }
-    .dep { height: 30px; padding: 0 10px; font-size: 12px; }
+    .wallet { height: 40px; padding: 0 12px; gap: 8px; font-size: 13px; }
+    .wallet b { font-size: 14px; padding-left: 8px; }
     .me { width: 38px; height: 38px; }
     .menu { width: min(280px, calc(100vw - 28px)); }
     .tabbar {
@@ -231,5 +230,5 @@
 
 @media (max-width: 360px) {
     .wordmark img { width: 84px; }
-    .dep { display: none; }
+    .wallet span { display: none; }
 }

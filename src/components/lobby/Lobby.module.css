@@ -348,3 +348,10 @@ a.pill:hover { color: #fff; }
     .iconBtn { width: 40px; height: 40px; }
     .events { grid-template-columns: 1fr; }
 }
+
+/* Sit me down: at the end of each stake row's header. */
+.sitMe { margin-left: auto; }
+@media (max-width: 860px) {
+    .sitMe { order: 2; margin-left: auto; }
+    .levelHead .levelStats { order: 4; margin-left: 0; }
+}

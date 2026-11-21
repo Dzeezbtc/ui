@@ -12,9 +12,9 @@ import {
     sectionRows,
     rowSizeSelection,
     rowView,
+    rowSeat,
     toggleRowSize,
     quietStakeTable,
-    groupLobbySections,
     isListedTable,
     isTableCreator,
     isTreasuryTable,
@@ -37,7 +37,6 @@ import { useLanguage } from "../../i18n/useLanguage";
 import type { TranslationKey } from "../../i18n";
 import DeleteTableModal from "../modals/DeleteTableModal";
 import ForceCloseTableModal from "../modals/ForceCloseTableModal";
-import QuickSeat from "./QuickSeat";
 import UpcomingEvents from "./UpcomingEvents";
 import TableCard from "./TableCard";
 import TablePreview from "./TablePreview";
@@ -61,8 +60,8 @@ const DEFAULT_CLUB_NAME = import.meta.env.VITE_CLUB_NAME || "Texas Hodl";
  * Lobby (Flagship look). Three tabs (Cash games, Sit & Go, Tournaments), the
  * game types of the open tab as one row of chips with search and filters at
  * its end, then that game's tables as stake rows. Tournaments also lists the
- * upcoming scheduled events. Quick seat is a button by the tabs; the wallet
- * lives in the site top bar. The tab and game type are remembered.
+ * upcoming scheduled events. Each stake row has Sit me down (its busiest table
+ * with a free seat); the wallet lives in the site top bar. The tab and game type are remembered.
  */
 const Lobby: React.FC<LobbyProps> = ({ address, onCreateTable }) => {
     const { t } = useLanguage();
@@ -104,7 +103,6 @@ const Lobby: React.FC<LobbyProps> = ({ address, onCreateTable }) => {
     const type = activeGameType(typeChips, prefs.types[tab]);
     const shown = useMemo(() => gamesFor(games, tab, type), [games, tab, type]);
     const { active, quiet } = useMemo(() => sectionRows(shown, sort), [shown, sort]);
-    const cashSections = useMemo(() => groupLobbySections(rawGames, "stakes-up").filter(s => s.kind === "cash"), [rawGames]);
     const preview = hasContent(previewId) ? rawGames.find(g => g.gameId === previewId) : undefined;
     const filterCount = activeFilterCount({ query, stakes, sizes });
 
@@ -153,7 +151,6 @@ const Lobby: React.FC<LobbyProps> = ({ address, onCreateTable }) => {
                     {t("lobby.liveLine", { tables: rawGames.length, players: seatedTotal(rawGames) })}
                 </span>
                 <div className={styles.tabActions}>
-                    <QuickSeat games={rawGames} cashSections={cashSections} onOpenTable={setPreviewId} onCreateTable={onCreateTable} />
                     {onCreateTable ? (
                         <button type="button" className={`${styles.btn} ${styles.btnGhost} ${styles.hidePhone}`} onClick={onCreateTable}>
                             {t("lobby.createTable")}
@@ -297,6 +294,7 @@ const Lobby: React.FC<LobbyProps> = ({ address, onCreateTable }) => {
                     {active.map(row => {
                         const selected = rowSizeSelection(row, rowSizes[row.key]);
                         const view = rowView(row, selected);
+                        const seat = rowSeat(row, selected);
                         return (
                             <div key={row.key} className={styles.levelBlock}>
                                 <div className={styles.levelHead}>
@@ -322,6 +320,11 @@ const Lobby: React.FC<LobbyProps> = ({ address, onCreateTable }) => {
                                         <span>{t("lobby.levelInPlay", { count: view.inPlay })}</span>
                                         <span className={styles.levelStat}>{t("lobby.openShort", { count: view.open })}</span>
                                     </span>
+                                    {hasValue(seat) ? (
+                                        <button type="button" className={`${styles.btn} ${styles.btnSm} ${styles.btnGrad} ${styles.sitMe}`} onClick={() => setPreviewId(seat.gameId)}>
+                                            {t("lobby.sitMeDown")}
+                                        </button>
+                                    ) : null}
                                 </div>
                                 <div className={styles.row}>
                                     {view.cards.map(g => (

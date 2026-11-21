@@ -8,7 +8,7 @@ import { features } from "../../config/features";
 import { formatMicroAsUsdc } from "../../constants/currency";
 import { custodyBase, custodySignOut, getCustodySession } from "../../utils/custody/session";
 import { hasContent } from "../../utils/guards";
-import { hasBalance, lobbyBalanceLabel } from "../../utils/lobbyLayout";
+import { lobbyBalanceLabel } from "../../utils/lobbyLayout";
 import { NAV_ITEMS, activeNavItem, showsSiteNav, usdcMicroOf, type NavItem } from "../../utils/siteNav";
 import { NetworkSelector } from "../NetworkSelector";
 import { LanguagePicker } from "../LanguagePicker";
@@ -20,6 +20,7 @@ import styles from "./SiteNav.module.css";
 
 const CLUB_CONSOLE_URL = (import.meta.env.VITE_CLUB_CONSOLE_URLS ?? "").split(",")[0]?.trim().replace(/\/+$/, "");
 const EXPLORE = NAV_ITEMS.filter(i => i.group === "explore");
+const HANDS = NAV_ITEMS.filter(i => i.path === "/hands");
 
 /** One link in the Explore menu, the tab bar or the More sheet. */
 const NavLink: React.FC<{ item: NavItem; active: boolean; className: string; onClick?: () => void }> = ({ item, active, className, onClick }) => {
@@ -34,10 +35,11 @@ const NavLink: React.FC<{ item: NavItem; active: boolean; className: string; onC
 
 /**
  * The site navigation (Flagship look), kept to the essentials.
- * DESKTOP/TV: one slim bar: the logo, Play · My hands · Explore (menu), then
- * the balance (opens the Game wallet) and your avatar (avatar, language,
- * network, look, sign-in, admin). PHONE (< 860px): logo, balance and avatar on
- * top; Play · Hands · Wallet · More along the bottom. Hidden on a game table.
+ * DESKTOP/TV: one slim bar: the logo, Play · Fairness · Explore (menu), then
+ * My wallet (with the balance; opens the Game wallet, where you add funds) and
+ * your avatar (My hands, avatar, sign-in, admin, language, network, look).
+ * PHONE (< 860px): logo, My wallet and avatar on top; Play · Fairness · Wallet
+ * · More along the bottom. Hidden on a game table.
  */
 export const SiteNav: React.FC = () => {
     const location = useLocation();
@@ -105,9 +107,9 @@ export const SiteNav: React.FC = () => {
                             <NavGlyph icon="user" />
                             {t("nav.changeAvatar")}
                         </button>
-                        <Link role="menuitem" to="/wallet" onClick={() => setMenuOpen(false)}>
-                            <NavGlyph icon="wallet" />
-                            {t("nav.wallet")}
+                        <Link role="menuitem" to="/hands" onClick={() => setMenuOpen(false)}>
+                            <NavGlyph icon="hands" />
+                            {t("hands.title")}
                         </Link>
                         {clubAuth ? (
                             <button type="button" role="menuitem" onClick={() => { setMenuOpen(false); if (clubSession) signOutClub(); else setAuthOpen(true); }}>
@@ -172,14 +174,11 @@ export const SiteNav: React.FC = () => {
                 </nav>
 
                 <div className={styles.right}>
-                    <div className={styles.bal}>
-                        <button type="button" className={styles.balText} onClick={openWallet} disabled={!hasWallet} aria-label={t("walletSheet.title")}>
-                            <b>{lobbyBalanceLabel(balance)}</b>
-                        </button>
-                        <button type="button" className={styles.dep} onClick={openWallet} disabled={!hasWallet} title={hasWallet ? "" : t("lobby.noWallet")}>
-                            {hasBalance(balance) ? t("lobby.deposit") : t("lobby.addFunds")}
-                        </button>
-                    </div>
+                    <button type="button" className={styles.wallet} onClick={openWallet} disabled={!hasWallet} title={hasWallet ? "" : t("lobby.noWallet")}>
+                        <NavGlyph icon="wallet" />
+                        <span>{t("nav.myWallet")}</span>
+                        <b>{lobbyBalanceLabel(balance)}</b>
+                    </button>
                     {avatar}
                 </div>
             </header>
@@ -188,7 +187,7 @@ export const SiteNav: React.FC = () => {
                 {NAV_ITEMS.filter(i => i.tab).map(i => (
                     <NavLink key={i.path} item={i} active={active === i} className={styles.tab} />
                 ))}
-                <button type="button" className={`${styles.tab} ${inExplore ? styles.on : ""}`} onClick={() => setMoreOpen(true)} aria-expanded={moreOpen}>
+                <button type="button" className={`${styles.tab} ${inExplore || active?.path === "/hands" ? styles.on : ""}`} onClick={() => setMoreOpen(true)} aria-expanded={moreOpen}>
                     <NavGlyph icon="more" />
                     <span>{t("nav.more")}</span>
                 </button>
@@ -201,7 +200,7 @@ export const SiteNav: React.FC = () => {
                           <div className={styles.sheet} role="dialog" aria-modal="true" aria-label={t("nav.more")}>
                               <span className={styles.grab} />
                               <div className={styles.moreGrid}>
-                                  {EXPLORE.map(i => (
+                                  {[...HANDS, ...EXPLORE].map(i => (
                                       <NavLink key={i.path} item={i} active={active === i} className={styles.moreItem} onClick={() => setMoreOpen(false)} />
                                   ))}
                               </div>
