@@ -1278,8 +1278,10 @@ export const PLAYER_UI_PADDING: Record<ViewportMode, { x: number; top: number; b
 
 /** Room around the flagship phone table's seats ({@link getContentBounds}). */
 export const FLAGSHIP_PORTRAIT_PADDING = { x: 110, top: 90, bottom: 90 };
-/** Across a big screen the flagship seats' cards stick out sideways, so leave them room. */
-export const FLAGSHIP_DESKTOP_PADDING = { x: 135, top: 90, bottom: 90 };
+/** Across a big screen the flagship seats' cards stick out sideways, so leave them room.
+ *  The top seat's cards stand above its avatar, so the top gets extra room: the
+ *  table sits a little lower, clear of the bar above it. */
+export const FLAGSHIP_DESKTOP_PADDING = { x: 135, top: 150, bottom: 90 };
 /** The flagship table's size across a big screen, relative to a full fit. */
 export const FLAGSHIP_DESKTOP_SCALE = 0.93;
 

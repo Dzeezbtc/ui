@@ -93,3 +93,16 @@ describe("tableStyleFromUrl", () => {
         expect(tableStyleFromUrl("?style=", "classic")).toBe("classic");
     });
 });
+
+describe("dealsFaceDown (Flagship flip option)", () => {
+    it("deals the Flagship board face up unless the player picks the flip", () => {
+        expect(dealsFaceDown("flagship")).toBe(false);
+        expect(dealsFaceDown("flagship", true)).toBe(true);
+    });
+
+    it("keeps the 3D tables and Chip and a Chair face down, and the others face up, whatever the option", () => {
+        expect(dealsFaceDown("maison", false)).toBe(true);
+        expect(dealsFaceDown("chipchair", false)).toBe(true);
+        expect(dealsFaceDown("modern", true)).toBe(false);
+    });
+});

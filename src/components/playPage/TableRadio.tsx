@@ -89,9 +89,18 @@ export const TableRadio: React.FC<{ stations: { name: string; url: string }[] }>
         const a = new Audio(url);
         a.volume = volume;
         audio.current = a;
+        // A slow stream (Comedy goes through a redirect) can still be starting when
+        // another station is picked. Only the stream that is current may change the
+        // state: a late start is stopped, and a late failure (the pause we just did)
+        // must not wipe the handle of the stream that IS playing, or it could never
+        // be stopped again.
         a.play().then(
-            () => setPlaying(url),
             () => {
+                if (audio.current === a) setPlaying(url);
+                else a.pause();
+            },
+            () => {
+                if (audio.current !== a) return;
                 setError(t("club.radioFailed"));
                 audio.current = null;
             }

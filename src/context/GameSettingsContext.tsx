@@ -28,6 +28,7 @@ const LS_KEY_SITIN_OPTIONS = "setting_sitinoptions";
 const LS_KEY_PRE_SELECT_CHECK = "setting_preselectcheck";
 const LS_KEY_HIDE_BUSTED = "setting_hidebusted";
 const LS_KEY_POT_AS_CHIPS = "setting_potaschips";
+const LS_KEY_FLIP_BOARD = "setting_flipboard";
 const LS_KEY_CHIP_STYLE = "setting_chipstyle";
 
 function readBoolSetting(key: string, fallback: boolean): boolean {
@@ -70,6 +71,8 @@ export interface GameSettings {
     // shows as a chip stack + amount pill with a POT caption, matching the player
     // bets on the table (ui#772).
     potAsChips: boolean;
+    /** Flagship: the flop, turn and river land face down and turn over (as at Maison 52), instead of dropping in face up. */
+    flipBoardCards: boolean;
     // Which chip look to draw: an id from config/chipSets.ts (ui#842). Defaults to
     // the photoreal marble set; "notched" is the flat set, sharpest at small
     // sizes. Either way cash games show $/¢ chips and SNG/tournaments show point
@@ -93,6 +96,7 @@ export interface GameSettingsContextValue extends GameSettings {
     togglePreSelectCheck: () => void;
     toggleHideBustedPlayers: () => void;
     togglePotAsChips: () => void;
+    toggleFlipBoardCards: () => void;
     setChipStyle: (id: string) => void;
 }
 
@@ -140,6 +144,7 @@ export const GameSettingsProvider: React.FC<{ children: React.ReactNode }> = ({ 
     const [potAsChips, setPotAsChips] = useState<boolean>(() =>
         readBoolSetting(LS_KEY_POT_AS_CHIPS, false)
     );
+    const [flipBoardCards, setFlipBoardCards] = useState<boolean>(() => readBoolSetting(LS_KEY_FLIP_BOARD, false));
     // An unknown or retired id falls back to the configured default.
     const [chipStyle, setChipStyleState] = useState<string>(() => findChipStyle(localStorage.getItem(LS_KEY_CHIP_STYLE)).id);
 
@@ -263,6 +268,14 @@ export const GameSettingsProvider: React.FC<{ children: React.ReactNode }> = ({ 
         });
     }, []);
 
+    const toggleFlipBoardCards = useCallback(() => {
+        setFlipBoardCards(prev => {
+            const next = !prev;
+            localStorage.setItem(LS_KEY_FLIP_BOARD, String(next));
+            return next;
+        });
+    }, []);
+
     const setChipStyle = useCallback((id: string) => {
         const next = findChipStyle(id).id;
         localStorage.setItem(LS_KEY_CHIP_STYLE, next);
@@ -286,6 +299,7 @@ export const GameSettingsProvider: React.FC<{ children: React.ReactNode }> = ({ 
             preSelectCheck,
             hideBustedPlayers,
             potAsChips,
+            flipBoardCards,
             chipStyle,
             toggleAutoDeal,
             toggleAutoPostBlinds,
@@ -302,6 +316,7 @@ export const GameSettingsProvider: React.FC<{ children: React.ReactNode }> = ({ 
             togglePreSelectCheck,
             toggleHideBustedPlayers,
             togglePotAsChips,
+            toggleFlipBoardCards,
             setChipStyle
         }),
         [
@@ -320,6 +335,7 @@ export const GameSettingsProvider: React.FC<{ children: React.ReactNode }> = ({ 
             preSelectCheck,
             hideBustedPlayers,
             potAsChips,
+            flipBoardCards,
             chipStyle,
             toggleAutoDeal,
             toggleAutoPostBlinds,
@@ -335,6 +351,7 @@ export const GameSettingsProvider: React.FC<{ children: React.ReactNode }> = ({ 
             togglePreSelectCheck,
             toggleHideBustedPlayers,
             togglePotAsChips,
+            toggleFlipBoardCards,
             setChipStyle
         ]
     );
