@@ -9,11 +9,10 @@ import {
     STAKE_BANDS,
     activeFilterCount,
     filterLobbyGames,
-    sectionRows,
+    groupStakeRows,
+    stakeLevels,
     rowSizeSelection,
-    rowView,
     toggleRowSize,
-    quietStakeTable,
     isListedTable,
     isTableCreator,
     isTreasuryTable,
@@ -21,10 +20,6 @@ import {
     occupiedTables,
     similarOpenTable,
     toggleBand,
-    lobbyStakesLabel,
-    lobbyBuyInLabel,
-    tableSizeLabel,
-    isCashTable,
     seatedTotal,
     toLobbySort,
     type SizeBand,
@@ -37,7 +32,8 @@ import type { TranslationKey } from "../../i18n";
 import DeleteTableModal from "../modals/DeleteTableModal";
 import ForceCloseTableModal from "../modals/ForceCloseTableModal";
 import UpcomingEvents from "./UpcomingEvents";
-import TableCard from "./TableCard";
+import StakeTile from "./StakeTile";
+import StakePanel from "./StakePanel";
 import TablePreview from "./TablePreview";
 import styles from "./Lobby.module.css";
 
@@ -50,6 +46,13 @@ const STAKE_NAMES: Record<StakeBand, string> = { all: "", micro: "Micro", low: "
 const SIZE_NAMES: Record<SizeBand, string> = { all: "", "heads-up": "Heads-up", "6-max": "6-max", "9-max": "9-max" };
 const SORTS: readonly ("stakes-up" | "stakes-down" | "most-players" | "most-open")[] = ["stakes-up", "stakes-down", "most-players", "most-open"];
 const SORT_KEYS = { "stakes-up": "lobby.sortStakesUp", "stakes-down": "lobby.sortStakesDown", "most-players": "lobby.sortMostPlayers", "most-open": "lobby.sortMostOpen" } as const;
+const LEVEL_KEYS: Record<"micro" | "low" | "mid" | "high" | "buy-in", TranslationKey> = {
+    micro: "lobby.levelMicro",
+    low: "lobby.levelLow",
+    mid: "lobby.levelMid",
+    high: "lobby.levelHigh",
+    "buy-in": "lobby.levelBuyIns"
+};
 const TAB_KEYS: Record<LobbyTab, TranslationKey> = { cash: "lobby.cashGames", "sit-and-go": "lobby.sitAndGo", tournament: "lobby.tournaments" };
 
 /** Clubs that don't come from the club service use the build's club name, as the old table list did. */
@@ -101,7 +104,10 @@ const Lobby: React.FC<LobbyProps> = ({ address, onCreateTable }) => {
     const typeChips = useMemo(() => gameTypesIn(rawGames, tab), [rawGames, tab]);
     const type = activeGameType(typeChips, prefs.types[tab]);
     const shown = useMemo(() => gamesFor(games, tab, type), [games, tab, type]);
-    const { active, quiet } = useMemo(() => sectionRows(shown, sort), [shown, sort]);
+    // Every stake in this game, as tiles grouped by level; one opens as a panel with its tables.
+    const stakeRows = useMemo(() => groupStakeRows(shown), [shown]);
+    const [openStake, setOpenStake] = useState<string | null>(null);
+    const openRow = stakeRows.find(r => r.key === openStake);
     const preview = hasContent(previewId) ? rawGames.find(g => g.gameId === previewId) : undefined;
     const filterCount = activeFilterCount({ query, stakes, sizes });
 
@@ -277,7 +283,7 @@ const Lobby: React.FC<LobbyProps> = ({ address, onCreateTable }) => {
                         {t("lobby.retry")}
                     </button>
                 </div>
-            ) : !hasElements(active) && !hasElements(quiet) ? (
+            ) : !hasElements(stakeRows) ? (
                 <div className={`${styles.box} ${styles.state}`}>
                     <p style={{ color: "var(--fg)", fontWeight: 600 }}>{filterCount > 0 ? t("lobby.noMatchFilters") : t("lobby.noTablesHere")}</p>
                     {filterCount > 0 ? (
@@ -291,52 +297,33 @@ const Lobby: React.FC<LobbyProps> = ({ address, onCreateTable }) => {
                     ) : null}
                 </div>
             ) : (
-                <section className={styles.section} aria-label={type}>
-                    {active.map(row => {
-                        const selected = rowSizeSelection(row, rowSizes[row.key]);
-                        const view = rowView(row, selected);
-                        return (
-                            <div key={row.key} className={styles.levelBlock}>
-                                <div className={styles.levelHead}>
-                                    <b className={styles.mono}>{isCashTable(row.sample) ? lobbyStakesLabel(row.sample) : lobbyBuyInLabel(row.sample)}</b>
-                                    <span className={styles.sizeChips} role="group" aria-label={t("lobby.seats")}>
-                                        {row.sizes.map(sz => {
-                                            const on = selected.includes(sz.size);
-                                            return (
-                                                <button
-                                                    key={sz.size}
-                                                    type="button"
-                                                    className={`${styles.sizeChip} ${on ? styles.sizeChipOn : ""}`}
-                                                    aria-pressed={on}
-                                                    onClick={() => setPrefs({ rowSizes: { ...rowSizes, [row.key]: toggleRowSize(selected, sz.size) } })}
-                                                >
-                                                    {sz.inPlay > 0 ? <i className={styles.sizeDot} /> : null}
-                                                    {tableSizeLabel(sz.size)}
-                                                </button>
-                                            );
-                                        })}
-                                    </span>
-                                </div>
-                                <div className={styles.row}>
-                                    {view.cards.map(g => (
-                                        <TableCard key={g.gameId} game={g} clubName={clubOf(g.gameId)} isTreasury={isTreasuryTable(g, treasuryAddress)} nowMs={nowMs} onOpen={setPreviewId} />
-                                    ))}
-                                </div>
+                <div className={styles.levels} aria-label={type}>
+                    {stakeLevels(stakeRows).map(group => (
+                        <section key={group.level} className={styles.levelGroup}>
+                            <h3 className={styles.subHead}>{t(LEVEL_KEYS[group.level])}</h3>
+                            <div className={styles.tiles}>
+                                {group.rows.map(row => (
+                                    <StakeTile key={row.key} row={row} gameName={type ?? ""} onOpen={setOpenStake} />
+                                ))}
                             </div>
-                        );
-                    })}
-                    {hasElements(quiet) ? (
-                        <div className={styles.quiet}>
-                            <span className={styles.quietLabel}>{t("lobby.quietStakes")}</span>
-                            {quiet.map(row => (
-                                <button key={row.key} type="button" className={styles.quietChip} onClick={() => setPreviewId(quietStakeTable(row).gameId)}>
-                                    {isCashTable(row.sample) ? lobbyStakesLabel(row.sample) : lobbyBuyInLabel(row.sample)}
-                                </button>
-                            ))}
-                        </div>
-                    ) : null}
-                </section>
+                        </section>
+                    ))}
+                </div>
             )}
+
+            {hasValue(openRow) ? (
+                <StakePanel
+                    row={openRow}
+                    gameName={type ?? ""}
+                    selected={rowSizeSelection(openRow, rowSizes[openRow.key])}
+                    onToggleSize={size => setPrefs({ rowSizes: { ...rowSizes, [openRow.key]: toggleRowSize(rowSizeSelection(openRow, rowSizes[openRow.key]), size) } })}
+                    clubOf={clubOf}
+                    isTreasury={gameId => rawGames.some(g => g.gameId === gameId && isTreasuryTable(g, treasuryAddress))}
+                    nowMs={nowMs}
+                    onPick={setPreviewId}
+                    onClose={() => setOpenStake(null)}
+                />
+            ) : null}
 
             {hasValue(preview) ? (
                 <TablePreview

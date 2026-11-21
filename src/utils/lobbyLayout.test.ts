@@ -18,6 +18,9 @@ import {
     sectionAnchorId,
     svgSafeId,
     lobbyPhase,
+    stakeLevelOf,
+    stakeLevels,
+    tileTable,
     feltLabels,
     rowView,
     sectionRows,
@@ -542,5 +545,28 @@ describe("feltLabels", () => {
 
     it("writes the buy-in (no fee split) on a tournament's felt", () => {
         expect(feltLabels(sng("s", 2, 6), "Sit & Go")).toEqual({ title: "$2", sub: "Sit & Go · 6-max" });
+    });
+});
+
+describe("stake levels and tiles", () => {
+    const rows = groupStakeRows([cash("a", 0.01, 0.02, 3, 9), cash("b", 0.05, 0.1, 0, 9), cash("c", 1, 2, 2, 6), cash("d", 5, 10, 0, 9), cash("e", 25, 50, 1, 2), cash("f", 0.01, 0.02, 0, 2)]);
+
+    it("puts each stake in its level", () => {
+        expect(rows.map(r => stakeLevelOf(r))).toEqual(["micro", "micro", "low", "mid", "high"]);
+    });
+
+    it("groups stakes by level, micro first, low to high inside", () => {
+        const groups = stakeLevels(rows);
+        expect(groups.map(g => g.level)).toEqual(["micro", "low", "mid", "high"]);
+        expect(groups[0].rows.map(r => r.sample.bigBlind)).toEqual(["20000", "100000"]);
+        expect(stakeLevels([])).toEqual([]);
+    });
+
+    it("keeps tournaments as one group", () => {
+        expect(stakeLevels(groupStakeRows([sng("s", 2, 6)])).map(g => g.level)).toEqual(["buy-in"]);
+    });
+
+    it("pictures a stake's busiest table", () => {
+        expect(tileTable(rows[0]).gameId).toBe("a");
     });
 });

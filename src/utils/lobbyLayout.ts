@@ -448,3 +448,22 @@ export const feltLabels = (game: GameWithFormat, gameName: string): { title: str
     title: isTournamentFormat(game.gameFormat) ? cashBlind(formatMicroAsUsdc(game.minBuyIn, 2)) : lobbyStakesLabel(game),
     sub: `${gameName} · ${tableSizeLabel(game.maxPlayers)}`
 });
+
+/** A stake level's band, for the lobby's level headings. */
+export type StakeLevel = Exclude<StakeBand, "all">;
+
+const LEVELS: StakeLevel[] = ["micro", "low", "mid", "high"];
+
+/** Which level a stake row is in (by big blind: micro up to 20c, low up to $2, mid up to $10, high above). */
+export const stakeLevelOf = (row: StakeRow): StakeLevel => LEVELS.find(l => matchesStake(row.sample, l)) ?? "high";
+
+/** Stake rows as tiles grouped by level (micro first), each level's stakes low to high. Tournaments are one group. */
+export const stakeLevels = (rows: StakeRow[]): { level: StakeLevel | "buy-in"; rows: StakeRow[] }[] => {
+    const sorted = sortStakeRows(rows, "stakes-up");
+    if (!sorted.some(r => isCashTable(r.sample))) return hasElements(sorted) ? [{ level: "buy-in", rows: sorted }] : [];
+    return LEVELS.map(level => ({ level, rows: sorted.filter(r => stakeLevelOf(r) === level) })).filter(g => hasElements(g.rows));
+};
+
+/** The table a stake tile pictures: its busiest table (most players), else its largest. */
+export const tileTable = (row: StakeRow): GameWithFormat =>
+    [...row.sizes.flatMap(s => s.tables)].sort((a, b) => b.currentPlayers - a.currentPlayers || b.maxPlayers - a.maxPlayers)[0];
