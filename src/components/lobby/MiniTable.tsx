@@ -8,6 +8,9 @@ interface MiniTableProps {
     /** Larger seats, for the preview panel. */
     large?: boolean;
     label: string;
+    /** Written on the felt in place of the logo: the stakes, and the game under it. */
+    title?: string;
+    sub?: string;
 }
 
 /** Orb colours for taken seats, from the Block52 chip palette. */
@@ -27,11 +30,11 @@ const RY = 64;
 
 /**
  * MiniTable — a small picture of the felt for a lobby card: the Block52 rim,
- * the felt with the logo, taken seats as coloured orbs and open seats as
+ * the felt with the stakes and game written on it (or the logo), taken seats as coloured orbs and open seats as
  * dashed cyan rings. The lobby list only knows how many players are seated,
  * not where, so taken seats are spread evenly (see `seatFill`).
  */
-const MiniTable: React.FC<MiniTableProps> = ({ maxPlayers, currentPlayers, large = false, label }) => {
+const MiniTable: React.FC<MiniTableProps> = ({ maxPlayers, currentPlayers, large = false, label, title, sub }) => {
     const id = svgSafeId(useId());
     const seats = seatFill(maxPlayers, currentPlayers);
     const r = large ? 17 : 15;
@@ -63,7 +66,20 @@ const MiniTable: React.FC<MiniTableProps> = ({ maxPlayers, currentPlayers, large
             <ellipse cx={CX} cy={CY} rx={RX + 5} ry={RY + 5} fill="#0B0920" />
             <ellipse cx={CX} cy={CY} rx={RX} ry={RY} fill={`url(#${id}felt)`} />
             <ellipse cx={CX} cy={CY} rx={RX - 16} ry={RY - 14} fill="none" stroke="rgba(196,181,253,.12)" />
-            <image href="/block52.png" x={CX - 46} y={CY - 13} width="92" height="26" opacity=".22" preserveAspectRatio="xMidYMid meet" />
+            {title ? (
+                <>
+                    <text x={CX} y={sub ? CY + 4 : CY + 12} textAnchor="middle" fontFamily="Unbounded, ui-sans-serif, system-ui, sans-serif" fontWeight="600" fontSize="34" fill="#F4F2FA" letterSpacing="-0.5">
+                        {title}
+                    </text>
+                    {sub ? (
+                        <text x={CX} y={CY + 30} textAnchor="middle" fontFamily="Inter, ui-sans-serif, system-ui, sans-serif" fontWeight="600" fontSize="14.5" fill="#C4B5FD">
+                            {sub}
+                        </text>
+                    ) : null}
+                </>
+            ) : (
+                <image href="/block52.png" x={CX - 46} y={CY - 13} width="92" height="26" opacity=".22" preserveAspectRatio="xMidYMid meet" />
+            )}
             {seats.map((taken, i) => {
                 const { x, y } = seatPosition(i, seats.length, CX, CY, RX + 28, RY + 26);
                 return taken ? (

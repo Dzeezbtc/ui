@@ -18,6 +18,7 @@ import {
     sectionAnchorId,
     svgSafeId,
     lobbyPhase,
+    feltLabels,
     rowSeat,
     rowView,
     sectionRows,
@@ -547,5 +548,15 @@ describe("rowSeat", () => {
     it("finds nothing when every table is full", () => {
         const full = groupStakeRows([cash("x", 1, 2, 9, 9)])[0];
         expect(rowSeat(full, [9])).toBeUndefined();
+    });
+});
+
+describe("feltLabels", () => {
+    it("writes the stakes and the game on a cash table's felt", () => {
+        expect(feltLabels(cash("a", 0.01, 0.02, 3, 9), "Texas Hold'em")).toEqual({ title: "1c / 2c", sub: "Texas Hold'em · 9-max" });
+    });
+
+    it("writes the buy-in (no fee split) on a tournament's felt", () => {
+        expect(feltLabels(sng("s", 2, 6), "Sit & Go")).toEqual({ title: "$2", sub: "Sit & Go · 6-max" });
     });
 });

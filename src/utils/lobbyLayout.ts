@@ -449,3 +449,14 @@ export const rowSeat = (row: StakeRow, selected: number[]): GameWithFormat | und
         .flatMap(s => s.tables)
         .filter(t => openSeats(t) > 0)
         .sort((a, b) => b.currentPlayers - a.currentPlayers || a.gameId.localeCompare(b.gameId))[0];
+
+/**
+ * What a lobby card writes on its felt: the stakes (cash) or the buy-in
+ * (Sit & Go / tournament, without the fee split) as the big line, and the game
+ * and table size underneath. `gameName` is the game as the lobby names it
+ * ("Texas Hold'em", "Sit & Go"...).
+ */
+export const feltLabels = (game: GameWithFormat, gameName: string): { title: string; sub: string } => ({
+    title: isTournamentFormat(game.gameFormat) ? cashBlind(formatMicroAsUsdc(game.minBuyIn, 2)) : lobbyStakesLabel(game),
+    sub: `${gameName} · ${tableSizeLabel(game.maxPlayers)}`
+});
