@@ -27,6 +27,7 @@ const TransactionPage = lazy(() => import("./pages/explorer/TransactionPage"));
 const AddressPage = lazy(() => import("./pages/explorer/AddressPage"));
 const AllAccountsPage = lazy(() => import("./pages/explorer/AllAccountsPage"));
 const DistributionPage = lazy(() => import("./pages/explorer/DistributionPage"));
+const FairnessPage = lazy(() => import("./pages/fairness/FairnessPage"));
 const HandReplayPage = lazy(() => import("./pages/explorer/HandReplayPage"));
 const HandPage = lazy(() => import("./pages/explorer/HandPage"));
 const TestSigningPage = lazy(() => import("./pages/TestSigningPage"));
@@ -180,6 +181,7 @@ function AppContent() {
                 <Route path="/explorer/address/:address" element={<AddressPage />} />
                 <Route path="/explorer/accounts" element={<AllAccountsPage />} />
                 <Route path="/explorer/distribution" element={<DistributionPage />} />
+                <Route path="/fairness" element={<FairnessPage />} />
                 <Route path="/explorer/hand/:gameId/:handNumber" element={<HandReplayPage />} />
                 <Route path="/explorer/hand/:gameId" element={<HandPage />} />
                 <Route path="/hands" element={siteLook === "flagship" ? <HandsHome /> : <MyHandsPage />} />
