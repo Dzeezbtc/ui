@@ -140,6 +140,8 @@ const strings: Translations = {
     "settings.hideBustedHelp": "Trong Sit & Go và giải đấu, người chơi bị loại sẽ biến mất khỏi bàn và ghế để trống. Tắt để giữ họ trên bàn ở dạng mờ.",
     "settings.potChips": "Pot dạng chip",
     "settings.potChipsHelp": "Hiển thị pot dạng chồng chip kèm số tiền, giống cược của người chơi. Khi tắt, pot hiện dạng chữ.",
+    "settings.flipBoard": "Lật bài chung",
+    "settings.flipBoardHelp": "Flop, turn và river úp xuống rồi lật lên. Khi tắt, bài rơi xuống ngửa.",
     "settings.chips": "Chip",
     "settings.chipsHelp": "Marble trông như thật; Flat sắc nét nhất ở cỡ nhỏ. Cash game hiện $ và ¢; giải đấu hiện điểm.",
     "settings.autoMuck": "Tự động giấu bài",

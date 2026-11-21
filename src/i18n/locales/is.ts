@@ -140,6 +140,8 @@ const strings: Translations = {
     "settings.hideBustedHelp": "Í Sit & Go og mótum hverfur leikmaður sem fellur úr leik af borðinu og sætið verður autt. Slökktu á þessu til að hafa þá áfram við borðið, dofna.",
     "settings.potChips": "Pottur sem spilapeningar",
     "settings.potChipsHelp": "Sýna pottinn sem stafla af spilapeningum með upphæðinni, eins og veðmálin fyrir framan leikmenn. Þegar slökkt er á því birtist hann sem venjulegur texti.",
+    "settings.flipBoard": "Snúa borðspilunum",
+    "settings.flipBoardHelp": "Flopp, turn og river lenda á hvolfi og snúast svo við. Slökkt: þau falla upp í loft.",
     "settings.chips": "Spilapeningar",
     "settings.chipsHelp": "Marmari er raunverulegur; Flatur er skýrastur í litlum stærðum. Cash-leikir sýna $ og ¢; mót sýna venjuleg stig.",
     "settings.autoMuck": "Sjálfvirkt muck",

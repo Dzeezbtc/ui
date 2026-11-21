@@ -140,6 +140,8 @@ const strings: Translations = {
     "settings.hideBustedHelp": "Sit & Go와 토너먼트에서 탈락한 플레이어는 테이블에서 사라지고 좌석은 비어 보입니다. 끄면 흐리게 테이블에 남습니다.",
     "settings.potChips": "팟을 칩으로 표시",
     "settings.potChipsHelp": "플레이어의 벳처럼 팟을 금액과 함께 칩 더미로 표시합니다. 끄면 글자로 표시됩니다.",
+    "settings.flipBoard": "보드 카드 뒤집기",
+    "settings.flipBoardHelp": "플랍, 턴, 리버가 뒷면으로 놓인 뒤 뒤집힙니다. 끄면 앞면으로 떨어집니다.",
     "settings.chips": "칩",
     "settings.chipsHelp": "Marble은 사실적이고 Flat은 작은 크기에서 가장 선명합니다. 캐시 게임은 $와 ¢, 토너먼트는 포인트로 표시합니다.",
     "settings.autoMuck": "자동 머크",

@@ -140,6 +140,8 @@ const strings: Translations = {
     "settings.hideBustedHelp": "I Sit & Go og turneringer forsvinder en spiller, der er ude, fra bordet, og pladsen bliver tom. Slå fra for at beholde dem ved bordet, nedtonet.",
     "settings.potChips": "Potten som chips",
     "settings.potChipsHelp": "Vis potten som en chipstak med beløbet, ligesom bettene foran spillerne. Når det er slået fra, vises den som almindelig tekst.",
+    "settings.flipBoard": "Vend bordkortene",
+    "settings.flipBoardHelp": "Flop, turn og river lander med bagsiden op og vendes derefter. Fra: de falder med forsiden op.",
     "settings.chips": "Chips",
     "settings.chipsHelp": "Marmor er fotorealistisk; Flad er skarpest i små størrelser. Cash games viser $ og ¢; turneringer viser almindelige pointværdier.",
     "settings.autoMuck": "Automatisk muck",

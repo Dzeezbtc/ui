@@ -140,6 +140,8 @@ const strings: Translations = {
     "settings.hideBustedHelp": "Bei Sit & Go und Turnieren verschwindet ein ausgeschiedener Spieler vom Tisch und sein Platz bleibt leer. Ausschalten, um ihn abgedunkelt am Tisch zu lassen.",
     "settings.potChips": "Pot als Chips",
     "settings.potChipsHelp": "Zeigt den Pot als Chipstapel mit Betrag, wie die Einsätze vor den Spielern. Ausgeschaltet erscheint er als Text.",
+    "settings.flipBoard": "Gemeinschaftskarten umdrehen",
+    "settings.flipBoardHelp": "Flop, Turn und River landen verdeckt und werden dann umgedreht. Aus: Sie fallen offen herein.",
     "settings.chips": "Chips",
     "settings.chipsHelp": "Marble ist fotorealistisch; Flat ist in kleinen Größen am schärfsten. Cash Games zeigen $ und ¢, Turniere einfache Punktwerte.",
     "settings.autoMuck": "Auto-Muck",

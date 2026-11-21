@@ -140,6 +140,8 @@ const strings: Translations = {
     "settings.hideBustedHelp": "Sit & Go -peleissä ja turnauksissa pudonnut pelaaja katoaa pöydästä ja hänen paikkansa jää tyhjäksi. Poista käytöstä, jos haluat heidän jäävän pöytään himmennettyinä.",
     "settings.potChips": "Potti pelimerkkeinä",
     "settings.potChipsHelp": "Näytä potti pelimerkkipinona summan kanssa, kuten pelaajien edessä olevat panokset. Kun pois päältä, se näkyy tekstinä.",
+    "settings.flipBoard": "Käännä pöytäkortit",
+    "settings.flipBoardHelp": "Flop, turn ja river laskeutuvat kuvapuoli alaspäin ja kääntyvät sitten. Pois päältä: ne putoavat kuvapuoli ylöspäin.",
     "settings.chips": "Pelimerkit",
     "settings.chipsHelp": "Marmori on valokuvamainen; Tasainen on terävin pienissä koissa. Käteispeleissä näkyy $ ja ¢; turnauksissa pelkät pistearvot.",
     "settings.autoMuck": "Automaattinen muck",

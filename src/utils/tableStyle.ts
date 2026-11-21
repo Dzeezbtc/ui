@@ -65,7 +65,13 @@ export const skinForTheme = (theme: string): TableStyle | null => THEME_SKINS[th
 export const usesFlagshipLayout = (style: TableStyle): boolean => style === "flagship" || style === "chipchair" || isThreeTableStyle(style);
 
 /** True for the styles that deal the board and shown hands face down, roll them over and lift them flat (Bad Beat, Maison 52, Chip and a Chair). */
-export const dealsFaceDown = (style: TableStyle): boolean => style === "chipchair" || isThreeTableStyle(style);
+/**
+ * Whether the board is dealt face down and turned over: always at Chip and a
+ * Chair and the 3D tables; at the Flagship only when the player picks it
+ * (Table settings, "Flip the board cards over").
+ */
+export const dealsFaceDown = (style: TableStyle, flagshipFlip = false): boolean =>
+    style === "chipchair" || isThreeTableStyle(style) || (style === "flagship" && flagshipFlip);
 
 /** True for the styles drawn as a 3D table (Bad Beat, Maison 52): a WebGL table under the plates, cards and chips. */
 export const isThreeTableStyle = (style: TableStyle): style is "badbeat" | "maison" => style === "badbeat" || style === "maison";

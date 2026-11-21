@@ -140,6 +140,8 @@ const strings: Translations = {
     "settings.hideBustedHelp": "Nei Sit & Go e nei tornei, un giocatore eliminato scompare dal tavolo e il suo posto resta vuoto. Disattiva per lasciarli al tavolo, attenuati.",
     "settings.potChips": "Piatto in chip",
     "settings.potChipsHelp": "Mostra il piatto come una pila di chip con l'importo, come le puntate. Se disattivato, appare come testo.",
+    "settings.flipBoard": "Gira le carte comuni",
+    "settings.flipBoardHelp": "Flop, turn e river arrivano coperti e poi si girano. Disattivato, cadono scoperti.",
     "settings.chips": "Chip",
     "settings.chipsHelp": "Marble è fotorealistico; Flat è più nitido nelle dimensioni ridotte. I cash game mostrano $ e ¢; i tornei, punti.",
     "settings.autoMuck": "Muck automatico",

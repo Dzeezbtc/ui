@@ -140,6 +140,8 @@ const strings: Translations = {
     "settings.hideBustedHelp": "En Sit & Go y torneos, el jugador eliminado desaparece de la mesa y su asiento queda en blanco. Desactívalo para mantenerlos en la mesa, atenuados.",
     "settings.potChips": "Bote en fichas",
     "settings.potChipsHelp": "Muestra el bote como una pila de fichas con la cantidad, igual que las apuestas. Si se desactiva, aparece como texto.",
+    "settings.flipBoard": "Voltear las cartas comunitarias",
+    "settings.flipBoardHelp": "El flop, el turn y el river caen boca abajo y luego se voltean. Desactivado, caen boca arriba.",
     "settings.chips": "Fichas",
     "settings.chipsHelp": "Marble es fotorrealista; Flat se ve más nítido en tamaños pequeños. El cash muestra $ y ¢; los torneos, puntos.",
     "settings.autoMuck": "Ocultar automáticamente",
