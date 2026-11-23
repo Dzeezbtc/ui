@@ -1,17 +1,14 @@
-import React, { useMemo, useState } from "react";
+import React, { useMemo } from "react";
 import { Link } from "react-router-dom";
 import { useLanguage } from "../../i18n/useLanguage";
 import { useCosmosWallet } from "../../hooks/wallet/useCosmosWallet";
 import { useNetwork } from "../../context/NetworkContext";
 import { useMyHandHistory } from "../../hooks/player/useMyHandHistory";
-import { formatMicroAsUsdc } from "../../constants/currency";
 import { hasContent, hasElements, hasValue } from "../../utils/guards";
-import { usdcMicroOf } from "../../utils/siteNav";
-import { lobbyBalanceLabel, feltLabels, seatedTotal } from "../../utils/lobbyLayout";
+import { feltLabels, seatedTotal } from "../../utils/lobbyLayout";
 import { gameTypeOf } from "../../utils/lobbyTabs";
 import { playStats, recentTableIds } from "../../utils/lobbySide";
 import type { GameWithFormat } from "../../utils/convertUtils";
-import { WalletSheet } from "../nav/WalletSheet";
 import UpcomingEvents from "./UpcomingEvents";
 import styles from "./Lobby.module.css";
 
@@ -21,16 +18,14 @@ interface LobbySideProps {
 }
 
 /**
- * The desktop lobby's right-hand column: your wallet, your play, the tables you
+ * The desktop lobby's right-hand column: live numbers, your play, the tables you
  * were just at, and the next scheduled Sit & Go / tournaments. Hidden on phones.
  */
 const LobbySide: React.FC<LobbySideProps> = ({ games }) => {
     const { t } = useLanguage();
     const wallet = useCosmosWallet();
     const { currentNetwork } = useNetwork();
-    const [walletOpen, setWalletOpen] = useState(false);
     const { hands, total } = useMyHandHistory(wallet.address, `${currentNetwork.name}|${currentNetwork.rest}`, 25);
-    const balance = formatMicroAsUsdc(usdcMicroOf(wallet.balance), 6);
     const stats = playStats(hands, total);
     const recent = useMemo(
         () => recentTableIds(hands).map(id => games.find(g => g.gameId === id)).filter(hasValue),
@@ -54,13 +49,6 @@ const LobbySide: React.FC<LobbySideProps> = ({ games }) => {
                         <small>{t("lobby.tileTables", { count: "" }).trim()}</small>
                     </div>
                 </div>
-            </section>
-            <section className={`${styles.sideCard} ${styles.sideWallet}`}>
-                <span className={styles.sideEyebrow}>{t("lobby.myWallet")}</span>
-                <b className={styles.sideBalance}>{lobbyBalanceLabel(balance)}</b>
-                <button type="button" className={`${styles.btn} ${styles.btnGrad}`} onClick={() => setWalletOpen(true)} disabled={!hasContent(wallet.address)}>
-                    {t("lobby.deposit")}
-                </button>
             </section>
 
             {hasContent(wallet.address) ? (
@@ -109,7 +97,6 @@ const LobbySide: React.FC<LobbySideProps> = ({ games }) => {
                 <UpcomingEvents />
             </div>
 
-            {walletOpen && hasContent(wallet.address) ? <WalletSheet address={wallet.address} usdc={balance} onClose={() => setWalletOpen(false)} onRefresh={wallet.refreshBalance} /> : null}
         </aside>
     );
 };
