@@ -1,6 +1,7 @@
 import React from "react";
-import type { StakeRow } from "../../utils/lobbyLayout";
-import { feltLabels, tileSizesLabel, tileTable } from "../../utils/lobbyLayout";
+import type { StakeLevel, StakeRow } from "../../utils/lobbyLayout";
+import { cashBlind } from "../../utils/blindsLabel";
+import { LEVEL_DEFAULT_STAKES, feltLabels, tileSizesLabel, tileTable } from "../../utils/lobbyLayout";
 import { useLanguage } from "../../i18n/useLanguage";
 import MiniTable from "./MiniTable";
 import styles from "./Lobby.module.css";
@@ -43,6 +44,28 @@ const StakeTile: React.FC<StakeTileProps> = ({ row, gameName, onOpen }) => {
             </div>
             <div className={styles.pic}>
                 <MiniTable maxPlayers={table.maxPlayers} currentPlayers={table.currentPlayers} title={title} sub={sizes} label={`${table.currentPlayers} of ${table.maxPlayers} seats taken`} />
+            </div>
+        </button>
+    );
+};
+
+/**
+ * A level nobody is playing yet still shows a table: an empty 9-max at the
+ * level's usual stakes, ready to sit at. Tapping it opens Create table on those stakes.
+ */
+export const ReadyTile: React.FC<{ level: StakeLevel; onSit?: (stakes: { smallBlind: number; bigBlind: number }) => void }> = ({ level, onSit }) => {
+    const { t } = useLanguage();
+    const stakes = LEVEL_DEFAULT_STAKES[level];
+    const title = `${cashBlind(String(stakes.smallBlind))} / ${cashBlind(String(stakes.bigBlind))}`;
+    const sizes = tileSizesLabel([9, 6, 2]);
+    const open = t("lobby.seatsOpen", { count: 9 });
+    return (
+        <button type="button" className={`${styles.card} ${styles.tile} ${styles.cardEmpty}`} onClick={() => onSit?.(stakes)} aria-label={`${title}, ${sizes}, ${open}`}>
+            <div className={styles.cardTop}>
+                <span className={`${styles.pill} ${styles.pillCy}`}>{open}</span>
+            </div>
+            <div className={styles.pic}>
+                <MiniTable maxPlayers={9} currentPlayers={0} title={title} sub={sizes} label={open} />
             </div>
         </button>
     );

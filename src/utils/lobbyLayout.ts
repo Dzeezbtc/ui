@@ -469,6 +469,14 @@ export const stakeLevels = (rows: StakeRow[], allLevels = false): { level: Stake
     return allLevels ? groups : groups.filter(g => hasElements(g.rows));
 };
 
+/** The stakes a level offers when nobody has opened a table there yet (small blind, big blind in dollars). */
+export const LEVEL_DEFAULT_STAKES: Record<StakeLevel, { smallBlind: number; bigBlind: number }> = {
+    micro: { smallBlind: 0.05, bigBlind: 0.1 },
+    low: { smallBlind: 0.5, bigBlind: 1 },
+    mid: { smallBlind: 2.5, bigBlind: 5 },
+    high: { smallBlind: 10, bigBlind: 20 }
+};
+
 /** A tile's sizes, short and biggest first: "9-max · 6-max · H/U" (3–6 seats count as 6-max). */
 export const tileSizesLabel = (sizes: readonly number[]): string => {
     const bands = new Set<string>(sizes.map(n => (n === 2 ? "H/U" : n <= 6 ? "6-max" : "9-max")));

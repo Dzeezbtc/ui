@@ -21,6 +21,7 @@ import {
     stakeLevelOf,
     stakeLevels,
     tileSizesLabel,
+    LEVEL_DEFAULT_STAKES,
     tileTable,
     feltLabels,
     rowView,
@@ -567,6 +568,13 @@ describe("stake levels and tiles", () => {
         const only = groupStakeRows([cash("a", 0.01, 0.02, 3, 9)]);
         expect(stakeLevels(only, true).map(g => [g.level, g.rows.length])).toEqual([["micro", 1], ["low", 0], ["mid", 0], ["high", 0]]);
         expect(stakeLevels(only).map(g => g.level)).toEqual(["micro"]);
+    });
+
+    it("gives every cash level stakes that fall inside it", () => {
+        for (const level of ["micro", "low", "mid", "high"] as const) {
+            const { smallBlind, bigBlind } = LEVEL_DEFAULT_STAKES[level];
+            expect(stakeLevelOf(groupStakeRows([cash("x", smallBlind, bigBlind, 0, 9)])[0])).toBe(level);
+        }
     });
 
     it("writes a tile's sizes short, biggest first", () => {

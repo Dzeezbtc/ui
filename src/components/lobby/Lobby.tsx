@@ -32,14 +32,15 @@ import type { TranslationKey } from "../../i18n";
 import DeleteTableModal from "../modals/DeleteTableModal";
 import ForceCloseTableModal from "../modals/ForceCloseTableModal";
 import UpcomingEvents from "./UpcomingEvents";
-import StakeTile from "./StakeTile";
+import StakeTile, { ReadyTile } from "./StakeTile";
 import StakePanel from "./StakePanel";
 import TablePreview from "./TablePreview";
 import styles from "./Lobby.module.css";
 
 interface LobbyProps {
     address: string | null;
-    onCreateTable?: () => void;
+    /** Opens Create table; a ready tile passes its level's stakes so the form starts on them. */
+    onCreateTable?: (stakes?: { smallBlind: number; bigBlind: number }) => void;
 }
 
 const STAKE_NAMES: Record<StakeBand, string> = { all: "", micro: "Micro", low: "Low", mid: "Mid", high: "High" };
@@ -212,7 +213,7 @@ const Lobby: React.FC<LobbyProps> = ({ address, onCreateTable }) => {
                         {filterCount > 0 ? <span className={styles.badgeCount}>{filterCount}</span> : null}
                     </button>
                     {onCreateTable ? (
-                        <button type="button" className={`${styles.createBtn} ${styles.hidePhone}`} onClick={onCreateTable} aria-label={t("lobby.createTable")} title={t("lobby.createTable")}>
+                        <button type="button" className={`${styles.createBtn} ${styles.hidePhone}`} onClick={() => onCreateTable?.()} aria-label={t("lobby.createTable")} title={t("lobby.createTable")}>
                             <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2.2" aria-hidden="true">
                                 <path d="M12 5v14M5 12h14" />
                             </svg>
@@ -262,7 +263,7 @@ const Lobby: React.FC<LobbyProps> = ({ address, onCreateTable }) => {
                         </button>
                     ) : null}
                     {onCreateTable ? (
-                        <button type="button" className={`${styles.btn} ${styles.btnSm} ${styles.btnGhost} ${styles.showPhone}`} onClick={onCreateTable}>
+                        <button type="button" className={`${styles.btn} ${styles.btnSm} ${styles.btnGhost} ${styles.showPhone}`} onClick={() => onCreateTable?.()}>
                             {t("lobby.createTable")}
                         </button>
                     ) : null}
@@ -291,7 +292,7 @@ const Lobby: React.FC<LobbyProps> = ({ address, onCreateTable }) => {
                             {t("lobby.clearFilters")}
                         </button>
                     ) : onCreateTable ? (
-                        <button type="button" className={`${styles.btn} ${styles.btnGrad}`} onClick={onCreateTable}>
+                        <button type="button" className={`${styles.btn} ${styles.btnGrad}`} onClick={() => onCreateTable?.()}>
                             {t("lobby.createTable")}
                         </button>
                     ) : null}
@@ -305,11 +306,8 @@ const Lobby: React.FC<LobbyProps> = ({ address, onCreateTable }) => {
                                 {group.rows.map(row => (
                                     <StakeTile key={row.key} row={row} gameName={type ?? ""} onOpen={setOpenStake} />
                                 ))}
-                                {!hasElements(group.rows) ? (
-                                    <button type="button" className={`${styles.card} ${styles.tile} ${styles.tileEmpty}`} onClick={onCreateTable} disabled={!onCreateTable}>
-                                        <span className={styles.tileEmptyTitle}>{t("lobby.tileFirst")}</span>
-                                        {onCreateTable ? <span className={styles.tileEmptyAction}>+ {t("lobby.createTable")}</span> : null}
-                                    </button>
+                                {!hasElements(group.rows) && group.level !== "buy-in" ? (
+                                    <ReadyTile level={group.level} onSit={onCreateTable} />
                                 ) : null}
                             </div>
                         </section>
@@ -340,7 +338,7 @@ const Lobby: React.FC<LobbyProps> = ({ address, onCreateTable }) => {
                     busy={isDeleting || isClosing}
                     others={occupiedTables(othersAtLevel(rawGames, preview))}
                     similar={similarOpenTable(rawGames, preview)}
-                    onCreateSimilar={onCreateTable}
+                    onCreateSimilar={() => onCreateTable?.()}
                     onPick={setPreviewId}
                     onClose={() => setPreviewId(null)}
                     onDelete={setDeleteId}
