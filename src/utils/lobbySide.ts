@@ -1,5 +1,5 @@
 import type { PlayerHand } from "../types/players";
-import { hasContent } from "./guards";
+import { hasContent, isEmpty } from "./guards";
 import { handsCounts } from "./handsView";
 
 /** The tables you played most recently (newest first, each once), for "Jump back in". */
@@ -15,7 +15,7 @@ export const recentTableIds = (hands: readonly Pick<PlayerHand, "game_id">[], ma
 /** The numbers in the lobby's "Your play" card, from your loaded hands and the indexer's total. */
 export const playStats = (hands: PlayerHand[], total: number): { hands: number; wonShare: number; tables: number } => ({
     hands: Math.max(total, hands.length),
-    wonShare: hands.length === 0 ? 0 : Math.round((handsCounts(hands).won / hands.length) * 100),
+    wonShare: isEmpty(hands) ? 0 : Math.round((handsCounts(hands).won / hands.length) * 100),
     tables: new Set(hands.map(h => h.game_id)).size
 });
 

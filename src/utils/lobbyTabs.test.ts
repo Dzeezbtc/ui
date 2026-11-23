@@ -67,7 +67,7 @@ describe("lobbyTabs", () => {
 describe("shortGameType", () => {
     it("shortens the game names players know", () => {
         expect(shortGameType("Texas Hold'em")).toBe("Hold'em");
-        expect(shortGameType("Pot-Limit Omaha")).toBe("PLO");
+        expect(shortGameType("Pot-Limit Omaha")).toBe("Omaha");
         expect(shortGameType("Omaha")).toBe("Omaha");
         expect(shortGameType("Stud")).toBe("Stud");
     });

@@ -27,8 +27,9 @@ interface LevelCardProps {
 }
 
 /**
- * One stake level on desktop: a big felt of its busiest stake on the left and
- * every stake at that level listed on the right (players, tables, sizes, buy-in).
+ * One stake level on desktop: a plain felt (seats and players, no writing) of its
+ * busiest stake on the left, and the stake details listed once on the right
+ * (stakes, players, tables, sizes, buy-in).
  * A level nobody plays yet shows an open table at its usual stakes instead.
  */
 const LevelCard: React.FC<LevelCardProps> = ({ level, title, rows, gameName, onOpen, onSit }) => {
@@ -59,17 +60,11 @@ const LevelCard: React.FC<LevelCardProps> = ({ level, title, rows, gameName, onO
             <div className={styles.levelCardBody}>
                 {hasValue(lead) && hasValue(leadTable) ? (
                     <button type="button" className={styles.levelFelt} onClick={e => onOpen(lead.key, e.currentTarget.getBoundingClientRect())} aria-label={feltLabels(leadTable, gameName).title}>
-                        <MiniTable
-                            maxPlayers={leadTable.maxPlayers}
-                            currentPlayers={leadTable.currentPlayers}
-                            title={feltLabels(leadTable, gameName).title}
-                            sub={tileSizesLabel(lead.sizes.map(s => s.size))}
-                            label={`${leadTable.currentPlayers} of ${leadTable.maxPlayers} seats taken`}
-                        />
+                        <MiniTable maxPlayers={leadTable.maxPlayers} currentPlayers={leadTable.currentPlayers} label={`${leadTable.currentPlayers} of ${leadTable.maxPlayers} seats taken`} />
                     </button>
                 ) : hasValue(ready) ? (
                     <button type="button" className={styles.levelFelt} onClick={() => onSit?.(ready)} aria-label={readyTitle}>
-                        <MiniTable maxPlayers={9} currentPlayers={0} title={readyTitle} sub={tileSizesLabel([9, 6, 2])} label={t("lobby.seatsOpen", { count: 9 })} />
+                        <MiniTable maxPlayers={9} currentPlayers={0} label={t("lobby.seatsOpen", { count: 9 })} />
                     </button>
                 ) : null}
 
@@ -87,7 +82,7 @@ const LevelCard: React.FC<LevelCardProps> = ({ level, title, rows, gameName, onO
                                 >
                                     <b>{feltLabels(table, gameName).title}</b>
                                     <span className={styles.levelLineSub}>
-                                        {tileSizesLabel(row.sizes.map(s => s.size))} · {lobbyBuyInLabel(table)}
+                                        {level === "buy-in" ? tileSizesLabel(row.sizes.map(s => s.size)) : `${tileSizesLabel(row.sizes.map(s => s.size))} · ${lobbyBuyInLabel(table)}`}
                                     </span>
                                     <span className={styles.levelLineNums}>
                                         {row.seated > 0 ? (

@@ -598,3 +598,9 @@ a.pill:hover { color: #fff; }
 /* Footer logo: whole and faint, not cut off. */
 .footerMark { height: auto; padding: 6px 0 26px; -webkit-mask-image: none; mask-image: none; place-items: center; }
 .footerMark img { width: 150px; opacity: 0.35; transform: none; filter: grayscale(0.3); }
+
+/* Live now: a compact strip, not a billboard. */
+.sideLive { gap: 8px; padding: 14px 18px; }
+.sideLiveNums { display: flex; gap: 18px; align-items: baseline; }
+.sideLiveNums div { display: flex; align-items: baseline; gap: 6px; }
+.sideLiveNums b { display: inline; font-size: 20px; }

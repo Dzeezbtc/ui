@@ -425,7 +425,7 @@ const Lobby: React.FC<LobbyProps> = ({ address, onCreateTable }) => {
                                                     level={group.level}
                                                     title={t(LEVEL_KEYS[group.level])}
                                                     rows={group.rows}
-                                                    gameName={sec.type ?? ""}
+                                                    gameName={shortGameType(sec.type ?? "")}
                                                     onOpen={(key, from) => {
                                                         setOpenFrom(from);
                                                         setOpenStake(key);
@@ -443,7 +443,7 @@ const Lobby: React.FC<LobbyProps> = ({ address, onCreateTable }) => {
                                                             <StakeTile
                                                                 key={row.key}
                                                                 row={row}
-                                                                gameName={sec.type ?? ""}
+                                                                gameName={shortGameType(sec.type ?? "")}
                                                                 onOpen={(key, from) => {
                                                                     setOpenFrom(from);
                                                                     setOpenStake(key);
@@ -472,7 +472,7 @@ const Lobby: React.FC<LobbyProps> = ({ address, onCreateTable }) => {
                 <StakePanel
                     row={openRow}
                     from={openFrom}
-                    gameName={openSection?.type ?? ""}
+                    gameName={shortGameType(openSection?.type ?? "")}
                     selected={rowSizeSelection(openRow, rowSizes[openRow.key])}
                     onToggleSize={size =>
                         setPrefs({ rowSizes: { ...rowSizes, [openRow.key]: toggleRowSize(rowSizeSelection(openRow, rowSizes[openRow.key]), size) } })
@@ -527,8 +527,7 @@ const TypeChips: React.FC<{ chips: GameTypeChip[]; type: string | undefined; onP
                     className={c.type === type ? styles.typeOn : styles.type}
                     onClick={() => onPick(c.type)}
                 >
-                    <span className={styles.hidePhone}>{c.type}</span>
-                    <span className={styles.showPhone}>{shortGameType(c.type)}</span>
+                    <span>{shortGameType(c.type)}</span>
                     <i>{c.tables}</i>
                 </button>
             ))}
