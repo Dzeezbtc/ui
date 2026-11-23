@@ -320,6 +320,8 @@ export interface LobbyPrefs {
     rowSizes: Record<string, number[]>;
     /** The tab the lobby was last on: "cash", "sit-and-go" or "tournament". */
     tab: string;
+    /** The areas switched on (several can be on at once; they stack in lobby order). */
+    tabs?: string[];
     /** The game type picked in each tab, by tab. */
     types: Record<string, string>;
 }
@@ -353,6 +355,7 @@ export const parseLobbyPrefs = (raw: string | null, defaults: LobbyPrefs): Lobby
             hideEmpty: isBoolean(data.hideEmpty) ? data.hideEmpty : defaults.hideEmpty,
             rowSizes: isRecord(data.rowSizes) ? parseRowSizes(data.rowSizes) : defaults.rowSizes,
             tab: isString(data.tab) ? data.tab : defaults.tab,
+            tabs: Array.isArray(data.tabs) ? data.tabs.filter(isString) : defaults.tabs,
             types: isRecord(data.types) ? parseTypes(data.types) : defaults.types
         };
     } catch {

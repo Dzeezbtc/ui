@@ -25,7 +25,7 @@ import {
     type SizeBand,
     type StakeBand
 } from "../../utils/lobbyLayout";
-import { LOBBY_TABS, shortGameType, activeGameType, activeTab, gameTypesIn, gamesFor, isLobbyTab, tabCounts, type LobbyTab } from "../../utils/lobbyTabs";
+import { LOBBY_TABS, shortGameType, activeGameType, activeTabs, gameTypesIn, gamesFor, isLobbyTab, tabCounts, toggleTab, type GameTypeChip, type LobbyTab } from "../../utils/lobbyTabs";
 import { hasContent, hasElements, hasValue, isEmpty } from "../../utils/guards";
 import { useLanguage } from "../../i18n/useLanguage";
 import type { TranslationKey } from "../../i18n";
@@ -100,14 +100,23 @@ const Lobby: React.FC<LobbyProps> = ({ address, onCreateTable }) => {
         [rawGames, query, stakes, sizes, treasuryOnly, clubNames, hideFull, hideEmpty, inviteOnly, inviteTables]
     );
     const counts = useMemo(() => tabCounts(rawGames), [rawGames]);
-    const tab = activeTab(counts, isLobbyTab(prefs.tab) ? prefs.tab : undefined);
-    const typeChips = useMemo(() => gameTypesIn(rawGames, tab), [rawGames, tab]);
-    const type = activeGameType(typeChips, prefs.types[tab]);
-    const shown = useMemo(() => gamesFor(games, tab, type), [games, tab, type]);
-    // Every stake in this game, as tiles grouped by level; one opens as a panel with its tables.
-    const stakeRows = useMemo(() => groupStakeRows(shown), [shown]);
+    // The areas switched on (Cash games, Sit & Go, Tournaments); several stack one under another.
+    const tabs = activeTabs(counts, prefs.tabs, isLobbyTab(prefs.tab) ? prefs.tab : undefined);
+    const multi = tabs.length > 1;
+    // Each area: its game-type chips, the chosen type, and that game's stakes as tiles grouped by level.
+    const sections = useMemo(
+        () =>
+            tabs.map(tb => {
+                const chips = gameTypesIn(rawGames, tb);
+                const type = activeGameType(chips, prefs.types[tb]);
+                return { tab: tb, chips, type, rows: groupStakeRows(gamesFor(games, tb, type)) };
+            }),
+        // eslint-disable-next-line react-hooks/exhaustive-deps
+        [tabs.join(","), rawGames, games, prefs.types]
+    );
     const [openStake, setOpenStake] = useState<string | null>(null);
-    const openRow = stakeRows.find(r => r.key === openStake);
+    const openSection = sections.find(sec => sec.rows.some(r => r.key === openStake));
+    const openRow = openSection?.rows.find(r => r.key === openStake);
     const preview = hasContent(previewId) ? rawGames.find(g => g.gameId === previewId) : undefined;
     const filterCount = activeFilterCount({ query, stakes, sizes, hideFull, hideEmpty, inviteOnly });
 
@@ -147,9 +156,9 @@ const Lobby: React.FC<LobbyProps> = ({ address, onCreateTable }) => {
                     <span className={styles.dot} />
                     {t("lobby.liveLine", { tables: rawGames.length, players: seatedTotal(rawGames) })}
                 </span>
-                <div className={styles.tabs} role="tablist" aria-label={t("lobby.areas")}>
+                <div className={styles.tabs} role="group" aria-label={t("lobby.areas")}>
                     {LOBBY_TABS.map(tb => (
-                        <button key={tb} type="button" role="tab" aria-selected={tab === tb} className={tab === tb ? styles.tabOn : styles.tab} onClick={() => setPrefs({ tab: tb })}>
+                        <button key={tb} type="button" aria-pressed={tabs.includes(tb)} className={tabs.includes(tb) ? styles.tabOn : styles.tab} onClick={() => setPrefs({ tabs: toggleTab(tabs, tb) })}>
                             {t(TAB_KEYS[tb])}
                             <i>{counts[tb]}</i>
                         </button>
@@ -159,21 +168,7 @@ const Lobby: React.FC<LobbyProps> = ({ address, onCreateTable }) => {
 
             {/* Game types of the open tab, with search and filters at the end of the row. */}
             <div className={styles.typeRow}>
-                <div className={styles.types} role="group" aria-label={t("lobby.game")}>
-                    {typeChips.map(c => (
-                        <button
-                            key={c.type}
-                            type="button"
-                            aria-pressed={c.type === type}
-                            className={c.type === type ? styles.typeOn : styles.type}
-                            onClick={() => setPrefs({ types: { ...prefs.types, [tab]: c.type } })}
-                        >
-                            <span className={styles.hidePhone}>{c.type}</span>
-                            <span className={styles.showPhone}>{shortGameType(c.type)}</span>
-                            <i>{c.tables}</i>
-                        </button>
-                    ))}
-                </div>
+                {multi ? <span /> : <TypeChips chips={sections[0].chips} type={sections[0].type} onPick={c => setPrefs({ types: { ...prefs.types, [sections[0].tab]: c } })} />}
                 <div className={styles.typeTools}>
                     {searchOpen || hasContent(query) ? (
                         <div className={styles.search}>
@@ -272,8 +267,6 @@ const Lobby: React.FC<LobbyProps> = ({ address, onCreateTable }) => {
                 </div>
             ) : null}
 
-            {tab === "tournament" ? <UpcomingEvents /> : null}
-
             {isLoading && isEmpty(allGames) ? (
                 <div className={`${styles.box} ${styles.state}`}>
                     <div className={styles.spinner} />
@@ -286,7 +279,17 @@ const Lobby: React.FC<LobbyProps> = ({ address, onCreateTable }) => {
                         {t("lobby.retry")}
                     </button>
                 </div>
-            ) : !hasElements(stakeRows) ? (
+            ) : (
+                sections.map(sec => (
+                    <section key={sec.tab} className={multi ? styles.area : undefined} aria-label={t(TAB_KEYS[sec.tab])}>
+                        {multi ? (
+                            <div className={styles.areaHead}>
+                                <h2>{t(TAB_KEYS[sec.tab])}</h2>
+                                <TypeChips chips={sec.chips} type={sec.type} onPick={c => setPrefs({ types: { ...prefs.types, [sec.tab]: c } })} />
+                            </div>
+                        ) : null}
+                        {sec.tab === "tournament" ? <UpcomingEvents /> : null}
+                        {!hasElements(sec.rows) ? (
                 <div className={`${styles.box} ${styles.state}`}>
                     <p style={{ color: "var(--fg)", fontWeight: 600 }}>{filterCount > 0 ? t("lobby.noMatchFilters") : t("lobby.noTablesHere")}</p>
                     {filterCount > 0 ? (
@@ -300,13 +303,13 @@ const Lobby: React.FC<LobbyProps> = ({ address, onCreateTable }) => {
                     ) : null}
                 </div>
             ) : (
-                <div className={styles.levels} aria-label={type}>
-                    {stakeLevels(stakeRows, tab === "cash" && !hasElements(stakes) && !hideEmpty).map(group => (
+                <div className={styles.levels} aria-label={sec.type}>
+                    {stakeLevels(sec.rows, sec.tab === "cash" && !hasElements(stakes) && !hideEmpty).map(group => (
                         <section key={group.level} className={styles.levelGroup}>
                             <h3 className={styles.subHead}>{t(LEVEL_KEYS[group.level])}</h3>
                             <div className={styles.tiles}>
                                 {group.rows.map(row => (
-                                    <StakeTile key={row.key} row={row} gameName={type ?? ""} onOpen={setOpenStake} />
+                                    <StakeTile key={row.key} row={row} gameName={sec.type ?? ""} onOpen={setOpenStake} />
                                 ))}
                                 {!hasElements(group.rows) && group.level !== "buy-in" ? (
                                     <ReadyTile level={group.level} onSit={onCreateTable} />
@@ -316,11 +319,14 @@ const Lobby: React.FC<LobbyProps> = ({ address, onCreateTable }) => {
                     ))}
                 </div>
             )}
+                    </section>
+                ))
+            )}
 
             {hasValue(openRow) ? (
                 <StakePanel
                     row={openRow}
-                    gameName={type ?? ""}
+                    gameName={openSection?.type ?? ""}
                     selected={rowSizeSelection(openRow, rowSizes[openRow.key])}
                     onToggleSize={size => setPrefs({ rowSizes: { ...rowSizes, [openRow.key]: toggleRowSize(rowSizeSelection(openRow, rowSizes[openRow.key]), size) } })}
                     clubOf={clubOf}
@@ -356,6 +362,22 @@ const Lobby: React.FC<LobbyProps> = ({ address, onCreateTable }) => {
                 gameId={forceCloseTarget?.gameId ?? ""}
                 seatedPlayerCount={forceCloseTarget?.currentPlayers ?? 0}
             />
+        </div>
+    );
+};
+
+/** A tab's game-type chips ("Texas Hold'em 13", "PLO 5"); short names on phones. */
+const TypeChips: React.FC<{ chips: GameTypeChip[]; type: string | undefined; onPick: (type: string) => void }> = ({ chips, type, onPick }) => {
+    const { t } = useLanguage();
+    return (
+        <div className={styles.types} role="group" aria-label={t("lobby.game")}>
+            {chips.map(c => (
+                <button key={c.type} type="button" aria-pressed={c.type === type} className={c.type === type ? styles.typeOn : styles.type} onClick={() => onPick(c.type)}>
+                    <span className={styles.hidePhone}>{c.type}</span>
+                    <span className={styles.showPhone}>{shortGameType(c.type)}</span>
+                    <i>{c.tables}</i>
+                </button>
+            ))}
         </div>
     );
 };

@@ -1,6 +1,6 @@
 import { BettingLimit, GameFormat, GameVariant } from "@block52/poker-vm-sdk";
 import type { GameWithFormat } from "./convertUtils";
-import { activeGameType, activeTab, gameTypeOf, gameTypesIn, gamesFor, isLobbyTab, shortGameType, tabCounts, tabOf } from "./lobbyTabs";
+import { activeGameType, activeTab, activeTabs, toggleTab, gameTypeOf, gameTypesIn, gamesFor, isLobbyTab, shortGameType, tabCounts, tabOf } from "./lobbyTabs";
 
 const cash = (id: string, seated: number, extra: Partial<GameWithFormat> = {}): GameWithFormat => ({
     gameId: id,
@@ -70,5 +70,22 @@ describe("shortGameType", () => {
         expect(shortGameType("Pot-Limit Omaha")).toBe("PLO");
         expect(shortGameType("Omaha")).toBe("Omaha");
         expect(shortGameType("Stud")).toBe("Stud");
+    });
+});
+
+describe("several areas at once", () => {
+    const counts = { cash: 3, "sit-and-go": 2, tournament: 0 };
+
+    it("shows the saved areas in lobby order, or the single fallback tab", () => {
+        expect(activeTabs(counts, ["tournament", "cash"], undefined)).toEqual(["cash", "tournament"]);
+        expect(activeTabs(counts, [], "sit-and-go")).toEqual(["sit-and-go"]);
+        expect(activeTabs(counts, undefined, undefined)).toEqual(["cash"]);
+    });
+
+    it("switches areas on and off but never all off", () => {
+        expect(toggleTab(["cash"], "tournament")).toEqual(["cash", "tournament"]);
+        expect(toggleTab(["tournament"], "cash")).toEqual(["cash", "tournament"]);
+        expect(toggleTab(["cash", "tournament"], "cash")).toEqual(["tournament"]);
+        expect(toggleTab(["cash"], "cash")).toEqual(["cash"]);
     });
 });

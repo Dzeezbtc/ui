@@ -1,3 +1,4 @@
+import { hasElements } from "./guards";
 import type { GameWithFormat } from "./convertUtils";
 import { formatTableGameDisplay, toGameVariant } from "./gameFormatUtils";
 import { sectionKeyOf, seatedTotal } from "./lobbyLayout";
@@ -54,6 +55,21 @@ export const activeGameType = (chips: GameTypeChip[], saved: string | undefined)
 export const activeTab = (counts: Record<LobbyTab, number>, saved: LobbyTab | undefined): LobbyTab => {
     if (saved && counts[saved] > 0) return saved;
     return LOBBY_TABS.find(t => counts[t] > 0) ?? "cash";
+};
+
+/**
+ * The areas the lobby shows, in lobby order (Cash games, Sit & Go, Tournaments).
+ * Uses the saved picks; with none saved, falls back to the one tab `activeTab` picks.
+ */
+export const activeTabs = (counts: Record<LobbyTab, number>, saved: readonly string[] | undefined, legacy: LobbyTab | undefined): LobbyTab[] => {
+    const picked = LOBBY_TABS.filter(t => (saved ?? []).includes(t));
+    return hasElements(picked) ? picked : [activeTab(counts, legacy)];
+};
+
+/** Switch an area on or off. The last one left stays on, so the lobby is never blank. */
+export const toggleTab = (tabs: readonly LobbyTab[], tab: LobbyTab): LobbyTab[] => {
+    if (!tabs.includes(tab)) return LOBBY_TABS.filter(t => t === tab || tabs.includes(t));
+    return tabs.length > 1 ? tabs.filter(t => t !== tab) : [...tabs];
 };
 
 /** The tables a tab shows for one game type. */
