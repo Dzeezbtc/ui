@@ -21,6 +21,8 @@ import {
     stakeLevelOf,
     stakeLevels,
     tileSizesLabel,
+    inviteOnlyTables,
+    type LobbyFilter,
     LEVEL_DEFAULT_STAKES,
     tileTable,
     feltLabels,
@@ -581,6 +583,18 @@ describe("stake levels and tiles", () => {
         expect(tileSizesLabel([2, 4, 9])).toBe("9-max · 6-max · H/U");
         expect(tileSizesLabel([6, 6])).toBe("6-max");
         expect(tileSizesLabel([2])).toBe("H/U");
+    });
+
+    it("hides full or empty tables, and invite-only Circles' tables unless asked", () => {
+        const games = [cash("busy", 0.01, 0.02, 3, 9), cash("full", 0.01, 0.02, 2, 2), cash("empty", 0.01, 0.02, 0, 9), cash("vip", 0.01, 0.02, 4, 9)];
+        const base = { query: "", stakes: [], sizes: [], treasuryOnly: false, treasuryAddress: "" };
+        const invite = inviteOnlyTables({ vip: { joining: "invite" }, busy: { joining: "open" } });
+        const ids = (f: Partial<LobbyFilter>) => filterLobbyGames(games, { ...base, inviteOnly: invite, ...f }).map(g => g.gameId);
+        expect(ids({})).toEqual(["busy", "full", "empty"]);
+        expect(ids({ showInviteOnly: true })).toEqual(["busy", "full", "empty", "vip"]);
+        expect(ids({ hideFull: true })).toEqual(["busy", "empty"]);
+        expect(ids({ hideEmpty: true })).toEqual(["busy", "full"]);
+        expect(activeFilterCount({ query: "", stakes: [], sizes: [], hideFull: true, inviteOnly: true })).toBe(2);
     });
 
     it("keeps tournaments as one group", () => {

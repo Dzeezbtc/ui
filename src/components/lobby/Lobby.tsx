@@ -8,6 +8,7 @@ import {
     SIZE_BANDS,
     STAKE_BANDS,
     activeFilterCount,
+    inviteOnlyTables,
     filterLobbyGames,
     groupStakeRows,
     stakeLevels,
@@ -74,8 +75,8 @@ const Lobby: React.FC<LobbyProps> = ({ address, onCreateTable }) => {
     const [searchOpen, setSearchOpen] = useState(false);
     const searchRef = useRef<HTMLInputElement>(null);
     // Stakes, sizes, treasury-only, tab and game type are remembered between visits; search is not.
-    const [prefs, setPrefs] = useLobbyPrefs({ stakes: [], sizes: [], sort: "most-players", treasuryOnly: hasContent(treasuryAddress), rowSizes: {}, tab: "cash", types: {} });
-    const { stakes, sizes, treasuryOnly, rowSizes } = prefs;
+    const [prefs, setPrefs] = useLobbyPrefs({ stakes: [], sizes: [], sort: "most-players", treasuryOnly: hasContent(treasuryAddress), inviteOnly: false, hideFull: false, hideEmpty: false, rowSizes: {}, tab: "cash", types: {} });
+    const { stakes, sizes, treasuryOnly, inviteOnly, hideFull, hideEmpty, rowSizes } = prefs;
     const [filtersOpen, setFiltersOpen] = useState(false);
     const [previewId, setPreviewId] = useState<string | null>(null);
     const [deleteId, setDeleteId] = useState<string | null>(null);
@@ -92,10 +93,11 @@ const Lobby: React.FC<LobbyProps> = ({ address, onCreateTable }) => {
     }, [searchOpen]);
 
     const rawGames = useMemo(() => allGames.filter(g => isListedTable(g, nowMs)), [allGames, nowMs]);
+    const inviteTables = useMemo(() => inviteOnlyTables(tableClubs), [tableClubs]);
     const clubNames = useMemo(() => Object.fromEntries(Object.entries(tableClubs).map(([id, c]) => [id, c.name])), [tableClubs]);
     const games = useMemo(
-        () => filterLobbyGames(rawGames, { query, stakes, sizes, treasuryOnly, treasuryAddress, clubNames }),
-        [rawGames, query, stakes, sizes, treasuryOnly, clubNames]
+        () => filterLobbyGames(rawGames, { query, stakes, sizes, treasuryOnly, treasuryAddress, clubNames, hideFull, hideEmpty, showInviteOnly: inviteOnly, inviteOnly: inviteTables }),
+        [rawGames, query, stakes, sizes, treasuryOnly, clubNames, hideFull, hideEmpty, inviteOnly, inviteTables]
     );
     const counts = useMemo(() => tabCounts(rawGames), [rawGames]);
     const tab = activeTab(counts, isLobbyTab(prefs.tab) ? prefs.tab : undefined);
@@ -107,12 +109,12 @@ const Lobby: React.FC<LobbyProps> = ({ address, onCreateTable }) => {
     const [openStake, setOpenStake] = useState<string | null>(null);
     const openRow = stakeRows.find(r => r.key === openStake);
     const preview = hasContent(previewId) ? rawGames.find(g => g.gameId === previewId) : undefined;
-    const filterCount = activeFilterCount({ query, stakes, sizes });
+    const filterCount = activeFilterCount({ query, stakes, sizes, hideFull, hideEmpty, inviteOnly });
 
     const clubOf = useCallback((gameId: string) => tableClubs[gameId]?.name ?? DEFAULT_CLUB_NAME, [tableClubs]);
     const clearFilters = () => {
         setQuery("");
-        setPrefs({ stakes: [], sizes: [] });
+        setPrefs({ stakes: [], sizes: [], inviteOnly: false, hideFull: false, hideEmpty: false });
     };
 
     const handleDelete = useCallback(async () => {
@@ -244,6 +246,18 @@ const Lobby: React.FC<LobbyProps> = ({ address, onCreateTable }) => {
                             );
                         })}
                     </div>
+                    <div className={styles.chips}>
+                        <span className={styles.chipLabel}>{t("lobby.showLabel")}</span>
+                        <button type="button" className={`${styles.chip} ${inviteOnly ? styles.chipOn : ""}`} onClick={() => setPrefs({ inviteOnly: !inviteOnly })} aria-pressed={inviteOnly}>
+                            {t("lobby.inviteOnly")}
+                        </button>
+                        <button type="button" className={`${styles.chip} ${hideFull ? styles.chipOn : ""}`} onClick={() => setPrefs({ hideFull: !hideFull })} aria-pressed={hideFull}>
+                            {t("lobby.hideFull")}
+                        </button>
+                        <button type="button" className={`${styles.chip} ${hideEmpty ? styles.chipOn : ""}`} onClick={() => setPrefs({ hideEmpty: !hideEmpty })} aria-pressed={hideEmpty}>
+                            {t("lobby.hideEmpty")}
+                        </button>
+                    </div>
                     {hasContent(treasuryAddress) ? (
                         <button type="button" role="switch" aria-checked={treasuryOnly} className={`${styles.switch} ${treasuryOnly ? styles.switchOn : ""}`} onClick={() => setPrefs({ treasuryOnly: !treasuryOnly })}>
                             <i />
@@ -287,7 +301,7 @@ const Lobby: React.FC<LobbyProps> = ({ address, onCreateTable }) => {
                 </div>
             ) : (
                 <div className={styles.levels} aria-label={type}>
-                    {stakeLevels(stakeRows, tab === "cash" && !hasElements(stakes)).map(group => (
+                    {stakeLevels(stakeRows, tab === "cash" && !hasElements(stakes) && !hideEmpty).map(group => (
                         <section key={group.level} className={styles.levelGroup}>
                             <h3 className={styles.subHead}>{t(LEVEL_KEYS[group.level])}</h3>
                             <div className={styles.tiles}>
