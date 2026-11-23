@@ -9,7 +9,6 @@ import { feltLabels, seatedTotal } from "../../utils/lobbyLayout";
 import { gameTypeOf } from "../../utils/lobbyTabs";
 import { playStats, recentTableIds } from "../../utils/lobbySide";
 import type { GameWithFormat } from "../../utils/convertUtils";
-import UpcomingEvents from "./UpcomingEvents";
 import styles from "./Lobby.module.css";
 
 interface LobbySideProps {
@@ -18,8 +17,8 @@ interface LobbySideProps {
 }
 
 /**
- * The desktop lobby's right-hand column: live numbers, your play, the tables you
- * were just at, and the next scheduled Sit & Go / tournaments. Hidden on phones.
+ * The desktop lobby's right-hand column: live numbers, your play and the tables you
+ * were just at. Hidden on phones. (Scheduled events stay in the Tournaments area only.)
  */
 const LobbySide: React.FC<LobbySideProps> = ({ games }) => {
     const { t } = useLanguage();
@@ -93,9 +92,6 @@ const LobbySide: React.FC<LobbySideProps> = ({ games }) => {
                 </section>
             ) : null}
 
-            <div className={styles.sideUpcoming}>
-                <UpcomingEvents />
-            </div>
 
         </aside>
     );

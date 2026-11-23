@@ -580,7 +580,6 @@ a.pill:hover { color: #fff; }
     .deskGrid { display: grid; grid-template-columns: minmax(0, 1fr) 330px; gap: 22px; align-items: start; margin-top: 18px; }
     .deskMain { min-width: 0; }
     .side { display: flex; flex-direction: column; gap: 14px; position: sticky; top: 84px; }
-    .mainUpcoming { display: none; }
     .area { padding-top: 18px; }
     .board { grid-template-columns: minmax(0, 1fr); }
     .levelLine b { font-family: var(--disp); font-weight: 700; letter-spacing: -0.2px; }
