@@ -20,6 +20,7 @@ import {
     lobbyPhase,
     stakeLevelOf,
     stakeLevels,
+    tileSizesLabel,
     tileTable,
     feltLabels,
     rowView,
@@ -560,6 +561,18 @@ describe("stake levels and tiles", () => {
         expect(groups.map(g => g.level)).toEqual(["micro", "low", "mid", "high"]);
         expect(groups[0].rows.map(r => r.sample.bigBlind)).toEqual(["20000", "100000"]);
         expect(stakeLevels([])).toEqual([]);
+    });
+
+    it("keeps all four cash levels when asked, empty ones included", () => {
+        const only = groupStakeRows([cash("a", 0.01, 0.02, 3, 9)]);
+        expect(stakeLevels(only, true).map(g => [g.level, g.rows.length])).toEqual([["micro", 1], ["low", 0], ["mid", 0], ["high", 0]]);
+        expect(stakeLevels(only).map(g => g.level)).toEqual(["micro"]);
+    });
+
+    it("writes a tile's sizes short, biggest first", () => {
+        expect(tileSizesLabel([2, 4, 9])).toBe("9-max · 6-max · H/U");
+        expect(tileSizesLabel([6, 6])).toBe("6-max");
+        expect(tileSizesLabel([2])).toBe("H/U");
     });
 
     it("keeps tournaments as one group", () => {

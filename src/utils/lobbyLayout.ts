@@ -457,11 +457,22 @@ const LEVELS: StakeLevel[] = ["micro", "low", "mid", "high"];
 /** Which level a stake row is in (by big blind: micro up to 20c, low up to $2, mid up to $10, high above). */
 export const stakeLevelOf = (row: StakeRow): StakeLevel => LEVELS.find(l => matchesStake(row.sample, l)) ?? "high";
 
-/** Stake rows as tiles grouped by level (micro first), each level's stakes low to high. Tournaments are one group. */
-export const stakeLevels = (rows: StakeRow[]): { level: StakeLevel | "buy-in"; rows: StakeRow[] }[] => {
+/**
+ * Stake rows as tiles grouped by level (micro first), each level's stakes low to high. Tournaments are one group.
+ * With `allLevels`, cash games keep every level (micro, low, mid, high) even when it has no tables yet, so the
+ * lobby always shows the same four blocks in the same places.
+ */
+export const stakeLevels = (rows: StakeRow[], allLevels = false): { level: StakeLevel | "buy-in"; rows: StakeRow[] }[] => {
     const sorted = sortStakeRows(rows, "stakes-up");
     if (!sorted.some(r => isCashTable(r.sample))) return hasElements(sorted) ? [{ level: "buy-in", rows: sorted }] : [];
-    return LEVELS.map(level => ({ level, rows: sorted.filter(r => stakeLevelOf(r) === level) })).filter(g => hasElements(g.rows));
+    const groups = LEVELS.map(level => ({ level, rows: sorted.filter(r => stakeLevelOf(r) === level) }));
+    return allLevels ? groups : groups.filter(g => hasElements(g.rows));
+};
+
+/** A tile's sizes, short and biggest first: "9-max · 6-max · H/U" (3–6 seats count as 6-max). */
+export const tileSizesLabel = (sizes: readonly number[]): string => {
+    const bands = new Set<string>(sizes.map(n => (n === 2 ? "H/U" : n <= 6 ? "6-max" : "9-max")));
+    return ["9-max", "6-max", "H/U"].filter(b => bands.has(b)).join(" · ");
 };
 
 /** The table a stake tile pictures: its busiest table (most players), else its largest. */

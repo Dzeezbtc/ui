@@ -385,9 +385,14 @@ a.pill:hover { color: #fff; }
 }
 
 /* Stake tiles grouped by level (3 across on desktop, 2 on phones); a tile opens its panel. */
-.levels { display: flex; flex-direction: column; gap: 26px; }
-.levelGroup { display: flex; flex-direction: column; gap: 12px; }
-.tiles { display: grid; grid-template-columns: repeat(3, minmax(0, 1fr)); gap: 14px; max-width: 900px; }
+/* Levels two by two: Micro | Low, then Mid | High. Each level's tiles sit two across inside its half. */
+.levels { display: grid; grid-template-columns: repeat(2, minmax(0, 1fr)); gap: 26px 28px; align-items: start; }
+.levelGroup { display: flex; flex-direction: column; gap: 12px; min-width: 0; }
+.tiles { display: grid; grid-template-columns: repeat(2, minmax(0, 1fr)); gap: 14px; }
+.tileEmpty { display: flex; flex-direction: column; align-items: center; justify-content: center; gap: 6px; min-height: 160px; border-style: dashed; background: transparent; color: var(--muted); cursor: pointer; font: inherit; }
+.tileEmpty:disabled { cursor: default; }
+.tileEmptyTitle { font-size: 14px; font-weight: 600; color: var(--fg); }
+.tileEmptyAction { font-size: 13px; color: #C4B5FD; }
 .tile .pic { padding: 4px 10px 12px; }
 .panelPortal { position: fixed; inset: 0; z-index: 9000; }
 .panelScrim { position: absolute; inset: 0; border: 0; background: rgba(3, 2, 8, 0.6); backdrop-filter: blur(6px); cursor: default; }
@@ -399,7 +404,9 @@ a.pill:hover { color: #fff; }
 .panelX { width: 38px; height: 38px; border-radius: 12px; border: 1px solid var(--line); background: var(--panel2); color: var(--fg); cursor: pointer; flex: none; }
 .panelRow { padding-bottom: 8px; }
 @media (max-width: 860px) {
-    .tiles { grid-template-columns: repeat(2, minmax(0, 1fr)); gap: 10px; }
+    .levels { gap: 20px 12px; }
+    .tiles { grid-template-columns: minmax(0, 1fr); gap: 10px; }
+    .tileEmpty { min-height: 120px; }
     .panel { left: 0; right: 0; top: auto; bottom: 0; transform: none; width: auto; max-height: 86vh; border-radius: 24px 24px 0 0; padding: 16px 16px calc(18px + env(safe-area-inset-bottom, 0px)); animation: sheetUp 0.28s cubic-bezier(0.2, 0.8, 0.2, 1); }
     @keyframes sheetUp { from { transform: translateY(40%); opacity: 0; } }
     .panelRow { grid-auto-columns: 72%; }

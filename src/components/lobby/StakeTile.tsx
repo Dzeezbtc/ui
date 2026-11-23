@@ -1,6 +1,6 @@
 import React from "react";
 import type { StakeRow } from "../../utils/lobbyLayout";
-import { feltLabels, tableSizeLabel, tileTable } from "../../utils/lobbyLayout";
+import { feltLabels, tileSizesLabel, tileTable } from "../../utils/lobbyLayout";
 import { useLanguage } from "../../i18n/useLanguage";
 import MiniTable from "./MiniTable";
 import styles from "./Lobby.module.css";
@@ -21,7 +21,7 @@ const StakeTile: React.FC<StakeTileProps> = ({ row, gameName, onOpen }) => {
     const { t } = useLanguage();
     const table = tileTable(row);
     const title = feltLabels(table, gameName).title;
-    const sizes = row.sizes.map(s => tableSizeLabel(s.size)).join(" · ");
+    const sizes = tileSizesLabel(row.sizes.map(s => s.size));
     const tables = row.sizes.reduce((n, s) => n + s.tables.length, 0);
     return (
         <button

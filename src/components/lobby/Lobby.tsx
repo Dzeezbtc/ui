@@ -298,13 +298,19 @@ const Lobby: React.FC<LobbyProps> = ({ address, onCreateTable }) => {
                 </div>
             ) : (
                 <div className={styles.levels} aria-label={type}>
-                    {stakeLevels(stakeRows).map(group => (
+                    {stakeLevels(stakeRows, tab === "cash" && !hasElements(stakes)).map(group => (
                         <section key={group.level} className={styles.levelGroup}>
                             <h3 className={styles.subHead}>{t(LEVEL_KEYS[group.level])}</h3>
                             <div className={styles.tiles}>
                                 {group.rows.map(row => (
                                     <StakeTile key={row.key} row={row} gameName={type ?? ""} onOpen={setOpenStake} />
                                 ))}
+                                {!hasElements(group.rows) ? (
+                                    <button type="button" className={`${styles.card} ${styles.tile} ${styles.tileEmpty}`} onClick={onCreateTable} disabled={!onCreateTable}>
+                                        <span className={styles.tileEmptyTitle}>{t("lobby.tileFirst")}</span>
+                                        {onCreateTable ? <span className={styles.tileEmptyAction}>+ {t("lobby.createTable")}</span> : null}
+                                    </button>
+                                ) : null}
                             </div>
                         </section>
                     ))}
