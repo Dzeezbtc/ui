@@ -26,13 +26,28 @@ import {
     type StakeBand,
     type ScreenBox
 } from "../../utils/lobbyLayout";
-import { LOBBY_TABS, shortGameType, activeGameType, activeTabs, gameTypesIn, gamesFor, isLobbyTab, tabCounts, toggleTab, type GameTypeChip, type LobbyTab } from "../../utils/lobbyTabs";
+import {
+    LOBBY_TABS,
+    shortGameType,
+    activeGameType,
+    activeTabs,
+    gameTypesIn,
+    gamesFor,
+    isLobbyTab,
+    tabCounts,
+    toggleTab,
+    type GameTypeChip,
+    type LobbyTab
+} from "../../utils/lobbyTabs";
 import { hasContent, hasElements, hasValue, isEmpty } from "../../utils/guards";
 import { useLanguage } from "../../i18n/useLanguage";
 import type { TranslationKey } from "../../i18n";
 import DeleteTableModal from "../modals/DeleteTableModal";
 import ForceCloseTableModal from "../modals/ForceCloseTableModal";
 import UpcomingEvents from "./UpcomingEvents";
+import LobbySide from "./LobbySide";
+import LevelCard from "./LevelCard";
+import LobbyFooter from "./LobbyFooter";
 import StakeTile, { ReadyTile } from "./StakeTile";
 import StakePanel from "./StakePanel";
 import TablePreview from "./TablePreview";
@@ -76,7 +91,18 @@ const Lobby: React.FC<LobbyProps> = ({ address, onCreateTable }) => {
     const [searchOpen, setSearchOpen] = useState(false);
     const searchRef = useRef<HTMLInputElement>(null);
     // Stakes, sizes, treasury-only, tab and game type are remembered between visits; search is not.
-    const [prefs, setPrefs] = useLobbyPrefs({ stakes: [], sizes: [], sort: "most-players", treasuryOnly: hasContent(treasuryAddress), inviteOnly: false, hideFull: false, hideEmpty: false, rowSizes: {}, tab: "cash", types: {} });
+    const [prefs, setPrefs] = useLobbyPrefs({
+        stakes: [],
+        sizes: [],
+        sort: "most-players",
+        treasuryOnly: hasContent(treasuryAddress),
+        inviteOnly: false,
+        hideFull: false,
+        hideEmpty: false,
+        rowSizes: {},
+        tab: "cash",
+        types: {}
+    });
     const { stakes, sizes, treasuryOnly, inviteOnly, hideFull, hideEmpty, rowSizes } = prefs;
     const [filtersOpen, setFiltersOpen] = useState(false);
     const [previewId, setPreviewId] = useState<string | null>(null);
@@ -97,7 +123,19 @@ const Lobby: React.FC<LobbyProps> = ({ address, onCreateTable }) => {
     const inviteTables = useMemo(() => inviteOnlyTables(tableClubs), [tableClubs]);
     const clubNames = useMemo(() => Object.fromEntries(Object.entries(tableClubs).map(([id, c]) => [id, c.name])), [tableClubs]);
     const games = useMemo(
-        () => filterLobbyGames(rawGames, { query, stakes, sizes, treasuryOnly, treasuryAddress, clubNames, hideFull, hideEmpty, showInviteOnly: inviteOnly, inviteOnly: inviteTables }),
+        () =>
+            filterLobbyGames(rawGames, {
+                query,
+                stakes,
+                sizes,
+                treasuryOnly,
+                treasuryAddress,
+                clubNames,
+                hideFull,
+                hideEmpty,
+                showInviteOnly: inviteOnly,
+                inviteOnly: inviteTables
+            }),
         [rawGames, query, stakes, sizes, treasuryOnly, clubNames, hideFull, hideEmpty, inviteOnly, inviteTables]
     );
     const counts = useMemo(() => tabCounts(rawGames), [rawGames]);
@@ -152,70 +190,98 @@ const Lobby: React.FC<LobbyProps> = ({ address, onCreateTable }) => {
                 <i />
             </div>
 
-            {/* Tabs: the three areas, with the live count above their right end. */}
-            <div className={styles.tabBar}>
-                <span className={styles.liveLine}>
-                    <span className={styles.dot} />
-                    {t("lobby.liveLine", { tables: rawGames.length, players: seatedTotal(rawGames) })}
-                </span>
-                <div className={styles.tabs} role="group" aria-label={t("lobby.areas")}>
-                    {LOBBY_TABS.map(tb => (
-                        <button key={tb} type="button" aria-pressed={tabs.includes(tb)} className={tabs.includes(tb) ? styles.tabOn : styles.tab} onClick={() => setPrefs({ tabs: toggleTab(tabs, tb) })}>
-                            {t(TAB_KEYS[tb])}
-                            <i>{counts[tb]}</i>
-                        </button>
-                    ))}
+            {/* One control bar on desktop (areas, game types, tools); stacked rows on phones. */}
+            <div className={styles.controlBar}>
+                <div className={styles.tabBar}>
+                    <span className={styles.liveLine}>
+                        <span className={styles.dot} />
+                        {t("lobby.liveLine", { tables: rawGames.length, players: seatedTotal(rawGames) })}
+                    </span>
+                    <div className={styles.tabs} role="group" aria-label={t("lobby.areas")}>
+                        {LOBBY_TABS.map(tb => (
+                            <button
+                                key={tb}
+                                type="button"
+                                aria-pressed={tabs.includes(tb)}
+                                className={tabs.includes(tb) ? styles.tabOn : styles.tab}
+                                onClick={() => setPrefs({ tabs: toggleTab(tabs, tb) })}
+                            >
+                                {t(TAB_KEYS[tb])}
+                                <i>{counts[tb]}</i>
+                            </button>
+                        ))}
+                    </div>
                 </div>
-            </div>
 
-            {/* Game types of the open tab, with search and filters at the end of the row. */}
-            <div className={styles.typeRow}>
-                {multi ? <span /> : <TypeChips chips={sections[0].chips} type={sections[0].type} onPick={c => setPrefs({ types: { ...prefs.types, [sections[0].tab]: c } })} />}
-                <div className={styles.typeTools}>
-                    {searchOpen || hasContent(query) ? (
-                        <div className={styles.search}>
-                            <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" aria-hidden="true">
-                                <circle cx="11" cy="11" r="7" />
-                                <path d="M20 20l-3.5-3.5" />
-                            </svg>
-                            <input
-                                ref={searchRef}
-                                value={query}
-                                onChange={e => setQuery(e.target.value)}
-                                onBlur={() => setSearchOpen(false)}
-                                placeholder={t("lobby.search")}
-                                aria-label={t("lobby.search")}
-                            />
-                        </div>
+                {/* Game types of the open tab, with search and filters at the end of the row. */}
+                <div className={styles.typeRow}>
+                    {multi ? (
+                        <span />
                     ) : (
-                        <button type="button" className={styles.iconBtn} onClick={() => setSearchOpen(true)} aria-label={t("lobby.search")} title={t("lobby.search")}>
-                            <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" aria-hidden="true">
-                                <circle cx="11" cy="11" r="7" />
-                                <path d="M20 20l-3.5-3.5" />
-                            </svg>
-                        </button>
+                        <TypeChips
+                            chips={sections[0].chips}
+                            type={sections[0].type}
+                            onPick={c => setPrefs({ types: { ...prefs.types, [sections[0].tab]: c } })}
+                        />
                     )}
-                    <button
-                        type="button"
-                        className={`${styles.iconBtn} ${filtersOpen ? styles.iconBtnOn : ""}`}
-                        onClick={() => setFiltersOpen(v => !v)}
-                        aria-expanded={filtersOpen}
-                        aria-label={t("lobby.filters")}
-                        title={t("lobby.filters")}
-                    >
-                        <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" aria-hidden="true">
-                            <path d="M4 6h16M7 12h10M10 18h4" />
-                        </svg>
-                        {filterCount > 0 ? <span className={styles.badgeCount}>{filterCount}</span> : null}
-                    </button>
-                    {onCreateTable ? (
-                        <button type="button" className={`${styles.createBtn} ${styles.hidePhone}`} onClick={() => onCreateTable?.()} aria-label={t("lobby.createTable")} title={t("lobby.createTable")}>
-                            <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2.2" aria-hidden="true">
-                                <path d="M12 5v14M5 12h14" />
+                    <div className={styles.typeTools}>
+                        {searchOpen || hasContent(query) ? (
+                            <div className={styles.search}>
+                                <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" aria-hidden="true">
+                                    <circle cx="11" cy="11" r="7" />
+                                    <path d="M20 20l-3.5-3.5" />
+                                </svg>
+                                <input
+                                    ref={searchRef}
+                                    value={query}
+                                    onChange={e => setQuery(e.target.value)}
+                                    onBlur={() => setSearchOpen(false)}
+                                    placeholder={t("lobby.search")}
+                                    aria-label={t("lobby.search")}
+                                />
+                            </div>
+                        ) : (
+                            <button
+                                type="button"
+                                className={styles.iconBtn}
+                                onClick={() => setSearchOpen(true)}
+                                aria-label={t("lobby.search")}
+                                title={t("lobby.search")}
+                            >
+                                <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" aria-hidden="true">
+                                    <circle cx="11" cy="11" r="7" />
+                                    <path d="M20 20l-3.5-3.5" />
+                                </svg>
+                            </button>
+                        )}
+                        <button
+                            type="button"
+                            className={`${styles.iconBtn} ${filtersOpen ? styles.iconBtnOn : ""}`}
+                            onClick={() => setFiltersOpen(v => !v)}
+                            aria-expanded={filtersOpen}
+                            aria-label={t("lobby.filters")}
+                            title={t("lobby.filters")}
+                        >
+                            <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" aria-hidden="true">
+                                <path d="M4 6h16M7 12h10M10 18h4" />
                             </svg>
-                            <span>{t("lobby.createTable")}</span>
+                            {filterCount > 0 ? <span className={styles.badgeCount}>{filterCount}</span> : null}
                         </button>
-                    ) : null}
+                        {onCreateTable ? (
+                            <button
+                                type="button"
+                                className={`${styles.createBtn} ${styles.hidePhone}`}
+                                onClick={() => onCreateTable?.()}
+                                aria-label={t("lobby.createTable")}
+                                title={t("lobby.createTable")}
+                            >
+                                <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2.2" aria-hidden="true">
+                                    <path d="M12 5v14M5 12h14" />
+                                </svg>
+                                <span>{t("lobby.createTable")}</span>
+                            </button>
+                        ) : null}
+                    </div>
                 </div>
             </div>
 
@@ -226,7 +292,13 @@ const Lobby: React.FC<LobbyProps> = ({ address, onCreateTable }) => {
                         {STAKE_BANDS.map(b => {
                             const on = b === "all" ? !hasElements(stakes) : stakes.some(x => x === b);
                             return (
-                                <button key={b} type="button" className={`${styles.chip} ${on ? styles.chipOn : ""}`} onClick={() => setPrefs({ stakes: toggleBand(stakes, b) })} aria-pressed={on}>
+                                <button
+                                    key={b}
+                                    type="button"
+                                    className={`${styles.chip} ${on ? styles.chipOn : ""}`}
+                                    onClick={() => setPrefs({ stakes: toggleBand(stakes, b) })}
+                                    aria-pressed={on}
+                                >
                                     {b === "all" ? t("lobby.all") : STAKE_NAMES[b]}
                                 </button>
                             );
@@ -237,7 +309,13 @@ const Lobby: React.FC<LobbyProps> = ({ address, onCreateTable }) => {
                         {SIZE_BANDS.map(b => {
                             const on = b === "all" ? !hasElements(sizes) : sizes.some(x => x === b);
                             return (
-                                <button key={b} type="button" className={`${styles.chip} ${on ? styles.chipOn : ""}`} onClick={() => setPrefs({ sizes: toggleBand(sizes, b) })} aria-pressed={on}>
+                                <button
+                                    key={b}
+                                    type="button"
+                                    className={`${styles.chip} ${on ? styles.chipOn : ""}`}
+                                    onClick={() => setPrefs({ sizes: toggleBand(sizes, b) })}
+                                    aria-pressed={on}
+                                >
                                     {b === "all" ? t("lobby.all") : SIZE_NAMES[b]}
                                 </button>
                             );
@@ -245,93 +323,150 @@ const Lobby: React.FC<LobbyProps> = ({ address, onCreateTable }) => {
                     </div>
                     <div className={styles.chips}>
                         <span className={styles.chipLabel}>{t("lobby.showLabel")}</span>
-                        <button type="button" className={`${styles.chip} ${inviteOnly ? styles.chipOn : ""}`} onClick={() => setPrefs({ inviteOnly: !inviteOnly })} aria-pressed={inviteOnly}>
+                        <button
+                            type="button"
+                            className={`${styles.chip} ${inviteOnly ? styles.chipOn : ""}`}
+                            onClick={() => setPrefs({ inviteOnly: !inviteOnly })}
+                            aria-pressed={inviteOnly}
+                        >
                             {t("lobby.inviteOnly")}
                         </button>
-                        <button type="button" className={`${styles.chip} ${hideFull ? styles.chipOn : ""}`} onClick={() => setPrefs({ hideFull: !hideFull })} aria-pressed={hideFull}>
+                        <button
+                            type="button"
+                            className={`${styles.chip} ${hideFull ? styles.chipOn : ""}`}
+                            onClick={() => setPrefs({ hideFull: !hideFull })}
+                            aria-pressed={hideFull}
+                        >
                             {t("lobby.hideFull")}
                         </button>
-                        <button type="button" className={`${styles.chip} ${hideEmpty ? styles.chipOn : ""}`} onClick={() => setPrefs({ hideEmpty: !hideEmpty })} aria-pressed={hideEmpty}>
+                        <button
+                            type="button"
+                            className={`${styles.chip} ${hideEmpty ? styles.chipOn : ""}`}
+                            onClick={() => setPrefs({ hideEmpty: !hideEmpty })}
+                            aria-pressed={hideEmpty}
+                        >
                             {t("lobby.hideEmpty")}
                         </button>
                     </div>
                     {hasContent(treasuryAddress) ? (
-                        <button type="button" role="switch" aria-checked={treasuryOnly} className={`${styles.switch} ${treasuryOnly ? styles.switchOn : ""}`} onClick={() => setPrefs({ treasuryOnly: !treasuryOnly })}>
+                        <button
+                            type="button"
+                            role="switch"
+                            aria-checked={treasuryOnly}
+                            className={`${styles.switch} ${treasuryOnly ? styles.switchOn : ""}`}
+                            onClick={() => setPrefs({ treasuryOnly: !treasuryOnly })}
+                        >
                             <i />
                             {t("lobby.treasuryOnly")}
                         </button>
                     ) : null}
                     {onCreateTable ? (
-                        <button type="button" className={`${styles.btn} ${styles.btnSm} ${styles.btnGhost} ${styles.showPhone}`} onClick={() => onCreateTable?.()}>
+                        <button
+                            type="button"
+                            className={`${styles.btn} ${styles.btnSm} ${styles.btnGhost} ${styles.showPhone}`}
+                            onClick={() => onCreateTable?.()}
+                        >
                             {t("lobby.createTable")}
                         </button>
                     ) : null}
                 </div>
             ) : null}
 
-            {isLoading && isEmpty(allGames) ? (
-                <div className={`${styles.box} ${styles.state}`}>
-                    <div className={styles.spinner} />
-                    <p>{t("lobby.loading")}</p>
-                </div>
-            ) : hasValue(error) ? (
-                <div className={`${styles.box} ${styles.state}`}>
-                    <p>{error.message}</p>
-                    <button type="button" className={`${styles.btn} ${styles.btnGhost}`} onClick={refetch}>
-                        {t("lobby.retry")}
-                    </button>
-                </div>
-            ) : (
-                sections.map(sec => (
-                    <section key={sec.tab} className={multi ? styles.area : undefined} aria-label={t(TAB_KEYS[sec.tab])}>
-                        {multi ? (
-                            <div className={styles.areaHead}>
-                                <h2>{t(TAB_KEYS[sec.tab])}</h2>
-                                <TypeChips chips={sec.chips} type={sec.type} onPick={c => setPrefs({ types: { ...prefs.types, [sec.tab]: c } })} />
-                            </div>
-                        ) : null}
-                        {sec.tab === "tournament" ? <UpcomingEvents /> : null}
-                        {!hasElements(sec.rows) ? (
-                <div className={`${styles.box} ${styles.state}`}>
-                    <p style={{ color: "var(--fg)", fontWeight: 600 }}>{filterCount > 0 ? t("lobby.noMatchFilters") : t("lobby.noTablesHere")}</p>
-                    {filterCount > 0 ? (
-                        <button type="button" className={`${styles.btn} ${styles.btnGhost}`} onClick={clearFilters}>
-                            {t("lobby.clearFilters")}
-                        </button>
-                    ) : onCreateTable ? (
-                        <button type="button" className={`${styles.btn} ${styles.btnGrad}`} onClick={() => onCreateTable?.()}>
-                            {t("lobby.createTable")}
-                        </button>
-                    ) : null}
-                </div>
-            ) : (
-                <div className={styles.levels} aria-label={sec.type}>
-                    {stakeLevels(sec.rows, sec.tab === "cash" && !hasElements(stakes) && !hideEmpty).map(group => (
-                        <section key={group.level} className={styles.levelGroup}>
-                            <h3 className={styles.subHead}>{t(LEVEL_KEYS[group.level])}</h3>
-                            <div className={styles.tiles}>
-                                {group.rows.map(row => (
-                                    <StakeTile
-                                                    key={row.key}
-                                                    row={row}
+            {/* Desktop: the areas on the left, your corner (wallet, play, recent tables, upcoming) on the right. */}
+            <div className={styles.deskGrid}>
+                <div className={styles.deskMain}>
+                    {isLoading && isEmpty(allGames) ? (
+                        <div className={`${styles.box} ${styles.state}`}>
+                            <div className={styles.spinner} />
+                            <p>{t("lobby.loading")}</p>
+                        </div>
+                    ) : hasValue(error) ? (
+                        <div className={`${styles.box} ${styles.state}`}>
+                            <p>{error.message}</p>
+                            <button type="button" className={`${styles.btn} ${styles.btnGhost}`} onClick={refetch}>
+                                {t("lobby.retry")}
+                            </button>
+                        </div>
+                    ) : (
+                        sections.map(sec => (
+                            <section key={sec.tab} className={multi ? styles.area : undefined} aria-label={t(TAB_KEYS[sec.tab])}>
+                                {multi ? (
+                                    <div className={styles.areaHead}>
+                                        <h2>{t(TAB_KEYS[sec.tab])}</h2>
+                                        <TypeChips chips={sec.chips} type={sec.type} onPick={c => setPrefs({ types: { ...prefs.types, [sec.tab]: c } })} />
+                                    </div>
+                                ) : null}
+                                {sec.tab === "tournament" ? (
+                                    <div className={styles.mainUpcoming}>
+                                        <UpcomingEvents />
+                                    </div>
+                                ) : null}
+                                {!hasElements(sec.rows) ? (
+                                    <div className={`${styles.box} ${styles.state}`}>
+                                        <p style={{ color: "var(--fg)", fontWeight: 600 }}>
+                                            {filterCount > 0 ? t("lobby.noMatchFilters") : t("lobby.noTablesHere")}
+                                        </p>
+                                        {filterCount > 0 ? (
+                                            <button type="button" className={`${styles.btn} ${styles.btnGhost}`} onClick={clearFilters}>
+                                                {t("lobby.clearFilters")}
+                                            </button>
+                                        ) : onCreateTable ? (
+                                            <button type="button" className={`${styles.btn} ${styles.btnGrad}`} onClick={() => onCreateTable?.()}>
+                                                {t("lobby.createTable")}
+                                            </button>
+                                        ) : null}
+                                    </div>
+                                ) : (
+                                    <>
+                                        <div className={styles.board} aria-label={sec.type}>
+                                            {stakeLevels(sec.rows, sec.tab === "cash" && !hasElements(stakes) && !hideEmpty).map(group => (
+                                                <LevelCard
+                                                    key={group.level}
+                                                    level={group.level}
+                                                    title={t(LEVEL_KEYS[group.level])}
+                                                    rows={group.rows}
                                                     gameName={sec.type ?? ""}
                                                     onOpen={(key, from) => {
                                                         setOpenFrom(from);
                                                         setOpenStake(key);
                                                     }}
+                                                    onSit={onCreateTable}
                                                 />
-                                ))}
-                                {!hasElements(group.rows) && group.level !== "buy-in" ? (
-                                    <ReadyTile level={group.level} onSit={onCreateTable} />
-                                ) : null}
-                            </div>
-                        </section>
-                    ))}
+                                            ))}
+                                        </div>
+                                        <div className={styles.levels} aria-label={sec.type}>
+                                            {stakeLevels(sec.rows, sec.tab === "cash" && !hasElements(stakes) && !hideEmpty).map(group => (
+                                                <section key={group.level} className={styles.levelGroup}>
+                                                    <h3 className={styles.subHead}>{t(LEVEL_KEYS[group.level])}</h3>
+                                                    <div className={styles.tiles}>
+                                                        {group.rows.map(row => (
+                                                            <StakeTile
+                                                                key={row.key}
+                                                                row={row}
+                                                                gameName={sec.type ?? ""}
+                                                                onOpen={(key, from) => {
+                                                                    setOpenFrom(from);
+                                                                    setOpenStake(key);
+                                                                }}
+                                                            />
+                                                        ))}
+                                                        {!hasElements(group.rows) && group.level !== "buy-in" ? (
+                                                            <ReadyTile level={group.level} onSit={onCreateTable} />
+                                                        ) : null}
+                                                    </div>
+                                                </section>
+                                            ))}
+                                        </div>
+                                    </>
+                                )}
+                            </section>
+                        ))
+                    )}
                 </div>
-            )}
-                    </section>
-                ))
-            )}
+                <LobbySide games={rawGames} />
+            </div>
+
+            <LobbyFooter />
 
             {hasValue(openRow) ? (
                 <StakePanel
@@ -339,7 +474,9 @@ const Lobby: React.FC<LobbyProps> = ({ address, onCreateTable }) => {
                     from={openFrom}
                     gameName={openSection?.type ?? ""}
                     selected={rowSizeSelection(openRow, rowSizes[openRow.key])}
-                    onToggleSize={size => setPrefs({ rowSizes: { ...rowSizes, [openRow.key]: toggleRowSize(rowSizeSelection(openRow, rowSizes[openRow.key]), size) } })}
+                    onToggleSize={size =>
+                        setPrefs({ rowSizes: { ...rowSizes, [openRow.key]: toggleRowSize(rowSizeSelection(openRow, rowSizes[openRow.key]), size) } })
+                    }
                     clubOf={clubOf}
                     isTreasury={gameId => rawGames.some(g => g.gameId === gameId && isTreasuryTable(g, treasuryAddress))}
                     nowMs={nowMs}
@@ -383,7 +520,13 @@ const TypeChips: React.FC<{ chips: GameTypeChip[]; type: string | undefined; onP
     return (
         <div className={styles.types} role="group" aria-label={t("lobby.game")}>
             {chips.map(c => (
-                <button key={c.type} type="button" aria-pressed={c.type === type} className={c.type === type ? styles.typeOn : styles.type} onClick={() => onPick(c.type)}>
+                <button
+                    key={c.type}
+                    type="button"
+                    aria-pressed={c.type === type}
+                    className={c.type === type ? styles.typeOn : styles.type}
+                    onClick={() => onPick(c.type)}
+                >
                     <span className={styles.hidePhone}>{c.type}</span>
                     <span className={styles.showPhone}>{shortGameType(c.type)}</span>
                     <i>{c.tables}</i>

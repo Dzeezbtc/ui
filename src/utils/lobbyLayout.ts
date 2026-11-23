@@ -533,3 +533,13 @@ export const growFrom = (from: ScreenBox, to: ScreenBox): string => {
     const sy = to.height > 0 ? from.height / to.height : 1;
     return `translate(${Math.round(dx)}px, ${Math.round(dy)}px) scale(${sx.toFixed(3)}, ${sy.toFixed(3)})`;
 };
+
+/** The stake a level card pictures: the one with most players seated, else the first. */
+export const busiestRow = (rows: readonly StakeRow[]): StakeRow | undefined =>
+    rows.reduce<StakeRow | undefined>((best, r) => (!best || r.seated > best.seated ? r : best), undefined);
+
+/** Players seated and tables open across a level's stakes. */
+export const levelSummary = (rows: readonly StakeRow[]): { seated: number; tables: number } => ({
+    seated: rows.reduce((n, r) => n + r.seated, 0),
+    tables: rows.reduce((n, r) => n + r.sizes.reduce((m, sz) => m + sz.tables.length, 0), 0)
+});

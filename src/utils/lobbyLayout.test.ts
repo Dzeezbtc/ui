@@ -21,6 +21,8 @@ import {
     stakeLevelOf,
     stakeLevels,
     tileSizesLabel,
+    busiestRow,
+    levelSummary,
     growFrom,
     inviteOnlyTables,
     type LobbyFilter,
@@ -601,6 +603,13 @@ describe("stake levels and tiles", () => {
     it("works out how to sit the panel over the tile it grows from", () => {
         expect(growFrom({ left: 0, top: 0, width: 200, height: 100 }, { left: 300, top: 200, width: 800, height: 400 })).toBe("translate(-600px, -350px) scale(0.250, 0.250)");
         expect(growFrom({ left: 10, top: 10, width: 50, height: 50 }, { left: 10, top: 10, width: 0, height: 0 })).toBe("translate(25px, 25px) scale(1.000, 1.000)");
+    });
+
+    it("finds a level's busiest stake and adds up its players and tables", () => {
+        const level = groupStakeRows([cash("a", 0.01, 0.02, 3, 9), cash("b", 0.05, 0.1, 6, 9), cash("c", 0.05, 0.1, 0, 2)]);
+        expect(busiestRow(level)?.sample.bigBlind).toBe("100000");
+        expect(levelSummary(level)).toEqual({ seated: 9, tables: 3 });
+        expect(busiestRow([])).toBeUndefined();
     });
 
     it("keeps tournaments as one group", () => {
