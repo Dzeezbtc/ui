@@ -9,12 +9,10 @@ import {
     STAKE_BANDS,
     activeFilterCount,
     filterLobbyGames,
-    sectionRows,
+    groupStakeRows,
+    stakeLevels,
     rowSizeSelection,
-    rowView,
     toggleRowSize,
-    quietStakeTable,
-    groupLobbySections,
     isListedTable,
     isTableCreator,
     isTreasuryTable,
@@ -22,24 +20,20 @@ import {
     occupiedTables,
     similarOpenTable,
     toggleBand,
-    lobbyStakesLabel,
-    lobbyBuyInLabel,
-    tableSizeLabel,
-    isCashTable,
     seatedTotal,
     toLobbySort,
     type SizeBand,
     type StakeBand
 } from "../../utils/lobbyLayout";
-import { LOBBY_TABS, activeGameType, activeTab, gameTypesIn, gamesFor, isLobbyTab, tabCounts, type LobbyTab } from "../../utils/lobbyTabs";
+import { LOBBY_TABS, shortGameType, activeGameType, activeTab, gameTypesIn, gamesFor, isLobbyTab, tabCounts, type LobbyTab } from "../../utils/lobbyTabs";
 import { hasContent, hasElements, hasValue, isEmpty } from "../../utils/guards";
 import { useLanguage } from "../../i18n/useLanguage";
 import type { TranslationKey } from "../../i18n";
 import DeleteTableModal from "../modals/DeleteTableModal";
 import ForceCloseTableModal from "../modals/ForceCloseTableModal";
-import QuickSeat from "./QuickSeat";
 import UpcomingEvents from "./UpcomingEvents";
-import TableCard from "./TableCard";
+import StakeTile from "./StakeTile";
+import StakePanel from "./StakePanel";
 import TablePreview from "./TablePreview";
 import styles from "./Lobby.module.css";
 
@@ -52,6 +46,13 @@ const STAKE_NAMES: Record<StakeBand, string> = { all: "", micro: "Micro", low: "
 const SIZE_NAMES: Record<SizeBand, string> = { all: "", "heads-up": "Heads-up", "6-max": "6-max", "9-max": "9-max" };
 const SORTS: readonly ("stakes-up" | "stakes-down" | "most-players" | "most-open")[] = ["stakes-up", "stakes-down", "most-players", "most-open"];
 const SORT_KEYS = { "stakes-up": "lobby.sortStakesUp", "stakes-down": "lobby.sortStakesDown", "most-players": "lobby.sortMostPlayers", "most-open": "lobby.sortMostOpen" } as const;
+const LEVEL_KEYS: Record<"micro" | "low" | "mid" | "high" | "buy-in", TranslationKey> = {
+    micro: "lobby.levelMicro",
+    low: "lobby.levelLow",
+    mid: "lobby.levelMid",
+    high: "lobby.levelHigh",
+    "buy-in": "lobby.levelBuyIns"
+};
 const TAB_KEYS: Record<LobbyTab, TranslationKey> = { cash: "lobby.cashGames", "sit-and-go": "lobby.sitAndGo", tournament: "lobby.tournaments" };
 
 /** Clubs that don't come from the club service use the build's club name, as the old table list did. */
@@ -61,8 +62,8 @@ const DEFAULT_CLUB_NAME = import.meta.env.VITE_CLUB_NAME || "Texas Hodl";
  * Lobby (Flagship look). Three tabs (Cash games, Sit & Go, Tournaments), the
  * game types of the open tab as one row of chips with search and filters at
  * its end, then that game's tables as stake rows. Tournaments also lists the
- * upcoming scheduled events. Quick seat is a button by the tabs; the wallet
- * lives in the site top bar. The tab and game type are remembered.
+ * upcoming scheduled events. Search, filters and Create table sit together at
+ * the end of the game-type row; the wallet lives in the site top bar. The tab and game type are remembered.
  */
 const Lobby: React.FC<LobbyProps> = ({ address, onCreateTable }) => {
     const { t } = useLanguage();
@@ -103,8 +104,10 @@ const Lobby: React.FC<LobbyProps> = ({ address, onCreateTable }) => {
     const typeChips = useMemo(() => gameTypesIn(rawGames, tab), [rawGames, tab]);
     const type = activeGameType(typeChips, prefs.types[tab]);
     const shown = useMemo(() => gamesFor(games, tab, type), [games, tab, type]);
-    const { active, quiet } = useMemo(() => sectionRows(shown, sort), [shown, sort]);
-    const cashSections = useMemo(() => groupLobbySections(rawGames, "stakes-up").filter(s => s.kind === "cash"), [rawGames]);
+    // Every stake in this game, as tiles grouped by level; one opens as a panel with its tables.
+    const stakeRows = useMemo(() => groupStakeRows(shown), [shown]);
+    const [openStake, setOpenStake] = useState<string | null>(null);
+    const openRow = stakeRows.find(r => r.key === openStake);
     const preview = hasContent(previewId) ? rawGames.find(g => g.gameId === previewId) : undefined;
     const filterCount = activeFilterCount({ query, stakes, sizes });
 
@@ -138,8 +141,12 @@ const Lobby: React.FC<LobbyProps> = ({ address, onCreateTable }) => {
                 <i />
             </div>
 
-            {/* Tabs: the three areas, a live count, Quick seat and Create table. */}
+            {/* Tabs: the three areas, with the live count above their right end. */}
             <div className={styles.tabBar}>
+                <span className={styles.liveLine}>
+                    <span className={styles.dot} />
+                    {t("lobby.liveLine", { tables: rawGames.length, players: seatedTotal(rawGames) })}
+                </span>
                 <div className={styles.tabs} role="tablist" aria-label={t("lobby.areas")}>
                     {LOBBY_TABS.map(tb => (
                         <button key={tb} type="button" role="tab" aria-selected={tab === tb} className={tab === tb ? styles.tabOn : styles.tab} onClick={() => setPrefs({ tab: tb })}>
@@ -147,18 +154,6 @@ const Lobby: React.FC<LobbyProps> = ({ address, onCreateTable }) => {
                             <i>{counts[tb]}</i>
                         </button>
                     ))}
-                </div>
-                <span className={styles.liveLine}>
-                    <span className={styles.dot} />
-                    {t("lobby.liveLine", { tables: rawGames.length, players: seatedTotal(rawGames) })}
-                </span>
-                <div className={styles.tabActions}>
-                    <QuickSeat games={rawGames} cashSections={cashSections} onOpenTable={setPreviewId} onCreateTable={onCreateTable} />
-                    {onCreateTable ? (
-                        <button type="button" className={`${styles.btn} ${styles.btnGhost} ${styles.hidePhone}`} onClick={onCreateTable}>
-                            {t("lobby.createTable")}
-                        </button>
-                    ) : null}
                 </div>
             </div>
 
@@ -173,7 +168,8 @@ const Lobby: React.FC<LobbyProps> = ({ address, onCreateTable }) => {
                             className={c.type === type ? styles.typeOn : styles.type}
                             onClick={() => setPrefs({ types: { ...prefs.types, [tab]: c.type } })}
                         >
-                            {c.type}
+                            <span className={styles.hidePhone}>{c.type}</span>
+                            <span className={styles.showPhone}>{shortGameType(c.type)}</span>
                             <i>{c.tables}</i>
                         </button>
                     ))}
@@ -215,6 +211,14 @@ const Lobby: React.FC<LobbyProps> = ({ address, onCreateTable }) => {
                         </svg>
                         {filterCount > 0 ? <span className={styles.badgeCount}>{filterCount}</span> : null}
                     </button>
+                    {onCreateTable ? (
+                        <button type="button" className={`${styles.createBtn} ${styles.hidePhone}`} onClick={onCreateTable} aria-label={t("lobby.createTable")} title={t("lobby.createTable")}>
+                            <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2.2" aria-hidden="true">
+                                <path d="M12 5v14M5 12h14" />
+                            </svg>
+                            <span>{t("lobby.createTable")}</span>
+                        </button>
+                    ) : null}
                 </div>
             </div>
 
@@ -279,7 +283,7 @@ const Lobby: React.FC<LobbyProps> = ({ address, onCreateTable }) => {
                         {t("lobby.retry")}
                     </button>
                 </div>
-            ) : !hasElements(active) && !hasElements(quiet) ? (
+            ) : !hasElements(stakeRows) ? (
                 <div className={`${styles.box} ${styles.state}`}>
                     <p style={{ color: "var(--fg)", fontWeight: 600 }}>{filterCount > 0 ? t("lobby.noMatchFilters") : t("lobby.noTablesHere")}</p>
                     {filterCount > 0 ? (
@@ -293,56 +297,33 @@ const Lobby: React.FC<LobbyProps> = ({ address, onCreateTable }) => {
                     ) : null}
                 </div>
             ) : (
-                <section className={styles.section} aria-label={type}>
-                    {active.map(row => {
-                        const selected = rowSizeSelection(row, rowSizes[row.key]);
-                        const view = rowView(row, selected);
-                        return (
-                            <div key={row.key} className={styles.levelBlock}>
-                                <div className={styles.levelHead}>
-                                    <b className={styles.mono}>{isCashTable(row.sample) ? lobbyStakesLabel(row.sample) : lobbyBuyInLabel(row.sample)}</b>
-                                    <span className={styles.sizeChips} role="group" aria-label={t("lobby.seats")}>
-                                        {row.sizes.map(sz => {
-                                            const on = selected.includes(sz.size);
-                                            return (
-                                                <button
-                                                    key={sz.size}
-                                                    type="button"
-                                                    className={`${styles.sizeChip} ${on ? styles.sizeChipOn : ""}`}
-                                                    aria-pressed={on}
-                                                    onClick={() => setPrefs({ rowSizes: { ...rowSizes, [row.key]: toggleRowSize(selected, sz.size) } })}
-                                                >
-                                                    {sz.inPlay > 0 ? <i className={styles.sizeDot} /> : null}
-                                                    {tableSizeLabel(sz.size)}
-                                                </button>
-                                            );
-                                        })}
-                                    </span>
-                                    <span className={styles.levelStats}>
-                                        <span>{t("lobby.levelInPlay", { count: view.inPlay })}</span>
-                                        <span className={styles.levelStat}>{t("lobby.openShort", { count: view.open })}</span>
-                                    </span>
-                                </div>
-                                <div className={styles.row}>
-                                    {view.cards.map(g => (
-                                        <TableCard key={g.gameId} game={g} clubName={clubOf(g.gameId)} isTreasury={isTreasuryTable(g, treasuryAddress)} nowMs={nowMs} onOpen={setPreviewId} />
-                                    ))}
-                                </div>
+                <div className={styles.levels} aria-label={type}>
+                    {stakeLevels(stakeRows).map(group => (
+                        <section key={group.level} className={styles.levelGroup}>
+                            <h3 className={styles.subHead}>{t(LEVEL_KEYS[group.level])}</h3>
+                            <div className={styles.tiles}>
+                                {group.rows.map(row => (
+                                    <StakeTile key={row.key} row={row} gameName={type ?? ""} onOpen={setOpenStake} />
+                                ))}
                             </div>
-                        );
-                    })}
-                    {hasElements(quiet) ? (
-                        <div className={styles.quiet}>
-                            <span className={styles.quietLabel}>{t("lobby.quietStakes")}</span>
-                            {quiet.map(row => (
-                                <button key={row.key} type="button" className={styles.quietChip} onClick={() => setPreviewId(quietStakeTable(row).gameId)}>
-                                    {isCashTable(row.sample) ? lobbyStakesLabel(row.sample) : lobbyBuyInLabel(row.sample)}
-                                </button>
-                            ))}
-                        </div>
-                    ) : null}
-                </section>
+                        </section>
+                    ))}
+                </div>
             )}
+
+            {hasValue(openRow) ? (
+                <StakePanel
+                    row={openRow}
+                    gameName={type ?? ""}
+                    selected={rowSizeSelection(openRow, rowSizes[openRow.key])}
+                    onToggleSize={size => setPrefs({ rowSizes: { ...rowSizes, [openRow.key]: toggleRowSize(rowSizeSelection(openRow, rowSizes[openRow.key]), size) } })}
+                    clubOf={clubOf}
+                    isTreasury={gameId => rawGames.some(g => g.gameId === gameId && isTreasuryTable(g, treasuryAddress))}
+                    nowMs={nowMs}
+                    onPick={setPreviewId}
+                    onClose={() => setOpenStake(null)}
+                />
+            ) : null}
 
             {hasValue(preview) ? (
                 <TablePreview

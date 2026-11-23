@@ -26,8 +26,14 @@ describe("activeNavItem", () => {
         expect(activeNavItem("/nodes-old")).toBeUndefined();
     });
 
-    it("keeps four pages plus More in the phone tab bar", () => {
-        expect(NAV_ITEMS.filter(i => i.tab).map(i => i.path)).toEqual(["/", "/wallet", "/hands", "/explorer"]);
+    it("keeps Play, Fairness and Wallet plus More in the phone tab bar", () => {
+        expect(NAV_ITEMS.filter(i => i.tab).map(i => i.path)).toEqual(["/", "/fairness", "/wallet"]);
+    });
+
+    it("puts Play and Fairness in the desktop bar, My hands with you, the network under Explore", () => {
+        expect(NAV_ITEMS.filter(i => i.top).map(i => i.path)).toEqual(["/", "/fairness"]);
+        expect(NAV_ITEMS.filter(i => i.group === "me").map(i => i.path)).toEqual(["/wallet", "/hands"]);
+        expect(NAV_ITEMS.filter(i => i.group === "explore").map(i => i.path)).toEqual(["/explorer", "/players", "/awards", "/nodes", "/tech-notes"]);
     });
 });
 

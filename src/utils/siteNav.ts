@@ -4,8 +4,8 @@ import type { TranslationKey } from "../i18n";
 /** Which icon a navigation item draws (the SVG paths live in the nav component). */
 export type NavIcon = "play" | "wallet" | "hands" | "explorer" | "fairness" | "nodes" | "players" | "awards" | "notes";
 
-/** Where an item sits: the main group, the network/data group, or pinned to the bottom of the rail. */
-export type NavGroup = "main" | "data" | "foot";
+/** Where an item sits: playing and trust (the bar), your own pages (the avatar menu), or the Explore menu (the network's public record). */
+export type NavGroup = "main" | "me" | "explore";
 
 export interface NavItem {
     path: string;
@@ -15,19 +15,26 @@ export interface NavItem {
     group: NavGroup;
     /** Shown in the phone tab bar; everything else lives under "More". */
     tab: boolean;
+    /** A link in the desktop top bar (the rest are in the Explore menu or behind the balance). */
+    top: boolean;
 }
 
-/** Every page in the site navigation, in rail order. */
+/**
+ * Every page in the site navigation. DESKTOP: Play and Fairness in the bar, the
+ * network's pages in the Explore menu, My hands in the avatar menu, the wallet
+ * behind "My wallet". PHONE: Play, Fairness and Wallet in the tab bar; the
+ * Explore pages and My hands under More.
+ */
 export const NAV_ITEMS: NavItem[] = [
-    { path: "/", label: "nav.play", icon: "play", group: "main", tab: true },
-    { path: "/wallet", label: "nav.wallet", icon: "wallet", group: "main", tab: true },
-    { path: "/hands", label: "nav.hands", icon: "hands", group: "main", tab: true },
-    { path: "/explorer", label: "nav.explorerShort", icon: "explorer", group: "data", tab: true },
-    { path: "/fairness", label: "nav.fairness", icon: "fairness", group: "data", tab: false },
-    { path: "/nodes", label: "nav.nodes", icon: "nodes", group: "data", tab: false },
-    { path: "/players", label: "nav.players", icon: "players", group: "data", tab: false },
-    { path: "/awards", label: "nav.awards", icon: "awards", group: "data", tab: false },
-    { path: "/tech-notes", label: "nav.techNotesShort", icon: "notes", group: "foot", tab: false }
+    { path: "/", label: "nav.play", icon: "play", group: "main", tab: true, top: true },
+    { path: "/fairness", label: "nav.fairness", icon: "fairness", group: "main", tab: true, top: true },
+    { path: "/wallet", label: "nav.wallet", icon: "wallet", group: "me", tab: true, top: false },
+    { path: "/hands", label: "hands.title", icon: "hands", group: "me", tab: false, top: false },
+    { path: "/explorer", label: "nav.explorerShort", icon: "explorer", group: "explore", tab: false, top: false },
+    { path: "/players", label: "nav.players", icon: "players", group: "explore", tab: false, top: false },
+    { path: "/awards", label: "nav.awards", icon: "awards", group: "explore", tab: false, top: false },
+    { path: "/nodes", label: "nav.nodes", icon: "nodes", group: "explore", tab: false, top: false },
+    { path: "/tech-notes", label: "nav.techNotesShort", icon: "notes", group: "explore", tab: false, top: false }
 ];
 
 /** Other paths that belong to a nav item (a node's own page lights up Nodes). */
