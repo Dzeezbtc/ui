@@ -23,7 +23,8 @@ import {
     toggleBand,
     seatedTotal,
     type SizeBand,
-    type StakeBand
+    type StakeBand,
+    type ScreenBox
 } from "../../utils/lobbyLayout";
 import { LOBBY_TABS, shortGameType, activeGameType, activeTabs, gameTypesIn, gamesFor, isLobbyTab, tabCounts, toggleTab, type GameTypeChip, type LobbyTab } from "../../utils/lobbyTabs";
 import { hasContent, hasElements, hasValue, isEmpty } from "../../utils/guards";
@@ -115,6 +116,7 @@ const Lobby: React.FC<LobbyProps> = ({ address, onCreateTable }) => {
         [tabs.join(","), rawGames, games, prefs.types]
     );
     const [openStake, setOpenStake] = useState<string | null>(null);
+    const [openFrom, setOpenFrom] = useState<ScreenBox | null>(null);
     const openSection = sections.find(sec => sec.rows.some(r => r.key === openStake));
     const openRow = openSection?.rows.find(r => r.key === openStake);
     const preview = hasContent(previewId) ? rawGames.find(g => g.gameId === previewId) : undefined;
@@ -309,7 +311,15 @@ const Lobby: React.FC<LobbyProps> = ({ address, onCreateTable }) => {
                             <h3 className={styles.subHead}>{t(LEVEL_KEYS[group.level])}</h3>
                             <div className={styles.tiles}>
                                 {group.rows.map(row => (
-                                    <StakeTile key={row.key} row={row} gameName={sec.type ?? ""} onOpen={setOpenStake} />
+                                    <StakeTile
+                                                    key={row.key}
+                                                    row={row}
+                                                    gameName={sec.type ?? ""}
+                                                    onOpen={(key, from) => {
+                                                        setOpenFrom(from);
+                                                        setOpenStake(key);
+                                                    }}
+                                                />
                                 ))}
                                 {!hasElements(group.rows) && group.level !== "buy-in" ? (
                                     <ReadyTile level={group.level} onSit={onCreateTable} />
@@ -326,6 +336,7 @@ const Lobby: React.FC<LobbyProps> = ({ address, onCreateTable }) => {
             {hasValue(openRow) ? (
                 <StakePanel
                     row={openRow}
+                    from={openFrom}
                     gameName={openSection?.type ?? ""}
                     selected={rowSizeSelection(openRow, rowSizes[openRow.key])}
                     onToggleSize={size => setPrefs({ rowSizes: { ...rowSizes, [openRow.key]: toggleRowSize(rowSizeSelection(openRow, rowSizes[openRow.key]), size) } })}

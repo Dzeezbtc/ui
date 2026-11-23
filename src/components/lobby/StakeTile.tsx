@@ -1,5 +1,5 @@
 import React from "react";
-import type { StakeLevel, StakeRow } from "../../utils/lobbyLayout";
+import type { ScreenBox, StakeLevel, StakeRow } from "../../utils/lobbyLayout";
 import { cashBlind } from "../../utils/blindsLabel";
 import { LEVEL_DEFAULT_STAKES, feltLabels, tileSizesLabel, tileTable } from "../../utils/lobbyLayout";
 import { useLanguage } from "../../i18n/useLanguage";
@@ -10,7 +10,8 @@ interface StakeTileProps {
     row: StakeRow;
     /** The game as the lobby names it ("Texas Hold'em", "Sit & Go"). */
     gameName: string;
-    onOpen: (key: string) => void;
+    /** Opens the stake; passes where the tile is on screen so the panel can grow out of it. */
+    onOpen: (key: string, from: ScreenBox) => void;
 }
 
 /**
@@ -28,7 +29,7 @@ const StakeTile: React.FC<StakeTileProps> = ({ row, gameName, onOpen }) => {
         <button
             type="button"
             className={`${styles.card} ${styles.tile} ${row.seated > 0 ? styles.cardLive : styles.cardEmpty}`}
-            onClick={() => onOpen(row.key)}
+            onClick={e => onOpen(row.key, e.currentTarget.getBoundingClientRect())}
             aria-label={`${title}, ${sizes}, ${t("lobby.tilePlaying", { count: row.seated })}`}
         >
             <div className={styles.cardTop}>

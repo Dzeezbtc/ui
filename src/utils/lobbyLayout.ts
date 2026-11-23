@@ -513,3 +513,23 @@ export const tileSizesLabel = (sizes: readonly number[]): string => {
 /** The table a stake tile pictures: its busiest table (most players), else its largest. */
 export const tileTable = (row: StakeRow): GameWithFormat =>
     [...row.sizes.flatMap(s => s.tables)].sort((a, b) => b.currentPlayers - a.currentPlayers || b.maxPlayers - a.maxPlayers)[0];
+
+/** A box on screen (from getBoundingClientRect). */
+export interface ScreenBox {
+    left: number;
+    top: number;
+    width: number;
+    height: number;
+}
+
+/**
+ * The transform that makes the stake panel sit exactly over the tile it came from,
+ * so it can grow out of the tile into the middle (and shrink back into it on close).
+ */
+export const growFrom = (from: ScreenBox, to: ScreenBox): string => {
+    const dx = from.left + from.width / 2 - (to.left + to.width / 2);
+    const dy = from.top + from.height / 2 - (to.top + to.height / 2);
+    const sx = to.width > 0 ? from.width / to.width : 1;
+    const sy = to.height > 0 ? from.height / to.height : 1;
+    return `translate(${Math.round(dx)}px, ${Math.round(dy)}px) scale(${sx.toFixed(3)}, ${sy.toFixed(3)})`;
+};

@@ -472,3 +472,11 @@ a.pill:hover { color: #fff; }
     .card, .tab, .tabOn, .chip, .chipOn, .type, .typeOn, .iconBtn, .createBtn, .btn { transition: none; }
     .card:active, .tab:active, .tabOn:active, .chip:active, .chipOn:active, .type:active, .typeOn:active, .iconBtn:active, .createBtn:active, .btn:active { transform: none; }
 }
+
+/* The stake panel sits in the middle on every screen (not a bottom sheet) and is
+   centred without a transform, so it can grow out of the tapped tile and shrink back. */
+.panel { left: 0; right: 0; top: 0; bottom: 0; margin: auto; height: fit-content; transform: none; transform-origin: center; animation: none; width: min(1000px, calc(100vw - 48px)); max-height: min(80vh, 760px); }
+@media (max-width: 860px) {
+    .panel { left: 0; right: 0; top: 0; bottom: 0; margin: auto; width: calc(100vw - 24px); max-height: 78vh; border-radius: 22px; padding: 16px 14px 16px; animation: none; }
+    .panelRow { grid-auto-columns: 78%; }
+}
