@@ -21,7 +21,6 @@ import {
     similarOpenTable,
     toggleBand,
     seatedTotal,
-    toLobbySort,
     type SizeBand,
     type StakeBand
 } from "../../utils/lobbyLayout";
@@ -45,8 +44,6 @@ interface LobbyProps {
 
 const STAKE_NAMES: Record<StakeBand, string> = { all: "", micro: "Micro", low: "Low", mid: "Mid", high: "High" };
 const SIZE_NAMES: Record<SizeBand, string> = { all: "", "heads-up": "Heads-up", "6-max": "6-max", "9-max": "9-max" };
-const SORTS: readonly ("stakes-up" | "stakes-down" | "most-players" | "most-open")[] = ["stakes-up", "stakes-down", "most-players", "most-open"];
-const SORT_KEYS = { "stakes-up": "lobby.sortStakesUp", "stakes-down": "lobby.sortStakesDown", "most-players": "lobby.sortMostPlayers", "most-open": "lobby.sortMostOpen" } as const;
 const LEVEL_KEYS: Record<"micro" | "low" | "mid" | "high" | "buy-in", TranslationKey> = {
     micro: "lobby.levelMicro",
     low: "lobby.levelLow",
@@ -76,9 +73,9 @@ const Lobby: React.FC<LobbyProps> = ({ address, onCreateTable }) => {
     const [query, setQuery] = useState("");
     const [searchOpen, setSearchOpen] = useState(false);
     const searchRef = useRef<HTMLInputElement>(null);
-    // Stakes, sizes, sort, treasury-only, tab and game type are remembered between visits; search is not.
+    // Stakes, sizes, treasury-only, tab and game type are remembered between visits; search is not.
     const [prefs, setPrefs] = useLobbyPrefs({ stakes: [], sizes: [], sort: "most-players", treasuryOnly: hasContent(treasuryAddress), rowSizes: {}, tab: "cash", types: {} });
-    const { stakes, sizes, sort, treasuryOnly, rowSizes } = prefs;
+    const { stakes, sizes, treasuryOnly, rowSizes } = prefs;
     const [filtersOpen, setFiltersOpen] = useState(false);
     const [previewId, setPreviewId] = useState<string | null>(null);
     const [deleteId, setDeleteId] = useState<string | null>(null);
@@ -246,15 +243,6 @@ const Lobby: React.FC<LobbyProps> = ({ address, onCreateTable }) => {
                                 </button>
                             );
                         })}
-                    </div>
-                    <div className={styles.sel} style={{ width: 190 }}>
-                        <select value={sort} onChange={e => setPrefs({ sort: toLobbySort(e.target.value) ?? sort })} aria-label="Sort tables">
-                            {SORTS.map(s => (
-                                <option key={s} value={s}>
-                                    {t(SORT_KEYS[s])}
-                                </option>
-                            ))}
-                        </select>
                     </div>
                     {hasContent(treasuryAddress) ? (
                         <button type="button" role="switch" aria-checked={treasuryOnly} className={`${styles.switch} ${treasuryOnly ? styles.switchOn : ""}`} onClick={() => setPrefs({ treasuryOnly: !treasuryOnly })}>
