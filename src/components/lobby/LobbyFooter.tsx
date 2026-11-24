@@ -6,9 +6,6 @@ import { socialLinks, type SocialKind } from "../../utils/lobbySide";
 import { hasValue } from "../../utils/guards";
 import styles from "./Lobby.module.css";
 
-/** Free, international help for anyone worried about their gambling. */
-const RESPONSIBLE_GAMBLING_URL = "https://www.gamblingtherapy.org/";
-
 const SOCIAL_NAMES: Record<SocialKind, string> = { x: "X", telegram: "Telegram", discord: "Discord", youtube: "YouTube", instagram: "Instagram" };
 
 const SocialIcon: React.FC<{ kind: SocialKind }> = ({ kind }) => {
@@ -39,9 +36,9 @@ const LobbyFooter: React.FC = () => {
             <nav className={styles.footerBadges} aria-label={t("lobby.footerLinks")}>
                 <Link to="/fairness">{t("lobby.provablyFair")}</Link>
                 <span>{t("lobby.onChain")}</span>
-                <a href={RESPONSIBLE_GAMBLING_URL} target="_blank" rel="noopener noreferrer">
-                    {t("lobby.playResponsibly")}
-                </a>
+                <Link to="/play-responsibly">{t("lobby.playResponsibly")}</Link>
+                <Link to="/how-it-works">{t("nav.howItWorks")}</Link>
+                <Link to="/faq">{t("nav.faq")}</Link>
                 <span className={styles.footerAge}>18+</span>
             </nav>
             <div className={styles.footerSocials}>
