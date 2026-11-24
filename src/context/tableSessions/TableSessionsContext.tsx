@@ -25,7 +25,8 @@ interface Persisted {
     activeId: string | null;
 }
 
-function loadPersisted(): Persisted | null {
+/** The open tables saved by the multi-table workspace (read by the site's floating Tables button too). */
+export function loadPersisted(): Persisted | null {
     try {
         const raw = localStorage.getItem(STORAGE_KEY);
         if (!raw) return null;

@@ -72,7 +72,7 @@ const MiniTable: React.FC<MiniTableProps> = ({ maxPlayers, currentPlayers, large
                         {title}
                     </text>
                     {sub ? (
-                        <text x={CX} y={CY + 28} textAnchor="middle" fontFamily="Inter, ui-sans-serif, system-ui, sans-serif" fontWeight="600" fontSize="18" fill="#C4B5FD">
+                        <text x={CX} y={CY + 28} textAnchor="middle" fontFamily="Inter, ui-sans-serif, system-ui, sans-serif" fontWeight="600" fontSize="16" fill="#C4B5FD">
                             {sub}
                         </text>
                     ) : null}

@@ -140,6 +140,7 @@ import { useGameStateContext } from "../../context/GameStateContext";
 import { useLogicalTrack } from "../../context/gameState/LogicalTrackContext";
 import { useTableId } from "../../context/TableIdContext";
 import { useGameSettings } from "../../context/GameSettingsContext";
+import { useAutoRebuy } from "../../hooks/game/useAutoRebuy";
 import { useNetwork } from "../../context/NetworkContext";
 import { PlayerDTO, PlayerStatus } from "@block52/poker-vm-sdk";
 import LiveHandStrengthDisplay from "./LiveHandStrengthDisplay";
@@ -931,7 +932,7 @@ const Table = React.memo(({ tableId }: TableProps = {}) => {
     } = useNextToActInfo(id);
 
     // Enable turn-to-act notifications (tab flashing + optional sound)
-    const { turnNotificationSound, playerActionSounds, seatAtBottom, flipBoardCards } = useGameSettings();
+    const { turnNotificationSound, playerActionSounds, seatAtBottom, flipBoardCards, autoRebuy } = useGameSettings();
     useTurnNotification(isCurrentUserTurn, {
         enableSound: turnNotificationSound,
         soundVolume: 0.3,
@@ -1326,6 +1327,28 @@ const Table = React.memo(({ tableId }: TableProps = {}) => {
     const currentPlayerData = useMemo(() => {
         return tableDataValues.tableDataPlayers?.find((p: PlayerDTO) => p.address?.toLowerCase() === userWalletAddress?.toLowerCase());
     }, [tableDataValues.tableDataPlayers, userWalletAddress]);
+
+    // Auto re-buy (settings cog > Gameplay): top the stack back up between hands at cash tables.
+    const handleAutoRebuy = useCallback(
+        (amount: bigint) => {
+            toast.success(`Auto re-buy: +$${formatUSDCToSimpleDollars(amount.toString())}`, { autoClose: 2500 });
+            fetchAccountBalance();
+        },
+        [fetchAccountBalance]
+    );
+    useAutoRebuy({
+        tableId: id || "",
+        network: currentNetwork,
+        mode: autoRebuy,
+        active: hasValue(currentPlayerData) && !formattedValues.isTournamentStyle,
+        handNumber,
+        legalActions: playerLegalActions,
+        stack: currentPlayerData?.stack || "0",
+        minBuyIn: gameOptions?.minBuyIn || "0",
+        maxBuyIn: gameOptions?.maxBuyIn || "0",
+        wallet: accountBalance,
+        onRebuy: handleAutoRebuy
+    });
 
     // Confirm leave table action
     const handleLeaveTableConfirm = useCallback(async () => {

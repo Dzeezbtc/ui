@@ -1271,8 +1271,14 @@ const Dashboard: React.FC = () => {
                         <div className="w-full max-w-[1600px] mx-auto px-4 sm:px-6 lg:px-8 z-10 mt-4 sm:mt-6 mb-16">
                             <Lobby
                                 address={cosmosWallet.address}
-                                onCreateTable={() => {
+                                onCreateTable={stakes => {
                                     setCreateGameError("");
+                                    if (stakes) {
+                                        // A ready table in the lobby: start the form as a cash game on that level's stakes.
+                                        const level = BLIND_LEVELS.findIndex(l => l.smallBlind === stakes.smallBlind && l.bigBlind === stakes.bigBlind);
+                                        setModalGameType("cash");
+                                        if (level >= 0) setSelectedBlindLevel(level);
+                                    }
                                     setShowCreateGameModal(true);
                                 }}
                             />

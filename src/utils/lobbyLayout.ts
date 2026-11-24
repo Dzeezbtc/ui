@@ -85,7 +85,23 @@ export interface LobbyFilter {
     treasuryAddress: string;
     /** gameId → club name, for search. */
     clubNames?: Record<string, string>;
+    /** Leave out tables with no open seat. */
+    hideFull?: boolean;
+    /** Leave out tables nobody is sitting at. */
+    hideEmpty?: boolean;
+    /** Show tables of invite-only Circles (seen, not joinable). Off = they stay hidden. */
+    showInviteOnly?: boolean;
+    /** gameIds of tables whose Circle is invite-only. */
+    inviteOnly?: ReadonlySet<string>;
 }
+
+/** Does a table pass the Show switches (invite only, hide full, hide empty)? */
+export const passesShowFilters = (game: GameWithFormat, f: Pick<LobbyFilter, "hideFull" | "hideEmpty" | "showInviteOnly" | "inviteOnly">): boolean =>
+    !(f.hideFull && openSeats(game) <= 0) && !(f.hideEmpty && game.currentPlayers <= 0) && (Boolean(f.showInviteOnly) || !f.inviteOnly?.has(game.gameId));
+
+/** gameIds of tables whose Circle only lets people in by invite. */
+export const inviteOnlyTables = (tables: Record<string, { joining?: string }>): Set<string> =>
+    new Set(Object.entries(tables).filter(([, c]) => c.joining === "invite").map(([id]) => id));
 
 /** All tables that pass the lobby filters. */
 export const filterLobbyGames = (games: GameWithFormat[], f: LobbyFilter): GameWithFormat[] =>
@@ -94,7 +110,8 @@ export const filterLobbyGames = (games: GameWithFormat[], f: LobbyFilter): GameW
             (!f.treasuryOnly || !hasContent(f.treasuryAddress) || g.creator === f.treasuryAddress) &&
             matchesStakes(g, f.stakes) &&
             matchesSizes(g, f.sizes) &&
-            matchesSearch(g, f.query, f.clubNames?.[g.gameId])
+            matchesSearch(g, f.query, f.clubNames?.[g.gameId]) &&
+            passesShowFilters(g, f)
     );
 
 export type LobbySort = "stakes-up" | "stakes-down" | "most-players" | "most-open";
@@ -265,8 +282,8 @@ export const othersAtLevel = (games: GameWithFormat[], game: GameWithFormat): Ga
         .sort((a, b) => Number(openSeats(b) > 0) - Number(openSeats(a) > 0) || b.currentPlayers - a.currentPlayers || a.gameId.localeCompare(b.gameId));
 
 /** How many lobby filters are set (search counts as one), for the Filters button badge. */
-export const activeFilterCount = (f: { query: string; stakes: readonly StakeBand[]; sizes: readonly SizeBand[] }): number =>
-    Number(hasContent(f.query.trim())) + Number(hasElements([...f.stakes])) + Number(hasElements([...f.sizes]));
+export const activeFilterCount = (f: { query: string; stakes: readonly StakeBand[]; sizes: readonly SizeBand[]; hideFull?: boolean; hideEmpty?: boolean; inviteOnly?: boolean }): number =>
+    Number(hasContent(f.query.trim())) + Number(hasElements([...f.stakes])) + Number(hasElements([...f.sizes])) + Number(Boolean(f.hideFull)) + Number(Boolean(f.hideEmpty)) + Number(Boolean(f.inviteOnly));
 
 /** True when a USDC balance (decimal string) is above zero. */
 export const hasBalance = (usdc: string): boolean => Number(usdc) > 0;
@@ -295,10 +312,16 @@ export interface LobbyPrefs {
     sizes: SizeBand[];
     sort: LobbySort;
     treasuryOnly: boolean;
+    /** Show switches: invite-only Circles' tables, and hiding full or empty tables. */
+    inviteOnly?: boolean;
+    hideFull?: boolean;
+    hideEmpty?: boolean;
     /** Table sizes switched on in each stake row, by stake key. A stake with no entry starts on its busiest size. */
     rowSizes: Record<string, number[]>;
     /** The tab the lobby was last on: "cash", "sit-and-go" or "tournament". */
     tab: string;
+    /** The areas switched on (several can be on at once; they stack in lobby order). */
+    tabs?: string[];
     /** The game type picked in each tab, by tab. */
     types: Record<string, string>;
 }
@@ -327,8 +350,12 @@ export const parseLobbyPrefs = (raw: string | null, defaults: LobbyPrefs): Lobby
             sizes: Array.isArray(data.sizes) ? data.sizes.filter(isSizeBand) : defaults.sizes,
             sort: isString(data.sort) ? (toLobbySort(data.sort) ?? defaults.sort) : defaults.sort,
             treasuryOnly: isBoolean(data.treasuryOnly) ? data.treasuryOnly : defaults.treasuryOnly,
+            inviteOnly: isBoolean(data.inviteOnly) ? data.inviteOnly : defaults.inviteOnly,
+            hideFull: isBoolean(data.hideFull) ? data.hideFull : defaults.hideFull,
+            hideEmpty: isBoolean(data.hideEmpty) ? data.hideEmpty : defaults.hideEmpty,
             rowSizes: isRecord(data.rowSizes) ? parseRowSizes(data.rowSizes) : defaults.rowSizes,
             tab: isString(data.tab) ? data.tab : defaults.tab,
+            tabs: Array.isArray(data.tabs) ? data.tabs.filter(isString) : defaults.tabs,
             types: isRecord(data.types) ? parseTypes(data.types) : defaults.types
         };
     } catch {
@@ -457,13 +484,62 @@ const LEVELS: StakeLevel[] = ["micro", "low", "mid", "high"];
 /** Which level a stake row is in (by big blind: micro up to 20c, low up to $2, mid up to $10, high above). */
 export const stakeLevelOf = (row: StakeRow): StakeLevel => LEVELS.find(l => matchesStake(row.sample, l)) ?? "high";
 
-/** Stake rows as tiles grouped by level (micro first), each level's stakes low to high. Tournaments are one group. */
-export const stakeLevels = (rows: StakeRow[]): { level: StakeLevel | "buy-in"; rows: StakeRow[] }[] => {
+/**
+ * Stake rows as tiles grouped by level (micro first), each level's stakes low to high. Tournaments are one group.
+ * With `allLevels`, cash games keep every level (micro, low, mid, high) even when it has no tables yet, so the
+ * lobby always shows the same four blocks in the same places.
+ */
+export const stakeLevels = (rows: StakeRow[], allLevels = false): { level: StakeLevel | "buy-in"; rows: StakeRow[] }[] => {
     const sorted = sortStakeRows(rows, "stakes-up");
     if (!sorted.some(r => isCashTable(r.sample))) return hasElements(sorted) ? [{ level: "buy-in", rows: sorted }] : [];
-    return LEVELS.map(level => ({ level, rows: sorted.filter(r => stakeLevelOf(r) === level) })).filter(g => hasElements(g.rows));
+    const groups = LEVELS.map(level => ({ level, rows: sorted.filter(r => stakeLevelOf(r) === level) }));
+    return allLevels ? groups : groups.filter(g => hasElements(g.rows));
+};
+
+/** The stakes a level offers when nobody has opened a table there yet (small blind, big blind in dollars). */
+export const LEVEL_DEFAULT_STAKES: Record<StakeLevel, { smallBlind: number; bigBlind: number }> = {
+    micro: { smallBlind: 0.05, bigBlind: 0.1 },
+    low: { smallBlind: 0.5, bigBlind: 1 },
+    mid: { smallBlind: 2, bigBlind: 5 },
+    high: { smallBlind: 10, bigBlind: 20 }
+};
+
+/** A tile's sizes, short and biggest first: "9-max · 6-max · H/U" (3–6 seats count as 6-max). */
+export const tileSizesLabel = (sizes: readonly number[]): string => {
+    const bands = new Set<string>(sizes.map(n => (n === 2 ? "H/U" : n <= 6 ? "6-max" : "9-max")));
+    return ["9-max", "6-max", "H/U"].filter(b => bands.has(b)).join(" · ");
 };
 
 /** The table a stake tile pictures: its busiest table (most players), else its largest. */
 export const tileTable = (row: StakeRow): GameWithFormat =>
     [...row.sizes.flatMap(s => s.tables)].sort((a, b) => b.currentPlayers - a.currentPlayers || b.maxPlayers - a.maxPlayers)[0];
+
+/** A box on screen (from getBoundingClientRect). */
+export interface ScreenBox {
+    left: number;
+    top: number;
+    width: number;
+    height: number;
+}
+
+/**
+ * The transform that makes the stake panel sit exactly over the tile it came from,
+ * so it can grow out of the tile into the middle (and shrink back into it on close).
+ */
+export const growFrom = (from: ScreenBox, to: ScreenBox): string => {
+    const dx = from.left + from.width / 2 - (to.left + to.width / 2);
+    const dy = from.top + from.height / 2 - (to.top + to.height / 2);
+    const sx = to.width > 0 ? from.width / to.width : 1;
+    const sy = to.height > 0 ? from.height / to.height : 1;
+    return `translate(${Math.round(dx)}px, ${Math.round(dy)}px) scale(${sx.toFixed(3)}, ${sy.toFixed(3)})`;
+};
+
+/** The stake a level card pictures: the one with most players seated, else the first. */
+export const busiestRow = (rows: readonly StakeRow[]): StakeRow | undefined =>
+    rows.reduce<StakeRow | undefined>((best, r) => (!best || r.seated > best.seated ? r : best), undefined);
+
+/** Players seated and tables open across a level's stakes. */
+export const levelSummary = (rows: readonly StakeRow[]): { seated: number; tables: number } => ({
+    seated: rows.reduce((n, r) => n + r.seated, 0),
+    tables: rows.reduce((n, r) => n + r.sizes.reduce((m, sz) => m + sz.tables.length, 0), 0)
+});
