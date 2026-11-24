@@ -1,5 +1,5 @@
 /**
-* Nodes page (Flagship look, Dzeezbtc/ui#94): which nodes to show, which are validators, how far
+ * Nodes page (Flagship look, Dzeezbtc/ui#94): which nodes to show, which are validators, how far
  * each is behind the tip, and where each sits on the network drawing.
  */
 
