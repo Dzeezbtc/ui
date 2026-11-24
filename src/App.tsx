@@ -47,6 +47,9 @@ const MyHandsPage = lazy(() => import("./pages/MyHandsPage"));
 const HandsHome = lazy(() => import("./pages/hands/HandsHome"));
 const PlayerProfilePage = lazy(() => import("./pages/PlayerProfilePage"));
 const TechNotesPage = lazy(() => import("./pages/tech-notes/TechNotesPage"));
+const HowItWorksPage = lazy(() => import("./pages/explainers/HowItWorksPage"));
+const FaqPage = lazy(() => import("./pages/explainers/FaqPage"));
+const PlayResponsiblyPage = lazy(() => import("./pages/explainers/PlayResponsiblyPage"));
 // test-sdk only has a named export; re-shape it to a default for React.lazy.
 const TestSdk = lazy(() => import("./test-sdk").then(m => ({ default: m.TestSdk })));
 import { GameStateProvider } from "./context/GameStateContext";
@@ -191,6 +194,9 @@ function AppContent() {
                 <Route path="/nodes" element={<NodesPage />} />
                 <Route path="/node/:name" element={<NodeStatusPage />} />
                 <Route path="/tech-notes" element={<TechNotesPage />} />
+                <Route path="/how-it-works" element={<HowItWorksPage />} />
+                <Route path="/faq" element={<FaqPage />} />
+                <Route path="/play-responsibly" element={<PlayResponsiblyPage />} />
                 <Route path="/" element={<Dashboard />} />
             </Routes>
             </Suspense>
