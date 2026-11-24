@@ -10,6 +10,7 @@ import { Profiler } from "react";
 import { NetworkProvider } from "./context/NetworkContext";
 import { isCustodial, restoreWalletIfClubAccountsOff } from "./utils/custody/session";
 import { getCosmosMnemonic, setCosmosMnemonic, setCosmosAddress } from "./utils/cosmos/storage";
+import { WELCOME_PENDING_KEY } from "./utils/welcomeSetup";
 
 
 const projectId = import.meta.env.VITE_PROJECT_ID;
@@ -36,6 +37,8 @@ if (!getCosmosMnemonic() && !isCustodial()) {
         const [account] = await wallet.getAccounts();
         setCosmosMnemonic(wallet.mnemonic);
         setCosmosAddress(account.address);
+        // A brand-new visitor: the lobby offers the first-visit setup (back up the words, add money).
+        localStorage.setItem(WELCOME_PENDING_KEY, "1");
     } catch (err) {
         console.error("Failed to auto-generate Cosmos wallet:", err);
     }

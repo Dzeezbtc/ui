@@ -35,6 +35,7 @@ import UpcomingEvents from "./UpcomingEvents";
 import StakeTile from "./StakeTile";
 import StakePanel from "./StakePanel";
 import TablePreview from "./TablePreview";
+import { useWelcomeRedirect } from "../../hooks/wallet/useWelcomeRedirect";
 import styles from "./Lobby.module.css";
 
 interface LobbyProps {
@@ -66,6 +67,8 @@ const DEFAULT_CLUB_NAME = import.meta.env.VITE_CLUB_NAME || "Texas Hodl";
  * the end of the game-type row; the wallet lives in the site top bar. The tab and game type are remembered.
  */
 const Lobby: React.FC<LobbyProps> = ({ address, onCreateTable }) => {
+    // A first-time visitor with no wallet goes to the setup first (once).
+    useWelcomeRedirect(true);
     const { t } = useLanguage();
     const tableClubs = useTableClubs();
     const { games: allGames, isLoading, error, refetch } = useFindGames();
