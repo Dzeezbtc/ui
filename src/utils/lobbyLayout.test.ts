@@ -277,7 +277,8 @@ describe("labels", () => {
     });
 
     it("splits a tournament buy-in when a protocol fee is set", () => {
-        expect(lobbyBuyInLabel(sng("s", 0, 6, { minBuyIn: "10000000", protocolFeeBps: 1000 }))).toMatch(/^\$10 \(\d+\.\d{2} \+ \d+\.\d{2}\)$/);
+        expect(lobbyBuyInLabel(sng("s", 0, 6, { minBuyIn: "10000000", protocolFeeBps: 1000 }))).toBe("$10 ($9 + $1)");
+        expect(lobbyBuyInLabel(sng("s", 0, 6, { minBuyIn: "9000000", protocolFeeBps: 1000 }))).toBe("$9 ($8.10 + 90c)");
     });
 
     it("names table sizes", () => {
