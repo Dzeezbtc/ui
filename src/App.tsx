@@ -41,6 +41,7 @@ const GenesisState = lazy(() => import("./pages/GenesisState"));
 const AdminDashboard = lazy(() => import("./pages/admin/AdminDashboard"));
 const NodeStatusPage = lazy(() => import("./pages/NodeStatusPage"));
 const NodesPage = lazy(() => import("./pages/NodesPage"));
+const WelcomeSetup = lazy(() => import("./pages/welcome/WelcomeSetup"));
 const NodesHome = lazy(() => import("./pages/nodes/NodesHome"));
 const NodeHome = lazy(() => import("./pages/nodes/NodeHome"));
 const PlayersPage = lazy(() => import("./pages/PlayersPage"));
@@ -202,6 +203,7 @@ function AppContent() {
                 <Route path="/how-it-works" element={<HowItWorksPage />} />
                 <Route path="/faq" element={<FaqPage />} />
                 <Route path="/play-responsibly" element={<PlayResponsiblyPage />} />
+                <Route path="/welcome" element={<WelcomeSetup />} />
                 <Route path="/" element={<Dashboard />} />
             </Routes>
             </Suspense>
