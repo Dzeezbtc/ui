@@ -385,9 +385,10 @@ a.pill:hover { color: #fff; }
 }
 
 /* Stake tiles grouped by level (3 across on desktop, 2 on phones); a tile opens its panel. */
-.levels { display: flex; flex-direction: column; gap: 26px; }
-.levelGroup { display: flex; flex-direction: column; gap: 12px; }
-.tiles { display: grid; grid-template-columns: repeat(3, minmax(0, 1fr)); gap: 14px; max-width: 900px; }
+/* Levels two by two: Micro | Low, then Mid | High. Each level's tiles sit two across inside its half. */
+.levels { display: grid; grid-template-columns: repeat(2, minmax(0, 1fr)); gap: 26px 28px; align-items: start; }
+.levelGroup { display: flex; flex-direction: column; gap: 12px; min-width: 0; }
+.tiles { display: grid; grid-template-columns: repeat(2, minmax(0, 1fr)); gap: 14px; }
 .tile .pic { padding: 4px 10px 12px; }
 .panelPortal { position: fixed; inset: 0; z-index: 9000; }
 .panelScrim { position: absolute; inset: 0; border: 0; background: rgba(3, 2, 8, 0.6); backdrop-filter: blur(6px); cursor: default; }
@@ -399,8 +400,9 @@ a.pill:hover { color: #fff; }
 .panelX { width: 38px; height: 38px; border-radius: 12px; border: 1px solid var(--line); background: var(--panel2); color: var(--fg); cursor: pointer; flex: none; }
 .panelRow { padding-bottom: 8px; }
 @media (max-width: 860px) {
-    .tiles { grid-template-columns: repeat(2, minmax(0, 1fr)); gap: 10px; }
-    .panel { left: 0; right: 0; top: auto; bottom: 0; transform: none; width: auto; max-height: 86vh; border-radius: 24px 24px 0 0; padding: 16px 16px calc(18px + env(safe-area-inset-bottom, 0px)); animation: sheetUp 0.28s cubic-bezier(0.2, 0.8, 0.2, 1); }
+    .levels { gap: 20px 12px; }
+    .tiles { grid-template-columns: minmax(0, 1fr); gap: 10px; }
+        .panel { left: 0; right: 0; top: auto; bottom: 0; transform: none; width: auto; max-height: 86vh; border-radius: 24px 24px 0 0; padding: 16px 16px calc(18px + env(safe-area-inset-bottom, 0px)); animation: sheetUp 0.28s cubic-bezier(0.2, 0.8, 0.2, 1); }
     @keyframes sheetUp { from { transform: translateY(40%); opacity: 0; } }
     .panelRow { grid-auto-columns: 72%; }
 }
@@ -411,3 +413,194 @@ a.pill:hover { color: #fff; }
     .tile .cardTop .seatsPill { flex: none; }
     .panel .sizeChips { order: 0; width: auto; }
 }
+
+/* Depth: every box gets a thin top highlight (light from above), a darker bottom
+   edge and a soft layered shadow, so tabs, chips, tiles and tables sit just off
+   the page. Kept subtle on purpose: same colours, a little more lift.
+   The stake panel and table preview open in a portal, so they get the tokens too. */
+.lobby, .portal, .panelPortal {
+    --lift: inset 0 1px 0 rgba(255, 255, 255, 0.09), inset 0 -1px 0 rgba(0, 0, 0, 0.35), 0 3px 8px -2px rgba(0, 0, 0, 0.45), 0 16px 34px -18px rgba(0, 0, 0, 0.85);
+    --lift-sm: inset 0 1px 0 rgba(255, 255, 255, 0.08), 0 2px 6px -2px rgba(0, 0, 0, 0.5), 0 8px 18px -12px rgba(0, 0, 0, 0.7);
+}
+.card { background: linear-gradient(180deg, rgba(255, 255, 255, 0.08), rgba(255, 255, 255, 0.025) 55%, rgba(0, 0, 0, 0.12)); box-shadow: var(--lift); }
+.cardLive { box-shadow: var(--lift), 0 0 0 1px rgba(52, 211, 153, 0.1), 0 18px 40px -24px rgba(52, 211, 153, 0.6); }
+.card:hover { box-shadow: var(--lift), 0 26px 54px -22px rgba(124, 58, 237, 0.7); }
+.pic svg { filter: drop-shadow(0 10px 14px rgba(0, 0, 0, 0.5)) drop-shadow(0 0 18px rgba(124, 58, 237, 0.18)); }
+.tabs, .filters { background: linear-gradient(180deg, rgba(255, 255, 255, 0.06), rgba(255, 255, 255, 0.02)); box-shadow: var(--lift); }
+.tabOn { box-shadow: inset 0 1px 0 rgba(255, 255, 255, 0.3), 0 10px 26px -10px rgba(124, 58, 237, 0.95), 0 2px 6px -2px rgba(0, 0, 0, 0.5); }
+.chip, .iconBtn, .createBtn { background-image: linear-gradient(180deg, rgba(255, 255, 255, 0.06), rgba(255, 255, 255, 0)); box-shadow: var(--lift-sm); }
+.chipOn { box-shadow: inset 0 1px 0 rgba(255, 255, 255, 0.14), 0 0 0 1px rgba(196, 181, 253, 0.12), 0 6px 16px -8px rgba(124, 58, 237, 0.8); }
+.createBtn { box-shadow: var(--lift-sm), 0 8px 20px -12px rgba(124, 58, 237, 0.8); }
+.subHead { text-shadow: 0 2px 10px rgba(0, 0, 0, 0.6); }
+
+/* Several areas on at once: each is its own block with a heading and its game types. */
+.area { margin-top: 30px; padding-top: 22px; border-top: 1px solid var(--line); }
+.area:first-of-type { border-top: 0; padding-top: 0; }
+.areaHead { display: flex; align-items: center; gap: 14px 18px; flex-wrap: wrap; margin-bottom: 16px; }
+.areaHead h2 { margin: 0; font-family: var(--disp); font-weight: 700; font-size: 24px; letter-spacing: -0.3px; text-shadow: 0 2px 12px rgba(0, 0, 0, 0.6); }
+@media (max-width: 860px) {
+    .area { margin-top: 22px; padding-top: 16px; }
+    .areaHead { gap: 10px; margin-bottom: 12px; }
+    .areaHead h2 { font-size: 20px; }
+}
+
+/* Buy-ins (Sit & Go, Tournaments) are one group: it takes the full width, 3 tiles across (2 on phones). */
+.levelGroup:only-child { grid-column: 1 / -1; }
+.levelGroup:only-child .tiles { grid-template-columns: repeat(4, minmax(0, 1fr)); }
+@media (max-width: 1100px) { .levelGroup:only-child .tiles { grid-template-columns: repeat(3, minmax(0, 1fr)); } }
+@media (max-width: 860px) { .levelGroup:only-child .tiles { grid-template-columns: repeat(2, minmax(0, 1fr)); } }
+
+/* A bit more pop, instant hover, and a key-press feel on click.
+   Hover has no fade: the glow is on the moment the pointer arrives and off the moment it leaves.
+   Pressing pushes the box down 3px and flattens its shadow, like a key; letting go springs it back. */
+.lobby, .portal, .panelPortal {
+    --lift: inset 0 1px 0 rgba(255, 255, 255, 0.12), inset 0 -2px 0 rgba(0, 0, 0, 0.4), 0 4px 0 -1px rgba(0, 0, 0, 0.45), 0 6px 12px -4px rgba(0, 0, 0, 0.55), 0 22px 40px -20px rgba(0, 0, 0, 0.9);
+    --lift-sm: inset 0 1px 0 rgba(255, 255, 255, 0.11), 0 3px 0 -1px rgba(0, 0, 0, 0.5), 0 8px 18px -10px rgba(0, 0, 0, 0.75);
+    --press: inset 0 2px 6px rgba(0, 0, 0, 0.45), 0 1px 0 rgba(0, 0, 0, 0.4);
+}
+.card, .tab, .tabOn, .chip, .chipOn, .type, .typeOn, .iconBtn, .createBtn, .btn {
+    transition: transform 0.14s cubic-bezier(0.3, 1.6, 0.5, 1);
+}
+.type, .typeOn { background-image: linear-gradient(180deg, rgba(255, 255, 255, 0.06), rgba(255, 255, 255, 0)); box-shadow: var(--lift-sm); }
+.typeOn { box-shadow: var(--lift-sm), 0 6px 16px -8px rgba(124, 58, 237, 0.8); }
+.card:hover { transform: translateY(-4px); border-color: rgba(196, 181, 253, 0.5); box-shadow: var(--lift), 0 0 0 1px rgba(196, 181, 253, 0.25), 0 28px 60px -20px rgba(124, 58, 237, 0.85); }
+.card:hover .pic svg { filter: drop-shadow(0 12px 16px rgba(0, 0, 0, 0.55)) drop-shadow(0 0 26px rgba(168, 85, 247, 0.45)); }
+.tab:hover, .chip:hover, .type:hover, .iconBtn:hover, .createBtn:hover { transform: translateY(-1px); border-color: rgba(196, 181, 253, 0.5); color: var(--fg); }
+.card:active { transform: translateY(1px) scale(0.985); box-shadow: var(--press); transition-duration: 0.05s; }
+.tab:active, .tabOn:active, .chip:active, .chipOn:active, .type:active, .typeOn:active, .iconBtn:active, .createBtn:active, .btn:active { transform: translateY(2px) scale(0.97); box-shadow: var(--press); transition-duration: 0.05s; }
+@media (prefers-reduced-motion: reduce) {
+    .card, .tab, .tabOn, .chip, .chipOn, .type, .typeOn, .iconBtn, .createBtn, .btn { transition: none; }
+    .card:active, .tab:active, .tabOn:active, .chip:active, .chipOn:active, .type:active, .typeOn:active, .iconBtn:active, .createBtn:active, .btn:active { transform: none; }
+}
+
+/* The stake panel sits in the middle on every screen (not a bottom sheet) and is
+   centred without a transform, so it can grow out of the tapped tile and shrink back. */
+.panel { left: 0; right: 0; top: 0; bottom: 0; margin: auto; height: fit-content; transform: none; transform-origin: center; animation: none; width: min(1000px, calc(100vw - 48px)); max-height: min(80vh, 760px); }
+@media (max-width: 860px) {
+    .panel { left: 0; right: 0; top: 0; bottom: 0; margin: auto; width: calc(100vw - 24px); max-height: 78vh; border-radius: 22px; padding: 16px 14px 16px; animation: none; }
+    .panelRow { grid-auto-columns: 78%; }
+}
+
+/* ---------- Desktop layout (phones keep the single column) ---------- */
+.deskGrid { display: block; }
+.side { display: none; }
+.mainUpcoming { display: block; }
+.levelGroup { min-width: 0; }
+
+/* Side column cards. */
+.sideCard { display: flex; flex-direction: column; gap: 12px; padding: 18px; border-radius: 22px; background: linear-gradient(180deg, rgba(255, 255, 255, 0.06), rgba(255, 255, 255, 0.02)); border: 1px solid var(--line); box-shadow: var(--lift); }
+.sideWallet { background: radial-gradient(120% 90% at 0% 0%, rgba(124, 58, 237, 0.35), transparent 60%), linear-gradient(180deg, rgba(255, 255, 255, 0.06), rgba(255, 255, 255, 0.02)); }
+.sideEyebrow { font-size: 12px; font-weight: 700; letter-spacing: 0.08em; text-transform: uppercase; color: var(--muted); }
+.sideBalance { font-family: var(--mono); font-size: 34px; font-weight: 700; color: var(--fg); letter-spacing: -0.5px; }
+.sideHead { display: flex; align-items: baseline; justify-content: space-between; gap: 10px; }
+.sideLink { font-size: 13px; color: var(--vi2); text-decoration: none; }
+.sideLink:hover { text-decoration: underline; }
+.sideStats { display: grid; grid-template-columns: repeat(3, minmax(0, 1fr)); gap: 8px; }
+.sideStats div { display: flex; flex-direction: column; gap: 4px; padding: 12px 10px; border-radius: 14px; background: rgba(0, 0, 0, 0.22); border: 1px solid var(--line); }
+.sideStats b { font-family: var(--mono); font-size: 20px; color: var(--fg); }
+.sideStats small { font-size: 11.5px; color: var(--muted); }
+.sideList { display: flex; flex-direction: column; gap: 8px; }
+.sideRow { display: grid; grid-template-columns: auto minmax(0, 1fr) auto; align-items: center; gap: 10px; padding: 10px 12px; border-radius: 14px; background: rgba(0, 0, 0, 0.22); border: 1px solid var(--line); color: var(--fg); text-decoration: none; }
+.sideRow:hover { border-color: rgba(196, 181, 253, 0.5); }
+.sideRow small { color: var(--muted); font-size: 12.5px; overflow: hidden; text-overflow: ellipsis; white-space: nowrap; }
+.sideRow i { font-style: normal; font-family: var(--mono); font-size: 12px; color: var(--muted); }
+.sideUpcoming .events { grid-template-columns: 1fr; }
+
+/* ---------- Footer (front page, phones and desktop): centred, CoinPoker-style ---------- */
+.footer { position: relative; overflow: hidden; margin-top: 48px; padding: 34px 16px 0; border-top: 1px solid var(--line); display: flex; flex-direction: column; align-items: center; gap: 16px; text-align: center; color: var(--muted); font-size: 13px; }
+.footerSecured { display: inline-flex; align-items: center; gap: 8px; font-weight: 600; color: var(--fg); font-size: 14px; }
+.footerSecured svg { width: 20px; height: 20px; color: var(--good); }
+.footerBadges { display: flex; flex-wrap: wrap; justify-content: center; gap: 8px 10px; }
+.footerBadges a, .footerBadges span { display: inline-flex; align-items: center; height: 30px; padding: 0 13px; border-radius: 999px; border: 1px solid var(--line2); background: rgba(255, 255, 255, 0.03); color: var(--muted); font-size: 12.5px; font-weight: 600; text-decoration: none; box-shadow: inset 0 1px 0 rgba(255, 255, 255, 0.06); }
+.footerBadges a:hover { color: var(--fg); border-color: rgba(196, 181, 253, 0.5); }
+.footerAge { color: var(--fg) !important; }
+.footerSocials { display: flex; gap: 12px; justify-content: center; }
+.footerSocials a, .footerSocials span { width: 42px; height: 42px; border-radius: 50%; display: grid; place-items: center; color: var(--fg); background: radial-gradient(circle at 30% 25%, rgba(167, 139, 250, 0.35), rgba(124, 58, 237, 0.12) 60%), #15112a; border: 1px solid rgba(196, 181, 253, 0.22); box-shadow: inset 0 1px 0 rgba(255, 255, 255, 0.12), 0 6px 16px -8px rgba(124, 58, 237, 0.8); }
+.footerSocials span { cursor: default; }
+.footerSocials a:hover { transform: translateY(-2px); border-color: rgba(196, 181, 253, 0.6); }
+.footerSocials svg { width: 19px; height: 19px; }
+.footerMark { width: 100%; height: 120px; margin-top: 8px; display: grid; place-items: end center; -webkit-mask-image: linear-gradient(180deg, #000 10%, transparent 95%); mask-image: linear-gradient(180deg, #000 10%, transparent 95%); }
+.footerMark img { width: min(620px, 90%); opacity: 0.09; filter: grayscale(0.2); transform: translateY(26%); }
+
+/* ---------- Desktop board: one rich card per level ---------- */
+.controlBar { display: contents; }
+.board { display: none; }
+.levelCard { display: flex; flex-direction: column; gap: 14px; padding: 18px 18px 18px; border-radius: 24px; background: linear-gradient(180deg, rgba(255, 255, 255, 0.06), rgba(255, 255, 255, 0.015)); border: 1px solid var(--line); box-shadow: var(--lift); min-width: 0; }
+.levelCardHead { display: flex; align-items: flex-start; justify-content: space-between; gap: 12px; }
+.levelCardHead h3 { margin: 0; font-family: var(--disp); font-weight: 700; font-size: 19px; }
+.levelCardHead small { display: block; margin-top: 3px; color: var(--muted); font-size: 12.5px; }
+.levelCardBody { display: grid; grid-template-columns: minmax(0, 1.05fr) minmax(0, 1fr); gap: 16px; align-items: center; }
+.levelFelt { border: 0; padding: 4px; margin: 0; background: radial-gradient(70% 80% at 50% 50%, rgba(124, 58, 237, 0.28), transparent 72%); border-radius: 18px; cursor: pointer; transition: transform 0.14s cubic-bezier(0.3, 1.6, 0.5, 1); }
+.levelFelt:hover { transform: translateY(-3px); }
+.levelFelt:hover svg { filter: drop-shadow(0 12px 16px rgba(0, 0, 0, 0.55)) drop-shadow(0 0 26px rgba(168, 85, 247, 0.5)); }
+.levelFelt:active { transform: translateY(1px) scale(0.98); transition-duration: 0.05s; }
+.levelFelt svg { filter: drop-shadow(0 10px 14px rgba(0, 0, 0, 0.5)) drop-shadow(0 0 18px rgba(124, 58, 237, 0.2)); }
+.levelList { display: flex; flex-direction: column; gap: 8px; min-width: 0; }
+.levelLine { display: grid; grid-template-columns: minmax(0, 1fr) auto; grid-template-areas: "stake nums" "sub nums"; align-items: center; column-gap: 10px; row-gap: 2px; padding: 11px 14px; border-radius: 14px; background: rgba(0, 0, 0, 0.24); border: 1px solid var(--line); color: var(--fg); text-align: left; font: inherit; cursor: pointer; box-shadow: var(--lift-sm); transition: transform 0.14s cubic-bezier(0.3, 1.6, 0.5, 1); }
+.levelLine b { grid-area: stake; font-size: 17px; }
+.levelLineSub { grid-area: sub; color: var(--muted); font-size: 12px; white-space: nowrap; overflow: hidden; text-overflow: ellipsis; }
+.levelLineNums { grid-area: nums; display: flex; flex-direction: column; align-items: flex-end; gap: 4px; }
+.levelLineNums em { font-style: normal; display: inline-flex; align-items: center; gap: 6px; color: var(--good); font-weight: 700; font-size: 13px; }
+.levelLineNums i { font-style: normal; font-family: var(--mono); font-size: 11.5px; color: var(--muted); }
+.levelLineGo { color: var(--vi2) !important; font-family: inherit !important; font-weight: 700; font-size: 13px !important; }
+.levelLine:hover { border-color: rgba(196, 181, 253, 0.55); background: rgba(124, 58, 237, 0.14); transform: translateY(-1px); }
+.levelLine:active { transform: translateY(1px) scale(0.98); box-shadow: var(--press); transition-duration: 0.05s; }
+.levelLineLive { border-color: rgba(52, 211, 153, 0.25); }
+
+/* Live now card */
+.sideLive { background: radial-gradient(120% 90% at 100% 0%, rgba(52, 211, 153, 0.18), transparent 60%), linear-gradient(180deg, rgba(255, 255, 255, 0.06), rgba(255, 255, 255, 0.02)); }
+.sideLive .sideEyebrow { display: inline-flex; align-items: center; gap: 8px; color: var(--good); }
+.sideLiveNums { display: grid; grid-template-columns: 1fr 1fr; gap: 10px; }
+.sideLiveNums b { display: block; font-family: var(--mono); font-size: 30px; font-weight: 700; color: var(--fg); letter-spacing: -0.5px; }
+.sideLiveNums small { color: var(--muted); font-size: 12.5px; }
+.sideUpcoming { padding: 16px; border-radius: 22px; background: linear-gradient(180deg, rgba(255, 255, 255, 0.05), rgba(255, 255, 255, 0.015)); border: 1px solid var(--line); box-shadow: var(--lift); }
+.sideUpcoming .events { grid-template-columns: 1fr; gap: 10px; }
+.sideUpcoming .event { flex-wrap: wrap; gap: 8px 12px; padding: 12px 14px; }
+.sideUpcoming .eventMain { flex-basis: 100%; }
+
+@media (min-width: 1180px) {
+    /* One bar: areas | game types ...... search, filters, Create table */
+    .controlBar { display: flex; align-items: center; gap: 14px; padding: 8px; border-radius: 22px; background: linear-gradient(180deg, rgba(255, 255, 255, 0.06), rgba(255, 255, 255, 0.02)); border: 1px solid var(--line); box-shadow: var(--lift); }
+    .controlBar .tabBar { display: flex; width: auto; padding: 0; margin: 0; border: 0; background: none; box-shadow: none; flex: none; }
+    .controlBar .tabBar .liveLine { display: none; }
+    .controlBar .typeRow { flex: 1; margin: 0; padding-left: 14px; border-left: 1px solid var(--line); min-width: 0; }
+    .board { display: grid; grid-template-columns: repeat(2, minmax(0, 1fr)); gap: 20px; align-items: stretch; }
+    .board .levelCard:only-child { grid-column: 1 / -1; }
+    .board .levelCard:only-child .levelCardBody { grid-template-columns: minmax(0, 0.8fr) minmax(0, 1.2fr); }
+    .levels { display: none; }
+    .lobby { padding-bottom: 0; }
+    .footer { position: relative; left: auto; right: auto; bottom: auto; height: auto; margin-top: 56px; padding: 40px 16px 0; background: none; backdrop-filter: none; flex-wrap: wrap; flex-direction: column; font-size: 13px; }
+}
+@media (min-width: 1700px) {
+    .levelGroup:not(:only-child) .tiles { grid-template-columns: repeat(2, minmax(0, 1fr)); }
+}
+
+/* Desktop: the areas on the left, your corner on the right (sticks while you scroll). */
+@media (min-width: 1180px) {
+    .deskGrid { display: grid; grid-template-columns: minmax(0, 1fr) 330px; gap: 22px; align-items: start; margin-top: 18px; }
+    .deskMain { min-width: 0; }
+    .side { display: flex; flex-direction: column; gap: 14px; position: sticky; top: 84px; }
+    .area { padding-top: 18px; }
+    .board { grid-template-columns: minmax(0, 1fr); }
+    .levelLine b { font-family: var(--disp); font-weight: 700; letter-spacing: -0.2px; }
+    .footerMark { height: 96px; }
+    .footerMark img { width: min(420px, 70%); opacity: 0.07; transform: translateY(30%); }
+}
+@media (min-width: 1380px) {
+    .board { grid-template-columns: repeat(2, minmax(0, 1fr)); }
+    .levelCardBody { grid-template-columns: minmax(0, 1fr) minmax(0, 1fr); }
+}
+
+/* Stake lines: stake + numbers on top, sizes and buy-in on a full-width second line. */
+.levelLine { grid-template-areas: "stake nums" "sub sub"; }
+.levelLineNums { flex-direction: row; align-items: center; gap: 10px; }
+.levelLineSub { white-space: normal; }
+/* Footer logo: whole and faint, not cut off. */
+.footerMark { height: auto; padding: 6px 0 26px; -webkit-mask-image: none; mask-image: none; place-items: center; }
+.footerMark img { width: 150px; opacity: 0.35; transform: none; filter: grayscale(0.3); }
+
+/* Live now: a compact strip, not a billboard. */
+.sideLive { gap: 8px; padding: 14px 18px; }
+.sideLiveNums { display: flex; gap: 18px; align-items: baseline; }
+.sideLiveNums div { display: flex; align-items: baseline; gap: 6px; }
+.sideLiveNums b { display: inline; font-size: 20px; }
