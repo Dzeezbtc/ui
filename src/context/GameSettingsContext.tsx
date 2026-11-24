@@ -9,6 +9,7 @@
  */
 
 import React, { createContext, useContext, useState, useCallback, useMemo } from "react";
+import { parseAutoRebuyMode, type AutoRebuyMode } from "../utils/autoRebuy";
 import { findChipStyle } from "../config/chipSets";
 import { getAutoDealEnabled, getAutoPostBlindsEnabled, getAutoNewHandEnabled, getAutoFoldEnabled, getCallClockEnabled } from "../utils/urlParams";
 import { isNullish } from "../utils/guards";
@@ -30,6 +31,7 @@ const LS_KEY_HIDE_BUSTED = "setting_hidebusted";
 const LS_KEY_POT_AS_CHIPS = "setting_potaschips";
 const LS_KEY_FLIP_BOARD = "setting_flipboard";
 const LS_KEY_CHIP_STYLE = "setting_chipstyle";
+const LS_KEY_AUTO_REBUY = "setting_autorebuy";
 
 function readBoolSetting(key: string, fallback: boolean): boolean {
     const stored = localStorage.getItem(key);
@@ -78,6 +80,8 @@ export interface GameSettings {
     // sizes. Either way cash games show $/¢ chips and SNG/tournaments show point
     // chips.
     chipStyle: string;
+    /** Auto re-buy at cash tables (off unless the player picks it). */
+    autoRebuy: AutoRebuyMode;
 }
 
 export interface GameSettingsContextValue extends GameSettings {
@@ -98,6 +102,7 @@ export interface GameSettingsContextValue extends GameSettings {
     togglePotAsChips: () => void;
     toggleFlipBoardCards: () => void;
     setChipStyle: (id: string) => void;
+    setAutoRebuy: (mode: AutoRebuyMode) => void;
 }
 
 const GameSettingsContext = createContext<GameSettingsContextValue | null>(null);
@@ -146,6 +151,7 @@ export const GameSettingsProvider: React.FC<{ children: React.ReactNode }> = ({ 
     );
     const [flipBoardCards, setFlipBoardCards] = useState<boolean>(() => readBoolSetting(LS_KEY_FLIP_BOARD, false));
     // An unknown or retired id falls back to the configured default.
+    const [autoRebuy, setAutoRebuyState] = useState<AutoRebuyMode>(() => parseAutoRebuyMode(localStorage.getItem(LS_KEY_AUTO_REBUY)));
     const [chipStyle, setChipStyleState] = useState<string>(() => findChipStyle(localStorage.getItem(LS_KEY_CHIP_STYLE)).id);
 
     const toggleAutoDeal = useCallback(() => {
@@ -282,6 +288,11 @@ export const GameSettingsProvider: React.FC<{ children: React.ReactNode }> = ({ 
         setChipStyleState(next);
     }, []);
 
+    const setAutoRebuy = useCallback((mode: AutoRebuyMode) => {
+        localStorage.setItem(LS_KEY_AUTO_REBUY, mode);
+        setAutoRebuyState(mode);
+    }, []);
+
     const value = useMemo<GameSettingsContextValue>(
         () => ({
             autoDeal,
@@ -301,6 +312,7 @@ export const GameSettingsProvider: React.FC<{ children: React.ReactNode }> = ({ 
             potAsChips,
             flipBoardCards,
             chipStyle,
+            autoRebuy,
             toggleAutoDeal,
             toggleAutoPostBlinds,
             toggleAutoNewHand,
@@ -317,7 +329,8 @@ export const GameSettingsProvider: React.FC<{ children: React.ReactNode }> = ({ 
             toggleHideBustedPlayers,
             togglePotAsChips,
             toggleFlipBoardCards,
-            setChipStyle
+            setChipStyle,
+            setAutoRebuy
         }),
         [
             autoDeal,
@@ -337,6 +350,7 @@ export const GameSettingsProvider: React.FC<{ children: React.ReactNode }> = ({ 
             potAsChips,
             flipBoardCards,
             chipStyle,
+            autoRebuy,
             toggleAutoDeal,
             toggleAutoPostBlinds,
             toggleAutoNewHand,
@@ -352,7 +366,8 @@ export const GameSettingsProvider: React.FC<{ children: React.ReactNode }> = ({ 
             toggleHideBustedPlayers,
             togglePotAsChips,
             toggleFlipBoardCards,
-            setChipStyle
+            setChipStyle,
+            setAutoRebuy
         ]
     );
 
