@@ -39,6 +39,8 @@ const GenesisState = lazy(() => import("./pages/GenesisState"));
 const AdminDashboard = lazy(() => import("./pages/admin/AdminDashboard"));
 const NodeStatusPage = lazy(() => import("./pages/NodeStatusPage"));
 const NodesPage = lazy(() => import("./pages/NodesPage"));
+const NodesHome = lazy(() => import("./pages/nodes/NodesHome"));
+const NodeHome = lazy(() => import("./pages/nodes/NodeHome"));
 const PlayersPage = lazy(() => import("./pages/PlayersPage"));
 const PlayerAwardsPage = lazy(() => import("./pages/PlayerAwardsPage"));
 const PlayersHome = lazy(() => import("./pages/players/PlayersHome"));
@@ -48,6 +50,9 @@ const HandsHome = lazy(() => import("./pages/hands/HandsHome"));
 const PlayerProfilePage = lazy(() => import("./pages/PlayerProfilePage"));
 const TechNotesPage = lazy(() => import("./pages/tech-notes/TechNotesPage"));
 const TechNotesHome = lazy(() => import("./pages/tech-notes/TechNotesHome"));
+const HowItWorksPage = lazy(() => import("./pages/explainers/HowItWorksPage"));
+const FaqPage = lazy(() => import("./pages/explainers/FaqPage"));
+const PlayResponsiblyPage = lazy(() => import("./pages/explainers/PlayResponsiblyPage"));
 // test-sdk only has a named export; re-shape it to a default for React.lazy.
 const TestSdk = lazy(() => import("./test-sdk").then(m => ({ default: m.TestSdk })));
 import { GameStateProvider } from "./context/GameStateContext";
@@ -189,9 +194,12 @@ function AppContent() {
                 <Route path="/players" element={siteLook === "flagship" ? <PlayersHome /> : <PlayersPage />} />
                 <Route path="/players/:address" element={<PlayerProfilePage />} />
                 <Route path="/awards" element={siteLook === "flagship" ? <AwardsHome /> : <PlayerAwardsPage />} />
-                <Route path="/nodes" element={<NodesPage />} />
-                <Route path="/node/:name" element={<NodeStatusPage />} />
+                <Route path="/nodes" element={siteLook === "flagship" ? <NodesHome /> : <NodesPage />} />
+                <Route path="/node/:name" element={siteLook === "flagship" ? <NodeHome /> : <NodeStatusPage />} />
                 <Route path="/tech-notes" element={siteLook === "flagship" ? <TechNotesHome /> : <TechNotesPage />} />
+                <Route path="/how-it-works" element={<HowItWorksPage />} />
+                <Route path="/faq" element={<FaqPage />} />
+                <Route path="/play-responsibly" element={<PlayResponsiblyPage />} />
                 <Route path="/" element={<Dashboard />} />
             </Routes>
             </Suspense>

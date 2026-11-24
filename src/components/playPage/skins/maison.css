@@ -1163,15 +1163,56 @@
     color: var(--fs-muted);
 }
 [data-skin="flagship"][data-look="maison"] [data-part="maison-status"] {
+    display: flex;
+    flex-direction: column;
+    gap: 2px;
+    min-width: 0;
     font-family: var(--bb-cond);
     font-size: 28px;
+    line-height: 1.15;
     color: var(--ms-ivory);
     white-space: nowrap;
+}
+/* watching: no cards or stack, so the line starts the bar */
+[data-skin="flagship"][data-look="maison"] [data-part="maison-dock"][data-watching] [data-part="maison-status"]::before {
+    content: "The table";
+    font-family: var(--ms-small);
+    font-size: 11px;
+    font-style: normal;
+    letter-spacing: 0.24em;
+    text-transform: uppercase;
+    color: var(--fs-muted);
+}
+/* right after the line, clear of the action panel at the bar's right end */
+[data-skin="flagship"][data-look="maison"] [data-part="maison-take-seat"] {
+    margin-left: 36px;
+    pointer-events: auto;
+    height: 46px;
+    padding: 0 34px;
+    border: 1px solid var(--ms-gold);
+    background: linear-gradient(180deg, #e6cf9c, #b8925a);
+    color: #24111a;
+    font-family: var(--ms-small);
+    font-size: 13px;
+    font-weight: 600;
+    letter-spacing: 0.24em;
+    text-transform: uppercase;
+    white-space: nowrap;
+    cursor: pointer;
+}
+[data-skin="flagship"][data-look="maison"][data-orient="portrait"] [data-part="maison-take-seat"] {
+    height: 42px;
+    padding: 0 18px;
+    letter-spacing: 0.16em;
+}
+[data-skin="flagship"][data-look="maison"] [data-part="maison-take-seat"]:hover {
+    filter: brightness(1.08);
 }
 [data-skin="flagship"][data-look="maison"] [data-part="maison-status"] b {
     font-weight: 500;
 }
 [data-skin="flagship"][data-look="maison"] [data-part="maison-status"] span {
+    font-size: 19px;
     font-style: italic;
     color: var(--ms-gold);
 }
@@ -1304,4 +1345,216 @@
         padding: 0;
         font-size: 15px;
     }
+}
+
+/* =====================================================================
+ * Cards on the felt at the concept's size (Dzeezbtc/ui#38 follow-up)
+ * ===================================================================== */
+
+/* the board: about 3.5% of the screen's width (50px on a 1440 desktop), not 5.5% */
+[data-skin="flagship"][data-look="maison"]:not([data-orient="portrait"]) [data-part="board-column"] {
+    --bb-board-scale: 0.42;
+}
+/* the pot pill keeps its size on the smaller board */
+[data-skin="flagship"][data-look="maison"]:not([data-orient="portrait"]) [data-part="board-column"] .pot-stack {
+    scale: 1.5;
+    transform-origin: 50% 100%;
+}
+/* the winning cards: a thin brass edge and a small lift, no yellow glow */
+@keyframes maison-win-lift {
+    to {
+        transform: translateY(-8px);
+    }
+}
+[data-skin="flagship"][data-look="maison"] .animate-win-card {
+    animation: maison-win-lift 350ms ease-out forwards;
+}
+[data-skin="flagship"][data-look="maison"] .animate-win-card .fs-card,
+[data-skin="flagship"][data-look="maison"] .fs-card.animate-win-card {
+    filter: none;
+    box-shadow:
+        0 0 0 2px var(--ms-gold),
+        0 12px 20px -10px #000;
+}
+/* a shown hand: the board's size, where the player's own cards lay */
+[data-skin="flagship"][data-three][data-look="maison"] .bb-show-card {
+    width: 36px;
+    height: 50px;
+}
+[data-skin="flagship"][data-three][data-look="maison"] [data-part="bb-show-cards"] {
+    gap: 3px;
+}
+
+/* =====================================================================
+ * The plain Block52 pieces, in Maison's dress (Dzeezbtc/ui#38 follow-up)
+ * ===================================================================== */
+
+/* a seat's plate names the player (short wallet address) instead of "Seat N" */
+[data-skin="flagship"][data-look="maison"] [data-part="seat"] .badge-number[data-name] {
+    font-size: 0 !important;
+}
+[data-skin="flagship"][data-look="maison"] [data-part="seat"] .badge-number[data-name]::before {
+    content: attr(data-name);
+    font-family: var(--ms-small);
+    font-size: 12px;
+    letter-spacing: 0.06em;
+    text-transform: none;
+    color: var(--ms-ivory);
+}
+/* the seat's clock gets its own room under the stack, never over it */
+[data-skin="flagship"][data-look="maison"] [data-part="seat"] .badge-container:has([data-part="turn-clock"]) {
+    padding-bottom: 16px !important;
+}
+
+/* "WINS · Pair of Aces" under the winner's plate: one dark brass-edged plaque */
+[data-skin="flagship"][data-look="maison"] .seat-banner-box:has(.seat-banner-winner) {
+    background: rgba(30, 15, 21, 0.94) !important;
+    border: 1px solid var(--ms-gold) !important;
+    border-radius: 2px !important;
+    box-shadow: 0 12px 24px -12px #000 !important;
+}
+[data-skin="flagship"][data-look="maison"] .seat-banner-winner > span:first-child {
+    font-family: var(--bb-cond);
+    font-style: italic;
+    font-weight: 600;
+    font-size: 20px;
+    letter-spacing: 0.02em;
+    text-transform: none;
+    color: var(--ms-gold);
+}
+[data-skin="flagship"][data-look="maison"] .seat-banner-winner > span:first-child::first-letter {
+    text-transform: uppercase;
+}
+[data-skin="flagship"][data-look="maison"] .seat-banner-winner > span + span {
+    font-family: var(--ms-small);
+    font-size: 10px;
+    font-weight: 500;
+    letter-spacing: 0.22em;
+    color: var(--ms-ivory);
+}
+/* "+$195" over the winner and the equity tag: champagne on lacquer, not yellow and violet */
+[data-skin="flagship"][data-look="maison"] .win-amount-float {
+    background: rgba(30, 15, 21, 0.94) !important;
+    border: 1px solid var(--ms-gold) !important;
+    border-radius: 2px !important;
+    color: var(--ms-gold) !important;
+    font-family: var(--bb-cond) !important;
+    font-style: italic;
+    font-weight: 600 !important;
+    box-shadow: 0 10px 20px -10px #000 !important;
+}
+[data-skin="flagship"][data-look="maison"] .equity-chip {
+    background: rgba(30, 15, 21, 0.94) !important;
+    border: 1px solid rgba(205, 176, 127, 0.55) !important;
+    border-radius: 2px !important;
+    color: var(--ms-ivory) !important;
+    font-family: var(--ms-small) !important;
+    font-weight: 500 !important;
+    letter-spacing: 0.06em;
+}
+/* a sit & go finish on the plate: "1st place · won $0.27" in the house serif */
+[data-skin="flagship"][data-look="maison"] .badge-tournament-results {
+    display: flex;
+    flex-direction: column;
+    align-items: center;
+    gap: 2px;
+    padding: 6px 14px;
+    background: rgba(30, 15, 21, 0.94);
+    border: 1px solid var(--ms-gold);
+    border-radius: 2px;
+    box-shadow: 0 12px 24px -12px #000;
+}
+[data-skin="flagship"][data-look="maison"] .badge-tournament-results :is(.tournament-place, .tournament-payout) {
+    background: none !important;
+    border: 0 !important;
+    box-shadow: none !important;
+    padding: 0 !important;
+    -webkit-text-fill-color: currentColor;
+}
+[data-skin="flagship"][data-look="maison"] .badge-tournament-results .tournament-place {
+    font-family: var(--bb-cond) !important;
+    font-style: italic;
+    font-weight: 600 !important;
+    font-size: 20px !important;
+    letter-spacing: 0.02em !important;
+    text-transform: none !important;
+    color: var(--ms-gold) !important;
+}
+[data-skin="flagship"][data-look="maison"] .badge-tournament-results .tournament-payout {
+    font-family: var(--ms-small) !important;
+    font-size: 11px !important;
+    font-weight: 500 !important;
+    letter-spacing: 0.16em !important;
+    text-transform: uppercase;
+    color: var(--ms-ivory) !important;
+}
+/* the Blinds tab: one of the small round tools, like the shield, radio and cog */
+[data-skin="flagship"][data-look="maison"] [data-testid="blinds-panel-tab"] {
+    background: rgba(30, 15, 21, 0.85) !important;
+    border: 1px solid rgba(205, 176, 127, 0.55) !important;
+    border-radius: 9999px !important;
+    color: var(--ms-ivory) !important;
+    font-family: var(--ms-small) !important;
+    font-weight: 500 !important;
+    font-size: 11px !important;
+    letter-spacing: 0.2em;
+    text-transform: uppercase;
+    box-shadow: none !important;
+}
+[data-skin="flagship"][data-look="maison"] [data-testid="blinds-panel-tab"]:hover {
+    border-color: var(--ms-gold) !important;
+    color: var(--ms-gold) !important;
+}
+/* the sit & go payout list: a small lacquer card in the house fonts */
+[data-skin="flagship"][data-look="maison"] [data-testid="sng-payout-structure"] {
+    background: rgba(30, 15, 21, 0.9) !important;
+    border: 1px solid rgba(205, 176, 127, 0.55) !important;
+    border-radius: 2px !important;
+    padding: 10px 14px !important;
+}
+[data-skin="flagship"][data-look="maison"] [data-testid="sng-payout-structure"] > div {
+    font-family: var(--ms-small) !important;
+    font-size: 10px !important;
+    font-weight: 500 !important;
+    letter-spacing: 0.24em !important;
+    color: var(--ms-gold) !important;
+}
+[data-skin="flagship"][data-look="maison"] [data-testid="sng-payout-structure"] li {
+    font-family: var(--bb-cond) !important;
+    font-size: 17px !important;
+    font-weight: 500 !important;
+    color: var(--ms-ivory) !important;
+}
+
+/* the last-pot banner rolls over the room (it lives on <body>, so it is found by the table's look) */
+body:has([data-look="maison"]) .b52-winner-banner {
+    background: rgba(30, 15, 21, 0.94);
+    border: 1px solid var(--ms-gold, #cdb07f);
+    border-radius: 2px;
+    color: #f4eee2;
+    font-family: "Cormorant Garamond", Georgia, serif;
+    font-style: italic;
+    font-size: 18px;
+    box-shadow: 0 12px 24px -12px #000;
+}
+/* the place plaque takes the WINS tag's spot under the plate (one plaque, clear of the shown hand) */
+[data-skin="flagship"][data-look="maison"] .badge-tournament-results {
+    top: calc(100% + 6px);
+    white-space: nowrap;
+}
+[data-skin="flagship"][data-look="maison"] .badge-container:has(.badge-tournament-results) .seat-banner-shell:has(.seat-banner-winner) {
+    display: none;
+}
+/* the payout list sits above the dock's right end, never cut off by the bar */
+[data-skin="flagship"][data-look="maison"]:not([data-orient="portrait"]) [data-part="footer"] > div:has(> [data-testid="sng-payout-structure"]) {
+    position: fixed !important;
+    right: calc(env(safe-area-inset-right) + 24px) !important;
+    bottom: calc(env(safe-area-inset-bottom) + 172px) !important;
+}
+[data-skin="flagship"][data-look="maison"] [data-testid="sng-payout-structure"] > * {
+    margin-left: 6px;
+    margin-right: 6px;
+}
+[data-skin="flagship"][data-look="maison"] [data-testid="sng-payout-structure"] > ul {
+    margin-bottom: 2px;
 }

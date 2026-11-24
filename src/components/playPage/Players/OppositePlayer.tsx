@@ -28,6 +28,7 @@ import { hasElements } from "../../../utils/guards";
 import { winnerCardHighlight } from "../../../utils/holeCardLayout";
 import { HoleCardRow } from "./HoleCardRow";
 import { getSeatOpacityClass } from "../../../utils/seatOpacity";
+import { seatPlateName } from "../../../utils/seatPlateName";
 import SeatChatBubble from "../../../chat/SeatChatBubble";
 import styles from "./PlayersCommon.module.css";
 import { NftAvatarImage } from "../../profile/NftAvatarImage";
@@ -200,6 +201,7 @@ const OppositePlayer: React.FC<OppositePlayerProps> = React.memo(({ left, top, i
                     <div className="absolute top-[-10px] w-full">
                         <Badge
                             count={index}
+                            name={seatPlateName(playerData?.address)}
                             value={stackValue}
                             color={color}
                             tournamentPlace={tournamentResult?.place}
