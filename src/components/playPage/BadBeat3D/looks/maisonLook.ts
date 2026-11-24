@@ -85,6 +85,9 @@ function environment(r: THREE.WebGLRenderer): THREE.Texture {
     return env;
 }
 
+/** How far behind the table's middle (world units) the velvet wall stands; the concept had -9, which a 9-seat camera shows as bare floor. */
+export const MAISON_WALL_Z = -6;
+
 /** Fluted bordeaux velvet. */
 function velvet(): THREE.CanvasTexture {
     const [c, x] = makeCanvas(512, 512);
@@ -321,26 +324,28 @@ export const maisonLook: ThreeTableLook = {
         fill.position.set(-8, 5, 8);
         scene.add(fill);
 
-        // the room: fluted bordeaux velvet, gold dado rails, brass sconces, a chandelier glow
+        // the room: fluted bordeaux velvet, gold dado rails, brass sconces, a chandelier glow.
+        // The wall stands close behind the table (MAISON_WALL_Z) so a full 9-seat table,
+        // which pulls the camera back, still has velvet behind it and not bare floor.
         const wall = new THREE.Mesh(new THREE.PlaneGeometry(70, 22), new THREE.MeshStandardMaterial({ map: velvet(), roughness: 0.9, metalness: 0, envMapIntensity: 0.2 }));
-        wall.position.set(0, 5, -9);
+        wall.position.set(0, 5, MAISON_WALL_Z);
         wall.receiveShadow = true;
         scene.add(wall);
         const gold = new THREE.MeshStandardMaterial({ color: 0xd6b06a, metalness: 1, roughness: 0.3, envMapIntensity: 1.4 });
         [-2.2, 9.6].forEach(y => {
             const m = new THREE.Mesh(new THREE.BoxGeometry(70, 0.14, 0.14), gold);
-            m.position.set(0, y, -8.9);
+            m.position.set(0, y, MAISON_WALL_Z + 0.1);
             scene.add(m);
         });
         [-9, -3, 3, 9].forEach(sx => {
             const b = new THREE.Mesh(new THREE.CylinderGeometry(0.18, 0.32, 0.7, 24), gold);
-            b.position.set(sx, 3.6, -8.7);
+            b.position.set(sx, 3.6, MAISON_WALL_Z + 0.3);
             scene.add(b);
             const g1 = glow("rgba(255,214,150,1)", 5.5);
-            g1.position.set(sx, 3.9, -8.5);
+            g1.position.set(sx, 3.9, MAISON_WALL_Z + 0.5);
             scene.add(g1);
             const pl = new THREE.PointLight(0xffc98a, 0.55, 12, 2);
-            pl.position.set(sx, 3.8, -7.8);
+            pl.position.set(sx, 3.8, MAISON_WALL_Z + 1.2);
             scene.add(pl);
         });
         const chand = glow("rgba(255,230,190,.9)", 9);
