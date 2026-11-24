@@ -9,6 +9,8 @@ import { lobbyBuyInLabel, lobbyPhase, lobbyScheduleLabel, lobbyStakesLabel, open
 import { useLanguage } from "../../i18n/useLanguage";
 import { hasContent, hasElements, hasValue } from "../../utils/guards";
 import MiniTable from "./MiniTable";
+import TournamentDetail from "./TournamentDetail";
+import { useLobbyTournamentLive } from "../../hooks/lobby/useLobbyTournamentLive";
 import styles from "./Lobby.module.css";
 
 interface TablePreviewProps {
@@ -39,6 +41,7 @@ interface TablePreviewProps {
 const TablePreview: React.FC<TablePreviewProps> = ({ game, clubName, isCreator, nowMs, busy, others, similar, onCreateSimilar, onPick, onClose, onDelete, onForceClose }) => {
     const { t } = useLanguage();
     const tournament = isTournamentFormat(game.gameFormat);
+    const live = useLobbyTournamentLive(tournament ? game.gameId : undefined);
     const open = openSeats(game);
     const cancelled = lobbyPhase(game, nowMs) === "cancelled";
     const schedule = lobbyScheduleLabel(game, nowMs);
@@ -77,36 +80,37 @@ const TablePreview: React.FC<TablePreviewProps> = ({ game, clubName, isCreator, 
                     </button>
                 </div>
                 <div className={styles.sheetBody}>
-                    <div className={styles.previewPic}>
-                        <MiniTable large maxPlayers={game.maxPlayers} currentPlayers={game.currentPlayers} label={`${game.currentPlayers} of ${game.maxPlayers} seats taken`} />
-                    </div>
-                    {schedule ? <div className={styles.schedule}>{schedule}</div> : null}
+                    {tournament ? (
+                        <TournamentDetail game={game} live={live} nowMs={nowMs} />
+                    ) : (
+                        <div className={styles.previewPic}>
+                            <MiniTable large maxPlayers={game.maxPlayers} currentPlayers={game.currentPlayers} label={`${game.currentPlayers} of ${game.maxPlayers} seats taken`} />
+                        </div>
+                    )}
+                    {schedule && !tournament ? <div className={styles.schedule}>{schedule}</div> : null}
                     <div className={styles.kv}>
-                        <div>
-                            <small>{tournament ? t("lobby.buyIn") : t("lobby.stakes")}</small>
-                            <b>{tournament ? lobbyBuyInLabel(game) : lobbyStakesLabel(game)}</b>
-                        </div>
-                        {tournament ? (
-                            <div>
-                                <small>{t("lobby.format")}</small>
-                                <b>{gameLabel}</b>
-                            </div>
-                        ) : (
-                            <div>
-                                <small>{t("lobby.buyIn")}</small>
-                                <b>{lobbyBuyInLabel(game)}</b>
-                            </div>
+                        {tournament ? null : (
+                            <>
+                                <div>
+                                    <small>{t("lobby.stakes")}</small>
+                                    <b>{lobbyStakesLabel(game)}</b>
+                                </div>
+                                <div>
+                                    <small>{t("lobby.buyIn")}</small>
+                                    <b>{lobbyBuyInLabel(game)}</b>
+                                </div>
+                                <div>
+                                    <small>{t("lobby.players")}</small>
+                                    <b>
+                                        {game.currentPlayers} / {game.maxPlayers}
+                                    </b>
+                                </div>
+                                <div>
+                                    <small>{t("lobby.seats")}</small>
+                                    <b style={{ color: open > 0 ? "var(--cy)" : "var(--gold)" }}>{open > 0 ? t("lobby.seatsOpen", { count: open }) : t("lobby.full")}</b>
+                                </div>
+                            </>
                         )}
-                        <div>
-                            <small>{t("lobby.players")}</small>
-                            <b>
-                                {game.currentPlayers} / {game.maxPlayers}
-                            </b>
-                        </div>
-                        <div>
-                            <small>{t("lobby.seats")}</small>
-                            <b style={{ color: open > 0 ? "var(--cy)" : "var(--gold)" }}>{open > 0 ? t("lobby.seatsOpen", { count: open }) : t("lobby.full")}</b>
-                        </div>
                         <div>
                             <small>{t("lobby.club")}</small>
                             <b style={{ fontFamily: "inherit" }}>{clubName}</b>

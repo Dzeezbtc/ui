@@ -34,6 +34,7 @@ describe("activeNavItem", () => {
         expect(NAV_ITEMS.filter(i => i.top).map(i => i.path)).toEqual(["/", "/fairness"]);
         expect(NAV_ITEMS.filter(i => i.group === "me").map(i => i.path)).toEqual(["/wallet", "/hands"]);
         expect(NAV_ITEMS.filter(i => i.group === "explore").map(i => i.path)).toEqual(["/explorer", "/players", "/awards", "/nodes", "/tech-notes"]);
+        expect(NAV_ITEMS.filter(i => i.group === "help").map(i => i.path)).toEqual(["/how-it-works", "/faq", "/play-responsibly"]);
     });
 });
 
