@@ -193,7 +193,8 @@ export const lobbyStakesLabel = (game: Pick<GameWithFormat, "smallBlind" | "bigB
 
 /**
  * Buy-in as the lobby shows it. Cash: the range, "$40 – $200". Sit & Go / tournament: the
- * single buy-in, "$2", or "$9 (8.10 + 0.90)" when a protocol fee is configured (the split
+ * single buy-in, "$2", or "$10 ($9 + $1)" / "$9 ($8.10 + 90c)" when a protocol fee is configured, written like
+ * the stakes (no cents on whole dollars, cents under $1; the split
  * comes from the game's own protocolFeeBps, never a hardcoded rate — poker-vm#2592).
  */
 export const lobbyBuyInLabel = (game: Pick<GameWithFormat, "gameFormat" | "minBuyIn" | "maxBuyIn" | "entryFee" | "protocolFeeBps">): string => {
@@ -201,7 +202,7 @@ export const lobbyBuyInLabel = (game: Pick<GameWithFormat, "gameFormat" | "minBu
         const buyIn = cashBlind(formatMicroAsUsdc(game.minBuyIn, 2));
         const breakdown = computeSngEntryBreakdown(game.minBuyIn, game.entryFee, game.protocolFeeBps);
         if (!breakdown.hasProtocolFee) return buyIn;
-        return `${buyIn} (${formatMicroAsUsdc(breakdown.prizePoolPortion, 2)} + ${formatMicroAsUsdc(breakdown.protocolCut, 2)})`;
+        return `${buyIn} (${cashBlind(formatMicroAsUsdc(breakdown.prizePoolPortion, 2))} + ${cashBlind(formatMicroAsUsdc(breakdown.protocolCut, 2))})`;
     }
     return `${cashBlind(formatMicroAsUsdc(game.minBuyIn, 2))} – ${cashBlind(formatMicroAsUsdc(game.maxBuyIn, 2))}`;
 };
