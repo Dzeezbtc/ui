@@ -1,0 +1,123 @@
+/* Nodes (Flagship look). */
+.page {
+    --bg: #07060d;
+    --panel: rgba(255, 255, 255, 0.035);
+    --panel2: rgba(255, 255, 255, 0.06);
+    --line: rgba(255, 255, 255, 0.08);
+    --line2: rgba(255, 255, 255, 0.15);
+    --fg: #f4f2fa;
+    --muted: #9a95b0;
+    --faint: #7a7494;
+    --vi: #7c3aed;
+    --vi2: #c4b5fd;
+    --cy: #4dd0f8;
+    --good: #34d399;
+    --bad: #fb7185;
+    --gold: #f59e0b;
+    --grad: linear-gradient(120deg, #c026d3 0%, #7c3aed 50%, #3b82f6 100%);
+    --disp: "Unbounded", ui-sans-serif, system-ui, sans-serif;
+    --mono: "Geist Mono", ui-monospace, Menlo, monospace;
+    position: relative;
+    isolation: isolate;
+    max-width: 1440px;
+    margin: 0 auto;
+    padding: 32px 32px 80px;
+    color: var(--fg);
+    font-family: "Inter", ui-sans-serif, system-ui, -apple-system, sans-serif;
+    display: flex;
+    flex-direction: column;
+    gap: 20px;
+    min-height: 100vh;
+}
+.backdrop { position: fixed; inset: 0; z-index: -1; pointer-events: none; background: var(--bg); overflow: hidden; }
+.backdrop i { position: absolute; border-radius: 50%; filter: blur(110px); opacity: 0.4; }
+.backdrop i:nth-child(1) { width: 640px; height: 640px; left: 30%; top: -260px; background: #6d28d9; }
+.backdrop i:nth-child(2) { width: 520px; height: 520px; right: -140px; top: 40%; background: #1d4ed8; opacity: 0.28; }
+
+.head { display: flex; align-items: flex-end; justify-content: space-between; gap: 16px; flex-wrap: wrap; }
+.head h1 { font-family: var(--disp); font-weight: 600; font-size: clamp(30px, 3.4vw, 44px); letter-spacing: -0.02em; margin: 0; }
+.head p { margin: 6px 0 0; color: var(--muted); font-size: 15px; max-width: 560px; }
+.pill { font-family: var(--mono); font-size: 12.5px; font-weight: 600; padding: 6px 12px; border-radius: 999px; color: var(--vi2); background: rgba(124, 58, 237, 0.18); border: 1px solid rgba(196, 181, 253, 0.3); white-space: nowrap; }
+
+.tabs { display: inline-flex; gap: 6px; padding: 4px; border-radius: 16px; background: var(--panel); border: 1px solid var(--line); flex-wrap: wrap; align-self: flex-start; max-width: 100%; }
+.tab, .tabOn { height: 38px; padding: 0 16px; border-radius: 12px; border: 0; background: none; color: var(--muted); font-weight: 600; font-size: 14px; cursor: pointer; white-space: nowrap; }
+.tab:hover { color: var(--fg); }
+.tabOn { color: #fff; background: rgba(124, 58, 237, 0.28); box-shadow: inset 0 0 0 1px rgba(196, 181, 253, 0.4); }
+
+/* the network drawing and three big numbers */
+.hero { display: grid; grid-template-columns: minmax(0, 1.25fr) minmax(0, 1fr); gap: 18px; align-items: start; }
+.map { width: 100%; height: auto; border-radius: 24px; background: radial-gradient(60% 70% at 50% 50%, rgba(124, 58, 237, 0.16), transparent 70%), var(--panel); border: 1px solid var(--line); }
+.orbit { fill: none; stroke: rgba(196, 181, 253, 0.14); stroke-width: 1; stroke-dasharray: 3 6; }
+.linkOn { stroke: rgba(77, 208, 248, 0.55); stroke-width: 1.5; stroke-dasharray: 4 6; animation: flow 1.6s linear infinite; }
+.linkOff { stroke: rgba(251, 113, 133, 0.25); stroke-width: 1; stroke-dasharray: 2 6; }
+@keyframes flow { to { stroke-dashoffset: -20; } }
+.coreGlow { fill: rgba(124, 58, 237, 0.25); animation: breathe 3s ease-in-out infinite; transform-origin: center; transform-box: fill-box; }
+@keyframes breathe { 50% { transform: scale(1.15); opacity: 0.5; } }
+.coreName { fill: #fff; font-family: var(--disp); font-size: 11px; font-weight: 700; text-anchor: middle; }
+.coreHeight { fill: rgba(255, 255, 255, 0.85); font-family: var(--mono); font-size: 9.5px; text-anchor: middle; }
+.nodeHalo { fill: currentColor; opacity: 0.16; }
+.nodeDot { fill: currentColor; stroke: #0d0b16; stroke-width: 2; }
+.nodeName { fill: var(--fg); font-size: 12.5px; font-weight: 600; text-anchor: middle; }
+.nodeOn { color: var(--good); }
+.nodeOff { color: var(--bad); }
+.nodeWait { color: var(--faint); }
+.stats { display: grid; grid-template-columns: repeat(3, minmax(0, 1fr)); gap: 12px; }
+.stats > div { padding: 18px 20px; border-radius: 20px; background: var(--panel); border: 1px solid var(--line); display: flex; flex-direction: column; justify-content: center; gap: 4px; }
+.stats b { font-family: var(--disp); font-size: clamp(24px, 2.4vw, 32px); font-weight: 600; letter-spacing: -0.01em; }
+.stats b span { color: var(--faint); font-size: 0.6em; }
+.stats small { font-size: 12px; color: var(--muted); font-weight: 600; text-transform: uppercase; letter-spacing: 0.1em; }
+
+/* one card per node */
+.cards { display: flex; flex-direction: column; gap: 12px; }
+.card { display: flex; flex-direction: column; gap: 10px; padding: 18px; border-radius: 20px; background: var(--panel); border: 1px solid var(--line); color: var(--fg); text-decoration: none; transition: border-color 0.2s, transform 0.2s; }
+.card:hover { border-color: rgba(196, 181, 253, 0.35); transform: translateY(-3px); }
+.cardTop { display: flex; align-items: center; gap: 10px; }
+.cardTop b { font-size: 15.5px; flex: 1; min-width: 0; overflow: hidden; text-overflow: ellipsis; white-space: nowrap; }
+.dotOn, .dotOff, .dotWait { width: 9px; height: 9px; border-radius: 50%; flex: none; }
+.dotOn { background: var(--good); box-shadow: 0 0 10px var(--good); }
+.dotOff { background: var(--bad); }
+.dotWait { background: var(--faint); }
+.roleVal, .roleSync { font-size: 11px; font-weight: 700; padding: 3px 9px; border-radius: 999px; text-transform: uppercase; letter-spacing: 0.06em; }
+.roleVal { color: var(--vi2); background: rgba(124, 58, 237, 0.2); }
+.roleSync { color: var(--cy); background: rgba(77, 208, 248, 0.12); }
+.cardHeight { font-family: var(--mono); font-size: 22px; font-weight: 600; font-variant-numeric: tabular-nums; }
+.cardMeta { display: flex; justify-content: space-between; gap: 10px; font-size: 12.5px; color: var(--muted); }
+.cardMeta > span:first-child { white-space: nowrap; flex: none; }
+.host { font-family: var(--mono); font-size: 12px; color: var(--faint); overflow: hidden; text-overflow: ellipsis; white-space: nowrap; min-width: 0; }
+.mono { font-family: var(--mono); font-size: 12.5px; }
+
+/* the existing panels (validator earnings, network, run a node, become a validator) sit in a glass card */
+.panel { overflow-x: auto; padding: 20px; border-radius: 22px; background: var(--panel); border: 1px solid var(--line); min-width: 0; }
+.panel :global(.bg-gray-800), .panel :global(.bg-gray-900) { background: rgba(255, 255, 255, 0.04) !important; }
+.panel :global(.border-gray-700) { border-color: var(--line) !important; }
+
+.peers { display: flex; flex-direction: column; gap: 12px; }
+.peersHead { display: flex; justify-content: space-between; align-items: flex-end; gap: 12px; flex-wrap: wrap; }
+.peersHead h2 { font-family: var(--disp); font-size: 20px; font-weight: 600; margin: 0; }
+.peersHead p { margin: 4px 0 0; color: var(--muted); font-size: 13.5px; }
+.btn, .btnSm { display: inline-flex; align-items: center; justify-content: center; border: 0; color: #fff; font-weight: 600; cursor: pointer; background: var(--grad); white-space: nowrap; }
+.btn { height: 42px; padding: 0 18px; border-radius: 12px; font-size: 14px; }
+.btnSm { height: 30px; padding: 0 12px; border-radius: 10px; font-size: 12.5px; }
+.btn:disabled { opacity: 0.55; cursor: wait; }
+.peerList { display: flex; flex-direction: column; gap: 6px; }
+.peer { display: grid; grid-template-columns: auto minmax(0, 1fr) minmax(0, 1fr) auto auto; align-items: center; gap: 12px; padding: 10px 14px; border-radius: 14px; background: var(--panel); border: 1px solid var(--line); font-size: 13.5px; }
+.added { font-size: 12px; color: var(--good); font-weight: 600; }
+.empty { margin: 0; padding: 20px; text-align: center; color: var(--muted); border-radius: 16px; border: 1px dashed var(--line2); }
+.error { color: var(--bad); font-size: 14px; margin: 0 0 12px; }
+.spinner { width: 36px; height: 36px; margin: 20px auto; border-radius: 50%; border: 3px solid rgba(255, 255, 255, 0.1); border-top-color: #c026d3; animation: spin 0.9s linear infinite; }
+@keyframes spin { to { transform: rotate(360deg); } }
+
+@media (max-width: 900px) {
+    .page { padding: 20px 16px 110px; gap: 16px; }
+    .hero { grid-template-columns: 1fr; }
+    .stats { gap: 8px; }
+    .stats > div { padding: 12px; border-radius: 16px; }
+    .stats b { font-size: 15px; letter-spacing: -0.02em; white-space: nowrap; }
+    .stats small { font-size: 10px; }
+    .peer { grid-template-columns: auto minmax(0, 1fr) auto; }
+    .peer .host { display: none; }
+    .tabs { overflow-x: auto; flex-wrap: nowrap; }
+}
+@media (prefers-reduced-motion: reduce) {
+    .linkOn, .coreGlow { animation: none; }
+}

@@ -39,6 +39,7 @@ const GenesisState = lazy(() => import("./pages/GenesisState"));
 const AdminDashboard = lazy(() => import("./pages/admin/AdminDashboard"));
 const NodeStatusPage = lazy(() => import("./pages/NodeStatusPage"));
 const NodesPage = lazy(() => import("./pages/NodesPage"));
+const NodesHome = lazy(() => import("./pages/nodes/NodesHome"));
 const PlayersPage = lazy(() => import("./pages/PlayersPage"));
 const PlayerAwardsPage = lazy(() => import("./pages/PlayerAwardsPage"));
 const PlayersHome = lazy(() => import("./pages/players/PlayersHome"));
@@ -191,7 +192,7 @@ function AppContent() {
                 <Route path="/players" element={siteLook === "flagship" ? <PlayersHome /> : <PlayersPage />} />
                 <Route path="/players/:address" element={<PlayerProfilePage />} />
                 <Route path="/awards" element={siteLook === "flagship" ? <AwardsHome /> : <PlayerAwardsPage />} />
-                <Route path="/nodes" element={<NodesPage />} />
+                <Route path="/nodes" element={siteLook === "flagship" ? <NodesHome /> : <NodesPage />} />
                 <Route path="/node/:name" element={<NodeStatusPage />} />
                 <Route path="/tech-notes" element={<TechNotesPage />} />
                 <Route path="/how-it-works" element={<HowItWorksPage />} />
