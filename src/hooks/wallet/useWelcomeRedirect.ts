@@ -1,3 +1,4 @@
+import { hasValue } from "../../utils/guards";
 import { useEffect } from "react";
 import { useNavigate } from "react-router-dom";
 import { getCustodySession } from "../../utils/custody/session";
@@ -16,7 +17,7 @@ export const useWelcomeRedirect = (enabled: boolean): void => {
     const navigate = useNavigate();
     useEffect(() => {
         if (!enabled) return;
-        if (shouldOfferWelcome({ pending: flag(WELCOME_PENDING_KEY), hasCustody: getCustodySession() !== null, seen: flag(WELCOME_SEEN_KEY) })) {
+        if (shouldOfferWelcome({ pending: flag(WELCOME_PENDING_KEY), hasCustody: hasValue(getCustodySession()), seen: flag(WELCOME_SEEN_KEY) })) {
             navigate("/welcome", { replace: true });
         }
     }, [enabled, navigate]);

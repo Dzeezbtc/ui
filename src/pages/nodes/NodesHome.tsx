@@ -11,7 +11,7 @@ import { NetworkInfoPanel } from "../../components/nodes/NetworkInfoPanel";
 import { RunNodePanel } from "../../components/nodes/RunNodePanel";
 import { BecomeValidatorPanel } from "../../components/nodes/BecomeValidatorPanel";
 import { heightLabel, hostOf, isValidatorName, publicNodes, ringLayout, syncState, tipHeight } from "../../utils/nodesView";
-import { hasElements } from "../../utils/guards";
+import { hasElements, hasValue } from "../../utils/guards";
 import type { TranslationKey } from "../../i18n";
 import styles from "./NodesHome.module.css";
 
@@ -91,7 +91,7 @@ const NodesHome: React.FC = () => {
                             <small>{t("nodes.online")}</small>
                         </div>
                         <div>
-                            <b>{tip !== null ? heightLabel(tip) : "—"}</b>
+                            <b>{hasValue(tip) ? heightLabel(tip) : "—"}</b>
                             <small>{t("nodes.latestBlock")}</small>
                         </div>
                         <div>
@@ -125,7 +125,7 @@ const NodesHome: React.FC = () => {
                                 Block52
                             </text>
                             <text x={W / 2} y={H / 2 + 13} className={styles.coreHeight}>
-                                {tip !== null ? heightLabel(tip) : "…"}
+                                {hasValue(tip) ? heightLabel(tip) : "…"}
                             </text>
                             {NODES.map((n, i) => {
                                 const h = heights[n.name];
