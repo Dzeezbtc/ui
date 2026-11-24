@@ -44,6 +44,8 @@ const strings: Translations = {
     "nav.players": "Jogadores",
     "nav.awards": "Prêmios",
     "nav.techNotesShort": "Notas técnicas",
+    "nav.myTables": "Mesas",
+    "nav.openTables": "Suas mesas abertas",
     "nav.howItWorks": "Como funciona",
     "nav.faq": "Perguntas frequentes",
     "nav.playResponsibly": "Jogue com responsabilidade",

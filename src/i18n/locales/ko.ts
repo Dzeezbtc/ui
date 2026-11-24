@@ -44,6 +44,8 @@ const strings: Translations = {
     "nav.players": "플레이어",
     "nav.awards": "어워드",
     "nav.techNotesShort": "기술 노트",
+    "nav.myTables": "테이블",
+    "nav.openTables": "열린 테이블",
     "nav.howItWorks": "이용 방법",
     "nav.faq": "자주 묻는 질문",
     "nav.playResponsibly": "책임감 있는 플레이",

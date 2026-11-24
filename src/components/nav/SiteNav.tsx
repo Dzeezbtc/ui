@@ -16,6 +16,7 @@ import { SiteLookSwitch } from "../SiteLookSwitch";
 import ClubAuthModal from "../modals/ClubAuthModal";
 import { NavGlyph } from "./NavGlyph";
 import { WalletSheet } from "./WalletSheet";
+import { MyTablesButton } from "./MyTablesButton";
 import styles from "./SiteNav.module.css";
 
 const CLUB_CONSOLE_URL = (import.meta.env.VITE_CLUB_CONSOLE_URLS ?? "").split(",")[0]?.trim().replace(/\/+$/, "");
@@ -218,6 +219,8 @@ export const SiteNav: React.FC = () => {
             {walletOpen && hasContent(wallet.address) ? (
                 <WalletSheet address={wallet.address} usdc={balance} onClose={() => setWalletOpen(false)} onRefresh={wallet.refreshBalance} />
             ) : null}
+
+            <MyTablesButton />
 
             {clubAuth ? createPortal(<ClubAuthModal isOpen={authOpen} onClose={() => setAuthOpen(false)} />, document.body) : null}
         </>

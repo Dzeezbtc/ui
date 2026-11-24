@@ -44,6 +44,8 @@ const strings: Translations = {
     "nav.players": "Mga manlalaro",
     "nav.awards": "Mga parangal",
     "nav.techNotesShort": "Mga tech note",
+    "nav.myTables": "Mga mesa",
+    "nav.openTables": "Mga bukas mong mesa",
     "nav.howItWorks": "Paano ito gumagana",
     "nav.faq": "Mga madalas itanong",
     "nav.playResponsibly": "Maglaro nang responsable",

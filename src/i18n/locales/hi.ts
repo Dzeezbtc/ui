@@ -44,6 +44,8 @@ const strings: Translations = {
     "nav.players": "खिलाड़ी",
     "nav.awards": "पुरस्कार",
     "nav.techNotesShort": "तकनीकी नोट्स",
+    "nav.myTables": "टेबलें",
+    "nav.openTables": "आपकी खुली टेबलें",
     "nav.howItWorks": "यह कैसे काम करता है",
     "nav.faq": "सामान्य प्रश्न",
     "nav.playResponsibly": "ज़िम्मेदारी से खेलें",

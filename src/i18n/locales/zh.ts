@@ -44,6 +44,8 @@ const strings: Translations = {
     "nav.players": "玩家",
     "nav.awards": "奖项",
     "nav.techNotesShort": "技术笔记",
+    "nav.myTables": "牌桌",
+    "nav.openTables": "你打开的牌桌",
     "nav.howItWorks": "如何运作",
     "nav.faq": "常见问题",
     "nav.playResponsibly": "理性游戏",
