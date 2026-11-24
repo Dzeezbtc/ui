@@ -15,6 +15,8 @@ import { t } from "../../../i18n";
 
 type BadgeProps = {
     count: number; // Seat index
+    // The player's short wallet address ("b521…9f3c"); Maison 52 shows it on the plate in place of "Seat N".
+    name?: string;
     value: number; // Stack value
     color?: string;
     // Sit & Go tournament results
@@ -39,7 +41,7 @@ type BadgeProps = {
 };
 
 const Badge: React.FC<BadgeProps> = React.memo(({
-    count, value, color,
+    count, name, value, color,
     tournamentPlace, tournamentPayout,
     isWinner, winnerAmount, winnerHandDescription, isTurnTimerActive,
     round, isFolded, isAllIn, isSeated, isSittingOut, playerEquity, onSitIn, leading
@@ -156,7 +158,7 @@ const Badge: React.FC<BadgeProps> = React.memo(({
         switch (bannerMode) {
             case "winner":
                 return (
-                    <div className="seat-banner-text flex flex-col items-center justify-center w-full mt-[14px] gap-0.5">
+                    <div className="seat-banner-text seat-banner-winner flex flex-col items-center justify-center w-full mt-[14px] gap-0.5">
                         <span className="font-bold text-base leading-tight">
                             WINS
                         </span>
@@ -239,7 +241,7 @@ const Badge: React.FC<BadgeProps> = React.memo(({
     return (
         <div className="badge-container">
             {leading && <div className="badge-leading">{leading}</div>}
-            <div style={{ backgroundColor: color }} className="badge-number">
+            <div style={{ backgroundColor: color }} className="badge-number" data-name={name}>
                 {count}
             </div>
             <div className="badge-value">

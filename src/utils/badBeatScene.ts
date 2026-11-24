@@ -64,7 +64,7 @@ export const BB_RINGS = {
  * bet further in. (The concept's ellipses only had seats at the corners; a seat
  * at the top or bottom would put its cards under the rail.)
  */
-export const BB_INSETS = { hole: 0.55, bet: 1.1, dealer: 0.55, shown: 1.0 } as const;
+export const BB_INSETS = { hole: 0.55, bet: 1.1, dealer: 0.55, shown: 0.55 } as const;
 /** The dealer disc lies beside its seat's two cards, this far along the rail. */
 export const BB_DEALER_ALONG = 0.62;
 /** The pot's chips sit this far behind the board's middle. */
@@ -310,7 +310,7 @@ export interface BadBeatScene {
         plates: [number, number][];
         betLabels: [number, number][];
         holes: [number, number][];
-        /** Where a shown hand stands up: a little in from the seat's cards, clear of its plate. */
+        /** Where a shown hand stands up: right where the seat's own cards lie, beside its plate, never out on the board. */
         shown: [number, number][];
         pot: [number, number];
         board: [number, number];
