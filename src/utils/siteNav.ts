@@ -2,10 +2,10 @@ import { hasContent } from "./guards";
 import type { TranslationKey } from "../i18n";
 
 /** Which icon a navigation item draws (the SVG paths live in the nav component). */
-export type NavIcon = "play" | "wallet" | "hands" | "explorer" | "fairness" | "nodes" | "players" | "awards" | "notes";
+export type NavIcon = "play" | "wallet" | "hands" | "explorer" | "fairness" | "nodes" | "players" | "awards" | "notes" | "guide" | "faq" | "care";
 
-/** Where an item sits: playing and trust (the bar), your own pages (the avatar menu), or the Explore menu (the network's public record). */
-export type NavGroup = "main" | "me" | "explore";
+/** Where an item sits: playing and trust (the bar), your own pages (the avatar menu), the Explore menu (the network's public record), or Help (the explainer pages, under Explore). */
+export type NavGroup = "main" | "me" | "explore" | "help";
 
 export interface NavItem {
     path: string;
@@ -34,7 +34,10 @@ export const NAV_ITEMS: NavItem[] = [
     { path: "/players", label: "nav.players", icon: "players", group: "explore", tab: false, top: false },
     { path: "/awards", label: "nav.awards", icon: "awards", group: "explore", tab: false, top: false },
     { path: "/nodes", label: "nav.nodes", icon: "nodes", group: "explore", tab: false, top: false },
-    { path: "/tech-notes", label: "nav.techNotesShort", icon: "notes", group: "explore", tab: false, top: false }
+    { path: "/tech-notes", label: "nav.techNotesShort", icon: "notes", group: "explore", tab: false, top: false },
+    { path: "/how-it-works", label: "nav.howItWorks", icon: "guide", group: "help", tab: false, top: false },
+    { path: "/faq", label: "nav.faq", icon: "faq", group: "help", tab: false, top: false },
+    { path: "/play-responsibly", label: "nav.playResponsibly", icon: "care", group: "help", tab: false, top: false }
 ];
 
 /** Other paths that belong to a nav item (a node's own page lights up Nodes). */
