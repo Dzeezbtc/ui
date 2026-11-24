@@ -2,7 +2,7 @@ import React, { useEffect, useState } from "react";
 import { useLanguage } from "../../i18n/useLanguage";
 import { useReleaseNotes } from "../../hooks/explorer/useReleaseNotes";
 import { searchNotes } from "../../utils/releaseNotes";
-import { isEmpty } from "../../utils/guards";
+import { hasContent, hasElements, isEmpty } from "../../utils/guards";
 import { NavGlyph } from "../../components/nav/NavGlyph";
 import TechNoteCard from "./TechNoteCard";
 import styles from "./TechNotesHome.module.css";
@@ -22,7 +22,7 @@ const TechNotesHome: React.FC = () => {
     }, []);
 
     const shown = searchNotes(notes, query);
-    const searching = query.trim() !== "";
+    const searching = hasContent(query.trim());
     const [first, ...rest] = shown;
 
     return (
@@ -55,7 +55,7 @@ const TechNotesHome: React.FC = () => {
             {!loading && !error && isEmpty(shown) ? <p className={styles.empty}>{searching ? t("techNotes.noMatch") : t("techNotes.none")}</p> : null}
 
             {first ? <TechNoteCard key={first.id} note={first} latest={!searching} /> : null}
-            {rest.length > 0 ? (
+            {hasElements(rest) ? (
                 <div className={styles.timeline}>
                     {rest.map(n => (
                         <TechNoteCard key={n.id} note={n} />

@@ -49,7 +49,7 @@ const TournamentDetail: React.FC<TournamentDetailProps> = ({ game, live, nowMs }
         <div className={styles.td}>
             <div className={styles.tdTicket}>
                 <div className={styles.tdTicketMain}>
-                    <div className={styles.eyebrow}>{prize.first !== null ? t("lobby.tdFirstPrize") : t("lobby.tdPoolSoFar")}</div>
+                    <div className={styles.eyebrow}>{hasValue(prize.first) ? t("lobby.tdFirstPrize") : t("lobby.tdPoolSoFar")}</div>
                     <div className={styles.tdBig}>
                         <span className={styles.gradText}>{prizeMoney(prize.first ?? prize.pool)}</span>
                     </div>

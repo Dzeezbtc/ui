@@ -2,7 +2,7 @@
  * First-visit setup (Flagship look, Dzeezbtc/ui#100): who gets it, and the recovery-word check.
  */
 
-import { hasContent } from "./guards";
+import { hasContent, hasElements } from "./guards";
 
 /** Set once a visitor has finished or skipped the setup; it is not offered again. */
 export const WELCOME_SEEN_KEY = "b52.welcome.seen";
@@ -36,4 +36,4 @@ export const pickCheckPositions = (count: number, n: number = CHECK_WORDS, rando
 
 /** Whether each answer matches the word at its position (ignoring case and spaces). */
 export const wordsMatch = (words: string[], positions: number[], answers: string[]): boolean =>
-    positions.length > 0 && positions.every((p, i) => (answers[i] ?? "").trim().toLowerCase() === (words[p] ?? "").toLowerCase());
+    hasElements(positions) && positions.every((p, i) => (answers[i] ?? "").trim().toLowerCase() === (words[p] ?? "").toLowerCase());

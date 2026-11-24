@@ -7,7 +7,7 @@ import { truncateMiddle } from "../../utils/stringUtils";
 
 import { copyToClipboard } from "../../utils/clipboard";
 import { blockLabel } from "../../utils/explorerDetail";
-import { hasContent, hasElements } from "../../utils/guards";
+import { hasContent, hasElements, isEmpty } from "../../utils/guards";
 import styles from "./ExplorerDetail.module.css";
 
 /**
@@ -69,7 +69,7 @@ const BlockHome: React.FC = () => {
                         <div>
                             <small>{t("explorerDetail.transactions")}</small>
                             <b>{block.txs.length}</b>
-                            <span>{block.txs.length === 0 ? t("explorerDetail.quietBlock") : t("explorerDetail.inThisBlock")}</span>
+                            <span>{isEmpty(block.txs) ? t("explorerDetail.quietBlock") : t("explorerDetail.inThisBlock")}</span>
                         </div>
                         <div>
                             <small>{t("explorerDetail.madeBy")}</small>

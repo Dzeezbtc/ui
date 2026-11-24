@@ -1,7 +1,7 @@
 import { useCallback, useEffect, useState } from "react";
 import { useNetwork, type NetworkEndpoints } from "../../context/NetworkContext";
 import { cacheNodes, clearNodeCache, discoverNodes, getCachedNodes, probeNodes, type DiscoveredNode } from "../../services/nodeDiscovery";
-import { hasElements } from "../../utils/guards";
+import { hasElements, hasValue } from "../../utils/guards";
 
 export type DiscoveryPhase = "idle" | "discovering" | "probing";
 
@@ -50,7 +50,7 @@ export const useNodeDiscovery = (seeds: NetworkEndpoints[]): UseNodeDiscoveryRet
     }, [seeds]);
 
     const isAdded = useCallback(
-        (node: DiscoveredNode) => node.endpoints !== null && discoveredNetworks.some(n => n.name === node.endpoints?.name || n.rest === node.endpoints?.rest),
+        (node: DiscoveredNode) => hasValue(node.endpoints) && discoveredNetworks.some(n => n.name === node.endpoints?.name || n.rest === node.endpoints?.rest),
         [discoveredNetworks]
     );
 

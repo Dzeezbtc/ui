@@ -3,7 +3,7 @@
  * checked, searched, and labelled the way people read them.
  */
 
-import { hasContent, hasElements, isRecord, isString } from "./guards";
+import { hasContent, hasElements, isEmpty, isRecord, isString } from "./guards";
 
 export interface ReleaseNote {
     id: string;
@@ -77,7 +77,7 @@ export const hasDetail = (n: ReleaseNote): boolean => hasElements(n.features) ||
 /** Notes whose words contain every word of the query (case-insensitive); all notes for an empty query. */
 export const searchNotes = (notes: ReleaseNote[], query: string): ReleaseNote[] => {
     const words = query.toLowerCase().split(/\s+/).filter(w => w !== "");
-    if (words.length === 0) return notes;
+    if (isEmpty(words)) return notes;
     return notes.filter(n => {
         const text = [n.title, n.body ?? "", ...n.highlights, ...n.features, ...n.bugFixes, ...n.improvements, ...n.tests].join(" ").toLowerCase();
         return words.every(w => text.includes(w));

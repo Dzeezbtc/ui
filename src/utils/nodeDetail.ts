@@ -4,7 +4,7 @@
  */
 
 import type { NetworkEndpoints } from "../context/NetworkContext";
-import { hasContent, isRecord, isString } from "./guards";
+import { hasContent, hasValue, isNullish, isRecord, isString } from "./guards";
 import type { TranslationKey } from "../i18n";
 
 /** The node a /node/:name URL names: a preset, then a discovered node, then one passed in the link (case-insensitive). */
@@ -44,7 +44,7 @@ const str = (o: unknown, ...path: string[]): string | null => {
 export const readNodeSnapshot = (nodeInfo: unknown, latestBlock: unknown, syncing: unknown): NodeSnapshot => {
     const header = (key: string) => str(latestBlock, "block", "header", key) ?? str(latestBlock, "sdk_block", "header", key);
     const heightText = header("height");
-    const height = heightText !== null && Number(heightText) > 0 ? Number(heightText) : null;
+    const height = hasValue(heightText) && Number(heightText) > 0 ? Number(heightText) : null;
     return {
         height,
         blockTime: header("time"),
@@ -61,7 +61,7 @@ export const PULSE_LENGTH = 8;
 
 /** The pulse strip after a new reading: a new height is added on the right, the oldest drops off. */
 export const pushPulse = (pulse: number[], height: number | null, max: number = PULSE_LENGTH): number[] => {
-    if (height === null || pulse[pulse.length - 1] === height) return pulse;
+    if (isNullish(height) || pulse[pulse.length - 1] === height) return pulse;
     return [...pulse, height].slice(-max);
 };
 

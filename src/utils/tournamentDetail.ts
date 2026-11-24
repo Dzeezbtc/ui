@@ -235,4 +235,4 @@ export const tournamentStatusTone = (s: TournamentStatus): "live" | "bad" | "qui
 
 /** A payout bar's width: this place against first, 4–100%. */
 export const payoutBarPercent = (amount: bigint, first: bigint | null): number =>
-    first !== null && first > 0n ? Math.max(4, Math.min(100, Number((amount * 100n) / first))) : 4;
+    hasValue(first) && first > 0n ? Math.max(4, Math.min(100, Number((amount * 100n) / first))) : 4;
