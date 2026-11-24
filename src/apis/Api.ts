@@ -137,7 +137,7 @@ function buildPlayerQuery(params: PlayerSearchParams): string {
  * Also the staff sign-in challenge used by /club-login.
  */
 export class ClubApi extends HTTPClient {
-    public getTableClubs = () => this.get<{ tables: Record<string, { handle: string; name: string }> }>("/public/table-clubs");
+    public getTableClubs = () => this.get<{ tables: Record<string, { handle: string; name: string; joining?: "open" | "approval" | "invite" }> }>("/public/table-clubs");
     public getClub = (handle: string) => this.get(`/public/clubs/${encodeURIComponent(handle)}`);
     public getMembership = (handle: string, address: string) => this.get(`/public/clubs/${encodeURIComponent(handle)}/members/${encodeURIComponent(address)}`);
     public getJoinChallenge = (address: string, club: string) => this.post<{ nonce: string; text: string }>("/public/join/challenge", { address, club });
@@ -170,4 +170,9 @@ export class ClubApi extends HTTPClient {
     public submitKyc = (body: { address: string; club: string; nonce: string; signature: string; pubkey: string; fullName: string; birthDate: string; country: string }) => this.post("/public/kyc", body);
     public getPlayerMessages = (address: string, lang: string) => this.get<{ messages: ClubMessage[] }>(`/public/players/${encodeURIComponent(address)}/messages?lang=${encodeURIComponent(lang)}`);
     public getSignInChallenge = (address: string, club: string) => this.post<{ nonce: string; text: string }>("/auth/challenge", { address, club });
+}
+
+/** The weekly release notes (Tech notes page): one JSON file, read from its full URL. */
+export class ReleaseNotesApi extends HTTPClient {
+    public getNotes = (url: string) => this.get<unknown>(url);
 }

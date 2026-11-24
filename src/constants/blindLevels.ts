@@ -16,7 +16,7 @@ export const BLIND_LEVELS: BlindLevel[] = [
     { label: "0.25 / 0.50", smallBlind: 0.25, bigBlind: 0.50 },
     { label: "0.50 / 1.00", smallBlind: 0.50, bigBlind: 1.00 },
     { label: "1.00 / 2.00", smallBlind: 1.00, bigBlind: 2.00 },
-    { label: "2.50 / 5.00", smallBlind: 2.50, bigBlind: 5.00 },
+    { label: "2.00 / 5.00", smallBlind: 2.00, bigBlind: 5.00 },
     { label: "5.00 / 10.00", smallBlind: 5.00, bigBlind: 10.00 },
     { label: "10.00 / 20.00", smallBlind: 10.00, bigBlind: 20.00 },
     { label: "25.00 / 50.00", smallBlind: 25.00, bigBlind: 50.00 },

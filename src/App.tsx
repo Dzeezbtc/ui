@@ -23,6 +23,8 @@ const WalletHome = lazy(() => import("./pages/wallet/WalletHome"));
 const BlocksPage = lazy(() => import("./pages/explorer/BlocksPage"));
 const ExplorerHome = lazy(() => import("./pages/explorer/ExplorerHome"));
 const BlockDetailPage = lazy(() => import("./pages/explorer/BlockDetailPage"));
+const BlockHome = lazy(() => import("./pages/explorer/BlockHome"));
+const TxHome = lazy(() => import("./pages/explorer/TxHome"));
 const TransactionPage = lazy(() => import("./pages/explorer/TransactionPage"));
 const AddressPage = lazy(() => import("./pages/explorer/AddressPage"));
 const AllAccountsPage = lazy(() => import("./pages/explorer/AllAccountsPage"));
@@ -40,6 +42,8 @@ const AdminDashboard = lazy(() => import("./pages/admin/AdminDashboard"));
 const NodeStatusPage = lazy(() => import("./pages/NodeStatusPage"));
 const NodesPage = lazy(() => import("./pages/NodesPage"));
 const WelcomeSetup = lazy(() => import("./pages/welcome/WelcomeSetup"));
+const NodesHome = lazy(() => import("./pages/nodes/NodesHome"));
+const NodeHome = lazy(() => import("./pages/nodes/NodeHome"));
 const PlayersPage = lazy(() => import("./pages/PlayersPage"));
 const PlayerAwardsPage = lazy(() => import("./pages/PlayerAwardsPage"));
 const PlayersHome = lazy(() => import("./pages/players/PlayersHome"));
@@ -48,6 +52,10 @@ const MyHandsPage = lazy(() => import("./pages/MyHandsPage"));
 const HandsHome = lazy(() => import("./pages/hands/HandsHome"));
 const PlayerProfilePage = lazy(() => import("./pages/PlayerProfilePage"));
 const TechNotesPage = lazy(() => import("./pages/tech-notes/TechNotesPage"));
+const TechNotesHome = lazy(() => import("./pages/tech-notes/TechNotesHome"));
+const HowItWorksPage = lazy(() => import("./pages/explainers/HowItWorksPage"));
+const FaqPage = lazy(() => import("./pages/explainers/FaqPage"));
+const PlayResponsiblyPage = lazy(() => import("./pages/explainers/PlayResponsiblyPage"));
 // test-sdk only has a named export; re-shape it to a default for React.lazy.
 const TestSdk = lazy(() => import("./test-sdk").then(m => ({ default: m.TestSdk })));
 import { GameStateProvider } from "./context/GameStateContext";
@@ -176,8 +184,8 @@ function AppContent() {
                 <Route path="/bridge/admin" element={<BridgeAdminDashboard />} />
                 <Route path="/genesis" element={<GenesisState />} />
                 <Route path="/explorer" element={siteLook === "flagship" ? <ExplorerHome /> : <BlocksPage />} />
-                <Route path="/explorer/block/:height" element={<BlockDetailPage />} />
-                <Route path="/explorer/tx/:hash" element={<TransactionPage />} />
+                <Route path="/explorer/block/:height" element={siteLook === "flagship" ? <BlockHome /> : <BlockDetailPage />} />
+                <Route path="/explorer/tx/:hash" element={siteLook === "flagship" ? <TxHome /> : <TransactionPage />} />
                 <Route path="/explorer/address" element={<AddressPage />} />
                 <Route path="/explorer/address/:address" element={<AddressPage />} />
                 <Route path="/explorer/accounts" element={<AllAccountsPage />} />
@@ -189,9 +197,12 @@ function AppContent() {
                 <Route path="/players" element={siteLook === "flagship" ? <PlayersHome /> : <PlayersPage />} />
                 <Route path="/players/:address" element={<PlayerProfilePage />} />
                 <Route path="/awards" element={siteLook === "flagship" ? <AwardsHome /> : <PlayerAwardsPage />} />
-                <Route path="/nodes" element={<NodesPage />} />
-                <Route path="/node/:name" element={<NodeStatusPage />} />
-                <Route path="/tech-notes" element={<TechNotesPage />} />
+                <Route path="/nodes" element={siteLook === "flagship" ? <NodesHome /> : <NodesPage />} />
+                <Route path="/node/:name" element={siteLook === "flagship" ? <NodeHome /> : <NodeStatusPage />} />
+                <Route path="/tech-notes" element={siteLook === "flagship" ? <TechNotesHome /> : <TechNotesPage />} />
+                <Route path="/how-it-works" element={<HowItWorksPage />} />
+                <Route path="/faq" element={<FaqPage />} />
+                <Route path="/play-responsibly" element={<PlayResponsiblyPage />} />
                 <Route path="/welcome" element={<WelcomeSetup />} />
                 <Route path="/" element={<Dashboard />} />
             </Routes>

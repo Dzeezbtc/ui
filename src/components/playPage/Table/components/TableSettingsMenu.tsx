@@ -25,6 +25,7 @@ import { buildHandShareUrl, buildShareOnXUrl } from "../../../../utils/handRepla
 import { TABLE_STYLE_LABELS, TableStyle } from "../../../../utils/tableStyle";
 import { SETTINGS_SECTIONS, SETTINGS_SECTION_LABEL_KEYS, SettingsSection, settingsMenuPosition } from "../../../../utils/tableSettingsMenu";
 import { ChoiceRow, ToggleRow } from "./TablePanel";
+import { AUTO_REBUY_MODES, parseAutoRebuyMode } from "../../../../utils/autoRebuy";
 
 const WIDTH = 300;
 const HEIGHT = 440;
@@ -36,6 +37,12 @@ const SECTION_ICONS: Record<SettingsSection, React.ReactNode> = {
     sound: <span className="text-[13px] leading-none">♪</span>,
     play: <span className="text-[13px] leading-none">♠</span>,
     account: <span className="text-[13px] leading-none">◉</span>
+};
+
+const AUTO_REBUY_LABELS: Record<(typeof AUTO_REBUY_MODES)[number], TranslationKey> = {
+    off: "settings.autoRebuyOff",
+    half: "settings.autoRebuyHalf",
+    full: "settings.autoRebuyFull"
 };
 
 const rowClass =
@@ -268,6 +275,15 @@ export const TableSettingsMenu: React.FC<TableSettingsMenuProps> = props => {
                                 <span>💰</span>
                                 <span>{t("table.topUp")}</span>
                             </button>
+                        )}
+                        {props.showTopUpEntry && (
+                            <ChoiceRow
+                                label={t("settings.autoRebuy")}
+                                description={t("settings.autoRebuyHelp")}
+                                options={AUTO_REBUY_MODES.map(m => ({ id: m, label: t(AUTO_REBUY_LABELS[m]) }))}
+                                value={settings.autoRebuy}
+                                onChange={id => settings.setAutoRebuy(parseAutoRebuyMode(id))}
+                            />
                         )}
                         <ToggleRow
                             label={t("settings.autoMuck")}
