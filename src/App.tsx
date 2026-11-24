@@ -47,6 +47,7 @@ const MyHandsPage = lazy(() => import("./pages/MyHandsPage"));
 const HandsHome = lazy(() => import("./pages/hands/HandsHome"));
 const PlayerProfilePage = lazy(() => import("./pages/PlayerProfilePage"));
 const TechNotesPage = lazy(() => import("./pages/tech-notes/TechNotesPage"));
+const TechNotesHome = lazy(() => import("./pages/tech-notes/TechNotesHome"));
 // test-sdk only has a named export; re-shape it to a default for React.lazy.
 const TestSdk = lazy(() => import("./test-sdk").then(m => ({ default: m.TestSdk })));
 import { GameStateProvider } from "./context/GameStateContext";
@@ -190,7 +191,7 @@ function AppContent() {
                 <Route path="/awards" element={siteLook === "flagship" ? <AwardsHome /> : <PlayerAwardsPage />} />
                 <Route path="/nodes" element={<NodesPage />} />
                 <Route path="/node/:name" element={<NodeStatusPage />} />
-                <Route path="/tech-notes" element={<TechNotesPage />} />
+                <Route path="/tech-notes" element={siteLook === "flagship" ? <TechNotesHome /> : <TechNotesPage />} />
                 <Route path="/" element={<Dashboard />} />
             </Routes>
             </Suspense>

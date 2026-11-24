@@ -171,3 +171,8 @@ export class ClubApi extends HTTPClient {
     public getPlayerMessages = (address: string, lang: string) => this.get<{ messages: ClubMessage[] }>(`/public/players/${encodeURIComponent(address)}/messages?lang=${encodeURIComponent(lang)}`);
     public getSignInChallenge = (address: string, club: string) => this.post<{ nonce: string; text: string }>("/auth/challenge", { address, club });
 }
+
+/** The weekly release notes (Tech notes page): one JSON file, read from its full URL. */
+export class ReleaseNotesApi extends HTTPClient {
+    public getNotes = (url: string) => this.get<unknown>(url);
+}
