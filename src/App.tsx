@@ -23,6 +23,8 @@ const WalletHome = lazy(() => import("./pages/wallet/WalletHome"));
 const BlocksPage = lazy(() => import("./pages/explorer/BlocksPage"));
 const ExplorerHome = lazy(() => import("./pages/explorer/ExplorerHome"));
 const BlockDetailPage = lazy(() => import("./pages/explorer/BlockDetailPage"));
+const BlockHome = lazy(() => import("./pages/explorer/BlockHome"));
+const TxHome = lazy(() => import("./pages/explorer/TxHome"));
 const TransactionPage = lazy(() => import("./pages/explorer/TransactionPage"));
 const AddressPage = lazy(() => import("./pages/explorer/AddressPage"));
 const AllAccountsPage = lazy(() => import("./pages/explorer/AllAccountsPage"));
@@ -175,8 +177,8 @@ function AppContent() {
                 <Route path="/bridge/admin" element={<BridgeAdminDashboard />} />
                 <Route path="/genesis" element={<GenesisState />} />
                 <Route path="/explorer" element={siteLook === "flagship" ? <ExplorerHome /> : <BlocksPage />} />
-                <Route path="/explorer/block/:height" element={<BlockDetailPage />} />
-                <Route path="/explorer/tx/:hash" element={<TransactionPage />} />
+                <Route path="/explorer/block/:height" element={siteLook === "flagship" ? <BlockHome /> : <BlockDetailPage />} />
+                <Route path="/explorer/tx/:hash" element={siteLook === "flagship" ? <TxHome /> : <TransactionPage />} />
                 <Route path="/explorer/address" element={<AddressPage />} />
                 <Route path="/explorer/address/:address" element={<AddressPage />} />
                 <Route path="/explorer/accounts" element={<AllAccountsPage />} />
