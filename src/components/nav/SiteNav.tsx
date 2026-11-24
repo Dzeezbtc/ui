@@ -21,6 +21,7 @@ import styles from "./SiteNav.module.css";
 
 const CLUB_CONSOLE_URL = (import.meta.env.VITE_CLUB_CONSOLE_URLS ?? "").split(",")[0]?.trim().replace(/\/+$/, "");
 const EXPLORE = NAV_ITEMS.filter(i => i.group === "explore");
+const HELP = NAV_ITEMS.filter(i => i.group === "help");
 const HANDS = NAV_ITEMS.filter(i => i.path === "/hands");
 
 /** One link in the Explore menu, the tab bar or the More sheet. */
@@ -81,7 +82,7 @@ export const SiteNav: React.FC = () => {
     if (!shown) return null;
 
     const active = activeNavItem(location.pathname);
-    const inExplore = active?.group === "explore";
+    const inExplore = active?.group === "explore" || active?.group === "help";
     const balance = formatMicroAsUsdc(usdcMicroOf(wallet.balance), 6);
     const hasWallet = hasContent(wallet.address);
     const clubAuth = features.clubAuthModal && features.clubAccounts && !!custodyBase();
@@ -169,6 +170,10 @@ export const SiteNav: React.FC = () => {
                                 {EXPLORE.map(i => (
                                     <NavLink key={i.path} item={i} active={active === i} className={styles.exploreItem} onClick={() => setExploreOpen(false)} />
                                 ))}
+                                <span className={styles.exploreLabel}>{t("nav.help")}</span>
+                                {HELP.map(i => (
+                                    <NavLink key={i.path} item={i} active={active === i} className={styles.exploreItem} onClick={() => setExploreOpen(false)} />
+                                ))}
                             </div>
                         ) : null}
                     </div>
@@ -201,7 +206,7 @@ export const SiteNav: React.FC = () => {
                           <div className={styles.sheet} role="dialog" aria-modal="true" aria-label={t("nav.more")}>
                               <span className={styles.grab} />
                               <div className={styles.moreGrid}>
-                                  {[...HANDS, ...EXPLORE].map(i => (
+                                  {[...HANDS, ...EXPLORE, ...HELP].map(i => (
                                       <NavLink key={i.path} item={i} active={active === i} className={styles.moreItem} onClick={() => setMoreOpen(false)} />
                                   ))}
                               </div>
