@@ -49,6 +49,7 @@ const MyHandsPage = lazy(() => import("./pages/MyHandsPage"));
 const HandsHome = lazy(() => import("./pages/hands/HandsHome"));
 const PlayerProfilePage = lazy(() => import("./pages/PlayerProfilePage"));
 const TechNotesPage = lazy(() => import("./pages/tech-notes/TechNotesPage"));
+const TechNotesHome = lazy(() => import("./pages/tech-notes/TechNotesHome"));
 const HowItWorksPage = lazy(() => import("./pages/explainers/HowItWorksPage"));
 const FaqPage = lazy(() => import("./pages/explainers/FaqPage"));
 const PlayResponsiblyPage = lazy(() => import("./pages/explainers/PlayResponsiblyPage"));
@@ -195,7 +196,7 @@ function AppContent() {
                 <Route path="/awards" element={siteLook === "flagship" ? <AwardsHome /> : <PlayerAwardsPage />} />
                 <Route path="/nodes" element={siteLook === "flagship" ? <NodesHome /> : <NodesPage />} />
                 <Route path="/node/:name" element={siteLook === "flagship" ? <NodeHome /> : <NodeStatusPage />} />
-                <Route path="/tech-notes" element={<TechNotesPage />} />
+                <Route path="/tech-notes" element={siteLook === "flagship" ? <TechNotesHome /> : <TechNotesPage />} />
                 <Route path="/how-it-works" element={<HowItWorksPage />} />
                 <Route path="/faq" element={<FaqPage />} />
                 <Route path="/play-responsibly" element={<PlayResponsiblyPage />} />
