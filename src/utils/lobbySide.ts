@@ -39,3 +39,27 @@ export const socialLinks = (env: Record<string, string | undefined>): { kind: So
         const url = (env[key] ?? "").trim();
         return { kind, url: hasContent(url) && url.startsWith("https://") ? url : null };
     });
+
+/** Block52's own promotions in the desktop lobby's side column. */
+export type PromoKind = "newHere" | "runCircle";
+
+export interface LobbyPromo {
+    kind: PromoKind;
+    href: string;
+    /** Opens another site (the Circle console) rather than a page of this app. */
+    external: boolean;
+}
+
+/**
+ * The two side promotions: New here? (How it works) and Run your own Circle.
+ * The Circle one opens the club console when this build has one (https only),
+ * otherwise the FAQ, which explains Circles.
+ */
+export const lobbyPromos = (env: Record<string, string | undefined>): LobbyPromo[] => {
+    const consoleUrl = (env.VITE_CLUB_CONSOLE_URLS ?? "").split(",")[0].trim().replace(/\/+$/, "");
+    const hasConsole = consoleUrl.startsWith("https://");
+    return [
+        { kind: "newHere", href: "/how-it-works", external: false },
+        { kind: "runCircle", href: hasConsole ? consoleUrl : "/faq", external: hasConsole }
+    ];
+};
