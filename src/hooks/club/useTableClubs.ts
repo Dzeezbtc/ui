@@ -4,6 +4,8 @@ import { useClubApi } from "../../context/ClubApiContext";
 export interface TableClub {
     handle: string;
     name: string;
+    /** How the Circle lets people in; "invite" = invite only. Sent by newer club APIs. */
+    joining?: "open" | "approval" | "invite";
 }
 
 /** gameId → the club hosting that table, refreshed every minute. Empty when the lobby has no club service. */

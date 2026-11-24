@@ -1,4 +1,4 @@
-import { BettingLimit, GameListItem, GameFormat, GameVariant } from "@block52/poker-vm-sdk";
+import { BettingLimit, BlindStructureDTO, GameListItem, GameFormat, GameVariant } from "@block52/poker-vm-sdk";
 import { getGameFormat, getGameVariant } from "./gameFormatUtils";
 
 /**
@@ -33,6 +33,14 @@ export interface GameWithFormat {
     scheduledStartTime?: number;
     /** Late registration, in blind levels after the start (poker-vm#2731); absent = none. */
     lateRegistrationLevels?: number;
+    /** Tournament starting stack in chips (SNG/Tournament). */
+    startingStack?: string;
+    /** Minutes per blind level for a doubling structure (SNG/Tournament). */
+    blindLevelDuration?: number;
+    /** The blind level in play, 0-based (SNG/Tournament). */
+    blindLevel?: number;
+    /** The table's blind structure when it was created with one (ui#860). */
+    blindStructure?: BlindStructureDTO;
 }
 
 /**
@@ -70,7 +78,11 @@ export const convertGameListItemToGameWithFormat = (game: GameListItem): GameWit
         scheduledStartTime: opts.scheduledStartTime,
         lateRegistrationLevels: opts.lateRegistrationLevels,
         entryFee: opts.entryFee,
-        protocolFeeBps: opts.protocolFeeBps
+        protocolFeeBps: opts.protocolFeeBps,
+        startingStack: opts.startingStack,
+        blindLevelDuration: opts.blindLevelDuration,
+        blindLevel: opts.blindLevel,
+        blindStructure: opts.blindStructure
     };
 };
 

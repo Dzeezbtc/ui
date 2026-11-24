@@ -1,3 +1,4 @@
+import { hasElements } from "./guards";
 import type { GameWithFormat } from "./convertUtils";
 import { formatTableGameDisplay, toGameVariant } from "./gameFormatUtils";
 import { sectionKeyOf, seatedTotal } from "./lobbyLayout";
@@ -56,14 +57,32 @@ export const activeTab = (counts: Record<LobbyTab, number>, saved: LobbyTab | un
     return LOBBY_TABS.find(t => counts[t] > 0) ?? "cash";
 };
 
+/**
+ * The areas the lobby shows, in lobby order (Cash games, Sit & Go, Tournaments).
+ * Uses the saved picks; with none saved, falls back to the one tab `activeTab` picks.
+ */
+export const activeTabs = (counts: Record<LobbyTab, number>, saved: readonly string[] | undefined, legacy: LobbyTab | undefined): LobbyTab[] => {
+    const picked = LOBBY_TABS.filter(t => (saved ?? []).includes(t));
+    return hasElements(picked) ? picked : [activeTab(counts, legacy)];
+};
+
+/** Switch an area on or off. The last one left stays on, so the lobby is never blank. */
+export const toggleTab = (tabs: readonly LobbyTab[], tab: LobbyTab): LobbyTab[] => {
+    if (!tabs.includes(tab)) return LOBBY_TABS.filter(t => t === tab || tabs.includes(t));
+    return tabs.length > 1 ? tabs.filter(t => t !== tab) : [...tabs];
+};
+
 /** The tables a tab shows for one game type. */
 export const gamesFor = (games: GameWithFormat[], tab: LobbyTab, type: string | undefined): GameWithFormat[] =>
     games.filter(g => tabOf(g) === tab && gameTypeOf(g) === type);
 
-/** A game type's short name for a phone's chip row ("Hold'em", "PLO"); unknown types keep their name. */
+/**
+ * A game type as the lobby names it: "Hold'em" or "Omaha" (5- and 6-card Omaha
+ * will sit under Omaha as PLO5 / PLO6 when they arrive). Unknown types keep their name.
+ */
 export const shortGameType = (type: string): string => {
     const t = type.toLowerCase();
-    if (t.includes("omaha")) return t.includes("pot-limit") || t.includes("pot limit") ? "PLO" : "Omaha";
+    if (t.includes("omaha")) return "Omaha";
     if (t.includes("hold")) return "Hold'em";
     return type;
 };

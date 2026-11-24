@@ -20,6 +20,13 @@ import {
     lobbyPhase,
     stakeLevelOf,
     stakeLevels,
+    tileSizesLabel,
+    busiestRow,
+    levelSummary,
+    growFrom,
+    inviteOnlyTables,
+    type LobbyFilter,
+    LEVEL_DEFAULT_STAKES,
     tileTable,
     feltLabels,
     rowView,
@@ -560,6 +567,49 @@ describe("stake levels and tiles", () => {
         expect(groups.map(g => g.level)).toEqual(["micro", "low", "mid", "high"]);
         expect(groups[0].rows.map(r => r.sample.bigBlind)).toEqual(["20000", "100000"]);
         expect(stakeLevels([])).toEqual([]);
+    });
+
+    it("keeps all four cash levels when asked, empty ones included", () => {
+        const only = groupStakeRows([cash("a", 0.01, 0.02, 3, 9)]);
+        expect(stakeLevels(only, true).map(g => [g.level, g.rows.length])).toEqual([["micro", 1], ["low", 0], ["mid", 0], ["high", 0]]);
+        expect(stakeLevels(only).map(g => g.level)).toEqual(["micro"]);
+    });
+
+    it("gives every cash level stakes that fall inside it", () => {
+        for (const level of ["micro", "low", "mid", "high"] as const) {
+            const { smallBlind, bigBlind } = LEVEL_DEFAULT_STAKES[level];
+            expect(stakeLevelOf(groupStakeRows([cash("x", smallBlind, bigBlind, 0, 9)])[0])).toBe(level);
+        }
+    });
+
+    it("writes a tile's sizes short, biggest first", () => {
+        expect(tileSizesLabel([2, 4, 9])).toBe("9-max · 6-max · H/U");
+        expect(tileSizesLabel([6, 6])).toBe("6-max");
+        expect(tileSizesLabel([2])).toBe("H/U");
+    });
+
+    it("hides full or empty tables, and invite-only Circles' tables unless asked", () => {
+        const games = [cash("busy", 0.01, 0.02, 3, 9), cash("full", 0.01, 0.02, 2, 2), cash("empty", 0.01, 0.02, 0, 9), cash("vip", 0.01, 0.02, 4, 9)];
+        const base = { query: "", stakes: [], sizes: [], treasuryOnly: false, treasuryAddress: "" };
+        const invite = inviteOnlyTables({ vip: { joining: "invite" }, busy: { joining: "open" } });
+        const ids = (f: Partial<LobbyFilter>) => filterLobbyGames(games, { ...base, inviteOnly: invite, ...f }).map(g => g.gameId);
+        expect(ids({})).toEqual(["busy", "full", "empty"]);
+        expect(ids({ showInviteOnly: true })).toEqual(["busy", "full", "empty", "vip"]);
+        expect(ids({ hideFull: true })).toEqual(["busy", "empty"]);
+        expect(ids({ hideEmpty: true })).toEqual(["busy", "full"]);
+        expect(activeFilterCount({ query: "", stakes: [], sizes: [], hideFull: true, inviteOnly: true })).toBe(2);
+    });
+
+    it("works out how to sit the panel over the tile it grows from", () => {
+        expect(growFrom({ left: 0, top: 0, width: 200, height: 100 }, { left: 300, top: 200, width: 800, height: 400 })).toBe("translate(-600px, -350px) scale(0.250, 0.250)");
+        expect(growFrom({ left: 10, top: 10, width: 50, height: 50 }, { left: 10, top: 10, width: 0, height: 0 })).toBe("translate(25px, 25px) scale(1.000, 1.000)");
+    });
+
+    it("finds a level's busiest stake and adds up its players and tables", () => {
+        const level = groupStakeRows([cash("a", 0.01, 0.02, 3, 9), cash("b", 0.05, 0.1, 6, 9), cash("c", 0.05, 0.1, 0, 2)]);
+        expect(busiestRow(level)?.sample.bigBlind).toBe("100000");
+        expect(levelSummary(level)).toEqual({ seated: 9, tables: 3 });
+        expect(busiestRow([])).toBeUndefined();
     });
 
     it("keeps tournaments as one group", () => {
