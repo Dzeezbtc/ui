@@ -1,5 +1,5 @@
 import type { PlayerHand } from "../types/players";
-import { playStats, recentTableIds, socialLinks } from "./lobbySide";
+import { playStats, recentTableIds, socialLinks, lobbyPromos } from "./lobbySide";
 
 const hand = (game: string, status: string, won: number): PlayerHand => ({
     game_id: game,
@@ -30,5 +30,20 @@ describe("lobby side column", () => {
         const links = socialLinks({ VITE_SOCIAL_X: "https://x.com/example", VITE_SOCIAL_TELEGRAM: " ", VITE_SOCIAL_DISCORD: "http://insecure" });
         expect(links.map(l => l.kind)).toEqual(["x", "telegram", "discord", "youtube", "instagram"]);
         expect(links.map(l => l.url)).toEqual(["https://x.com/example", null, null, null, null]);
+    });
+});
+
+describe("lobbyPromos", () => {
+    it("always offers New here? first, linking How it works", () => {
+        expect(lobbyPromos({})[0]).toEqual({ kind: "newHere", href: "/how-it-works", external: false });
+    });
+
+    it("sends Run your own Circle to the first club console", () => {
+        expect(lobbyPromos({ VITE_CLUB_CONSOLE_URLS: " https://club.example.com/ , https://other.example.com" })[1]).toEqual({ kind: "runCircle", href: "https://club.example.com", external: true });
+    });
+
+    it("falls back to the FAQ without an https console", () => {
+        expect(lobbyPromos({})[1]).toEqual({ kind: "runCircle", href: "/faq", external: false });
+        expect(lobbyPromos({ VITE_CLUB_CONSOLE_URLS: "http://localhost:3000" })[1].href).toBe("/faq");
     });
 });
