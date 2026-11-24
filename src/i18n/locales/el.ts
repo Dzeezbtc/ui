@@ -44,6 +44,8 @@ const strings: Translations = {
     "nav.players": "Παίκτες",
     "nav.awards": "Βραβεία",
     "nav.techNotesShort": "Τεχνικές σημειώσεις",
+    "nav.myTables": "Τραπέζια",
+    "nav.openTables": "Τα ανοιχτά σου τραπέζια",
     "nav.more": "Περισσότερα",
     "nav.myWallet": "Το πορτοφόλι μου",
     "nav.explore": "Εξερεύνηση",

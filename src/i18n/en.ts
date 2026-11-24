@@ -47,6 +47,8 @@ export const en = {
     "nav.players": "Players",
     "nav.awards": "Awards",
     "nav.techNotesShort": "Tech notes",
+    "nav.myTables": "Tables",
+    "nav.openTables": "Your open tables",
     "nav.more": "More",
     "nav.myWallet": "My wallet",
     "nav.explore": "Explore",

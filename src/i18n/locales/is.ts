@@ -44,6 +44,8 @@ const strings: Translations = {
     "nav.players": "Spilarar",
     "nav.awards": "Verðlaun",
     "nav.techNotesShort": "Tæknilegar athugasemdir",
+    "nav.myTables": "Borð",
+    "nav.openTables": "Opnu borðin þín",
     "nav.more": "Meira",
     "nav.myWallet": "Veskið mitt",
     "nav.explore": "Kanna",

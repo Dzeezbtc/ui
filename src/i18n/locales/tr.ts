@@ -44,6 +44,8 @@ const strings: Translations = {
     "nav.players": "Oyuncular",
     "nav.awards": "Ödüller",
     "nav.techNotesShort": "Teknik notlar",
+    "nav.myTables": "Masalar",
+    "nav.openTables": "Açık masaların",
     "nav.more": "Daha fazla",
     "nav.myWallet": "Cüzdanım",
     "nav.explore": "Keşfet",

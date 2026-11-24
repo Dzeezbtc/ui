@@ -44,6 +44,8 @@ const strings: Translations = {
     "nav.players": "Mga manlalaro",
     "nav.awards": "Mga parangal",
     "nav.techNotesShort": "Mga tech note",
+    "nav.myTables": "Mga mesa",
+    "nav.openTables": "Mga bukas mong mesa",
     "nav.more": "Iba pa",
     "nav.myWallet": "Aking wallet",
     "nav.explore": "Tuklasin",
